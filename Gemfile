@@ -1,0 +1,11 @@
+source "https://rubygems.org"
+
+gem "fastlane"
+gem "fastlane-plugin-increment_version_name"
+gem "fastlane-plugin-increment_version_code"
+gem "fastlane-plugin-json"
+gem "fastlane-plugin-versioning"
+gem "fastlane-plugin-sentry"
+gem "semantic"
+gem "ruby-lsp"
+gem "rubocop"
