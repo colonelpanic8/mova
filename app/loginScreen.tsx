@@ -3,14 +3,11 @@ import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
 import { AuthContext, useAuth } from "../context/authContext";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
-/**
- * Utility to encode the username/password in base64 for Basic Auth.
- */
 const encodeCredentials = (username: string, password: string): string => {
 	return btoa(`${username}:${password}`);
 };
 
-const LoginScreen: React.FC = ({ navigation }) => {
+export const LoginScreen: React.FC = ({ navigation }) => {
 	const [url, setUrl] = useState<string>("");
 	const [username, setUsername] = useState<string>("");
 	const [password, setPassword] = useState<string>("");
@@ -33,6 +30,8 @@ const LoginScreen: React.FC = ({ navigation }) => {
 					Authorization: `Basic ${token}`,
 				},
 			});
+
+			console.log(`Got response ${response}`);
 
 			if (response.ok) {
 				// Store token in context

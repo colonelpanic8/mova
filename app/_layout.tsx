@@ -1,14 +1,18 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import "react-native-reanimated";
 import React, { useState, useContext } from "react";
 import { useAuth, AuthProvider } from "../context/authContext";
-import { LoginScreen } from './loginScreen';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { LoginScreen } from "./loginScreen";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -16,7 +20,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
   useEffect(() => {
@@ -28,10 +32,10 @@ export default function RootLayout() {
   if (!loaded) {
     return null;
   }
-  // Wrap everything in AuthProvider, so we can read auth state
+
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <AuthOrApp />
         <StatusBar style="auto" />
       </ThemeProvider>
@@ -40,14 +44,6 @@ export default function RootLayout() {
 }
 
 function AuthOrApp() {
-  const { authToken } = { authToken: null};
-
-  // If not logged in, show the <LoginScreen>
-  if (!authToken) {
-    return <LoginScreen />;
-  }
-
-  // If logged in, render the rest of the app (tabs, screens, etc.)
   return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
