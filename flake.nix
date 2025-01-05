@@ -34,7 +34,7 @@
       };
       nodejs = pkgs.nodejs-18_x;
       cmakeVersion = "3.22.1";
-      buildToolsVersion = "34.0.0";
+      buildToolsVersion = "35.0.0";
       gems = pkgs.bundlerEnv {
         name = "railbird-fastlane-environment";
         gemfile = ./Gemfile;
@@ -61,10 +61,10 @@
       androidComposition = pkgs.androidenv.composeAndroidPackages {
         cmdLineToolsVersion = cmdLineToolsVersion;
         toolsVersion = "26.1.1";
-        platformToolsVersion = "34.0.5";
-        buildToolsVersions = ["30.0.3" "33.0.1" buildToolsVersion];
+        platformToolsVersion = "35.0.2";
+        buildToolsVersions = ["30.0.3" "33.0.1" "34.0.0" buildToolsVersion];
         includeEmulator = true;
-        platformVersions = ["30" "33" "34"];
+        platformVersions = ["30" "33" "34" "35"];
         includeSources = false;
         includeSystemImages = true;
         systemImageTypes = ["google_apis_playstore"];
