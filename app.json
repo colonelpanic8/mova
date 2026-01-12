@@ -46,6 +46,8 @@
           "backgroundColor": "#ffffff"
         }
       ],
+      "expo-notifications",
+      "expo-background-fetch",
       [
         "react-native-android-widget",
         {

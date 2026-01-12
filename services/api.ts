@@ -9,6 +9,16 @@ export interface Todo {
   pos: number | null;
   id: string | null;
   olpath: string[] | null;
+  notifyBefore: number[] | null;
+}
+
+export interface NotificationDefaults {
+  notifyBefore: number[];
+}
+
+export interface GetAllTodosResponse {
+  defaults: NotificationDefaults;
+  todos: Todo[];
 }
 
 export interface AgendaResponse {
@@ -60,8 +70,8 @@ class OrgAgendaApi {
     return this.request<AgendaResponse>(`/agenda?span=${span}`);
   }
 
-  async getAllTodos(): Promise<Todo[]> {
-    return this.request<Todo[]>('/get-all-todos');
+  async getAllTodos(): Promise<GetAllTodosResponse> {
+    return this.request<GetAllTodosResponse>('/get-all-todos');
   }
 
   async createTodo(title: string): Promise<CreateTodoResponse> {
