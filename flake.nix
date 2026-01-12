@@ -27,7 +27,7 @@
         cmdLineToolsVersion = cmdLineToolsVersion;
         toolsVersion = "26.1.1";
         platformToolsVersion = "35.0.2";
-        buildToolsVersions = [buildToolsVersion];
+        buildToolsVersions = [buildToolsVersion "34.0.0"];
         includeEmulator = true;
         platformVersions = ["35"];
         includeSources = false;
@@ -36,6 +36,7 @@
         abiVersions = ["x86_64"];
         includeNDK = true;
         ndkVersions = ["26.1.10909125"];
+        cmakeVersions = ["3.22.1"];
         useGoogleAPIs = true;
         useGoogleTVAddOns = false;
       };
