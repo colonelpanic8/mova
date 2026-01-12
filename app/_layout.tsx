@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import { useColorScheme, View, ActivityIndicator } from 'react-native';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { useDeepLinks } from '@/hooks/useDeepLinks';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 
@@ -12,6 +13,9 @@ function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+
+  // Handle deep links (mova://create, mova://complete, etc.)
+  useDeepLinks();
 
   useEffect(() => {
     if (isLoading) return;
