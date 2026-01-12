@@ -1,82 +1,103 @@
-import React, { useState } from "react";
-import { View, TextInput, Button, Alert, StyleSheet } from "react-native";
-import { useAuth } from "@/context/authContext";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import React, { useState } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { TextInput, Button, Text, Snackbar, useTheme } from 'react-native-paper';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@/services/api';
 
-const CaptureScreen: React.FC = () => {
-	// Pull URL, username, and password from context
-	const { url, username, password } = useAuth();
+export default function CaptureScreen() {
+  const [title, setTitle] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const { apiUrl, username, password } = useAuth();
+  const theme = useTheme();
 
-	// Local state for the input title
-	const [title, setTitle] = useState("");
+  async function handleCreate() {
+    if (!title.trim()) {
+      setMessage({ text: 'Please enter a title', isError: true });
+      return;
+    }
 
-	const handleCreateTodo = async () => {
-		// If no URL, username, or password is configured, let the user know
-		if (!url || !username || !password) {
-			Alert.alert(
-				"Error",
-				"No URL or username/password configured in settings.",
-			);
-			return;
-		}
+    if (!apiUrl || !username || !password) {
+      setMessage({ text: 'Not connected to server', isError: true });
+      return;
+    }
 
-		try {
-			// Encode username/password into Base64 for Basic Auth
-			const token = btoa(`${username}:${password}`);
+    setLoading(true);
 
-			// POST request to your "create-todo" route, with Basic Auth
-			const response = await fetch(`${url}/create-todo`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Basic ${token}`,
-				},
-				body: JSON.stringify({
-					title: title,
-				}),
-			});
+    try {
+      api.configure(apiUrl, username, password);
+      await api.createTodo(title.trim());
+      setMessage({ text: 'Todo created!', isError: false });
+      setTitle('');
+    } catch (err) {
+      setMessage({ text: 'Failed to create todo', isError: true });
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-			if (!response.ok) {
-				throw new Error(`Request failed with status ${response.status}`);
-			}
+  return (
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={styles.content}>
+        <Text variant="headlineSmall" style={styles.title}>
+          Quick Capture
+        </Text>
 
-			const data = await response.json();
-			Alert.alert("Success", "Todo created successfully!");
-			setTitle("");
-		} catch (error: any) {
-			Alert.alert("Error", error.message);
-		}
-	};
+        <TextInput
+          label="What needs to be done?"
+          value={title}
+          onChangeText={setTitle}
+          mode="outlined"
+          style={styles.input}
+          multiline
+          numberOfLines={3}
+        />
 
-	return (
-		<ThemedView style={styles.container}>
-			<TextInput
-				style={styles.input}
-				placeholder="Heading"
-				value={title}
-				onChangeText={setTitle}
-			/>
-			<Button title="Create Todo" onPress={handleCreateTodo} />
-		</ThemedView>
-	);
-};
+        <Button
+          mode="contained"
+          onPress={handleCreate}
+          loading={loading}
+          disabled={loading}
+          style={styles.button}
+          icon="plus"
+        >
+          Create Todo
+        </Button>
+      </View>
 
-export default CaptureScreen;
+      <Snackbar
+        visible={!!message}
+        onDismiss={() => setMessage(null)}
+        duration={3000}
+        style={message?.isError ? { backgroundColor: theme.colors.error } : undefined}
+      >
+        {message?.text}
+      </Snackbar>
+    </KeyboardAvoidingView>
+  );
+}
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		padding: 16,
-		justifyContent: "center",
-	},
-	input: {
-		borderWidth: 1,
-		borderColor: "#ccc",
-		borderRadius: 4,
-		paddingHorizontal: 8,
-		paddingVertical: 6,
-		marginBottom: 16,
-		backgroundColor: "#ffffff",
-	},
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  input: {
+    marginBottom: 16,
+  },
+  button: {
+    marginTop: 8,
+  },
 });

@@ -1,54 +1,63 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
-import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import "react-native-reanimated";
-import React, { useState, useContext } from "react";
-import { useAuth, AuthProvider } from "../context/authContext";
-import { LoginScreen } from "./loginScreen";
-import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+import { useColorScheme, View, ActivityIndicator } from 'react-native';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import * as SplashScreen from 'expo-splash-screen';
+import 'react-native-reanimated';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-  });
+function RootLayoutNav() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
-    if (loaded) {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === '(tabs)';
+
+    if (isAuthenticated && !inAuthGroup) {
+      router.replace('/(tabs)');
+    } else if (!isAuthenticated && inAuthGroup) {
+      router.replace('/login');
+    } else if (!isAuthenticated && segments.length === 0) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, isLoading, segments]);
+
+  useEffect(() => {
+    if (!isLoading) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [isLoading]);
 
-  if (!loaded) {
-    return null;
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
   return (
-    <AuthProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <AuthOrApp />
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </AuthProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login" />
+      <Stack.Screen name="(tabs)" />
+    </Stack>
   );
 }
 
-function AuthOrApp() {
+export default function RootLayout() {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+
   return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="+not-found" />
-      {/* Add more screens if desired */}
-    </Stack>
+    <PaperProvider theme={theme}>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </PaperProvider>
   );
 }
