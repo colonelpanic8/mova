@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
-import { Searchbar, Text, useTheme, ActivityIndicator, Chip } from 'react-native-paper';
+import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { Searchbar, Text, useTheme, ActivityIndicator, Chip, Snackbar } from 'react-native-paper';
 import { useAuth } from '@/context/AuthContext';
 import { api, Todo } from '@/services/api';
 
@@ -11,6 +11,12 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
+  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string; isError: boolean }>({
+    visible: false,
+    message: '',
+    isError: false,
+  });
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
 
@@ -55,6 +61,56 @@ export default function SearchScreen() {
     setRefreshing(false);
   }, [fetchTodos]);
 
+  const getTodoKey = (todo: Todo): string => {
+    return todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
+  };
+
+  const handleTodoPress = async (todo: Todo) => {
+    const key = getTodoKey(todo);
+
+    // Don't allow completing if already in progress
+    if (completingIds.has(key)) return;
+
+    // Don't complete already done items
+    if (todo.todo?.toUpperCase() === 'DONE') {
+      setSnackbar({ visible: true, message: 'Already completed', isError: false });
+      return;
+    }
+
+    setCompletingIds(prev => new Set(prev).add(key));
+
+    try {
+      const result = await api.completeTodo(todo);
+
+      if (result.status === 'completed') {
+        setSnackbar({
+          visible: true,
+          message: `Completed: ${todo.title}`,
+          isError: false
+        });
+        // Update local state to reflect completion
+        setTodos(prev => prev.map(t =>
+          getTodoKey(t) === key ? { ...t, todo: result.newState || 'DONE' } : t
+        ));
+      } else {
+        setSnackbar({
+          visible: true,
+          message: result.message || 'Failed to complete',
+          isError: true
+        });
+      }
+    } catch (err) {
+      console.error('Failed to complete todo:', err);
+      setSnackbar({ visible: true, message: 'Failed to complete todo', isError: true });
+    } finally {
+      setCompletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
@@ -89,43 +145,64 @@ export default function SearchScreen() {
       ) : (
         <FlatList
           data={filteredTodos}
-          keyExtractor={(item, index) => `${index}-${item.title}`}
-          renderItem={({ item }) => (
-            <View style={[styles.todoItem, { borderBottomColor: theme.colors.outlineVariant }]}>
-              <View style={styles.todoHeader}>
-                {item.todo && (
-                  <Chip
-                    mode="flat"
-                    compact
-                    style={[
-                      styles.todoChip,
-                      { backgroundColor: getTodoColor(item.todo, theme) }
-                    ]}
-                    textStyle={{ fontSize: 10, color: 'white' }}
-                  >
-                    {item.todo}
-                  </Chip>
-                )}
-                <Text variant="bodyMedium" style={styles.todoTitle} numberOfLines={2}>
-                  {item.title}
-                </Text>
-              </View>
-              {item.tags && item.tags.length > 0 && (
-                <View style={styles.tagsContainer}>
-                  {item.tags.map((tag, i) => (
-                    <Text key={i} style={[styles.tag, { color: theme.colors.primary }]}>
-                      :{tag}:
-                    </Text>
-                  ))}
+          keyExtractor={(item) => getTodoKey(item)}
+          renderItem={({ item }) => {
+            const key = getTodoKey(item);
+            const isCompleting = completingIds.has(key);
+
+            return (
+              <View style={[styles.todoItem, { borderBottomColor: theme.colors.outlineVariant }]}>
+                <View style={styles.todoHeader}>
+                  {item.todo && (
+                    <TouchableOpacity
+                      onPress={() => handleTodoPress(item)}
+                      disabled={isCompleting}
+                      activeOpacity={0.7}
+                    >
+                      <Chip
+                        mode="flat"
+                        compact
+                        style={[
+                          styles.todoChip,
+                          { backgroundColor: getTodoColor(item.todo, theme) },
+                          isCompleting && styles.todoChipLoading,
+                        ]}
+                        textStyle={{ fontSize: 10, color: 'white' }}
+                      >
+                        {isCompleting ? '...' : item.todo}
+                      </Chip>
+                    </TouchableOpacity>
+                  )}
+                  <Text variant="bodyMedium" style={styles.todoTitle} numberOfLines={2}>
+                    {item.title}
+                  </Text>
                 </View>
-              )}
-            </View>
-          )}
+                {item.tags && item.tags.length > 0 && (
+                  <View style={styles.tagsContainer}>
+                    {item.tags.map((tag, i) => (
+                      <Text key={i} style={[styles.tag, { color: theme.colors.primary }]}>
+                        :{tag}:
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            );
+          }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         />
       )}
+
+      <Snackbar
+        visible={snackbar.visible}
+        onDismiss={() => setSnackbar(prev => ({ ...prev, visible: false }))}
+        duration={2000}
+        style={snackbar.isError ? { backgroundColor: theme.colors.error } : undefined}
+      >
+        {snackbar.message}
+      </Snackbar>
     </View>
   );
 }
@@ -171,6 +248,9 @@ const styles = StyleSheet.create({
   },
   todoChip: {
     height: 20,
+  },
+  todoChipLoading: {
+    opacity: 0.6,
   },
   todoTitle: {
     flex: 1,
