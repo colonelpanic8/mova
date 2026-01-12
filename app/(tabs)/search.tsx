@@ -25,9 +25,9 @@ export default function SearchScreen() {
 
     try {
       api.configure(apiUrl, username, password);
-      const data = await api.getAllTodos();
-      setTodos(data);
-      setFilteredTodos(data);
+      const response = await api.getAllTodos();
+      setTodos(response.todos);
+      setFilteredTodos(response.todos);
       setError(null);
     } catch (err) {
       setError('Failed to load todos');
