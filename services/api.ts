@@ -5,6 +5,10 @@ export interface Todo {
   level: number;
   scheduled: string | null;
   deadline: string | null;
+  file: string | null;
+  pos: number | null;
+  id: string | null;
+  olpath: string[] | null;
 }
 
 export interface AgendaResponse {
@@ -16,6 +20,14 @@ export interface AgendaResponse {
 export interface CreateTodoResponse {
   status: string;
   title: string;
+}
+
+export interface CompleteTodoResponse {
+  status: string;
+  title?: string;
+  oldState?: string;
+  newState?: string;
+  message?: string;
 }
 
 class OrgAgendaApi {
@@ -56,6 +68,19 @@ class OrgAgendaApi {
     return this.request<CreateTodoResponse>('/create-todo', {
       method: 'POST',
       body: JSON.stringify({ title }),
+    });
+  }
+
+  async completeTodo(todo: Todo, newState: string = 'DONE'): Promise<CompleteTodoResponse> {
+    return this.request<CompleteTodoResponse>('/complete', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: todo.id,
+        file: todo.file,
+        pos: todo.pos,
+        title: todo.title,
+        state: newState,
+      }),
     });
   }
 }
