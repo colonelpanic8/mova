@@ -1,65 +1,62 @@
-import React from "react";
-import { View, Text, TextInput, StyleSheet, Button } from "react-native";
-import { useAuth } from "@/context/authContext";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import React from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Button, List, Divider, useTheme } from 'react-native-paper';
+import { useAuth } from '@/context/AuthContext';
 
-const SettingsScreen: React.FC = () => {
-	const { url, setUrl, username, setUsername, password, setPassword } =
-		useAuth();
+export default function SettingsScreen() {
+  const { apiUrl, username, logout } = useAuth();
+  const theme = useTheme();
 
-	return (
-		<ThemedView style={styles.container}>
-			<ThemedText style={styles.label}>URL</ThemedText>
-			<TextInput
-				style={styles.input}
-				placeholder="Enter URL"
-				value={url}
-				onChangeText={setUrl}
-				autoCapitalize="none"
-			/>
+  return (
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <List.Section>
+        <List.Subheader>Connection</List.Subheader>
+        <List.Item
+          title="Server URL"
+          description={apiUrl || 'Not connected'}
+          left={props => <List.Icon {...props} icon="server" />}
+        />
+        <List.Item
+          title="Username"
+          description={username || 'Not logged in'}
+          left={props => <List.Icon {...props} icon="account" />}
+        />
+      </List.Section>
 
-			<ThemedText style={styles.label}>Username</ThemedText>
-			<TextInput
-				style={styles.input}
-				placeholder="Enter username"
-				value={username}
-				onChangeText={setUsername}
-				autoCapitalize="none"
-			/>
+      <Divider />
 
-			<ThemedText style={styles.label}>Password</ThemedText>
-			<TextInput
-				style={styles.input}
-				placeholder="Enter password"
-				value={password}
-				onChangeText={setPassword}
-				secureTextEntry
-			/>
-		</ThemedView>
-	);
-};
+      <View style={styles.buttonContainer}>
+        <Button
+          mode="outlined"
+          onPress={logout}
+          icon="logout"
+          textColor={theme.colors.error}
+          style={styles.logoutButton}
+        >
+          Disconnect
+        </Button>
+      </View>
 
-export default SettingsScreen;
+      <List.Section>
+        <List.Subheader>About</List.Subheader>
+        <List.Item
+          title="Mova"
+          description="Mobile client for org-agenda-api"
+          left={props => <List.Icon {...props} icon="information" />}
+        />
+      </List.Section>
+    </ScrollView>
+  );
+}
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		padding: 16,
-		justifyContent: "flex-start",
-	},
-	label: {
-		fontSize: 16,
-		fontWeight: "600",
-		marginVertical: 8,
-	},
-	input: {
-		borderWidth: 1,
-		borderColor: "#ccc",
-		borderRadius: 4,
-		paddingHorizontal: 8,
-		paddingVertical: 6,
-		marginBottom: 16,
-		backgroundColor: "#ffffff",
-	},
+  container: {
+    flex: 1,
+  },
+  buttonContainer: {
+    padding: 16,
+  },
+  logoutButton: {
+    borderColor: 'transparent',
+  },
 });
