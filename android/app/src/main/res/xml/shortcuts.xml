@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- App Action: Create a todo item via Google Assistant -->
+    <!-- User can say: "Hey Google, add [item] to Mova" -->
+    <!-- or "Hey Google, create a todo in Mova for [item]" -->
+    <capability android:name="actions.intent.CREATE_ITEM_LIST">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.anonymous.mova"
+            android:targetClass="com.anonymous.mova.MainActivity">
+            <!-- Map the item name to our deep link title parameter -->
+            <parameter
+                android:name="itemList.itemListElement.name"
+                android:key="title"/>
+            <url-template android:value="mova://create{?title}"/>
+        </intent>
+    </capability>
+
+    <!-- Static shortcut for quick capture -->
+    <shortcut
+        android:shortcutId="capture"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_capture_short"
+        android:shortcutLongLabel="@string/shortcut_capture_long"
+        android:icon="@mipmap/ic_launcher">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="mova://create"/>
+        <capability-binding android:key="actions.intent.CREATE_ITEM_LIST"/>
+    </shortcut>
+
+    <!-- Static shortcut for search -->
+    <shortcut
+        android:shortcutId="search"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_search_short"
+        android:shortcutLongLabel="@string/shortcut_search_long"
+        android:icon="@mipmap/ic_launcher">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="mova://search"/>
+    </shortcut>
+</shortcuts>
