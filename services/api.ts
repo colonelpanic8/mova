@@ -5,12 +5,16 @@ export interface Todo {
   level: number;
   scheduled: string | null;
   deadline: string | null;
-  priority: string | null;
+  priority: number | null;
   file: string | null;
   pos: number | null;
   id: string | null;
   olpath: string[] | null;
   notifyBefore: number[] | null;
+}
+
+export interface AgendaEntry extends Todo {
+  agendaLine: string;
 }
 
 export interface NotificationDefaults {
@@ -25,7 +29,7 @@ export interface GetAllTodosResponse {
 export interface AgendaResponse {
   span: string;
   date: string;
-  entries: string[];
+  entries: AgendaEntry[];
 }
 
 export interface CreateTodoResponse {
