@@ -1,4 +1,5 @@
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PREFS_NAME = 'mova_widget_prefs';
 
@@ -14,9 +15,6 @@ export interface WidgetCredentials {
   password: string | null;
 }
 
-// For widget context - uses SharedPreferences directly via native module
-const SharedPreferences = NativeModules.SharedPreferences;
-
 // Storage keys
 export const STORAGE_KEYS = {
   API_URL: 'mova_api_url',
@@ -26,7 +24,7 @@ export const STORAGE_KEYS = {
 };
 
 /**
- * Save credentials to SharedPreferences (for widget access)
+ * Save credentials to AsyncStorage (for widget access)
  * Call this from the main app when user logs in
  */
 export async function saveCredentialsToWidget(
@@ -37,35 +35,33 @@ export async function saveCredentialsToWidget(
   if (Platform.OS !== 'android') return;
 
   try {
-    const { WidgetStorage } = await import('react-native-android-widget');
-    await WidgetStorage.setItem(STORAGE_KEYS.API_URL, apiUrl, PREFS_NAME);
-    await WidgetStorage.setItem(STORAGE_KEYS.USERNAME, username, PREFS_NAME);
-    await WidgetStorage.setItem(STORAGE_KEYS.PASSWORD, password, PREFS_NAME);
+    await AsyncStorage.setItem(STORAGE_KEYS.API_URL, apiUrl);
+    await AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username);
+    await AsyncStorage.setItem(STORAGE_KEYS.PASSWORD, password);
   } catch (error) {
     console.error('Failed to save credentials to widget storage:', error);
   }
 }
 
 /**
- * Clear credentials from SharedPreferences
+ * Clear credentials from AsyncStorage
  * Call this from the main app when user logs out
  */
 export async function clearWidgetCredentials(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
   try {
-    const { WidgetStorage } = await import('react-native-android-widget');
-    await WidgetStorage.removeItem(STORAGE_KEYS.API_URL, PREFS_NAME);
-    await WidgetStorage.removeItem(STORAGE_KEYS.USERNAME, PREFS_NAME);
-    await WidgetStorage.removeItem(STORAGE_KEYS.PASSWORD, PREFS_NAME);
-    await WidgetStorage.removeItem(STORAGE_KEYS.PENDING_TODOS, PREFS_NAME);
+    await AsyncStorage.removeItem(STORAGE_KEYS.API_URL);
+    await AsyncStorage.removeItem(STORAGE_KEYS.USERNAME);
+    await AsyncStorage.removeItem(STORAGE_KEYS.PASSWORD);
+    await AsyncStorage.removeItem(STORAGE_KEYS.PENDING_TODOS);
   } catch (error) {
     console.error('Failed to clear widget credentials:', error);
   }
 }
 
 /**
- * Get credentials from SharedPreferences
+ * Get credentials from AsyncStorage
  * Used by widget background task
  */
 export async function getWidgetCredentials(): Promise<WidgetCredentials> {
@@ -74,10 +70,9 @@ export async function getWidgetCredentials(): Promise<WidgetCredentials> {
   }
 
   try {
-    const { WidgetStorage } = await import('react-native-android-widget');
-    const apiUrl = await WidgetStorage.getItem(STORAGE_KEYS.API_URL, PREFS_NAME);
-    const username = await WidgetStorage.getItem(STORAGE_KEYS.USERNAME, PREFS_NAME);
-    const password = await WidgetStorage.getItem(STORAGE_KEYS.PASSWORD, PREFS_NAME);
+    const apiUrl = await AsyncStorage.getItem(STORAGE_KEYS.API_URL);
+    const username = await AsyncStorage.getItem(STORAGE_KEYS.USERNAME);
+    const password = await AsyncStorage.getItem(STORAGE_KEYS.PASSWORD);
     return { apiUrl, username, password };
   } catch (error) {
     console.error('Failed to get widget credentials:', error);
@@ -92,8 +87,7 @@ export async function getPendingTodos(): Promise<PendingTodo[]> {
   if (Platform.OS !== 'android') return [];
 
   try {
-    const { WidgetStorage } = await import('react-native-android-widget');
-    const json = await WidgetStorage.getItem(STORAGE_KEYS.PENDING_TODOS, PREFS_NAME);
+    const json = await AsyncStorage.getItem(STORAGE_KEYS.PENDING_TODOS);
     return json ? JSON.parse(json) : [];
   } catch (error) {
     console.error('Failed to get pending todos:', error);
@@ -108,11 +102,9 @@ export async function savePendingTodos(todos: PendingTodo[]): Promise<void> {
   if (Platform.OS !== 'android') return;
 
   try {
-    const { WidgetStorage } = await import('react-native-android-widget');
-    await WidgetStorage.setItem(
+    await AsyncStorage.setItem(
       STORAGE_KEYS.PENDING_TODOS,
-      JSON.stringify(todos),
-      PREFS_NAME
+      JSON.stringify(todos)
     );
   } catch (error) {
     console.error('Failed to save pending todos:', error);
