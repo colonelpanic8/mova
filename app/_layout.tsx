@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import { useColorScheme, View, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { useDeepLinks } from '@/hooks/useDeepLinks';
 import * as SplashScreen from 'expo-splash-screen';
@@ -58,10 +59,12 @@ export default function RootLayout() {
   const theme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
 
   return (
-    <PaperProvider theme={theme}>
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
-    </PaperProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PaperProvider theme={theme}>
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </PaperProvider>
+    </GestureHandlerRootView>
   );
 }
