@@ -58,6 +58,11 @@ export interface UpdateTodoResponse {
   message?: string;
 }
 
+export interface TodoStatesResponse {
+  active: string[];
+  done: string[];
+}
+
 class OrgAgendaApi {
   private baseUrl: string = '';
   private authHeader: string = '';
@@ -121,6 +126,23 @@ class OrgAgendaApi {
         pos: todo.pos,
         title: todo.title,
         ...updates,
+      }),
+    });
+  }
+
+  async getTodoStates(): Promise<TodoStatesResponse> {
+    return this.request<TodoStatesResponse>('/todo-states');
+  }
+
+  async setTodoState(todo: Todo, newState: string): Promise<CompleteTodoResponse> {
+    return this.request<CompleteTodoResponse>('/complete', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: todo.id,
+        file: todo.file,
+        pos: todo.pos,
+        title: todo.title,
+        state: newState,
       }),
     });
   }

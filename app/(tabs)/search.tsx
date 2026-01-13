@@ -4,9 +4,9 @@ import { Searchbar, Text, useTheme, ActivityIndicator, Chip, Snackbar, Portal, M
 import { Swipeable } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/context/AuthContext';
-import { api, Todo, TodoUpdates } from '@/services/api';
+import { api, Todo, TodoUpdates, TodoStatesResponse } from '@/services/api';
 
-type EditModalType = 'schedule' | 'deadline' | 'priority' | null;
+type EditModalType = 'schedule' | 'deadline' | 'priority' | 'state' | null;
 
 export default function SearchScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -30,6 +30,8 @@ export default function SearchScreen() {
   const [includeTime, setIncludeTime] = useState(false);
   const [selectedPriority, setSelectedPriority] = useState<string>('');
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
+  const [selectedState, setSelectedState] = useState<string>('');
 
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
@@ -41,9 +43,15 @@ export default function SearchScreen() {
 
     try {
       api.configure(apiUrl, username, password);
-      const response = await api.getAllTodos();
-      setTodos(response.todos);
-      setFilteredTodos(response.todos);
+      const [todosResponse, statesResponse] = await Promise.all([
+        api.getAllTodos(),
+        api.getTodoStates().catch(() => null),
+      ]);
+      setTodos(todosResponse.todos);
+      setFilteredTodos(todosResponse.todos);
+      if (statesResponse) {
+        setTodoStates(statesResponse);
+      }
       setError(null);
     } catch (err) {
       setError('Failed to load todos');
@@ -81,40 +89,42 @@ export default function SearchScreen() {
     return todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
   };
 
-  const handleTodoPress = async (todo: Todo) => {
-    const key = getTodoKey(todo);
+  const handleTodoPress = (todo: Todo) => {
+    // Open state transition modal
+    setEditingTodo(todo);
+    setEditModalType('state');
+    setSelectedState(todo.todo || '');
+  };
 
-    if (completingIds.has(key)) return;
+  const handleStateChange = async (newState: string) => {
+    if (!editingTodo) return;
 
-    if (todo.todo?.toUpperCase() === 'DONE') {
-      setSnackbar({ visible: true, message: 'Already completed', isError: false });
-      return;
-    }
-
+    const key = getTodoKey(editingTodo);
     setCompletingIds(prev => new Set(prev).add(key));
+    closeEditModal();
 
     try {
-      const result = await api.completeTodo(todo);
+      const result = await api.setTodoState(editingTodo, newState);
 
       if (result.status === 'completed') {
         setSnackbar({
           visible: true,
-          message: `Completed: ${todo.title}`,
+          message: `${editingTodo.title}: ${result.oldState} → ${result.newState}`,
           isError: false
         });
         setTodos(prev => prev.map(t =>
-          getTodoKey(t) === key ? { ...t, todo: result.newState || 'DONE' } : t
+          getTodoKey(t) === key ? { ...t, todo: result.newState || newState } : t
         ));
       } else {
         setSnackbar({
           visible: true,
-          message: result.message || 'Failed to complete',
+          message: result.message || 'Failed to change state',
           isError: true
         });
       }
     } catch (err) {
-      console.error('Failed to complete todo:', err);
-      setSnackbar({ visible: true, message: 'Failed to complete todo', isError: true });
+      console.error('Failed to change todo state:', err);
+      setSnackbar({ visible: true, message: 'Failed to change state', isError: true });
     } finally {
       setCompletingIds(prev => {
         const next = new Set(prev);
@@ -314,6 +324,51 @@ export default function SearchScreen() {
     );
   };
 
+  const renderStateModal = () => {
+    const allStates = todoStates
+      ? [...todoStates.active, ...todoStates.done]
+      : ['TODO', 'NEXT', 'WAITING', 'DONE'];
+
+    return (
+      <Modal
+        visible={editModalType === 'state'}
+        onDismiss={closeEditModal}
+        contentContainerStyle={[styles.modalContent, { backgroundColor: theme.colors.surface }]}
+      >
+        <Text variant="titleLarge" style={styles.modalTitle}>Change State</Text>
+        <Text variant="bodyMedium" style={styles.modalSubtitle} numberOfLines={1}>
+          {editingTodo?.title}
+        </Text>
+
+        <RadioButton.Group onValueChange={setSelectedState} value={selectedState}>
+          {allStates.map((state) => (
+            <RadioButton.Item
+              key={state}
+              label={state}
+              value={state}
+              labelStyle={{
+                color: todoStates?.done.includes(state)
+                  ? theme.colors.outline
+                  : theme.colors.onSurface,
+              }}
+            />
+          ))}
+        </RadioButton.Group>
+
+        <View style={styles.modalButtons}>
+          <Button mode="outlined" onPress={closeEditModal}>Cancel</Button>
+          <Button
+            mode="contained"
+            onPress={() => handleStateChange(selectedState)}
+            disabled={selectedState === editingTodo?.todo}
+          >
+            Change
+          </Button>
+        </View>
+      </Modal>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
@@ -439,6 +494,7 @@ export default function SearchScreen() {
       <Portal>
         {renderDateModal()}
         {renderPriorityModal()}
+        {renderStateModal()}
       </Portal>
 
       <Snackbar
@@ -507,7 +563,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   todoChip: {
-    height: 20,
+    minHeight: 24,
+    justifyContent: 'center',
   },
   todoChipLoading: {
     opacity: 0.6,
@@ -556,7 +613,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   modalTitle: {
+    marginBottom: 8,
+  },
+  modalSubtitle: {
     marginBottom: 16,
+    opacity: 0.7,
   },
   datePickerContainer: {
     alignItems: 'center',
