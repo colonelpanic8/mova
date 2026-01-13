@@ -88,7 +88,9 @@ export function useDeepLinks() {
               level: 0,
               scheduled: null,
               deadline: null,
+              priority: null,
               olpath: null,
+              notifyBefore: null,
             }, params.state || 'DONE');
 
             if (result.status === 'completed') {
