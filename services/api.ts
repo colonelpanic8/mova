@@ -5,7 +5,7 @@ export interface Todo {
   level: number;
   scheduled: string | null;
   deadline: string | null;
-  priority: number | null;
+  priority: string | null;
   file: string | null;
   pos: number | null;
   id: string | null;
