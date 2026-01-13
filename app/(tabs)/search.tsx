@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
-import { Searchbar, Text, useTheme, ActivityIndicator, Chip, Snackbar } from 'react-native-paper';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity, Platform } from 'react-native';
+import { Searchbar, Text, useTheme, ActivityIndicator, Chip, Snackbar, Portal, Modal, Button, RadioButton, Switch } from 'react-native-paper';
+import { Swipeable } from 'react-native-gesture-handler';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/context/AuthContext';
-import { api, Todo } from '@/services/api';
+import { api, Todo, TodoUpdates } from '@/services/api';
+
+type EditModalType = 'schedule' | 'deadline' | 'priority' | null;
 
 export default function SearchScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -12,11 +16,23 @@ export default function SearchScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
+  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string; isError: boolean }>({
     visible: false,
     message: '',
     isError: false,
   });
+
+  // Edit modal state
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [editModalType, setEditModalType] = useState<EditModalType>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [includeTime, setIncludeTime] = useState(false);
+  const [selectedPriority, setSelectedPriority] = useState<string>('');
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
+
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
 
@@ -68,10 +84,8 @@ export default function SearchScreen() {
   const handleTodoPress = async (todo: Todo) => {
     const key = getTodoKey(todo);
 
-    // Don't allow completing if already in progress
     if (completingIds.has(key)) return;
 
-    // Don't complete already done items
     if (todo.todo?.toUpperCase() === 'DONE') {
       setSnackbar({ visible: true, message: 'Already completed', isError: false });
       return;
@@ -88,7 +102,6 @@ export default function SearchScreen() {
           message: `Completed: ${todo.title}`,
           isError: false
         });
-        // Update local state to reflect completion
         setTodos(prev => prev.map(t =>
           getTodoKey(t) === key ? { ...t, todo: result.newState || 'DONE' } : t
         ));
@@ -109,6 +122,196 @@ export default function SearchScreen() {
         return next;
       });
     }
+  };
+
+  const openEditModal = (todo: Todo, type: EditModalType) => {
+    // Close swipeable
+    const key = getTodoKey(todo);
+    swipeableRefs.current.get(key)?.close();
+
+    setEditingTodo(todo);
+    setEditModalType(type);
+
+    if (type === 'schedule' || type === 'deadline') {
+      const existingDate = type === 'schedule' ? todo.scheduled : todo.deadline;
+      if (existingDate) {
+        setSelectedDate(new Date(existingDate));
+        setIncludeTime(existingDate.includes('T') && existingDate.includes(':'));
+      } else {
+        setSelectedDate(new Date());
+        setIncludeTime(false);
+      }
+      setShowTimePicker(false);
+    } else if (type === 'priority') {
+      setSelectedPriority(todo.priority || '');
+    }
+  };
+
+  const closeEditModal = () => {
+    setEditingTodo(null);
+    setEditModalType(null);
+    setShowTimePicker(false);
+  };
+
+  const handleUpdateTodo = async (updates: TodoUpdates) => {
+    if (!editingTodo) return;
+
+    const key = getTodoKey(editingTodo);
+    setUpdatingIds(prev => new Set(prev).add(key));
+
+    try {
+      const result = await api.updateTodo(editingTodo, updates);
+
+      if (result.status === 'updated') {
+        setSnackbar({
+          visible: true,
+          message: `Updated: ${editingTodo.title}`,
+          isError: false
+        });
+        // Update local state
+        setTodos(prev => prev.map(t =>
+          getTodoKey(t) === key ? { ...t, ...updates } : t
+        ));
+        closeEditModal();
+      } else {
+        setSnackbar({
+          visible: true,
+          message: result.message || 'Failed to update',
+          isError: true
+        });
+      }
+    } catch (err) {
+      console.error('Failed to update todo:', err);
+      setSnackbar({ visible: true, message: 'Failed to update todo', isError: true });
+    } finally {
+      setUpdatingIds(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+
+  const handleSaveDate = () => {
+    if (!editModalType || (editModalType !== 'schedule' && editModalType !== 'deadline')) return;
+
+    let dateString: string;
+    if (includeTime) {
+      dateString = selectedDate.toISOString().slice(0, 19);
+    } else {
+      dateString = selectedDate.toISOString().slice(0, 10);
+    }
+
+    handleUpdateTodo({ [editModalType]: dateString });
+  };
+
+  const handleClearDate = () => {
+    if (!editModalType || (editModalType !== 'schedule' && editModalType !== 'deadline')) return;
+    handleUpdateTodo({ [editModalType]: null });
+  };
+
+  const handleSavePriority = (priority: string | null) => {
+    handleUpdateTodo({ priority });
+  };
+
+  const renderRightActions = (todo: Todo) => {
+    return (
+      <View style={styles.swipeActions}>
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: theme.colors.primary }]}
+          onPress={() => openEditModal(todo, 'schedule')}
+        >
+          <Text style={styles.swipeActionText}>Schedule</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: theme.colors.error }]}
+          onPress={() => openEditModal(todo, 'deadline')}
+        >
+          <Text style={styles.swipeActionText}>Deadline</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: theme.colors.tertiary }]}
+          onPress={() => openEditModal(todo, 'priority')}
+        >
+          <Text style={styles.swipeActionText}>Priority</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderDateModal = () => {
+    const isSchedule = editModalType === 'schedule';
+    const title = isSchedule ? 'Set Schedule' : 'Set Deadline';
+
+    return (
+      <Modal
+        visible={editModalType === 'schedule' || editModalType === 'deadline'}
+        onDismiss={closeEditModal}
+        contentContainerStyle={[styles.modalContent, { backgroundColor: theme.colors.surface }]}
+      >
+        <Text variant="titleLarge" style={styles.modalTitle}>{title}</Text>
+
+        <View style={styles.datePickerContainer}>
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(_, date) => date && setSelectedDate(date)}
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <Text>Include time</Text>
+          <Switch value={includeTime} onValueChange={setIncludeTime} />
+        </View>
+
+        {includeTime && (
+          <View style={styles.datePickerContainer}>
+            <DateTimePicker
+              value={selectedDate}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(_, date) => date && setSelectedDate(date)}
+            />
+          </View>
+        )}
+
+        <View style={styles.modalButtons}>
+          <Button mode="outlined" onPress={handleClearDate}>Clear</Button>
+          <Button mode="outlined" onPress={closeEditModal}>Cancel</Button>
+          <Button mode="contained" onPress={handleSaveDate}>Save</Button>
+        </View>
+      </Modal>
+    );
+  };
+
+  const renderPriorityModal = () => {
+    return (
+      <Modal
+        visible={editModalType === 'priority'}
+        onDismiss={closeEditModal}
+        contentContainerStyle={[styles.modalContent, { backgroundColor: theme.colors.surface }]}
+      >
+        <Text variant="titleLarge" style={styles.modalTitle}>Set Priority</Text>
+
+        <RadioButton.Group onValueChange={setSelectedPriority} value={selectedPriority}>
+          <RadioButton.Item label="None" value="" />
+          <RadioButton.Item label="A - High" value="A" />
+          <RadioButton.Item label="B - Medium" value="B" />
+          <RadioButton.Item label="C - Low" value="C" />
+        </RadioButton.Group>
+
+        <View style={styles.modalButtons}>
+          <Button mode="outlined" onPress={closeEditModal}>Cancel</Button>
+          <Button
+            mode="contained"
+            onPress={() => handleSavePriority(selectedPriority || null)}
+          >
+            Save
+          </Button>
+        </View>
+      </Modal>
+    );
   };
 
   if (loading) {
@@ -149,44 +352,82 @@ export default function SearchScreen() {
           renderItem={({ item }) => {
             const key = getTodoKey(item);
             const isCompleting = completingIds.has(key);
+            const isUpdating = updatingIds.has(key);
 
             return (
-              <View style={[styles.todoItem, { borderBottomColor: theme.colors.outlineVariant }]}>
-                <View style={styles.todoHeader}>
-                  {item.todo && (
-                    <TouchableOpacity
-                      onPress={() => handleTodoPress(item)}
-                      disabled={isCompleting}
-                      activeOpacity={0.7}
-                    >
-                      <Chip
-                        mode="flat"
-                        compact
-                        style={[
-                          styles.todoChip,
-                          { backgroundColor: getTodoColor(item.todo, theme) },
-                          isCompleting && styles.todoChipLoading,
-                        ]}
-                        textStyle={{ fontSize: 10, color: 'white' }}
+              <Swipeable
+                ref={(ref) => {
+                  if (ref) swipeableRefs.current.set(key, ref);
+                }}
+                renderRightActions={() => renderRightActions(item)}
+                overshootRight={false}
+              >
+                <View style={[
+                  styles.todoItem,
+                  {
+                    borderBottomColor: theme.colors.outlineVariant,
+                    backgroundColor: theme.colors.background,
+                    opacity: isUpdating ? 0.6 : 1,
+                  }
+                ]}>
+                  <View style={styles.todoHeader}>
+                    {item.todo && (
+                      <TouchableOpacity
+                        onPress={() => handleTodoPress(item)}
+                        disabled={isCompleting}
+                        activeOpacity={0.7}
                       >
-                        {isCompleting ? '...' : item.todo}
+                        <Chip
+                          mode="flat"
+                          compact
+                          style={[
+                            styles.todoChip,
+                            { backgroundColor: getTodoColor(item.todo, theme) },
+                            isCompleting && styles.todoChipLoading,
+                          ]}
+                          textStyle={{ fontSize: 10, color: 'white' }}
+                        >
+                          {isCompleting ? '...' : item.todo}
+                        </Chip>
+                      </TouchableOpacity>
+                    )}
+                    {item.priority && (
+                      <Chip
+                        mode="outlined"
+                        compact
+                        style={styles.priorityChip}
+                        textStyle={{ fontSize: 10 }}
+                      >
+                        #{item.priority}
                       </Chip>
-                    </TouchableOpacity>
-                  )}
-                  <Text variant="bodyMedium" style={styles.todoTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                </View>
-                {item.tags && item.tags.length > 0 && (
-                  <View style={styles.tagsContainer}>
-                    {item.tags.map((tag, i) => (
-                      <Text key={i} style={[styles.tag, { color: theme.colors.primary }]}>
-                        :{tag}:
-                      </Text>
-                    ))}
+                    )}
+                    <Text variant="bodyMedium" style={styles.todoTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
                   </View>
-                )}
-              </View>
+                  <View style={styles.metaRow}>
+                    {item.scheduled && (
+                      <Text style={[styles.metaText, { color: theme.colors.primary }]}>
+                        S: {formatDate(item.scheduled)}
+                      </Text>
+                    )}
+                    {item.deadline && (
+                      <Text style={[styles.metaText, { color: theme.colors.error }]}>
+                        D: {formatDate(item.deadline)}
+                      </Text>
+                    )}
+                  </View>
+                  {item.tags && item.tags.length > 0 && (
+                    <View style={styles.tagsContainer}>
+                      {item.tags.map((tag, i) => (
+                        <Text key={i} style={[styles.tag, { color: theme.colors.primary }]}>
+                          :{tag}:
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </Swipeable>
             );
           }}
           refreshControl={
@@ -194,6 +435,11 @@ export default function SearchScreen() {
           }
         />
       )}
+
+      <Portal>
+        {renderDateModal()}
+        {renderPriorityModal()}
+      </Portal>
 
       <Snackbar
         visible={snackbar.visible}
@@ -205,6 +451,20 @@ export default function SearchScreen() {
       </Snackbar>
     </View>
   );
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const hasTime = dateString.includes('T') && dateString.includes(':');
+  if (hasTime) {
+    return date.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 function getTodoColor(todo: string, theme: any): string {
@@ -252,8 +512,19 @@ const styles = StyleSheet.create({
   todoChipLoading: {
     opacity: 0.6,
   },
+  priorityChip: {
+    height: 20,
+  },
   todoTitle: {
     flex: 1,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  metaText: {
+    fontSize: 11,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -264,5 +535,43 @@ const styles = StyleSheet.create({
   tag: {
     fontSize: 12,
     fontFamily: 'monospace',
+  },
+  swipeActions: {
+    flexDirection: 'row',
+  },
+  swipeAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 70,
+    paddingHorizontal: 8,
+  },
+  swipeActionText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  modalContent: {
+    margin: 20,
+    padding: 20,
+    borderRadius: 12,
+  },
+  modalTitle: {
+    marginBottom: 16,
+  },
+  datePickerContainer: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 16,
   },
 });
