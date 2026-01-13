@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '@/context/AuthContext';
-import { api, AgendaResponse } from '@/services/api';
+import { api, AgendaResponse, AgendaEntry } from '@/services/api';
 
 export default function AgendaScreen() {
   const [agenda, setAgenda] = useState<AgendaResponse | null>(null);
@@ -69,12 +69,42 @@ export default function AgendaScreen() {
       ) : (
         <FlatList
           data={agenda?.entries}
-          keyExtractor={(item, index) => `${index}-${item}`}
+          keyExtractor={(item, index) => item.id || `${index}-${item.pos}`}
           renderItem={({ item }) => (
             <View style={[styles.entry, { borderBottomColor: theme.colors.outlineVariant }]}>
-              <Text style={[styles.entryText, { color: theme.colors.onSurface }]}>
-                {item}
-              </Text>
+              <View style={styles.entryHeader}>
+                {item.todo && (
+                  <Text style={[styles.todoState, { color: item.todo === 'DONE' ? theme.colors.outline : theme.colors.primary }]}>
+                    {item.todo}
+                  </Text>
+                )}
+                <Text style={[styles.title, { color: theme.colors.onSurface }]} numberOfLines={2}>
+                  {item.title}
+                </Text>
+              </View>
+              {item.tags && item.tags.length > 0 && (
+                <View style={styles.tagsContainer}>
+                  {item.tags.map((tag: string) => (
+                    <Text key={tag} style={[styles.tag, { backgroundColor: theme.colors.secondaryContainer, color: theme.colors.onSecondaryContainer }]}>
+                      {tag}
+                    </Text>
+                  ))}
+                </View>
+              )}
+              {(item.scheduled || item.deadline) && (
+                <View style={styles.timestamps}>
+                  {item.scheduled && (
+                    <Text style={[styles.timestamp, { color: theme.colors.outline }]}>
+                      Scheduled: {new Date(item.scheduled).toLocaleString()}
+                    </Text>
+                  )}
+                  {item.deadline && (
+                    <Text style={[styles.timestamp, { color: theme.colors.error }]}>
+                      Deadline: {new Date(item.deadline).toLocaleString()}
+                    </Text>
+                  )}
+                </View>
+              )}
             </View>
           )}
           refreshControl={
@@ -104,8 +134,35 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  entryText: {
-    fontFamily: 'monospace',
-    fontSize: 13,
+  entryHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  todoState: {
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  title: {
+    flex: 1,
+    fontSize: 14,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 6,
+  },
+  tag: {
+    fontSize: 11,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  timestamps: {
+    marginTop: 6,
+  },
+  timestamp: {
+    fontSize: 12,
   },
 });
