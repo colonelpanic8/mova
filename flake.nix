@@ -35,7 +35,7 @@
         systemImageTypes = ["google_apis_playstore"];
         abiVersions = ["x86_64"];
         includeNDK = true;
-        ndkVersions = ["26.1.10909125"];
+        ndkVersions = ["27.0.12077973" "26.1.10909125"];
         cmakeVersions = ["3.22.1"];
         useGoogleAPIs = true;
         useGoogleTVAddOns = false;
