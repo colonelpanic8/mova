@@ -5,6 +5,7 @@ export interface Todo {
   level: number;
   scheduled: string | null;
   deadline: string | null;
+  priority: string | null;
   file: string | null;
   pos: number | null;
   id: string | null;
@@ -37,6 +38,19 @@ export interface CompleteTodoResponse {
   title?: string;
   oldState?: string;
   newState?: string;
+  message?: string;
+}
+
+export interface TodoUpdates {
+  scheduled?: string | null;
+  deadline?: string | null;
+  priority?: string | null;
+}
+
+export interface UpdateTodoResponse {
+  status: string;
+  title?: string;
+  updates?: TodoUpdates;
   message?: string;
 }
 
@@ -90,6 +104,19 @@ class OrgAgendaApi {
         pos: todo.pos,
         title: todo.title,
         state: newState,
+      }),
+    });
+  }
+
+  async updateTodo(todo: Todo, updates: TodoUpdates): Promise<UpdateTodoResponse> {
+    return this.request<UpdateTodoResponse>('/update', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: todo.id,
+        file: todo.file,
+        pos: todo.pos,
+        title: todo.title,
+        ...updates,
       }),
     });
   }
