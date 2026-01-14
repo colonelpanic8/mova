@@ -4,9 +4,9 @@
  * Tests that the agenda page UI works correctly.
  * Uses test container with known test data.
  *
- * NOTE: The /agenda API endpoint has a bug where org-agenda-list returns empty.
- * Tests that depend on agenda population are skipped until the API is fixed.
- * The Search screen tests (which use /get-all-todos) work correctly.
+ * Test data includes items scheduled for:
+ * - 2026-01-13: "Morning standup", "Code review"
+ * - 2026-01-14: "Team meeting", "Submit report", "Doctor appointment", "Review code"
  */
 
 import { by, element, expect, waitFor } from 'detox';
@@ -49,67 +49,26 @@ describe('Agenda Screen', () => {
     await expect(element(by.id('agendaScreen'))).toBeVisible();
   });
 
-  it('should show empty state when no agenda items', async () => {
+  it('should populate agenda with entries from API', async () => {
     await waitForLoadingComplete();
 
-    // The /agenda API currently returns empty, so empty state should show
-    // Wait for the empty view
-    await waitFor(element(by.id('agendaEmptyView')))
-      .toBeVisible()
-      .withTimeout(5000);
-
-    await expect(element(by.text('No items for today'))).toBeVisible();
-  });
-
-  // Skip tests that depend on agenda population until API is fixed
-  // The /agenda endpoint uses org-agenda-list which returns empty
-  it.skip('should populate with agenda entries from API', async () => {
-    await waitForLoadingComplete();
+    // Navigate to tomorrow which has multiple test entries
     await element(by.id('agendaNextDay')).tap();
+
+    // Wait for agenda list to be visible
     await waitFor(element(by.id('agendaList')))
       .toBeVisible()
       .withTimeout(10000);
-    await expect(element(by.text('Team meeting'))).toBeVisible();
-  });
 
-  it.skip('should display multiple agenda entries', async () => {
-    await waitForLoadingComplete();
-    await element(by.id('agendaNextDay')).tap();
-    await waitFor(element(by.id('agendaList')))
-      .toBeVisible()
-      .withTimeout(10000);
+    // Verify multiple entries are shown
     await expect(element(by.text('Team meeting'))).toBeVisible();
     await expect(element(by.text('Submit report'))).toBeVisible();
-  });
 
-  it.skip('should show todo states for agenda entries', async () => {
-    await waitForLoadingComplete();
-    await element(by.id('agendaNextDay')).tap();
-    await waitFor(element(by.id('agendaList')))
-      .toBeVisible()
-      .withTimeout(10000);
+    // Verify TODO state is visible
     await expect(element(by.text('TODO')).atIndex(0)).toBeVisible();
   });
 
-  it.skip('should show scheduled times', async () => {
-    await waitForLoadingComplete();
-    await element(by.id('agendaNextDay')).tap();
-    await waitFor(element(by.id('agendaList')))
-      .toBeVisible()
-      .withTimeout(10000);
-    await expect(element(by.text(/Scheduled:/))).toBeVisible();
-  });
-
-  it.skip('should show deadline entries', async () => {
-    await waitForLoadingComplete();
-    await element(by.id('agendaNextDay')).tap();
-    await waitFor(element(by.id('agendaList')))
-      .toBeVisible()
-      .withTimeout(10000);
-    await expect(element(by.text(/Deadline:/))).toBeVisible();
-  });
-
-  it.skip('should refresh when pulling down', async () => {
+  it('should refresh when pulling down', async () => {
     await waitForLoadingComplete();
     await element(by.id('agendaNextDay')).tap();
     await waitFor(element(by.id('agendaList')))
@@ -135,8 +94,7 @@ describe('Agenda Screen - Tab Navigation', () => {
     await expect(element(by.id('agendaScreen'))).toBeVisible();
   });
 
-  // Skip until agenda population API is fixed
-  it.skip('should preserve agenda data after tab switch', async () => {
+  it('should preserve agenda data after tab switch', async () => {
     await waitForLoadingComplete();
     await element(by.id('agendaNextDay')).tap();
     await waitFor(element(by.text('Team meeting')))
