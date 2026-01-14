@@ -23,21 +23,21 @@
         overlays = [nixgl.overlay];
       };
       nodejs = pkgs.nodejs_22;
-      buildToolsVersion = "35.0.0";
+      buildToolsVersion = "36.0.0";
       cmdLineToolsVersion = "8.0";
       androidComposition = pkgs.androidenv.composeAndroidPackages {
         cmdLineToolsVersion = cmdLineToolsVersion;
         toolsVersion = "26.1.1";
         platformToolsVersion = "35.0.2";
-        buildToolsVersions = [buildToolsVersion "34.0.0"];
+        buildToolsVersions = [buildToolsVersion "35.0.0" "34.0.0"];
         includeEmulator = true;
-        platformVersions = ["35"];
+        platformVersions = ["35" "36"];
         includeSources = false;
         includeSystemImages = true;
         systemImageTypes = ["google_apis_playstore"];
         abiVersions = ["x86_64"];
         includeNDK = true;
-        ndkVersions = ["27.0.12077973" "26.1.10909125"];
+        ndkVersions = ["27.1.12297006" "27.0.12077973" "26.1.10909125"];
         cmakeVersions = ["3.22.1"];
         useGoogleAPIs = true;
         useGoogleTVAddOns = false;

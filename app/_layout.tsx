@@ -1,13 +1,13 @@
-import { useEffect } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-import { useColorScheme, View, ActivityIndicator } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { ColorPaletteProvider } from '@/context/ColorPaletteContext';
-import { useDeepLinks } from '@/hooks/useDeepLinks';
-import * as SplashScreen from 'expo-splash-screen';
-import 'react-native-reanimated';
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
+import { useDeepLinks } from "@/hooks/useDeepLinks";
+import { Stack, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import { ActivityIndicator, useColorScheme, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
+import "react-native-reanimated";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,14 +22,14 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(tabs)';
+    const inAuthGroup = segments[0] === "(tabs)";
 
     if (isAuthenticated && !inAuthGroup) {
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } else if (!isAuthenticated && inAuthGroup) {
-      router.replace('/login');
+      router.replace("/login");
     } else if (!isAuthenticated && !segments[0]) {
-      router.replace('/login');
+      router.replace("/login");
     }
   }, [isAuthenticated, isLoading, segments]);
 
@@ -41,7 +41,7 @@ function RootLayoutNav() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -57,7 +57,7 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+  const theme = colorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

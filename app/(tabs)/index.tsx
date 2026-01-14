@@ -1,23 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity, Platform } from 'react-native';
-import { Text, useTheme, ActivityIndicator, IconButton } from 'react-native-paper';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useAuth } from '@/context/AuthContext';
-import { api, AgendaResponse, AgendaEntry, Todo, TodoStatesResponse } from '@/services/api';
-import { TodoItem, getTodoKey } from '@/components/TodoItem';
-import { useTodoEditing } from '@/hooks/useTodoEditing';
+import { TodoItem, getTodoKey } from "@/components/TodoItem";
+import { useAuth } from "@/context/AuthContext";
+import { useTodoEditing } from "@/hooks/useTodoEditing";
+import { AgendaResponse, Todo, TodoStatesResponse, api } from "@/services/api";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  FlatList,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  ActivityIndicator,
+  IconButton,
+  Text,
+  useTheme,
+} from "react-native-paper";
 
 function formatDateForApi(date: Date): string {
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 }
 
 function formatDateForDisplay(dateString: string): string {
-  const date = new Date(dateString + 'T00:00:00');
+  const date = new Date(dateString + "T00:00:00");
   return date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 }
 
@@ -32,35 +46,40 @@ export default function AgendaScreen() {
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
 
-  const handleTodoUpdated = useCallback((todo: Todo, updates: Partial<Todo>) => {
-    setAgenda(prev => {
-      if (!prev) return prev;
+  const handleTodoUpdated = useCallback(
+    (todo: Todo, updates: Partial<Todo>) => {
+      setAgenda((prev) => {
+        if (!prev) return prev;
 
-      // If schedule changed, check if item should be removed from current view
-      if (updates.scheduled !== undefined) {
-        const currentDateStr = formatDateForApi(selectedDate);
-        const newScheduledDate = updates.scheduled?.split('T')[0];
+        // If schedule changed, check if item should be removed from current view
+        if (updates.scheduled !== undefined) {
+          const currentDateStr = formatDateForApi(selectedDate);
+          const newScheduledDate = updates.scheduled?.split("T")[0];
 
-        // If scheduled to a different day, remove from current view
-        if (newScheduledDate && newScheduledDate !== currentDateStr) {
-          return {
-            ...prev,
-            entries: prev.entries.filter(entry =>
-              getTodoKey(entry) !== getTodoKey(todo)
-            ),
-          };
+          // If scheduled to a different day, remove from current view
+          if (newScheduledDate && newScheduledDate !== currentDateStr) {
+            return {
+              ...prev,
+              entries: prev.entries.filter(
+                (entry) => getTodoKey(entry) !== getTodoKey(todo),
+              ),
+            };
+          }
         }
-      }
 
-      // Otherwise update in place
-      return {
-        ...prev,
-        entries: prev.entries.map(entry =>
-          getTodoKey(entry) === getTodoKey(todo) ? { ...entry, ...updates } : entry
-        ),
-      };
-    });
-  }, [selectedDate]);
+        // Otherwise update in place
+        return {
+          ...prev,
+          entries: prev.entries.map((entry) =>
+            getTodoKey(entry) === getTodoKey(todo)
+              ? { ...entry, ...updates }
+              : entry,
+          ),
+        };
+      });
+    },
+    [selectedDate],
+  );
 
   const {
     completingIds,
@@ -77,26 +96,29 @@ export default function AgendaScreen() {
     todoStates,
   });
 
-  const fetchAgenda = useCallback(async (date: Date) => {
-    if (!apiUrl || !username || !password) return;
+  const fetchAgenda = useCallback(
+    async (date: Date) => {
+      if (!apiUrl || !username || !password) return;
 
-    try {
-      api.configure(apiUrl, username, password);
-      const dateString = formatDateForApi(date);
-      const [agendaData, statesData] = await Promise.all([
-        api.getAgenda('day', dateString),
-        api.getTodoStates().catch(() => null),
-      ]);
-      setAgenda(agendaData);
-      if (statesData) {
-        setTodoStates(statesData);
+      try {
+        api.configure(apiUrl, username, password);
+        const dateString = formatDateForApi(date);
+        const [agendaData, statesData] = await Promise.all([
+          api.getAgenda("day", dateString),
+          api.getTodoStates().catch(() => null),
+        ]);
+        setAgenda(agendaData);
+        if (statesData) {
+          setTodoStates(statesData);
+        }
+        setError(null);
+      } catch (err) {
+        setError("Failed to load agenda");
+        console.error(err);
       }
-      setError(null);
-    } catch (err) {
-      setError('Failed to load agenda');
-      console.error(err);
-    }
-  }, [apiUrl, username, password]);
+    },
+    [apiUrl, username, password],
+  );
 
   useEffect(() => {
     fetchAgenda(selectedDate).finally(() => setLoading(false));
@@ -118,12 +140,15 @@ export default function AgendaScreen() {
     setSelectedDate(new Date());
   }, []);
 
-  const onDateChange = useCallback((event: DateTimePickerEvent, date?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (date) {
-      setSelectedDate(date);
-    }
-  }, []);
+  const onDateChange = useCallback(
+    (event: DateTimePickerEvent, date?: Date) => {
+      setShowDatePicker(Platform.OS === "ios");
+      if (date) {
+        setSelectedDate(date);
+      }
+    },
+    [],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -133,7 +158,10 @@ export default function AgendaScreen() {
 
   if (loading) {
     return (
-      <View testID="agendaLoadingView" style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+      <View
+        testID="agendaLoadingView"
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
         <ActivityIndicator testID="agendaLoadingIndicator" size="large" />
       </View>
     );
@@ -141,18 +169,29 @@ export default function AgendaScreen() {
 
   if (error) {
     return (
-      <View testID="agendaErrorView" style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-        <Text testID="agendaErrorText" variant="bodyLarge" style={{ color: theme.colors.error }}>
+      <View
+        testID="agendaErrorView"
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
+        <Text
+          testID="agendaErrorText"
+          variant="bodyLarge"
+          style={{ color: theme.colors.error }}
+        >
           {error}
         </Text>
       </View>
     );
   }
 
-  const isToday = formatDateForApi(selectedDate) === formatDateForApi(new Date());
+  const isToday =
+    formatDateForApi(selectedDate) === formatDateForApi(new Date());
 
   return (
-    <View testID="agendaScreen" style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      testID="agendaScreen"
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <View style={styles.header}>
         <View style={styles.dateNavigation}>
           <IconButton
@@ -165,8 +204,12 @@ export default function AgendaScreen() {
             style={styles.dateButton}
             testID="agendaDateButton"
           >
-            <Text testID="agendaDateHeader" variant="titleMedium" style={styles.dateText}>
-              {agenda?.date ? formatDateForDisplay(agenda.date) : ''}
+            <Text
+              testID="agendaDateHeader"
+              variant="titleMedium"
+              style={styles.dateText}
+            >
+              {agenda?.date ? formatDateForDisplay(agenda.date) : ""}
             </Text>
           </TouchableOpacity>
           <IconButton
@@ -176,7 +219,11 @@ export default function AgendaScreen() {
           />
         </View>
         {!isToday && (
-          <TouchableOpacity onPress={goToToday} style={styles.todayButton} testID="agendaTodayButton">
+          <TouchableOpacity
+            onPress={goToToday}
+            style={styles.todayButton}
+            testID="agendaTodayButton"
+          >
             <Text style={{ color: theme.colors.primary }}>Go to Today</Text>
           </TouchableOpacity>
         )}
@@ -187,7 +234,7 @@ export default function AgendaScreen() {
           testID="agendaDatePicker"
           value={selectedDate}
           mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display={Platform.OS === "ios" ? "spinner" : "default"}
           onChange={onDateChange}
         />
       )}
@@ -238,30 +285,30 @@ const styles = StyleSheet.create({
   },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: "#e0e0e0",
   },
   dateNavigation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   dateButton: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 8,
   },
   dateText: {
-    textAlign: 'center',
+    textAlign: "center",
   },
   todayButton: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 8,
   },
 });

@@ -1,7 +1,7 @@
-import React from 'react';
-import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
-import { QuickCaptureWidget } from './widgets/QuickCaptureWidget';
-import { widgetTaskHandler, WidgetTaskResult } from './widgets/QuickCaptureTask';
+import React from "react";
+import type { WidgetTaskHandlerProps } from "react-native-android-widget";
+import { widgetTaskHandler } from "./widgets/QuickCaptureTask";
+import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
 
 const nameToWidget = {
   QuickCaptureWidget: QuickCaptureWidget,
@@ -9,7 +9,8 @@ const nameToWidget = {
 
 export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
   const widgetInfo = props.widgetInfo;
-  const Widget = nameToWidget[widgetInfo.widgetName as keyof typeof nameToWidget];
+  const Widget =
+    nameToWidget[widgetInfo.widgetName as keyof typeof nameToWidget];
 
   if (!Widget) {
     return null;
@@ -20,13 +21,14 @@ export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
     const result = await widgetTaskHandler(props);
 
     // Update widget based on result
-    const status = result.status === 'success'
-      ? 'success'
-      : result.status === 'queued'
-        ? 'offline'
-        : result.status === 'no_auth'
-          ? 'error'
-          : 'idle';
+    const status =
+      result.status === "success"
+        ? "success"
+        : result.status === "queued"
+          ? "offline"
+          : result.status === "no_auth"
+            ? "error"
+            : "idle";
 
     return <Widget status={status} />;
   }

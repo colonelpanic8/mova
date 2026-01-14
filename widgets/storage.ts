@@ -1,7 +1,7 @@
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
-const PREFS_NAME = 'mova_widget_prefs';
+const PREFS_NAME = "mova_widget_prefs";
 
 export interface PendingTodo {
   text: string;
@@ -17,10 +17,10 @@ export interface WidgetCredentials {
 
 // Storage keys
 export const STORAGE_KEYS = {
-  API_URL: 'mova_api_url',
-  USERNAME: 'mova_username',
-  PASSWORD: 'mova_password',
-  PENDING_TODOS: 'mova_pending_todos',
+  API_URL: "mova_api_url",
+  USERNAME: "mova_username",
+  PASSWORD: "mova_password",
+  PENDING_TODOS: "mova_pending_todos",
 };
 
 /**
@@ -30,16 +30,16 @@ export const STORAGE_KEYS = {
 export async function saveCredentialsToWidget(
   apiUrl: string,
   username: string,
-  password: string
+  password: string,
 ): Promise<void> {
-  if (Platform.OS !== 'android') return;
+  if (Platform.OS !== "android") return;
 
   try {
     await AsyncStorage.setItem(STORAGE_KEYS.API_URL, apiUrl);
     await AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username);
     await AsyncStorage.setItem(STORAGE_KEYS.PASSWORD, password);
   } catch (error) {
-    console.error('Failed to save credentials to widget storage:', error);
+    console.error("Failed to save credentials to widget storage:", error);
   }
 }
 
@@ -48,7 +48,7 @@ export async function saveCredentialsToWidget(
  * Call this from the main app when user logs out
  */
 export async function clearWidgetCredentials(): Promise<void> {
-  if (Platform.OS !== 'android') return;
+  if (Platform.OS !== "android") return;
 
   try {
     await AsyncStorage.removeItem(STORAGE_KEYS.API_URL);
@@ -56,7 +56,7 @@ export async function clearWidgetCredentials(): Promise<void> {
     await AsyncStorage.removeItem(STORAGE_KEYS.PASSWORD);
     await AsyncStorage.removeItem(STORAGE_KEYS.PENDING_TODOS);
   } catch (error) {
-    console.error('Failed to clear widget credentials:', error);
+    console.error("Failed to clear widget credentials:", error);
   }
 }
 
@@ -65,7 +65,7 @@ export async function clearWidgetCredentials(): Promise<void> {
  * Used by widget background task
  */
 export async function getWidgetCredentials(): Promise<WidgetCredentials> {
-  if (Platform.OS !== 'android') {
+  if (Platform.OS !== "android") {
     return { apiUrl: null, username: null, password: null };
   }
 
@@ -75,7 +75,7 @@ export async function getWidgetCredentials(): Promise<WidgetCredentials> {
     const password = await AsyncStorage.getItem(STORAGE_KEYS.PASSWORD);
     return { apiUrl, username, password };
   } catch (error) {
-    console.error('Failed to get widget credentials:', error);
+    console.error("Failed to get widget credentials:", error);
     return { apiUrl: null, username: null, password: null };
   }
 }
@@ -84,13 +84,13 @@ export async function getWidgetCredentials(): Promise<WidgetCredentials> {
  * Get pending todos that failed to sync
  */
 export async function getPendingTodos(): Promise<PendingTodo[]> {
-  if (Platform.OS !== 'android') return [];
+  if (Platform.OS !== "android") return [];
 
   try {
     const json = await AsyncStorage.getItem(STORAGE_KEYS.PENDING_TODOS);
     return json ? JSON.parse(json) : [];
   } catch (error) {
-    console.error('Failed to get pending todos:', error);
+    console.error("Failed to get pending todos:", error);
     return [];
   }
 }
@@ -99,15 +99,15 @@ export async function getPendingTodos(): Promise<PendingTodo[]> {
  * Save pending todos
  */
 export async function savePendingTodos(todos: PendingTodo[]): Promise<void> {
-  if (Platform.OS !== 'android') return;
+  if (Platform.OS !== "android") return;
 
   try {
     await AsyncStorage.setItem(
       STORAGE_KEYS.PENDING_TODOS,
-      JSON.stringify(todos)
+      JSON.stringify(todos),
     );
   } catch (error) {
-    console.error('Failed to save pending todos:', error);
+    console.error("Failed to save pending todos:", error);
   }
 }
 
@@ -129,7 +129,7 @@ export async function queuePendingTodo(text: string): Promise<void> {
  */
 export async function removePendingTodo(timestamp: number): Promise<void> {
   const todos = await getPendingTodos();
-  const filtered = todos.filter(t => t.timestamp !== timestamp);
+  const filtered = todos.filter((t) => t.timestamp !== timestamp);
   await savePendingTodos(filtered);
 }
 
@@ -138,7 +138,7 @@ export async function removePendingTodo(timestamp: number): Promise<void> {
  */
 export async function incrementRetryCount(timestamp: number): Promise<void> {
   const todos = await getPendingTodos();
-  const todo = todos.find(t => t.timestamp === timestamp);
+  const todo = todos.find((t) => t.timestamp === timestamp);
   if (todo) {
     todo.retryCount++;
     await savePendingTodos(todos);

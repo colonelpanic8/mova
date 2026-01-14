@@ -1,5 +1,5 @@
-import { by, device, element, expect, waitFor } from 'detox';
-import { execSync } from 'child_process';
+import { execSync } from "child_process";
+import { by, device, element, expect, waitFor } from "detox";
 
 /**
  * API Connectivity Tests
@@ -23,23 +23,25 @@ import { execSync } from 'child_process';
  *   3. Stop when done: ./e2e/local-api.sh stop
  */
 
-const USE_LOCAL_API = process.env.MOVA_USE_LOCAL_API === '1';
-const LOCAL_API_PORT = process.env.MOVA_LOCAL_API_PORT || '8080';
+const USE_LOCAL_API = process.env.MOVA_USE_LOCAL_API === "1";
+const LOCAL_API_PORT = process.env.MOVA_LOCAL_API_PORT || "8080";
 
 // For local testing, we use localhost which requires adb reverse for physical devices
 // For production, we use the fly.dev URL
 const API_URL = USE_LOCAL_API
   ? `http://localhost:${LOCAL_API_PORT}`
-  : (process.env.MOVA_TEST_API_URL || 'https://colonelpanic-org-agenda.fly.dev');
+  : process.env.MOVA_TEST_API_URL || "https://colonelpanic-org-agenda.fly.dev";
 
-const USERNAME = process.env.MOVA_TEST_USERNAME || '';
-const PASSWORD = process.env.MOVA_TEST_PASSWORD || '';
+const USERNAME = process.env.MOVA_TEST_USERNAME || "";
+const PASSWORD = process.env.MOVA_TEST_PASSWORD || "";
 
 // Setup adb reverse for local testing with physical devices
 function setupAdbReverse() {
   if (USE_LOCAL_API) {
     try {
-      execSync(`adb reverse tcp:${LOCAL_API_PORT} tcp:${LOCAL_API_PORT}`, { stdio: 'pipe' });
+      execSync(`adb reverse tcp:${LOCAL_API_PORT} tcp:${LOCAL_API_PORT}`, {
+        stdio: "pipe",
+      });
       console.log(`[setup] adb reverse set up for port ${LOCAL_API_PORT}`);
     } catch (error) {
       console.warn(`[setup] Failed to set up adb reverse: ${error}`);
@@ -47,147 +49,151 @@ function setupAdbReverse() {
   }
 }
 
-describe('API Connectivity', () => {
+describe("API Connectivity", () => {
   beforeAll(async () => {
     if (!USERNAME || !PASSWORD) {
-      console.warn('WARNING: MOVA_TEST_USERNAME and MOVA_TEST_PASSWORD environment variables are required for API tests');
+      console.warn(
+        "WARNING: MOVA_TEST_USERNAME and MOVA_TEST_PASSWORD environment variables are required for API tests",
+      );
     }
 
     // Set up adb reverse for local API testing
     setupAdbReverse();
 
     console.log(`[setup] Using API URL: ${API_URL}`);
-    console.log(`[setup] Local API mode: ${USE_LOCAL_API ? 'enabled' : 'disabled'}`);
+    console.log(
+      `[setup] Local API mode: ${USE_LOCAL_API ? "enabled" : "disabled"}`,
+    );
 
     await device.launchApp({ newInstance: true });
   });
 
-  describe('Login and Authentication', () => {
-    it('should log in with valid credentials', async () => {
+  describe("Login and Authentication", () => {
+    it("should log in with valid credentials", async () => {
       // Fill in login form - tap each field first to ensure focus
-      await element(by.id('serverUrlInput')).tap();
-      await element(by.id('serverUrlInput')).typeText(API_URL);
+      await element(by.id("serverUrlInput")).tap();
+      await element(by.id("serverUrlInput")).typeText(API_URL);
 
-      await element(by.id('usernameInput')).tap();
-      await element(by.id('usernameInput')).typeText(USERNAME);
+      await element(by.id("usernameInput")).tap();
+      await element(by.id("usernameInput")).typeText(USERNAME);
 
-      await element(by.id('passwordInput')).tap();
-      await element(by.id('passwordInput')).typeText(PASSWORD);
+      await element(by.id("passwordInput")).tap();
+      await element(by.id("passwordInput")).typeText(PASSWORD);
 
       // Hide keyboard by tapping outside or using back button
       await device.pressBack();
 
       // Wait a moment for keyboard to dismiss
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Tap connect button
-      await element(by.id('connectButton')).tap();
+      await element(by.id("connectButton")).tap();
 
       // Wait for navigation to main app (agenda screen should appear)
       // Use a longer timeout since the API call needs to complete
-      await waitFor(element(by.id('agendaScreen')))
+      await waitFor(element(by.id("agendaScreen")))
         .toBeVisible()
         .withTimeout(60000);
     });
   });
 
-  describe('Agenda Screen', () => {
-    it('should display the agenda with date header', async () => {
+  describe("Agenda Screen", () => {
+    it("should display the agenda with date header", async () => {
       // Verify we're on the agenda screen
-      await expect(element(by.id('agendaScreen'))).toBeVisible();
+      await expect(element(by.id("agendaScreen"))).toBeVisible();
 
       // Verify the date header is visible
-      await expect(element(by.id('agendaDateHeader'))).toBeVisible();
+      await expect(element(by.id("agendaDateHeader"))).toBeVisible();
     });
 
-    it('should show either agenda entries or empty state', async () => {
+    it("should show either agenda entries or empty state", async () => {
       // Either the list or the empty view should be visible
       try {
-        await expect(element(by.id('agendaList'))).toBeVisible();
+        await expect(element(by.id("agendaList"))).toBeVisible();
       } catch {
-        await expect(element(by.id('agendaEmptyView'))).toBeVisible();
+        await expect(element(by.id("agendaEmptyView"))).toBeVisible();
       }
     });
   });
 
-  describe('Search Screen', () => {
+  describe("Search Screen", () => {
     beforeAll(async () => {
       // Navigate to Search tab
-      await element(by.text('Search')).tap();
+      await element(by.text("Search")).tap();
     });
 
-    it('should load the search screen', async () => {
-      await waitFor(element(by.id('searchScreen')))
+    it("should load the search screen", async () => {
+      await waitFor(element(by.id("searchScreen")))
         .toBeVisible()
         .withTimeout(15000);
     });
 
-    it('should display search input', async () => {
-      await expect(element(by.id('searchInput'))).toBeVisible();
+    it("should display search input", async () => {
+      await expect(element(by.id("searchInput"))).toBeVisible();
     });
 
-    it('should show either todo list or empty state', async () => {
+    it("should show either todo list or empty state", async () => {
       // Either the list or the empty view should be visible
       try {
-        await expect(element(by.id('searchTodoList'))).toBeVisible();
+        await expect(element(by.id("searchTodoList"))).toBeVisible();
       } catch {
-        await expect(element(by.id('searchEmptyView'))).toBeVisible();
+        await expect(element(by.id("searchEmptyView"))).toBeVisible();
       }
     });
 
-    it('should allow searching todos', async () => {
+    it("should allow searching todos", async () => {
       // Type a search query
-      await element(by.id('searchInput')).typeText('test');
+      await element(by.id("searchInput")).typeText("test");
 
       // Wait a moment for filtering
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Clear the search
-      await element(by.id('searchInput')).clearText();
+      await element(by.id("searchInput")).clearText();
     });
   });
 
-  describe('Capture Screen', () => {
+  describe("Capture Screen", () => {
     beforeAll(async () => {
       // Navigate to Capture tab
-      await element(by.text('Capture')).tap();
+      await element(by.text("Capture")).tap();
     });
 
-    it('should load the capture screen', async () => {
-      await waitFor(element(by.id('captureScreen')))
+    it("should load the capture screen", async () => {
+      await waitFor(element(by.id("captureScreen")))
         .toBeVisible()
         .withTimeout(15000);
     });
 
-    it('should display template selector and capture button', async () => {
-      await expect(element(by.id('templateSelector'))).toBeVisible();
-      await expect(element(by.id('captureButton'))).toBeVisible();
+    it("should display template selector and capture button", async () => {
+      await expect(element(by.id("templateSelector"))).toBeVisible();
+      await expect(element(by.id("captureButton"))).toBeVisible();
     });
 
-    it('should show template form with prompts', async () => {
+    it("should show template form with prompts", async () => {
       // Verify the selected template shows its prompts
       // The "Todo" template should have a "Title" field
-      await expect(element(by.text('Title *'))).toExist();
+      await expect(element(by.text("Title *"))).toExist();
 
       // Verify we can see the capture button
-      await expect(element(by.id('captureButton'))).toBeVisible();
+      await expect(element(by.id("captureButton"))).toBeVisible();
     });
   });
 
-  describe('Verify Created Todo', () => {
+  describe("Verify Created Todo", () => {
     beforeAll(async () => {
       // Navigate back to Search tab to verify the todo was created
-      await element(by.text('Search')).tap();
+      await element(by.text("Search")).tap();
     });
 
-    it('should show the search screen with todos', async () => {
-      await waitFor(element(by.id('searchScreen')))
+    it("should show the search screen with todos", async () => {
+      await waitFor(element(by.id("searchScreen")))
         .toBeVisible()
         .withTimeout(15000);
 
       // Pull to refresh to get latest todos
       // Note: Pull-to-refresh is tricky in Detox, we'll just verify the screen loads
-      await expect(element(by.id('searchScreen'))).toBeVisible();
+      await expect(element(by.id("searchScreen"))).toBeVisible();
     });
   });
 });

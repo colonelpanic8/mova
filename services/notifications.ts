@@ -1,12 +1,12 @@
-import * as Notifications from 'expo-notifications';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Todo, NotificationDefaults } from './api';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
+import { NotificationDefaults, Todo } from "./api";
 
-const NOTIFICATIONS_ENABLED_KEY = 'notifications_enabled';
-const LAST_SYNC_KEY = 'last_notification_sync';
+const NOTIFICATIONS_ENABLED_KEY = "notifications_enabled";
+const LAST_SYNC_KEY = "last_notification_sync";
 
 // Done states that should not trigger notifications
-const DONE_STATES = ['DONE', 'CANCELLED', 'CANCELED'];
+const DONE_STATES = ["DONE", "CANCELLED", "CANCELED"];
 
 // Configure how notifications are displayed when app is in foreground
 Notifications.setNotificationHandler({
@@ -23,21 +23,24 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
-  if (existingStatus !== 'granted') {
+  if (existingStatus !== "granted") {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
 
-  return finalStatus === 'granted';
+  return finalStatus === "granted";
 }
 
 export async function getNotificationsEnabled(): Promise<boolean> {
   const value = await AsyncStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
-  return value === 'true';
+  return value === "true";
 }
 
 export async function setNotificationsEnabled(enabled: boolean): Promise<void> {
-  await AsyncStorage.setItem(NOTIFICATIONS_ENABLED_KEY, enabled ? 'true' : 'false');
+  await AsyncStorage.setItem(
+    NOTIFICATIONS_ENABLED_KEY,
+    enabled ? "true" : "false",
+  );
   if (!enabled) {
     await cancelAllNotifications();
   }
@@ -52,21 +55,21 @@ function getTodoId(todo: Todo): string {
 }
 
 function formatTimeUntil(minutes: number): string {
-  if (minutes <= 0) return 'now';
+  if (minutes <= 0) return "now";
   if (minutes < 60) return `in ${minutes} minutes`;
   const hours = Math.floor(minutes / 60);
   const remainingMins = minutes % 60;
-  if (remainingMins === 0) return `in ${hours} hour${hours > 1 ? 's' : ''}`;
+  if (remainingMins === 0) return `in ${hours} hour${hours > 1 ? "s" : ""}`;
   return `in ${hours}h ${remainingMins}m`;
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export async function scheduleNotificationsForTodos(
   todos: Todo[],
-  defaults: NotificationDefaults
+  defaults: NotificationDefaults,
 ): Promise<number> {
   const enabled = await getNotificationsEnabled();
   if (!enabled) return 0;
@@ -100,7 +103,9 @@ export async function scheduleNotificationsForTodos(
     const todoId = getTodoId(todo);
 
     for (const minutes of notifyMinutes) {
-      const notificationTime = new Date(eventTime.getTime() - minutes * 60 * 1000);
+      const notificationTime = new Date(
+        eventTime.getTime() - minutes * 60 * 1000,
+      );
 
       // Skip if notification time has passed
       if (notificationTime <= now) continue;
@@ -127,7 +132,10 @@ export async function scheduleNotificationsForTodos(
         });
         scheduledCount++;
       } catch (err) {
-        console.error(`Failed to schedule notification for ${todo.title}:`, err);
+        console.error(
+          `Failed to schedule notification for ${todo.title}:`,
+          err,
+        );
       }
     }
   }

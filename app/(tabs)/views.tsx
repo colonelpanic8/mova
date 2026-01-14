@@ -1,14 +1,33 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
-import { Text, useTheme, ActivityIndicator, IconButton } from 'react-native-paper';
-import { useAuth } from '@/context/AuthContext';
-import { api, CustomView, CustomViewResponse, Todo, TodoStatesResponse } from '@/services/api';
-import { TodoItem, getTodoKey } from '@/components/TodoItem';
-import { useTodoEditing } from '@/hooks/useTodoEditing';
+import { getTodoKey, TodoItem } from "@/components/TodoItem";
+import { useAuth } from "@/context/AuthContext";
+import { useTodoEditing } from "@/hooks/useTodoEditing";
+import {
+  api,
+  CustomView,
+  CustomViewResponse,
+  Todo,
+  TodoStatesResponse,
+} from "@/services/api";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  ActivityIndicator,
+  IconButton,
+  Text,
+  useTheme,
+} from "react-native-paper";
 
 export default function ViewsScreen() {
   const [views, setViews] = useState<CustomView[]>([]);
-  const [selectedView, setSelectedView] = useState<CustomViewResponse | null>(null);
+  const [selectedView, setSelectedView] = useState<CustomViewResponse | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,17 +35,22 @@ export default function ViewsScreen() {
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
 
-  const handleTodoUpdated = useCallback((todo: Todo, updates: Partial<Todo>) => {
-    setSelectedView(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        entries: prev.entries.map(entry =>
-          getTodoKey(entry) === getTodoKey(todo) ? { ...entry, ...updates } : entry
-        ),
-      };
-    });
-  }, []);
+  const handleTodoUpdated = useCallback(
+    (todo: Todo, updates: Partial<Todo>) => {
+      setSelectedView((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          entries: prev.entries.map((entry) =>
+            getTodoKey(entry) === getTodoKey(todo)
+              ? { ...entry, ...updates }
+              : entry,
+          ),
+        };
+      });
+    },
+    [],
+  );
 
   const {
     completingIds,
@@ -57,27 +81,30 @@ export default function ViewsScreen() {
       }
       setError(null);
     } catch (err) {
-      setError('Failed to load views');
+      setError("Failed to load views");
       console.error(err);
     }
   }, [apiUrl, username, password]);
 
-  const fetchViewEntries = useCallback(async (key: string) => {
-    if (!apiUrl || !username || !password) return;
+  const fetchViewEntries = useCallback(
+    async (key: string) => {
+      if (!apiUrl || !username || !password) return;
 
-    setLoading(true);
-    try {
-      api.configure(apiUrl, username, password);
-      const viewData = await api.getCustomView(key);
-      setSelectedView(viewData);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load view entries');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiUrl, username, password]);
+      setLoading(true);
+      try {
+        api.configure(apiUrl, username, password);
+        const viewData = await api.getCustomView(key);
+        setSelectedView(viewData);
+        setError(null);
+      } catch (err) {
+        setError("Failed to load view entries");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [apiUrl, username, password],
+  );
 
   useEffect(() => {
     fetchViews().finally(() => setLoading(false));
@@ -93,9 +120,12 @@ export default function ViewsScreen() {
     setRefreshing(false);
   }, [fetchViews, fetchViewEntries, selectedView]);
 
-  const handleViewPress = useCallback((view: CustomView) => {
-    fetchViewEntries(view.key);
-  }, [fetchViewEntries]);
+  const handleViewPress = useCallback(
+    (view: CustomView) => {
+      fetchViewEntries(view.key);
+    },
+    [fetchViewEntries],
+  );
 
   const handleBack = useCallback(() => {
     setSelectedView(null);
@@ -103,7 +133,10 @@ export default function ViewsScreen() {
 
   if (loading) {
     return (
-      <View testID="viewsLoadingView" style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+      <View
+        testID="viewsLoadingView"
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
         <ActivityIndicator testID="viewsLoadingIndicator" size="large" />
       </View>
     );
@@ -111,8 +144,15 @@ export default function ViewsScreen() {
 
   if (error) {
     return (
-      <View testID="viewsErrorView" style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-        <Text testID="viewsErrorText" variant="bodyLarge" style={{ color: theme.colors.error }}>
+      <View
+        testID="viewsErrorView"
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
+        <Text
+          testID="viewsErrorText"
+          variant="bodyLarge"
+          style={{ color: theme.colors.error }}
+        >
           {error}
         </Text>
       </View>
@@ -122,8 +162,16 @@ export default function ViewsScreen() {
   // Show view entries
   if (selectedView) {
     return (
-      <View testID="viewEntriesScreen" style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: theme.colors.outlineVariant }]}>
+      <View
+        testID="viewEntriesScreen"
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: theme.colors.outlineVariant },
+          ]}
+        >
           <IconButton
             icon="arrow-left"
             onPress={handleBack}
@@ -176,7 +224,10 @@ export default function ViewsScreen() {
 
   // Show view list
   return (
-    <View testID="viewsListScreen" style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      testID="viewsListScreen"
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       {views.length === 0 ? (
         <View testID="viewsEmptyView" style={styles.centered}>
           <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
@@ -191,12 +242,18 @@ export default function ViewsScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               testID={`viewItem-${item.key}`}
-              style={[styles.viewItem, { borderBottomColor: theme.colors.outlineVariant }]}
+              style={[
+                styles.viewItem,
+                { borderBottomColor: theme.colors.outlineVariant },
+              ]}
               onPress={() => handleViewPress(item)}
             >
               <View style={styles.viewItemContent}>
                 <Text variant="bodyLarge">{item.name}</Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.outline }}>
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.outline }}
+                >
                   {item.key}
                 </Text>
               </View>
@@ -218,23 +275,23 @@ const styles = StyleSheet.create({
   },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 4,
     paddingRight: 8,
     borderBottomWidth: 1,
   },
   headerTitle: {
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
   },
   viewItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     paddingLeft: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,

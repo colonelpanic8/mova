@@ -7,16 +7,23 @@
  * - Custom hex input
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { Text, Portal, Modal, Button, TextInput, useTheme } from 'react-native-paper';
 import {
-  PRESET_COLORS,
-  THEME_COLOR_OPTIONS,
   ColorValue,
   isThemeReference,
   isValidHexColor,
-} from '@/types/colors';
+  PRESET_COLORS,
+  THEME_COLOR_OPTIONS,
+} from "@/types/colors";
+import React, { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Button,
+  Modal,
+  Portal,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 
 interface ColorPickerProps {
   visible: boolean;
@@ -36,28 +43,28 @@ export function ColorPicker({
   showThemeOptions = true,
 }: ColorPickerProps) {
   const theme = useTheme();
-  const [customColor, setCustomColor] = useState('');
+  const [customColor, setCustomColor] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [customColorError, setCustomColorError] = useState('');
+  const [customColorError, setCustomColorError] = useState("");
 
   const handleCustomColorChange = (text: string) => {
     // Auto-add # if not present
     let formatted = text;
-    if (text.length > 0 && !text.startsWith('#')) {
-      formatted = '#' + text;
+    if (text.length > 0 && !text.startsWith("#")) {
+      formatted = "#" + text;
     }
     setCustomColor(formatted.toUpperCase());
-    setCustomColorError('');
+    setCustomColorError("");
   };
 
   const handleCustomColorSubmit = () => {
     if (isValidHexColor(customColor)) {
       onSelect(customColor);
-      setCustomColor('');
+      setCustomColor("");
       setShowCustomInput(false);
-      setCustomColorError('');
+      setCustomColorError("");
     } else {
-      setCustomColorError('Invalid hex color (e.g., #FF5722)');
+      setCustomColorError("Invalid hex color (e.g., #FF5722)");
     }
   };
 
@@ -68,7 +75,7 @@ export function ColorPicker({
 
   const resolveDisplayColor = (colorValue: ColorValue): string => {
     if (isThemeReference(colorValue)) {
-      const key = colorValue.replace('theme:', '');
+      const key = colorValue.replace("theme:", "");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (theme.colors as any)[key] || colorValue;
     }
@@ -84,7 +91,10 @@ export function ColorPicker({
       <Modal
         visible={visible}
         onDismiss={onDismiss}
-        contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}
+        contentContainerStyle={[
+          styles.modal,
+          { backgroundColor: theme.colors.surface },
+        ]}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text variant="titleLarge" style={styles.title}>
@@ -93,7 +103,13 @@ export function ColorPicker({
 
           {showThemeOptions && (
             <>
-              <Text variant="labelMedium" style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant }]}>
+              <Text
+                variant="labelMedium"
+                style={[
+                  styles.sectionLabel,
+                  { color: theme.colors.onSurfaceVariant },
+                ]}
+              >
                 Theme Colors (adapt to light/dark mode)
               </Text>
               <View style={styles.colorGrid}>
@@ -103,7 +119,10 @@ export function ColorPicker({
                     style={[
                       styles.themeColorOption,
                       { backgroundColor: theme.colors[themeKey] },
-                      isSelected(key) && [styles.selectedColor, { borderColor: theme.colors.primary }],
+                      isSelected(key) && [
+                        styles.selectedColor,
+                        { borderColor: theme.colors.primary },
+                      ],
                     ]}
                     onPress={() => handleSelectColor(key)}
                   >
@@ -114,7 +133,13 @@ export function ColorPicker({
             </>
           )}
 
-          <Text variant="labelMedium" style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant }]}>
+          <Text
+            variant="labelMedium"
+            style={[
+              styles.sectionLabel,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
+          >
             Preset Colors
           </Text>
           <View style={styles.presetGrid}>
@@ -124,14 +149,23 @@ export function ColorPicker({
                 style={[
                   styles.colorSwatch,
                   { backgroundColor: color },
-                  isSelected(color) && [styles.selectedColor, { borderColor: theme.colors.primary }],
+                  isSelected(color) && [
+                    styles.selectedColor,
+                    { borderColor: theme.colors.primary },
+                  ],
                 ]}
                 onPress={() => handleSelectColor(color)}
               />
             ))}
           </View>
 
-          <Text variant="labelMedium" style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant }]}>
+          <Text
+            variant="labelMedium"
+            style={[
+              styles.sectionLabel,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
+          >
             Custom Color
           </Text>
           {showCustomInput ? (
@@ -148,33 +182,64 @@ export function ColorPicker({
                 error={!!customColorError}
               />
               {customColorError ? (
-                <Text style={[styles.errorText, { color: theme.colors.error }]}>{customColorError}</Text>
+                <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                  {customColorError}
+                </Text>
               ) : null}
               {isValidHexColor(customColor) && (
                 <View style={styles.previewRow}>
-                  <Text style={{ color: theme.colors.onSurface }}>Preview: </Text>
-                  <View style={[styles.previewSwatch, { backgroundColor: customColor }]} />
+                  <Text style={{ color: theme.colors.onSurface }}>
+                    Preview:{" "}
+                  </Text>
+                  <View
+                    style={[
+                      styles.previewSwatch,
+                      { backgroundColor: customColor },
+                    ]}
+                  />
                 </View>
               )}
               <View style={styles.customButtonRow}>
-                <Button mode="outlined" onPress={() => setShowCustomInput(false)} style={styles.customButton}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowCustomInput(false)}
+                  style={styles.customButton}
+                >
                   Cancel
                 </Button>
-                <Button mode="contained" onPress={handleCustomColorSubmit} style={styles.customButton}>
+                <Button
+                  mode="contained"
+                  onPress={handleCustomColorSubmit}
+                  style={styles.customButton}
+                >
                   Apply
                 </Button>
               </View>
             </View>
           ) : (
-            <Button mode="outlined" onPress={() => setShowCustomInput(true)} icon="palette">
+            <Button
+              mode="outlined"
+              onPress={() => setShowCustomInput(true)}
+              icon="palette"
+            >
               Enter Custom Hex Color
             </Button>
           )}
 
           <View style={styles.currentColorRow}>
             <Text style={{ color: theme.colors.onSurface }}>Current: </Text>
-            <View style={[styles.currentSwatch, { backgroundColor: resolveDisplayColor(currentColor) }]} />
-            <Text style={[styles.currentColorText, { color: theme.colors.onSurfaceVariant }]}>
+            <View
+              style={[
+                styles.currentSwatch,
+                { backgroundColor: resolveDisplayColor(currentColor) },
+              ]}
+            />
+            <Text
+              style={[
+                styles.currentColorText,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
+            >
               {currentColor}
             </Text>
           </View>
@@ -193,19 +258,19 @@ const styles = StyleSheet.create({
     margin: 20,
     padding: 20,
     borderRadius: 12,
-    maxHeight: '80%',
+    maxHeight: "80%",
   },
   title: {
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   sectionLabel: {
     marginTop: 16,
     marginBottom: 8,
   },
   colorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   themeColorOption: {
@@ -213,19 +278,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     minWidth: 80,
-    alignItems: 'center',
+    alignItems: "center",
   },
   themeColorLabel: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: '600',
-    textShadowColor: 'rgba(0,0,0,0.3)',
+    fontWeight: "600",
+    textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   presetGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   colorSwatch: {
@@ -247,8 +312,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   previewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   previewSwatch: {
@@ -258,19 +323,19 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   customButtonRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   customButton: {
     flex: 1,
   },
   currentColorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderTopColor: "rgba(0,0,0,0.1)",
   },
   currentSwatch: {
     width: 24,
@@ -280,7 +345,7 @@ const styles = StyleSheet.create({
   },
   currentColorText: {
     fontSize: 12,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
   },
   cancelButton: {
     marginTop: 16,

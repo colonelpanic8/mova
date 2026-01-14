@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
-import * as Linking from 'expo-linking';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import { api } from '@/services/api';
-import { Alert } from 'react-native';
+import { useAuth } from "@/context/AuthContext";
+import { api } from "@/services/api";
+import * as Linking from "expo-linking";
+import { useRouter } from "expo-router";
+import { useEffect, useRef } from "react";
+import { Alert } from "react-native";
 
 interface DeepLinkParams {
   title?: string;
@@ -13,21 +13,26 @@ interface DeepLinkParams {
   state?: string;
 }
 
-function parseDeepLink(url: string): { action: string; params: DeepLinkParams } | null {
+function parseDeepLink(
+  url: string,
+): { action: string; params: DeepLinkParams } | null {
   try {
     const parsed = Linking.parse(url);
     // URL format: mova://action?params
     // e.g., mova://create?title=Buy+milk
     // e.g., mova://complete?id=abc123
-    const action = parsed.path || parsed.hostname || '';
+    const action = parsed.path || parsed.hostname || "";
     const params: DeepLinkParams = {};
 
     if (parsed.queryParams) {
-      if (parsed.queryParams.title) params.title = String(parsed.queryParams.title);
+      if (parsed.queryParams.title)
+        params.title = String(parsed.queryParams.title);
       if (parsed.queryParams.id) params.id = String(parsed.queryParams.id);
-      if (parsed.queryParams.file) params.file = String(parsed.queryParams.file);
+      if (parsed.queryParams.file)
+        params.file = String(parsed.queryParams.file);
       if (parsed.queryParams.pos) params.pos = String(parsed.queryParams.pos);
-      if (parsed.queryParams.state) params.state = String(parsed.queryParams.state);
+      if (parsed.queryParams.state)
+        params.state = String(parsed.queryParams.state);
     }
 
     return { action, params };
@@ -60,55 +65,58 @@ export function useDeepLinks() {
     api.configure(apiUrl, username, password);
 
     switch (action) {
-      case 'create':
+      case "create":
         if (params.title) {
           try {
             await api.createTodo(params.title);
-            Alert.alert('Todo created', params.title);
+            Alert.alert("Todo created", params.title);
           } catch (err) {
-            Alert.alert('Error', 'Failed to create todo');
+            Alert.alert("Error", "Failed to create todo");
           }
         } else {
           // Navigate to capture tab if no title provided
-          router.push('/(tabs)/capture');
+          router.push("/(tabs)/capture");
         }
         break;
 
-      case 'complete':
+      case "complete":
         if (params.id || (params.file && params.pos)) {
           try {
-            const result = await api.completeTodo({
-              id: params.id || null,
-              file: params.file || null,
-              pos: params.pos ? parseInt(params.pos, 10) : null,
-              title: params.title || '',
-              todo: '',
-              tags: null,
-              level: 0,
-              scheduled: null,
-              deadline: null,
-              priority: null,
-              olpath: null,
-              notifyBefore: null,
-            }, params.state || 'DONE');
+            const result = await api.completeTodo(
+              {
+                id: params.id || null,
+                file: params.file || null,
+                pos: params.pos ? parseInt(params.pos, 10) : null,
+                title: params.title || "",
+                todo: "",
+                tags: null,
+                level: 0,
+                scheduled: null,
+                deadline: null,
+                priority: null,
+                olpath: null,
+                notifyBefore: null,
+              },
+              params.state || "DONE",
+            );
 
-            if (result.status === 'completed') {
-              Alert.alert('Completed', result.title || 'Todo completed');
+            if (result.status === "completed") {
+              Alert.alert("Completed", result.title || "Todo completed");
             } else {
-              Alert.alert('Error', result.message || 'Failed to complete');
+              Alert.alert("Error", result.message || "Failed to complete");
             }
           } catch (err) {
-            Alert.alert('Error', 'Failed to complete todo');
+            Alert.alert("Error", "Failed to complete todo");
           }
         }
         break;
 
-      case 'search':
-        router.push('/(tabs)/search');
+      case "search":
+        router.push("/(tabs)/search");
         break;
 
-      case 'agenda':
-        router.push('/(tabs)');
+      case "agenda":
+        router.push("/(tabs)");
         break;
 
       default:
@@ -119,12 +127,12 @@ export function useDeepLinks() {
 
   useEffect(() => {
     // Handle URL that opened the app
-    Linking.getInitialURL().then(url => {
+    Linking.getInitialURL().then((url) => {
       if (url) handleUrl(url);
     });
 
     // Handle URLs while app is running
-    const subscription = Linking.addEventListener('url', event => {
+    const subscription = Linking.addEventListener("url", (event) => {
       handleUrl(event.url);
     });
 

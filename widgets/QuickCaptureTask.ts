@@ -1,17 +1,21 @@
-import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
+import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import {
-  getWidgetCredentials,
-  queuePendingTodo,
   getPendingTodos,
-  removePendingTodo,
+  getWidgetCredentials,
   incrementRetryCount,
-  PendingTodo,
-} from './storage';
+  queuePendingTodo,
+  removePendingTodo,
+} from "./storage";
 
 const MAX_RETRIES = 3;
 
 export interface WidgetTaskResult {
-  status: 'success' | 'no_auth' | 'queued' | 'retry_complete' | 'unknown_action';
+  status:
+    | "success"
+    | "no_auth"
+    | "queued"
+    | "retry_complete"
+    | "unknown_action";
   message?: string;
   error?: string;
 }
@@ -31,13 +35,13 @@ async function createTodo(
   apiUrl: string,
   username: string,
   password: string,
-  title: string
+  title: string,
 ): Promise<CreateTodoResult> {
   try {
     const response = await fetch(`${apiUrl}/create`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Basic ${btoa(`${username}:${password}`)}`,
       },
       body: JSON.stringify({ title }),
@@ -48,16 +52,20 @@ async function createTodo(
     }
 
     if (response.status === 401) {
-      return { success: false, error: 'auth_failed' };
+      return { success: false, error: "auth_failed" };
     }
 
     if (response.status === 502 || response.status === 503) {
-      return { success: false, error: 'server_unavailable', shouldRestart: true };
+      return {
+        success: false,
+        error: "server_unavailable",
+        shouldRestart: true,
+      };
     }
 
     return { success: false, error: `http_${response.status}` };
   } catch (error) {
-    return { success: false, error: 'network_error' };
+    return { success: false, error: "network_error" };
   }
 }
 
@@ -67,11 +75,11 @@ async function createTodo(
 async function requestRestart(
   apiUrl: string,
   username: string,
-  password: string
+  password: string,
 ): Promise<boolean> {
   try {
     const response = await fetch(`${apiUrl}/restart`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Authorization: `Basic ${btoa(`${username}:${password}`)}`,
       },
@@ -86,7 +94,7 @@ async function requestRestart(
  * Sleep for specified milliseconds
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -96,9 +104,9 @@ async function submitTodoWithRetry(
   apiUrl: string,
   username: string,
   password: string,
-  title: string
+  title: string,
 ): Promise<{ success: boolean; error?: string }> {
-  let lastError = '';
+  let lastError = "";
   let hasTriedRestart = false;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -109,15 +117,15 @@ async function submitTodoWithRetry(
     }
 
     // Don't retry auth failures
-    if (result.error === 'auth_failed') {
-      return { success: false, error: 'Authentication failed' };
+    if (result.error === "auth_failed") {
+      return { success: false, error: "Authentication failed" };
     }
 
-    lastError = result.error || 'Unknown error';
+    lastError = result.error || "Unknown error";
 
     // If server unavailable and we haven't tried restart yet, do it
     if (result.shouldRestart && !hasTriedRestart) {
-      console.log('Server unavailable, requesting restart...');
+      console.log("Server unavailable, requesting restart...");
       await requestRestart(apiUrl, username, password);
       hasTriedRestart = true;
       await sleep(RESTART_WAIT_MS);
@@ -155,7 +163,7 @@ async function processPendingTodos(): Promise<void> {
       credentials.apiUrl,
       credentials.username,
       credentials.password,
-      todo.text
+      todo.text,
     );
 
     if (result.success) {
@@ -169,10 +177,12 @@ async function processPendingTodos(): Promise<void> {
 /**
  * Widget task handler - called when widget interactions occur
  */
-export async function widgetTaskHandler(props: WidgetTaskHandlerProps): Promise<WidgetTaskResult> {
+export async function widgetTaskHandler(
+  props: WidgetTaskHandlerProps,
+): Promise<WidgetTaskResult> {
   const { widgetInfo, clickAction, clickActionData } = props;
 
-  if (clickAction === 'SUBMIT_TODO' && clickActionData?.text) {
+  if (clickAction === "SUBMIT_TODO" && clickActionData?.text) {
     const text = clickActionData.text as string;
     const credentials = await getWidgetCredentials();
 
@@ -180,8 +190,8 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps): Promise<
       // No credentials - queue for later
       await queuePendingTodo(text);
       return {
-        status: 'no_auth',
-        message: 'Please log in to the Mova app first',
+        status: "no_auth",
+        message: "Please log in to the Mova app first",
       };
     }
 
@@ -189,24 +199,24 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps): Promise<
       credentials.apiUrl,
       credentials.username,
       credentials.password,
-      text
+      text,
     );
 
     if (result.success) {
       // Also try to process any pending todos
       await processPendingTodos();
-      return { status: 'success' };
+      return { status: "success" };
     } else {
       // Queue for later retry
       await queuePendingTodo(text);
-      return { status: 'queued', error: result.error };
+      return { status: "queued", error: result.error };
     }
   }
 
-  if (clickAction === 'RETRY_PENDING') {
+  if (clickAction === "RETRY_PENDING") {
     await processPendingTodos();
-    return { status: 'retry_complete' };
+    return { status: "retry_complete" };
   }
 
-  return { status: 'unknown_action' };
+  return { status: "unknown_action" };
 }

@@ -1,25 +1,36 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Image } from 'react-native';
-import { TextInput, Button, Text, Snackbar, useTheme, Menu } from 'react-native-paper';
-import { useAuth } from '@/context/AuthContext';
-import { api } from '@/services/api';
+import { useAuth } from "@/context/AuthContext";
+import { api } from "@/services/api";
+import React, { useState } from "react";
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
+} from "react-native";
+import {
+  Button,
+  Menu,
+  Snackbar,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 
-const DEFAULT_URLS = [
-  'https://colonelpanic-org-agenda.fly.dev',
-];
+const DEFAULT_URLS = ["https://colonelpanic-org-agenda.fly.dev"];
 
 export default function LoginScreen() {
-  const [apiUrl, setApiUrl] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [apiUrl, setApiUrl] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showUrlSuggestions, setShowUrlSuggestions] = useState(false);
   const { login } = useAuth();
   const theme = useTheme();
 
-  const filteredUrls = DEFAULT_URLS.filter(url =>
-    url.toLowerCase().includes(apiUrl.toLowerCase())
+  const filteredUrls = DEFAULT_URLS.filter((url) =>
+    url.toLowerCase().includes(apiUrl.toLowerCase()),
   );
 
   const handleUrlSelect = (url: string) => {
@@ -29,12 +40,12 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!apiUrl || !username || !password) {
-      setError('All fields are required');
+      setError("All fields are required");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const success = await login(apiUrl, username, password);
@@ -42,10 +53,10 @@ export default function LoginScreen() {
         // Configure the API service
         api.configure(apiUrl, username, password);
       } else {
-        setError('Invalid credentials or server URL');
+        setError("Invalid credentials or server URL");
       }
     } catch (err) {
-      setError('Connection failed. Check the URL and try again.');
+      setError("Connection failed. Check the URL and try again.");
     } finally {
       setLoading(false);
     }
@@ -54,11 +65,11 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.content}>
         <Image
-          source={require('@/assets/images/mova.png')}
+          source={require("@/assets/images/mova.png")}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -137,11 +148,11 @@ export default function LoginScreen() {
 
       <Snackbar
         visible={!!error}
-        onDismiss={() => setError('')}
+        onDismiss={() => setError("")}
         duration={3000}
         action={{
-          label: 'Dismiss',
-          onPress: () => setError(''),
+          label: "Dismiss",
+          onPress: () => setError(""),
         }}
       >
         {error}
@@ -157,16 +168,16 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 24,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   logo: {
     width: 200,
     height: 150,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginBottom: 16,
   },
   subtitle: {
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 32,
     opacity: 0.7,
   },
@@ -181,7 +192,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   menu: {
-    width: '100%',
+    width: "100%",
   },
   button: {
     marginTop: 8,
