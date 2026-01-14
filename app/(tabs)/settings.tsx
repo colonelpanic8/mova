@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Button, List, Divider, Switch, useTheme, ActivityIndicator } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import {
   getNotificationsEnabled,
@@ -14,6 +15,7 @@ import { useNotificationSync } from '@/hooks/useNotificationSync';
 export default function SettingsScreen() {
   const { apiUrl, username, logout } = useAuth();
   const theme = useTheme();
+  const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const { lastSync, scheduledCount, isSyncing, syncNotifications } = useNotificationSync();
@@ -109,6 +111,19 @@ export default function SettingsScreen() {
             />
           </>
         )}
+      </List.Section>
+
+      <Divider />
+
+      <List.Section>
+        <List.Subheader>Appearance</List.Subheader>
+        <List.Item
+          title="Colors"
+          description="Customize TODO state and action button colors"
+          left={props => <List.Icon {...props} icon="palette" />}
+          onPress={() => router.push('/settings/colors')}
+          right={props => <List.Icon {...props} icon="chevron-right" />}
+        />
       </List.Section>
 
       <Divider />

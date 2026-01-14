@@ -4,6 +4,7 @@ import { PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import { useColorScheme, View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ColorPaletteProvider } from '@/context/ColorPaletteContext';
 import { useDeepLinks } from '@/hooks/useDeepLinks';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
@@ -61,9 +62,11 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
-        <AuthProvider>
-          <RootLayoutNav />
-        </AuthProvider>
+        <ColorPaletteProvider>
+          <AuthProvider>
+            <RootLayoutNav />
+          </AuthProvider>
+        </ColorPaletteProvider>
       </PaperProvider>
     </GestureHandlerRootView>
   );
