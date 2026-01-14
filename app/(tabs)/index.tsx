@@ -3,7 +3,9 @@ import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity, Platform 
 import { Text, useTheme, ActivityIndicator, IconButton } from 'react-native-paper';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useAuth } from '@/context/AuthContext';
-import { api, AgendaResponse, AgendaEntry } from '@/services/api';
+import { api, AgendaResponse, AgendaEntry, Todo, TodoStatesResponse } from '@/services/api';
+import { TodoItem, getTodoKey } from '@/components/TodoItem';
+import { useTodoEditing } from '@/hooks/useTodoEditing';
 
 function formatDateForApi(date: Date): string {
   return date.toISOString().split('T')[0];
@@ -26,8 +28,35 @@ export default function AgendaScreen() {
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
+
+  const handleTodoUpdated = useCallback((todo: Todo, updates: Partial<Todo>) => {
+    setAgenda(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        entries: prev.entries.map(entry =>
+          getTodoKey(entry) === getTodoKey(todo) ? { ...entry, ...updates } : entry
+        ),
+      };
+    });
+  }, []);
+
+  const {
+    completingIds,
+    updatingIds,
+    swipeableRefs,
+    handleTodoPress,
+    openScheduleModal,
+    openDeadlineModal,
+    openPriorityModal,
+    EditModals,
+  } = useTodoEditing({
+    onTodoUpdated: handleTodoUpdated,
+    todoStates,
+  });
 
   const fetchAgenda = useCallback(async (date: Date) => {
     if (!apiUrl || !username || !password) return;
@@ -35,8 +64,14 @@ export default function AgendaScreen() {
     try {
       api.configure(apiUrl, username, password);
       const dateString = formatDateForApi(date);
-      const data = await api.getAgenda('day', dateString);
-      setAgenda(data);
+      const [agendaData, statesData] = await Promise.all([
+        api.getAgenda('day', dateString),
+        api.getTodoStates().catch(() => null),
+      ]);
+      setAgenda(agendaData);
+      if (statesData) {
+        setTodoStates(statesData);
+      }
       setError(null);
     } catch (err) {
       setError('Failed to load agenda');
@@ -148,49 +183,31 @@ export default function AgendaScreen() {
         <FlatList
           testID="agendaList"
           data={agenda?.entries}
-          keyExtractor={(item, index) => item.id || `${index}-${item.pos}`}
-          renderItem={({ item }) => (
-            <View style={[styles.entry, { borderBottomColor: theme.colors.outlineVariant }]}>
-              <View style={styles.entryHeader}>
-                {item.todo && (
-                  <Text style={[styles.todoState, { color: item.todo === 'DONE' ? theme.colors.outline : theme.colors.primary }]}>
-                    {item.todo}
-                  </Text>
-                )}
-                <Text style={[styles.title, { color: theme.colors.onSurface }]} numberOfLines={2}>
-                  {item.title}
-                </Text>
-              </View>
-              {item.tags && item.tags.length > 0 && (
-                <View style={styles.tagsContainer}>
-                  {item.tags.map((tag: string) => (
-                    <Text key={tag} style={[styles.tag, { backgroundColor: theme.colors.secondaryContainer, color: theme.colors.onSecondaryContainer }]}>
-                      {tag}
-                    </Text>
-                  ))}
-                </View>
-              )}
-              {(item.scheduled || item.deadline) && (
-                <View style={styles.timestamps}>
-                  {item.scheduled && (
-                    <Text style={[styles.timestamp, { color: theme.colors.outline }]}>
-                      Scheduled: {new Date(item.scheduled).toLocaleString()}
-                    </Text>
-                  )}
-                  {item.deadline && (
-                    <Text style={[styles.timestamp, { color: theme.colors.error }]}>
-                      Deadline: {new Date(item.deadline).toLocaleString()}
-                    </Text>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
+          keyExtractor={(item) => getTodoKey(item)}
+          renderItem={({ item }) => {
+            const key = getTodoKey(item);
+            return (
+              <TodoItem
+                ref={(ref) => {
+                  if (ref) swipeableRefs.current.set(key, ref);
+                }}
+                todo={item}
+                isCompleting={completingIds.has(key)}
+                isUpdating={updatingIds.has(key)}
+                onTodoPress={handleTodoPress}
+                onSchedulePress={openScheduleModal}
+                onDeadlinePress={openDeadlineModal}
+                onPriorityPress={openPriorityModal}
+              />
+            );
+          }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         />
       )}
+
+      <EditModals />
     </View>
   );
 }
@@ -226,40 +243,5 @@ const styles = StyleSheet.create({
   todayButton: {
     alignItems: 'center',
     paddingVertical: 8,
-  },
-  entry: {
-    padding: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  entryHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  todoState: {
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  title: {
-    flex: 1,
-    fontSize: 14,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 6,
-  },
-  tag: {
-    fontSize: 11,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  timestamps: {
-    marginTop: 6,
-  },
-  timestamp: {
-    fontSize: 12,
   },
 });
