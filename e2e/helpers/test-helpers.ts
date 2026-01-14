@@ -8,13 +8,13 @@
  * - Optimized setup that skips login when already logged in
  */
 
-import { by, device, element, expect, waitFor } from 'detox';
-import { execSync } from 'child_process';
+import { execSync } from "child_process";
+import { by, device, element, waitFor } from "detox";
 
 // Test container configuration
-export const TEST_API_URL = 'http://10.0.2.2:8080'; // Android emulator localhost
-export const TEST_USERNAME = 'testuser';
-export const TEST_PASSWORD = 'testpass';
+export const TEST_API_URL = "http://10.0.2.2:8080"; // Android emulator localhost
+export const TEST_USERNAME = "testuser";
+export const TEST_PASSWORD = "testpass";
 
 /**
  * Reset test data to its original state using git checkout.
@@ -24,13 +24,13 @@ export const TEST_PASSWORD = 'testpass';
 export function resetTestData(): void {
   try {
     // Reset files to git state
-    execSync('git checkout e2e/test-data/', { stdio: 'pipe' });
+    execSync("git checkout e2e/test-data/", { stdio: "pipe" });
     // Restart container so Emacs reloads the files
-    execSync('docker restart mova-test-api', { stdio: 'pipe', timeout: 10000 });
+    execSync("docker restart mova-test-api", { stdio: "pipe", timeout: 10000 });
     // Wait for container to be ready
-    execSync('sleep 2', { stdio: 'pipe' });
+    execSync("sleep 2", { stdio: "pipe" });
   } catch (error) {
-    console.warn('Failed to reset test data:', error);
+    console.warn("Failed to reset test data:", error);
   }
 }
 
@@ -50,7 +50,7 @@ const TEST_LAUNCH_ARGS = {
 export async function ensureFreshState(): Promise<void> {
   await device.launchApp({
     newInstance: true,
-    delete: true  // Clears all app data including AsyncStorage
+    delete: true, // Clears all app data including AsyncStorage
   });
 }
 
@@ -83,34 +83,34 @@ export async function loginWithTestCredentials(): Promise<void> {
   await device.disableSynchronization();
   try {
     // Wait for login screen to be visible
-    await waitFor(element(by.id('serverUrlInput')))
+    await waitFor(element(by.id("serverUrlInput")))
       .toBeVisible()
       .withTimeout(10000);
 
     // Clear any existing text and enter test credentials
-    await element(by.id('serverUrlInput')).clearText();
-    await element(by.id('serverUrlInput')).typeText(TEST_API_URL);
+    await element(by.id("serverUrlInput")).clearText();
+    await element(by.id("serverUrlInput")).typeText(TEST_API_URL);
 
-    await element(by.id('usernameInput')).clearText();
-    await element(by.id('usernameInput')).typeText(TEST_USERNAME);
+    await element(by.id("usernameInput")).clearText();
+    await element(by.id("usernameInput")).typeText(TEST_USERNAME);
 
-    await element(by.id('passwordInput')).clearText();
-    await element(by.id('passwordInput')).typeText(TEST_PASSWORD);
+    await element(by.id("passwordInput")).clearText();
+    await element(by.id("passwordInput")).typeText(TEST_PASSWORD);
 
     // Dismiss keyboard before tapping connect
-    await element(by.id('passwordInput')).tapReturnKey();
+    await element(by.id("passwordInput")).tapReturnKey();
 
     // Wait for keyboard to dismiss and button to be visible
-    await new Promise(resolve => setTimeout(resolve, 500));
-    await waitFor(element(by.id('connectButton')))
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await waitFor(element(by.id("connectButton")))
       .toBeVisible()
       .withTimeout(5000);
 
     // Tap connect button
-    await element(by.id('connectButton')).tap();
+    await element(by.id("connectButton")).tap();
 
     // Wait for navigation to main app (tabs should be visible)
-    await waitFor(element(by.id('agendaScreen')))
+    await waitFor(element(by.id("agendaScreen")))
       .toBeVisible()
       .withTimeout(15000);
   } finally {
@@ -132,7 +132,7 @@ export async function setupTestWithLogin(): Promise<void> {
  */
 async function isOnLoginScreen(): Promise<boolean> {
   try {
-    await waitFor(element(by.id('serverUrlInput')))
+    await waitFor(element(by.id("serverUrlInput")))
       .toBeVisible()
       .withTimeout(2000);
     return true;
@@ -146,7 +146,7 @@ async function isOnLoginScreen(): Promise<boolean> {
  */
 async function isAlreadyLoggedIn(): Promise<boolean> {
   try {
-    await waitFor(element(by.id('agendaScreen')))
+    await waitFor(element(by.id("agendaScreen")))
       .toBeVisible()
       .withTimeout(2000);
     return true;
@@ -178,7 +178,7 @@ export async function setupTestWithLoginOnce(): Promise<void> {
   // Check if auto-login worked (agendaScreen visible within 5 seconds)
   await device.disableSynchronization();
   try {
-    await waitFor(element(by.id('agendaScreen')))
+    await waitFor(element(by.id("agendaScreen")))
       .toBeVisible()
       .withTimeout(5000);
     await device.enableSynchronization();
@@ -220,7 +220,7 @@ export async function setupTestPreserveLogin(): Promise<void> {
 
     // Navigate to agenda tab
     try {
-      await element(by.text('Agenda')).tap();
+      await element(by.text("Agenda")).tap();
     } catch {
       // Already on agenda or can't find tab
     }
@@ -232,7 +232,9 @@ export async function setupTestPreserveLogin(): Promise<void> {
 /**
  * Navigate to a specific tab
  */
-export async function navigateToTab(tabName: 'Agenda' | 'Search' | 'Capture'): Promise<void> {
+export async function navigateToTab(
+  tabName: "Agenda" | "Search" | "Capture",
+): Promise<void> {
   await element(by.text(tabName)).tap();
 }
 
@@ -244,14 +246,14 @@ export async function waitForLoadingComplete(): Promise<void> {
   await device.disableSynchronization();
   try {
     // First wait for the agenda screen to be visible
-    await waitFor(element(by.id('agendaScreen')))
+    await waitFor(element(by.id("agendaScreen")))
       .toBeVisible()
       .withTimeout(10000);
 
     // Then wait for loading indicator to disappear (or never appear)
     // Use a try-catch since the indicator might not exist if loading is fast
     try {
-      await waitFor(element(by.id('agendaLoadingIndicator')))
+      await waitFor(element(by.id("agendaLoadingIndicator")))
         .not.toBeVisible()
         .withTimeout(5000);
     } catch {
@@ -266,7 +268,7 @@ export async function waitForLoadingComplete(): Promise<void> {
  * Pull to refresh on a screen
  */
 export async function pullToRefresh(elementId: string): Promise<void> {
-  await element(by.id(elementId)).swipe('down', 'slow', 0.75);
+  await element(by.id(elementId)).swipe("down", "slow", 0.75);
 }
 
 /**
@@ -275,7 +277,7 @@ export async function pullToRefresh(elementId: string): Promise<void> {
 export async function resetSwipeableState(): Promise<void> {
   try {
     // Scroll to top to close any open swipeables and ensure items are visible
-    await element(by.id('agendaList')).scrollTo('top');
+    await element(by.id("agendaList")).scrollTo("top");
   } catch {
     // Ignore if scroll fails
   }
@@ -284,18 +286,21 @@ export async function resetSwipeableState(): Promise<void> {
 /**
  * Scroll to make an element visible
  */
-export async function scrollToElement(textOrId: string, isId = false): Promise<void> {
+export async function scrollToElement(
+  textOrId: string,
+  isId = false,
+): Promise<void> {
   try {
     if (isId) {
       await waitFor(element(by.id(textOrId)))
         .toBeVisible()
-        .whileElement(by.id('agendaList'))
-        .scroll(200, 'down');
+        .whileElement(by.id("agendaList"))
+        .scroll(200, "down");
     } else {
       await waitFor(element(by.text(textOrId)))
         .toBeVisible()
-        .whileElement(by.id('agendaList'))
-        .scroll(200, 'down');
+        .whileElement(by.id("agendaList"))
+        .scroll(200, "down");
     }
   } catch {
     // Element might already be visible

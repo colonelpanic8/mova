@@ -65,7 +65,7 @@ export interface TodoStatesResponse {
 
 export interface TemplatePrompt {
   name: string;
-  type: 'string' | 'date' | 'tags';
+  type: "string" | "date" | "tags";
   required: boolean;
 }
 
@@ -100,20 +100,23 @@ export interface CustomViewResponse {
 }
 
 class OrgAgendaApi {
-  private baseUrl: string = '';
-  private authHeader: string = '';
+  private baseUrl: string = "";
+  private authHeader: string = "";
 
   configure(baseUrl: string, username: string, password: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
     this.authHeader = `Basic ${btoa(`${username}:${password}`)}`;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+  ): Promise<T> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
       headers: {
         Authorization: this.authHeader,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
     });
@@ -125,28 +128,34 @@ class OrgAgendaApi {
     return response.json();
   }
 
-  async getAgenda(span: 'day' | 'week' = 'day', date?: string): Promise<AgendaResponse> {
+  async getAgenda(
+    span: "day" | "week" = "day",
+    date?: string,
+  ): Promise<AgendaResponse> {
     const params = new URLSearchParams({ span });
     if (date) {
-      params.append('date', date);
+      params.append("date", date);
     }
     return this.request<AgendaResponse>(`/agenda?${params.toString()}`);
   }
 
   async getAllTodos(): Promise<GetAllTodosResponse> {
-    return this.request<GetAllTodosResponse>('/get-all-todos');
+    return this.request<GetAllTodosResponse>("/get-all-todos");
   }
 
   async createTodo(title: string): Promise<CreateTodoResponse> {
-    return this.request<CreateTodoResponse>('/create-todo', {
-      method: 'POST',
+    return this.request<CreateTodoResponse>("/create-todo", {
+      method: "POST",
       body: JSON.stringify({ title }),
     });
   }
 
-  async completeTodo(todo: Todo, newState: string = 'DONE'): Promise<CompleteTodoResponse> {
-    return this.request<CompleteTodoResponse>('/complete', {
-      method: 'POST',
+  async completeTodo(
+    todo: Todo,
+    newState: string = "DONE",
+  ): Promise<CompleteTodoResponse> {
+    return this.request<CompleteTodoResponse>("/complete", {
+      method: "POST",
       body: JSON.stringify({
         id: todo.id,
         file: todo.file,
@@ -157,9 +166,12 @@ class OrgAgendaApi {
     });
   }
 
-  async updateTodo(todo: Todo, updates: TodoUpdates): Promise<UpdateTodoResponse> {
-    return this.request<UpdateTodoResponse>('/update', {
-      method: 'POST',
+  async updateTodo(
+    todo: Todo,
+    updates: TodoUpdates,
+  ): Promise<UpdateTodoResponse> {
+    return this.request<UpdateTodoResponse>("/update", {
+      method: "POST",
       body: JSON.stringify({
         id: todo.id,
         file: todo.file,
@@ -171,12 +183,15 @@ class OrgAgendaApi {
   }
 
   async getTodoStates(): Promise<TodoStatesResponse> {
-    return this.request<TodoStatesResponse>('/todo-states');
+    return this.request<TodoStatesResponse>("/todo-states");
   }
 
-  async setTodoState(todo: Todo, newState: string): Promise<CompleteTodoResponse> {
-    return this.request<CompleteTodoResponse>('/complete', {
-      method: 'POST',
+  async setTodoState(
+    todo: Todo,
+    newState: string,
+  ): Promise<CompleteTodoResponse> {
+    return this.request<CompleteTodoResponse>("/complete", {
+      method: "POST",
       body: JSON.stringify({
         id: todo.id,
         file: todo.file,
@@ -188,22 +203,27 @@ class OrgAgendaApi {
   }
 
   async getTemplates(): Promise<TemplatesResponse> {
-    return this.request<TemplatesResponse>('/templates');
+    return this.request<TemplatesResponse>("/templates");
   }
 
-  async capture(template: string, values: Record<string, string | string[]>): Promise<CaptureResponse> {
-    return this.request<CaptureResponse>('/capture', {
-      method: 'POST',
+  async capture(
+    template: string,
+    values: Record<string, string | string[]>,
+  ): Promise<CaptureResponse> {
+    return this.request<CaptureResponse>("/capture", {
+      method: "POST",
       body: JSON.stringify({ template, values }),
     });
   }
 
   async getCustomViews(): Promise<CustomViewsResponse> {
-    return this.request<CustomViewsResponse>('/custom-views');
+    return this.request<CustomViewsResponse>("/custom-views");
   }
 
   async getCustomView(key: string): Promise<CustomViewResponse> {
-    return this.request<CustomViewResponse>(`/custom-view?key=${encodeURIComponent(key)}`);
+    return this.request<CustomViewResponse>(
+      `/custom-view?key=${encodeURIComponent(key)}`,
+    );
   }
 }
 

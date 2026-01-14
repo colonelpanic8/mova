@@ -1,15 +1,18 @@
-import * as BackgroundFetch from 'expo-background-fetch';
-import * as TaskManager from 'expo-task-manager';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api } from './api';
-import { scheduleNotificationsForTodos, getNotificationsEnabled } from './notifications';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as BackgroundFetch from "expo-background-fetch";
+import * as TaskManager from "expo-task-manager";
+import { api } from "./api";
+import {
+  getNotificationsEnabled,
+  scheduleNotificationsForTodos,
+} from "./notifications";
 
-const BACKGROUND_SYNC_TASK = 'MOVA_BACKGROUND_SYNC';
+const BACKGROUND_SYNC_TASK = "MOVA_BACKGROUND_SYNC";
 
 // Storage keys for credentials (shared with AuthContext)
-const API_URL_KEY = 'api_url';
-const USERNAME_KEY = 'username';
-const PASSWORD_KEY = 'password';
+const API_URL_KEY = "api_url";
+const USERNAME_KEY = "username";
+const PASSWORD_KEY = "password";
 
 async function getStoredCredentials(): Promise<{
   apiUrl: string | null;
@@ -40,12 +43,15 @@ TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
     api.configure(apiUrl, username, password);
     const response = await api.getAllTodos();
 
-    const count = await scheduleNotificationsForTodos(response.todos, response.defaults);
+    const count = await scheduleNotificationsForTodos(
+      response.todos,
+      response.defaults,
+    );
     console.log(`Background sync: scheduled ${count} notifications`);
 
     return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (err) {
-    console.error('Background sync failed:', err);
+    console.error("Background sync failed:", err);
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });
@@ -57,18 +63,18 @@ export async function registerBackgroundSync(): Promise<void> {
       stopOnTerminate: false,
       startOnBoot: true,
     });
-    console.log('Background sync registered');
+    console.log("Background sync registered");
   } catch (err) {
-    console.error('Failed to register background sync:', err);
+    console.error("Failed to register background sync:", err);
   }
 }
 
 export async function unregisterBackgroundSync(): Promise<void> {
   try {
     await BackgroundFetch.unregisterTaskAsync(BACKGROUND_SYNC_TASK);
-    console.log('Background sync unregistered');
+    console.log("Background sync unregistered");
   } catch (err) {
-    console.error('Failed to unregister background sync:', err);
+    console.error("Failed to unregister background sync:", err);
   }
 }
 

@@ -1,12 +1,20 @@
-import React, { useState, useCallback, useRef, ReactNode } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text, useTheme, Portal, Modal, Button, RadioButton, Snackbar } from 'react-native-paper';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Swipeable } from 'react-native-gesture-handler';
-import { api, Todo, TodoUpdates, TodoStatesResponse } from '@/services/api';
-import { getTodoKey } from '@/components/TodoItem';
+import { getTodoKey } from "@/components/TodoItem";
+import { api, Todo, TodoStatesResponse, TodoUpdates } from "@/services/api";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import React, { ReactNode, useCallback, useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
+import {
+  Button,
+  Modal,
+  Portal,
+  RadioButton,
+  Snackbar,
+  Text,
+  useTheme,
+} from "react-native-paper";
 
-type EditModalType = 'schedule' | 'deadline' | 'priority' | 'state' | null;
+type EditModalType = "schedule" | "deadline" | "priority" | "state" | null;
 
 export interface UseTodoEditingOptions {
   onTodoUpdated?: (todo: Todo, updates: Partial<Todo>) => void;
@@ -32,7 +40,9 @@ export interface UseTodoEditingResult {
   EditModals: () => ReactNode;
 }
 
-export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEditingResult {
+export function useTodoEditing(
+  options: UseTodoEditingOptions = {},
+): UseTodoEditingResult {
   const { onTodoUpdated, todoStates } = options;
   const theme = useTheme();
 
@@ -40,17 +50,21 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [editModalType, setEditModalType] = useState<EditModalType>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedPriority, setSelectedPriority] = useState<string>('');
-  const [selectedState, setSelectedState] = useState<string>('');
+  const [selectedPriority, setSelectedPriority] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
 
   // Loading states
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
 
   // Snackbar
-  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string; isError: boolean }>({
+  const [snackbar, setSnackbar] = useState<{
+    visible: boolean;
+    message: string;
+    isError: boolean;
+  }>({
     visible: false,
-    message: '',
+    message: "",
     isError: false,
   });
 
@@ -70,175 +84,217 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
     setEditingTodo(todo);
     setEditModalType(type);
 
-    if (type === 'schedule' || type === 'deadline') {
-      const existingDate = type === 'schedule' ? todo.scheduled : todo.deadline;
+    if (type === "schedule" || type === "deadline") {
+      const existingDate = type === "schedule" ? todo.scheduled : todo.deadline;
       if (existingDate) {
         setSelectedDate(new Date(existingDate));
       } else {
         setSelectedDate(new Date());
       }
-    } else if (type === 'priority') {
-      setSelectedPriority(todo.priority || '');
-    } else if (type === 'state') {
-      setSelectedState(todo.todo || '');
+    } else if (type === "priority") {
+      setSelectedPriority(todo.priority || "");
+    } else if (type === "state") {
+      setSelectedState(todo.todo || "");
     }
   }, []);
 
-  const handleTodoPress = useCallback((todo: Todo) => {
-    openEditModal(todo, 'state');
-  }, [openEditModal]);
+  const handleTodoPress = useCallback(
+    (todo: Todo) => {
+      openEditModal(todo, "state");
+    },
+    [openEditModal],
+  );
 
-  const openScheduleModal = useCallback((todo: Todo) => {
-    openEditModal(todo, 'schedule');
-  }, [openEditModal]);
+  const openScheduleModal = useCallback(
+    (todo: Todo) => {
+      openEditModal(todo, "schedule");
+    },
+    [openEditModal],
+  );
 
-  const openDeadlineModal = useCallback((todo: Todo) => {
-    openEditModal(todo, 'deadline');
-  }, [openEditModal]);
+  const openDeadlineModal = useCallback(
+    (todo: Todo) => {
+      openEditModal(todo, "deadline");
+    },
+    [openEditModal],
+  );
 
-  const openPriorityModal = useCallback((todo: Todo) => {
-    openEditModal(todo, 'priority');
-  }, [openEditModal]);
+  const openPriorityModal = useCallback(
+    (todo: Todo) => {
+      openEditModal(todo, "priority");
+    },
+    [openEditModal],
+  );
 
-  const scheduleTomorrow = useCallback(async (todo: Todo) => {
-    const key = getTodoKey(todo);
-    swipeableRefs.current.get(key)?.close();
-    setUpdatingIds(prev => new Set(prev).add(key));
+  const scheduleTomorrow = useCallback(
+    async (todo: Todo) => {
+      const key = getTodoKey(todo);
+      swipeableRefs.current.get(key)?.close();
+      setUpdatingIds((prev) => new Set(prev).add(key));
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateString = tomorrow.toISOString().slice(0, 10);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateString = tomorrow.toISOString().slice(0, 10);
 
-    try {
-      const result = await api.updateTodo(todo, { scheduled: dateString });
+      try {
+        const result = await api.updateTodo(todo, { scheduled: dateString });
 
-      if (result.status === 'updated') {
+        if (result.status === "updated") {
+          setSnackbar({
+            visible: true,
+            message: `Scheduled for tomorrow: ${todo.title}`,
+            isError: false,
+          });
+          onTodoUpdated?.(todo, { scheduled: dateString });
+        } else {
+          setSnackbar({
+            visible: true,
+            message: result.message || "Failed to schedule",
+            isError: true,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to schedule todo:", err);
         setSnackbar({
           visible: true,
-          message: `Scheduled for tomorrow: ${todo.title}`,
-          isError: false
+          message: "Failed to schedule todo",
+          isError: true,
         });
-        onTodoUpdated?.(todo, { scheduled: dateString });
-      } else {
-        setSnackbar({
-          visible: true,
-          message: result.message || 'Failed to schedule',
-          isError: true
-        });
-      }
-    } catch (err) {
-      console.error('Failed to schedule todo:', err);
-      setSnackbar({ visible: true, message: 'Failed to schedule todo', isError: true });
-    } finally {
-      setUpdatingIds(prev => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
-  }, [onTodoUpdated]);
-
-  const handleUpdateTodo = useCallback(async (updates: TodoUpdates) => {
-    if (!editingTodo) return;
-
-    const key = getTodoKey(editingTodo);
-    setUpdatingIds(prev => new Set(prev).add(key));
-
-    try {
-      const result = await api.updateTodo(editingTodo, updates);
-
-      if (result.status === 'updated') {
-        setSnackbar({
-          visible: true,
-          message: `Updated: ${editingTodo.title}`,
-          isError: false
-        });
-        onTodoUpdated?.(editingTodo, updates);
-        closeEditModal();
-      } else {
-        setSnackbar({
-          visible: true,
-          message: result.message || 'Failed to update',
-          isError: true
+      } finally {
+        setUpdatingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
         });
       }
-    } catch (err) {
-      console.error('Failed to update todo:', err);
-      setSnackbar({ visible: true, message: 'Failed to update todo', isError: true });
-    } finally {
-      setUpdatingIds(prev => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
-  }, [editingTodo, onTodoUpdated, closeEditModal]);
+    },
+    [onTodoUpdated],
+  );
 
-  const handleStateChange = useCallback(async (newState: string) => {
-    if (!editingTodo) return;
+  const handleUpdateTodo = useCallback(
+    async (updates: TodoUpdates) => {
+      if (!editingTodo) return;
 
-    const key = getTodoKey(editingTodo);
-    setCompletingIds(prev => new Set(prev).add(key));
-    closeEditModal();
+      const key = getTodoKey(editingTodo);
+      setUpdatingIds((prev) => new Set(prev).add(key));
 
-    try {
-      const result = await api.setTodoState(editingTodo, newState);
+      try {
+        const result = await api.updateTodo(editingTodo, updates);
 
-      if (result.status === 'completed') {
+        if (result.status === "updated") {
+          setSnackbar({
+            visible: true,
+            message: `Updated: ${editingTodo.title}`,
+            isError: false,
+          });
+          onTodoUpdated?.(editingTodo, updates);
+          closeEditModal();
+        } else {
+          setSnackbar({
+            visible: true,
+            message: result.message || "Failed to update",
+            isError: true,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to update todo:", err);
         setSnackbar({
           visible: true,
-          message: `${editingTodo.title}: ${result.oldState} → ${result.newState}`,
-          isError: false
+          message: "Failed to update todo",
+          isError: true,
         });
-        onTodoUpdated?.(editingTodo, { todo: result.newState || newState });
-      } else {
-        setSnackbar({
-          visible: true,
-          message: result.message || 'Failed to change state',
-          isError: true
+      } finally {
+        setUpdatingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
         });
       }
-    } catch (err) {
-      console.error('Failed to change todo state:', err);
-      setSnackbar({ visible: true, message: 'Failed to change state', isError: true });
-    } finally {
-      setCompletingIds(prev => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
-  }, [editingTodo, onTodoUpdated, closeEditModal]);
+    },
+    [editingTodo, onTodoUpdated, closeEditModal],
+  );
 
-  const handleSavePriority = useCallback((priority: string | null) => {
-    handleUpdateTodo({ priority });
-  }, [handleUpdateTodo]);
+  const handleStateChange = useCallback(
+    async (newState: string) => {
+      if (!editingTodo) return;
+
+      const key = getTodoKey(editingTodo);
+      setCompletingIds((prev) => new Set(prev).add(key));
+      closeEditModal();
+
+      try {
+        const result = await api.setTodoState(editingTodo, newState);
+
+        if (result.status === "completed") {
+          setSnackbar({
+            visible: true,
+            message: `${editingTodo.title}: ${result.oldState} → ${result.newState}`,
+            isError: false,
+          });
+          onTodoUpdated?.(editingTodo, { todo: result.newState || newState });
+        } else {
+          setSnackbar({
+            visible: true,
+            message: result.message || "Failed to change state",
+            isError: true,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to change todo state:", err);
+        setSnackbar({
+          visible: true,
+          message: "Failed to change state",
+          isError: true,
+        });
+      } finally {
+        setCompletingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [editingTodo, onTodoUpdated, closeEditModal],
+  );
+
+  const handleSavePriority = useCallback(
+    (priority: string | null) => {
+      handleUpdateTodo({ priority });
+    },
+    [handleUpdateTodo],
+  );
 
   const dismissSnackbar = useCallback(() => {
-    setSnackbar(prev => ({ ...prev, visible: false }));
+    setSnackbar((prev) => ({ ...prev, visible: false }));
   }, []);
 
   // Handle native date picker result
-  const handleDatePickerChange = useCallback((event: any, date?: Date) => {
-    if (event.type === 'dismissed') {
-      closeEditModal();
-      return;
-    }
-    if (date && (editModalType === 'schedule' || editModalType === 'deadline')) {
-      const dateString = date.toISOString().slice(0, 10);
-      handleUpdateTodo({ [editModalType]: dateString });
-    }
-  }, [editModalType, handleUpdateTodo, closeEditModal]);
+  const handleDatePickerChange = useCallback(
+    (event: any, date?: Date) => {
+      if (event.type === "dismissed") {
+        closeEditModal();
+        return;
+      }
+      if (
+        date &&
+        (editModalType === "schedule" || editModalType === "deadline")
+      ) {
+        const dateString = date.toISOString().slice(0, 10);
+        handleUpdateTodo({ [editModalType]: dateString });
+      }
+    },
+    [editModalType, handleUpdateTodo, closeEditModal],
+  );
 
   const EditModals = useCallback(() => {
     const allStates = todoStates
       ? [...todoStates.active, ...todoStates.done]
-      : ['TODO', 'NEXT', 'WAITING', 'DONE'];
+      : ["TODO", "NEXT", "WAITING", "DONE"];
 
     return (
       <>
         {/* Native Date Picker (Schedule/Deadline) - no modal wrapper needed */}
-        {(editModalType === 'schedule' || editModalType === 'deadline') && (
+        {(editModalType === "schedule" || editModalType === "deadline") && (
           <DateTimePicker
             value={selectedDate}
             mode="date"
@@ -248,16 +304,23 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
         )}
 
         <Portal>
-
           {/* Priority Modal */}
           <Modal
-            visible={editModalType === 'priority'}
+            visible={editModalType === "priority"}
             onDismiss={closeEditModal}
-            contentContainerStyle={[styles.modalContent, { backgroundColor: theme.colors.surface }]}
+            contentContainerStyle={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.surface },
+            ]}
           >
-            <Text variant="titleLarge" style={styles.modalTitle}>Set Priority</Text>
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              Set Priority
+            </Text>
 
-            <RadioButton.Group onValueChange={setSelectedPriority} value={selectedPriority}>
+            <RadioButton.Group
+              onValueChange={setSelectedPriority}
+              value={selectedPriority}
+            >
               <RadioButton.Item label="None" value="" />
               <RadioButton.Item label="A - High" value="A" />
               <RadioButton.Item label="B - Medium" value="B" />
@@ -265,7 +328,9 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
             </RadioButton.Group>
 
             <View style={styles.modalButtons}>
-              <Button mode="outlined" onPress={closeEditModal}>Cancel</Button>
+              <Button mode="outlined" onPress={closeEditModal}>
+                Cancel
+              </Button>
               <Button
                 mode="contained"
                 onPress={() => handleSavePriority(selectedPriority || null)}
@@ -277,16 +342,28 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
 
           {/* State Modal */}
           <Modal
-            visible={editModalType === 'state'}
+            visible={editModalType === "state"}
             onDismiss={closeEditModal}
-            contentContainerStyle={[styles.modalContent, { backgroundColor: theme.colors.surface }]}
+            contentContainerStyle={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.surface },
+            ]}
           >
-            <Text variant="titleLarge" style={styles.modalTitle}>Change State</Text>
-            <Text variant="bodyMedium" style={styles.modalSubtitle} numberOfLines={1}>
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              Change State
+            </Text>
+            <Text
+              variant="bodyMedium"
+              style={styles.modalSubtitle}
+              numberOfLines={1}
+            >
               {editingTodo?.title}
             </Text>
 
-            <RadioButton.Group onValueChange={setSelectedState} value={selectedState}>
+            <RadioButton.Group
+              onValueChange={setSelectedState}
+              value={selectedState}
+            >
               {allStates.map((state) => (
                 <RadioButton.Item
                   key={state}
@@ -302,7 +379,9 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
             </RadioButton.Group>
 
             <View style={styles.modalButtons}>
-              <Button mode="outlined" onPress={closeEditModal}>Cancel</Button>
+              <Button mode="outlined" onPress={closeEditModal}>
+                Cancel
+              </Button>
               <Button
                 mode="contained"
                 onPress={() => handleStateChange(selectedState)}
@@ -318,8 +397,12 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
           visible={snackbar.visible}
           onDismiss={dismissSnackbar}
           duration={2000}
-          style={snackbar.isError ? { backgroundColor: theme.colors.error } : undefined}
-          testID={snackbar.isError ? 'errorSnackbar' : 'successSnackbar'}
+          style={
+            snackbar.isError
+              ? { backgroundColor: theme.colors.error }
+              : undefined
+          }
+          testID={snackbar.isError ? "errorSnackbar" : "successSnackbar"}
         >
           {snackbar.message}
         </Snackbar>
@@ -370,8 +453,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     gap: 8,
     marginTop: 16,
   },

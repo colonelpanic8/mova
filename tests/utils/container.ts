@@ -1,11 +1,14 @@
-import { execSync, spawn, ChildProcess } from 'child_process';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
+import { execSync } from "child_process";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 
 const ORG_AGENDA_API_PATH =
   process.env.ORG_AGENDA_API_DIR ||
-  path.join(os.homedir(), 'dotfiles/dotfiles/emacs.d/straight/repos/org-agenda-api');
+  path.join(
+    os.homedir(),
+    "dotfiles/dotfiles/emacs.d/straight/repos/org-agenda-api",
+  );
 
 interface ContainerConfig {
   port?: number;
@@ -30,16 +33,13 @@ export interface RunningContainer {
  *   ORG_AGENDA_API_DIR=~/dotfiles/.../org-agenda-api npm test
  */
 export function buildContainer(): string {
-  console.log('Building org-agenda-api container...');
+  console.log("Building org-agenda-api container...");
   console.log(`Building from: ${ORG_AGENDA_API_PATH}`);
 
-  const result = execSync(
-    'nix build .#container --no-link --print-out-paths',
-    {
-      cwd: ORG_AGENDA_API_PATH,
-      encoding: 'utf-8',
-    }
-  );
+  const result = execSync("nix build .#container --no-link --print-out-paths", {
+    cwd: ORG_AGENDA_API_PATH,
+    encoding: "utf-8",
+  });
   return result.trim();
 }
 
@@ -47,9 +47,9 @@ export function buildContainer(): string {
  * Load container image into Docker
  */
 export function loadContainer(imagePath: string): string {
-  console.log('Loading container into Docker...');
+  console.log("Loading container into Docker...");
   const result = execSync(`docker load -i ${imagePath}`, {
-    encoding: 'utf-8',
+    encoding: "utf-8",
   });
 
   // Extract image name from output
@@ -57,14 +57,14 @@ export function loadContainer(imagePath: string): string {
   if (match) {
     return match[1].trim();
   }
-  return 'org-agenda-api:latest';
+  return "org-agenda-api:latest";
 }
 
 /**
  * Find a free port
  */
 function findFreePort(): number {
-  const net = require('net');
+  const net = require("net");
   const server = net.createServer();
   server.listen(0);
   const port = server.address().port;
@@ -77,7 +77,7 @@ function findFreePort(): number {
  */
 async function waitForServer(
   url: string,
-  timeout: number = 60000
+  timeout: number = 60000,
 ): Promise<boolean> {
   const start = Date.now();
   while (Date.now() - start < timeout) {
@@ -98,11 +98,11 @@ async function waitForServer(
  * Create a temporary org directory with test fixtures
  */
 export function createTestOrgDir(): string {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mova-test-org-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mova-test-org-"));
 
   // Create inbox.org
   fs.writeFileSync(
-    path.join(tmpDir, 'inbox.org'),
+    path.join(tmpDir, "inbox.org"),
     `#+TITLE: Test Inbox
 
 * TODO Test task 1
@@ -125,12 +125,12 @@ export function createTestOrgDir(): string {
 
 * DONE Completed task
   CLOSED: [2024-06-14 Fri]
-`
+`,
   );
 
   // Create a project.org
   fs.writeFileSync(
-    path.join(tmpDir, 'project.org'),
+    path.join(tmpDir, "project.org"),
     `#+TITLE: Test Project
 
 * Project A
@@ -143,14 +143,14 @@ export function createTestOrgDir(): string {
 ** TODO Follow up task
    DEADLINE: <2024-06-20 Thu>
 ** STARTED Code review in progress :work:
-`
+`,
   );
 
   // Initialize git repo
-  execSync('git init', { cwd: tmpDir });
+  execSync("git init", { cwd: tmpDir });
   execSync('git config user.email "test@test.com"', { cwd: tmpDir });
   execSync('git config user.name "Test User"', { cwd: tmpDir });
-  execSync('git add .', { cwd: tmpDir });
+  execSync("git add .", { cwd: tmpDir });
   execSync('git commit -m "Initial test fixtures"', { cwd: tmpDir });
 
   return tmpDir;
@@ -160,7 +160,7 @@ export function createTestOrgDir(): string {
  * Start an org-agenda-api container for testing
  */
 export async function startContainer(
-  config: ContainerConfig = {}
+  config: ContainerConfig = {},
 ): Promise<RunningContainer> {
   const port = config.port || findFreePort();
   const gitSyncInterval = config.gitSyncInterval || 2;
@@ -188,16 +188,25 @@ export async function startContainer(
   // Start container using spawnSync to avoid shell escaping issues
   console.log(`Starting container on port ${port}...`);
   const dockerArgs = [
-    'run', '-d',
-    '--name', containerName,
-    '-p', `${port}:80`,
-    '-v', `${orgDir}:/data/org`,
-    '-e', `GIT_SYNC_INTERVAL=${gitSyncInterval}`,
-    '-e', 'GIT_SYNC_NEW_FILES=true',
-    '-e', `ORG_API_CUSTOM_ELISP_CONTENT=${customElispContent}`,
+    "run",
+    "-d",
+    "--name",
+    containerName,
+    "-p",
+    `${port}:80`,
+    "-v",
+    `${orgDir}:/data/org`,
+    "-e",
+    `GIT_SYNC_INTERVAL=${gitSyncInterval}`,
+    "-e",
+    "GIT_SYNC_NEW_FILES=true",
+    "-e",
+    `ORG_API_CUSTOM_ELISP_CONTENT=${customElispContent}`,
     imageName,
   ];
-  const result = require('child_process').spawnSync('docker', dockerArgs, { encoding: 'utf-8' });
+  const result = require("child_process").spawnSync("docker", dockerArgs, {
+    encoding: "utf-8",
+  });
   if (result.status !== 0) {
     throw new Error(`Docker run failed: ${result.stderr}`);
   }
@@ -205,22 +214,22 @@ export async function startContainer(
   const baseUrl = `http://localhost:${port}`;
 
   // Wait for server to be ready
-  console.log('Waiting for server to be ready...');
+  console.log("Waiting for server to be ready...");
   const ready = await waitForServer(baseUrl, 60000);
   if (!ready) {
     // Get logs for debugging
     try {
       const logs = execSync(`docker logs ${containerName}`, {
-        encoding: 'utf-8',
+        encoding: "utf-8",
       });
-      console.error('Container logs:', logs);
+      console.error("Container logs:", logs);
     } catch {}
 
     // Cleanup
-    execSync(`docker rm -f ${containerName}`, { stdio: 'ignore' });
+    execSync(`docker rm -f ${containerName}`, { stdio: "ignore" });
     fs.rmSync(orgDir, { recursive: true, force: true });
 
-    throw new Error('Container did not start in time');
+    throw new Error("Container did not start in time");
   }
 
   console.log(`Container ready at ${baseUrl}`);
@@ -232,9 +241,9 @@ export async function startContainer(
     baseUrl,
     orgDir,
     stop: () => {
-      console.log('Stopping container...');
+      console.log("Stopping container...");
       try {
-        execSync(`docker rm -f ${containerName}`, { stdio: 'ignore' });
+        execSync(`docker rm -f ${containerName}`, { stdio: "ignore" });
       } catch {}
       try {
         fs.rmSync(orgDir, { recursive: true, force: true });
@@ -259,8 +268,8 @@ export class TestApiClient {
 
   async post<T>(path: string, body?: object): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) {
@@ -270,43 +279,53 @@ export class TestApiClient {
   }
 
   async getAllTodos() {
-    return this.get<{ todos: any[]; defaults: any }>('/get-all-todos');
+    return this.get<{ todos: any[]; defaults: any }>("/get-all-todos");
   }
 
   async createTodo(title: string) {
-    return this.post<{ status: string; title?: string }>('/create-todo', {
+    return this.post<{ status: string; title?: string }>("/create-todo", {
       title,
     });
   }
 
   async completeTodo(todo: { file: string; pos: number; title: string }) {
-    return this.post<{ status: string; newState?: string }>('/complete', todo);
+    return this.post<{ status: string; newState?: string }>("/complete", todo);
   }
 
-  async getAgenda(span: 'day' | 'week' = 'day') {
+  async getAgenda(span: "day" | "week" = "day") {
     return this.get<{ span: string; entries: any[] }>(`/agenda?span=${span}`);
   }
 
   async getCustomViews() {
     return this.get<{ views: Array<{ key: string; name: string }> }>(
-      '/custom-views'
+      "/custom-views",
     );
   }
 
   async getCustomView(key: string) {
     return this.get<{ key: string; name: string; entries: any[] }>(
-      `/custom-view?key=${encodeURIComponent(key)}`
+      `/custom-view?key=${encodeURIComponent(key)}`,
     );
   }
 
-  async updateTodo(todo: { file: string; pos: number; title: string; id?: string | null }, updates: { scheduled?: string | null; deadline?: string | null; priority?: string | null }) {
+  async updateTodo(
+    todo: { file: string; pos: number; title: string; id?: string | null },
+    updates: {
+      scheduled?: string | null;
+      deadline?: string | null;
+      priority?: string | null;
+    },
+  ) {
     // Match frontend behavior: only send id, file, pos, title + updates
-    return this.post<{ status: string; updates?: any; message?: string }>('/update', {
-      id: todo.id,
-      file: todo.file,
-      pos: todo.pos,
-      title: todo.title,
-      ...updates,
-    });
+    return this.post<{ status: string; updates?: any; message?: string }>(
+      "/update",
+      {
+        id: todo.id,
+        file: todo.file,
+        pos: todo.pos,
+        title: todo.title,
+        ...updates,
+      },
+    );
   }
 }

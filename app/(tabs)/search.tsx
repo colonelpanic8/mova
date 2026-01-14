@@ -1,15 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
-import { Searchbar, Text, useTheme, ActivityIndicator } from 'react-native-paper';
-import { useAuth } from '@/context/AuthContext';
-import { api, Todo, TodoStatesResponse } from '@/services/api';
-import { TodoItem, getTodoKey } from '@/components/TodoItem';
-import { useTodoEditing } from '@/hooks/useTodoEditing';
+import { getTodoKey, TodoItem } from "@/components/TodoItem";
+import { useAuth } from "@/context/AuthContext";
+import { useTodoEditing } from "@/hooks/useTodoEditing";
+import { api, Todo, TodoStatesResponse } from "@/services/api";
+import React, { useCallback, useEffect, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Searchbar,
+  Text,
+  useTheme,
+} from "react-native-paper";
 
 export default function SearchScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filteredTodos, setFilteredTodos] = useState<Todo[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,12 +23,15 @@ export default function SearchScreen() {
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
 
-  const handleTodoUpdated = useCallback((todo: Todo, updates: Partial<Todo>) => {
-    const key = getTodoKey(todo);
-    setTodos(prev => prev.map(t =>
-      getTodoKey(t) === key ? { ...t, ...updates } : t
-    ));
-  }, []);
+  const handleTodoUpdated = useCallback(
+    (todo: Todo, updates: Partial<Todo>) => {
+      const key = getTodoKey(todo);
+      setTodos((prev) =>
+        prev.map((t) => (getTodoKey(t) === key ? { ...t, ...updates } : t)),
+      );
+    },
+    [],
+  );
 
   const {
     completingIds,
@@ -56,7 +64,7 @@ export default function SearchScreen() {
       }
       setError(null);
     } catch (err) {
-      setError('Failed to load todos');
+      setError("Failed to load todos");
       console.error(err);
     }
   }, [apiUrl, username, password]);
@@ -72,9 +80,11 @@ export default function SearchScreen() {
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = todos.filter(todo => {
+    const filtered = todos.filter((todo) => {
       const titleMatch = todo.title?.toLowerCase().includes(query);
-      const tagMatch = todo.tags?.some(tag => tag.toLowerCase().includes(query));
+      const tagMatch = todo.tags?.some((tag) =>
+        tag.toLowerCase().includes(query),
+      );
       const todoMatch = todo.todo?.toLowerCase().includes(query);
       return titleMatch || tagMatch || todoMatch;
     });
@@ -89,14 +99,20 @@ export default function SearchScreen() {
 
   if (loading) {
     return (
-      <View testID="searchLoadingView" style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+      <View
+        testID="searchLoadingView"
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
         <ActivityIndicator testID="searchLoadingIndicator" size="large" />
       </View>
     );
   }
 
   return (
-    <View testID="searchScreen" style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      testID="searchScreen"
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <View style={styles.searchContainer}>
         <Searchbar
           testID="searchInput"
@@ -109,14 +125,18 @@ export default function SearchScreen() {
 
       {error ? (
         <View testID="searchErrorView" style={styles.centered}>
-          <Text testID="searchErrorText" variant="bodyLarge" style={{ color: theme.colors.error }}>
+          <Text
+            testID="searchErrorText"
+            variant="bodyLarge"
+            style={{ color: theme.colors.error }}
+          >
             {error}
           </Text>
         </View>
       ) : filteredTodos.length === 0 ? (
         <View testID="searchEmptyView" style={styles.centered}>
           <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
-            {searchQuery ? 'No matching todos' : 'No todos found'}
+            {searchQuery ? "No matching todos" : "No todos found"}
           </Text>
         </View>
       ) : (
@@ -159,8 +179,8 @@ const styles = StyleSheet.create({
   },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchContainer: {
     padding: 16,

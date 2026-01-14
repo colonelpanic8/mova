@@ -1,7 +1,7 @@
-import { registerWidgetTaskHandler } from 'react-native-android-widget';
-import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
-import { QuickCaptureWidget } from './QuickCaptureWidget';
-import { widgetTaskHandler } from './QuickCaptureTask';
+import type { WidgetTaskHandlerProps } from "react-native-android-widget";
+import { registerWidgetTaskHandler } from "react-native-android-widget";
+import { widgetTaskHandler } from "./QuickCaptureTask";
+import { QuickCaptureWidget } from "./QuickCaptureWidget";
 
 // Register the widget component
 export const widgetComponents = {
@@ -16,6 +16,6 @@ const voidHandler = async (props: WidgetTaskHandlerProps): Promise<void> => {
 // Register the task handler
 registerWidgetTaskHandler(voidHandler);
 
-export { QuickCaptureWidget } from './QuickCaptureWidget';
-export { widgetTaskHandler } from './QuickCaptureTask';
-export * from './storage';
+export { widgetTaskHandler } from "./QuickCaptureTask";
+export { QuickCaptureWidget } from "./QuickCaptureWidget";
+export * from "./storage";

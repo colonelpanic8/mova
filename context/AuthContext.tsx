@@ -1,7 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Platform, NativeModules } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { saveCredentialsToWidget, clearWidgetCredentials } from '@/widgets/storage';
+import {
+  clearWidgetCredentials,
+  saveCredentialsToWidget,
+} from "@/widgets/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { NativeModules, Platform } from "react-native";
 
 interface AuthState {
   apiUrl: string | null;
@@ -12,11 +21,19 @@ interface AuthState {
 }
 
 // Get launch arguments for test auto-login (async)
-async function getTestLaunchArgs(): Promise<{ apiUrl?: string; username?: string; password?: string } | null> {
+async function getTestLaunchArgs(): Promise<{
+  apiUrl?: string;
+  username?: string;
+  password?: string;
+} | null> {
   try {
-    if (Platform.OS === 'android' && NativeModules.DetoxTestingArgs) {
+    if (Platform.OS === "android" && NativeModules.DetoxTestingArgs) {
       const launchArgs = await NativeModules.DetoxTestingArgs.getLaunchArgs();
-      if (launchArgs?.detoxTestApiUrl && launchArgs?.detoxTestUsername && launchArgs?.detoxTestPassword) {
+      if (
+        launchArgs?.detoxTestApiUrl &&
+        launchArgs?.detoxTestUsername &&
+        launchArgs?.detoxTestPassword
+      ) {
         return {
           apiUrl: launchArgs.detoxTestApiUrl,
           username: launchArgs.detoxTestUsername,
@@ -31,7 +48,11 @@ async function getTestLaunchArgs(): Promise<{ apiUrl?: string; username?: string
 }
 
 interface AuthContextType extends AuthState {
-  login: (apiUrl: string, username: string, password: string) => Promise<boolean>;
+  login: (
+    apiUrl: string,
+    username: string,
+    password: string,
+  ) => Promise<boolean>;
   logout: () => Promise<void>;
   getAuthHeader: () => string | null;
 }
@@ -39,9 +60,9 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  API_URL: 'mova_api_url',
-  USERNAME: 'mova_username',
-  PASSWORD: 'mova_password',
+  API_URL: "mova_api_url",
+  USERNAME: "mova_username",
+  PASSWORD: "mova_password",
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -62,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check for test launch args first (for Detox auto-login)
       const testArgs = await getTestLaunchArgs();
       if (testArgs?.apiUrl && testArgs?.username && testArgs?.password) {
-        console.log('Auto-login with test launch args');
+        console.log("Auto-login with test launch args");
         setState({
           apiUrl: testArgs.apiUrl,
           username: testArgs.username,
@@ -88,15 +109,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isLoading: false,
         });
       } else {
-        setState(prev => ({ ...prev, isLoading: false }));
+        setState((prev) => ({ ...prev, isLoading: false }));
       }
     } catch (error) {
-      console.error('Failed to load credentials:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      console.error("Failed to load credentials:", error);
+      setState((prev) => ({ ...prev, isLoading: false }));
     }
   }
 
-  async function login(apiUrl: string, username: string, password: string): Promise<boolean> {
+  async function login(
+    apiUrl: string,
+    username: string,
+    password: string,
+  ): Promise<boolean> {
     try {
       // Test the credentials by hitting the /templates endpoint
       const response = await fetch(`${apiUrl}/templates`, {
@@ -128,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return false;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
       return false;
     }
   }
@@ -169,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

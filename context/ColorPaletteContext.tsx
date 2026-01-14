@@ -5,20 +5,26 @@
  * Supports both theme-referenced colors (adapt to light/dark) and custom hex colors.
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from 'react-native-paper';
 import {
+  ActionButtonType,
   ColorPaletteConfig,
   ColorValue,
-  ActionButtonType,
   DEFAULT_COLOR_PALETTE,
-  isThemeReference,
   getThemeColorKey,
-  ThemeColorKey,
-} from '@/types/colors';
+  isThemeReference,
+} from "@/types/colors";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { useTheme } from "react-native-paper";
 
-const STORAGE_KEY = 'mova_color_palette';
+const STORAGE_KEY = "mova_color_palette";
 
 interface ColorPaletteContextType {
   // Raw configuration
@@ -35,14 +41,21 @@ interface ColorPaletteContextType {
   // Updaters
   setTodoStateColor: (keyword: string, color: ColorValue) => Promise<void>;
   removeTodoStateColor: (keyword: string) => Promise<void>;
-  setActionColor: (action: ActionButtonType, color: ColorValue) => Promise<void>;
+  setActionColor: (
+    action: ActionButtonType,
+    color: ColorValue,
+  ) => Promise<void>;
   resetToDefaults: () => Promise<void>;
 }
 
-const ColorPaletteContext = createContext<ColorPaletteContextType | undefined>(undefined);
+const ColorPaletteContext = createContext<ColorPaletteContextType | undefined>(
+  undefined,
+);
 
 export function ColorPaletteProvider({ children }: { children: ReactNode }) {
-  const [config, setConfig] = useState<ColorPaletteConfig>(DEFAULT_COLOR_PALETTE);
+  const [config, setConfig] = useState<ColorPaletteConfig>(
+    DEFAULT_COLOR_PALETTE,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const theme = useTheme();
 
@@ -71,7 +84,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch (error) {
-      console.error('Failed to load color palette:', error);
+      console.error("Failed to load color palette:", error);
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +95,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
       setConfig(newConfig);
     } catch (error) {
-      console.error('Failed to save color palette:', error);
+      console.error("Failed to save color palette:", error);
       throw error;
     }
   }
@@ -99,33 +112,38 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       }
       return colorValue;
     },
-    [theme]
+    [theme],
   );
 
   const getTodoStateColor = useCallback(
     (keyword: string): string => {
       if (!keyword) {
-        return resolveColor(config.todoStateColors['DEFAULT'] || DEFAULT_COLOR_PALETTE.todoStateColors['DEFAULT']);
+        return resolveColor(
+          config.todoStateColors["DEFAULT"] ||
+            DEFAULT_COLOR_PALETTE.todoStateColors["DEFAULT"],
+        );
       }
       const upperKeyword = keyword.toUpperCase();
       const colorValue =
         config.todoStateColors[upperKeyword] ||
-        config.todoStateColors['DEFAULT'] ||
-        DEFAULT_COLOR_PALETTE.todoStateColors['DEFAULT'];
+        config.todoStateColors["DEFAULT"] ||
+        DEFAULT_COLOR_PALETTE.todoStateColors["DEFAULT"];
       return resolveColor(colorValue);
     },
-    [config, resolveColor]
+    [config, resolveColor],
   );
 
   const getActionColor = useCallback(
     (action: ActionButtonType): string => {
       return resolveColor(config.actionColors[action]);
     },
-    [config, resolveColor]
+    [config, resolveColor],
   );
 
   const getConfiguredTodoStates = useCallback((): string[] => {
-    return Object.keys(config.todoStateColors).filter((key) => key !== 'DEFAULT');
+    return Object.keys(config.todoStateColors).filter(
+      (key) => key !== "DEFAULT",
+    );
   }, [config]);
 
   const setTodoStateColor = useCallback(
@@ -139,14 +157,14 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config]
+    [config],
   );
 
   const removeTodoStateColor = useCallback(
     async (keyword: string) => {
       const upperKeyword = keyword.toUpperCase();
       // Don't allow removing DEFAULT
-      if (upperKeyword === 'DEFAULT') {
+      if (upperKeyword === "DEFAULT") {
         return;
       }
       const { [upperKeyword]: _, ...rest } = config.todoStateColors;
@@ -156,7 +174,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config]
+    [config],
   );
 
   const setActionColor = useCallback(
@@ -170,7 +188,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config]
+    [config],
   );
 
   const resetToDefaults = useCallback(async () => {
@@ -200,7 +218,9 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
 export function useColorPalette() {
   const context = useContext(ColorPaletteContext);
   if (context === undefined) {
-    throw new Error('useColorPalette must be used within a ColorPaletteProvider');
+    throw new Error(
+      "useColorPalette must be used within a ColorPaletteProvider",
+    );
   }
   return context;
 }

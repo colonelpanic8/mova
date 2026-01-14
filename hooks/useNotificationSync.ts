@@ -1,14 +1,14 @@
-import { useEffect, useCallback, useState } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
-import { useAuth } from '@/context/AuthContext';
-import { api } from '@/services/api';
+import { useAuth } from "@/context/AuthContext";
+import { api } from "@/services/api";
+import { registerBackgroundSync } from "@/services/backgroundSync";
 import {
-  scheduleNotificationsForTodos,
-  getNotificationsEnabled,
   getLastSyncTime,
+  getNotificationsEnabled,
   getScheduledNotificationCount,
-} from '@/services/notifications';
-import { registerBackgroundSync } from '@/services/backgroundSync';
+  scheduleNotificationsForTodos,
+} from "@/services/notifications";
+import { useCallback, useEffect, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
 
 export function useNotificationSync() {
   const { isAuthenticated, apiUrl, username, password } = useAuth();
@@ -26,12 +26,15 @@ export function useNotificationSync() {
     try {
       api.configure(apiUrl, username, password);
       const response = await api.getAllTodos();
-      const count = await scheduleNotificationsForTodos(response.todos, response.defaults);
+      const count = await scheduleNotificationsForTodos(
+        response.todos,
+        response.defaults,
+      );
 
       setScheduledCount(count);
       setLastSync(new Date());
     } catch (err) {
-      console.error('Notification sync failed:', err);
+      console.error("Notification sync failed:", err);
     } finally {
       setIsSyncing(false);
     }
@@ -41,11 +44,14 @@ export function useNotificationSync() {
   useEffect(() => {
     syncNotifications();
 
-    const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active') {
-        syncNotifications();
-      }
-    });
+    const subscription = AppState.addEventListener(
+      "change",
+      (state: AppStateStatus) => {
+        if (state === "active") {
+          syncNotifications();
+        }
+      },
+    );
 
     return () => subscription.remove();
   }, [syncNotifications]);

@@ -5,7 +5,7 @@
    SCHEDULED: <2026-01-13 Mon 09:00>
    Daily standup meeting
 
-** TODO Team meeting
+** TODO [#A] Team meeting
    SCHEDULED: <2026-01-14 Tue 10:00>
    Weekly standup
 
@@ -22,7 +22,7 @@
    Review pending PRs
 
 ** TODO Review code
-   SCHEDULED: <2026-01-14 Tue>
+   SCHEDULED: <2026-01-15 Thu>
 
 ** TODO Update dependencies
    SCHEDULED: <2026-01-15 Wed>

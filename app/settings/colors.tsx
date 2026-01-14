@@ -6,17 +6,26 @@
  * - Action button colors (Tomorrow, Schedule, Deadline, Priority)
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { Text, useTheme, Appbar, List, Button, TextInput, Dialog, Portal } from 'react-native-paper';
-import { useRouter } from 'expo-router';
-import { useColorPalette } from '@/context/ColorPaletteContext';
-import { ColorPicker } from '@/components/ColorPicker';
-import { ColorValue, isThemeReference, ActionButtonType } from '@/types/colors';
+import { ColorPicker } from "@/components/ColorPicker";
+import { useColorPalette } from "@/context/ColorPaletteContext";
+import { ActionButtonType, ColorValue, isThemeReference } from "@/types/colors";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Appbar,
+  Button,
+  Dialog,
+  List,
+  Portal,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 
 type EditingItem =
-  | { type: 'todoState'; keyword: string }
-  | { type: 'action'; action: ActionButtonType }
+  | { type: "todoState"; keyword: string }
+  | { type: "action"; action: ActionButtonType }
   | null;
 
 export default function ColorSettingsScreen() {
@@ -35,20 +44,20 @@ export default function ColorSettingsScreen() {
 
   const [editingItem, setEditingItem] = useState<EditingItem>(null);
   const [showAddState, setShowAddState] = useState(false);
-  const [newStateName, setNewStateName] = useState('');
+  const [newStateName, setNewStateName] = useState("");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const todoStates = getConfiguredTodoStates();
   const actionButtons: { key: ActionButtonType; label: string }[] = [
-    { key: 'tomorrow', label: 'Tomorrow' },
-    { key: 'schedule', label: 'Schedule' },
-    { key: 'deadline', label: 'Deadline' },
-    { key: 'priority', label: 'Priority' },
+    { key: "tomorrow", label: "Tomorrow" },
+    { key: "schedule", label: "Schedule" },
+    { key: "deadline", label: "Deadline" },
+    { key: "priority", label: "Priority" },
   ];
 
   const resolveColor = (colorValue: ColorValue): string => {
     if (isThemeReference(colorValue)) {
-      const key = colorValue.replace('theme:', '');
+      const key = colorValue.replace("theme:", "");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (theme.colors as any)[key] || colorValue;
     }
@@ -58,7 +67,7 @@ export default function ColorSettingsScreen() {
   const handleColorSelect = async (color: ColorValue) => {
     if (!editingItem) return;
 
-    if (editingItem.type === 'todoState') {
+    if (editingItem.type === "todoState") {
       await setTodoStateColor(editingItem.keyword, color);
     } else {
       await setActionColor(editingItem.action, color);
@@ -69,8 +78,8 @@ export default function ColorSettingsScreen() {
   const handleAddState = async () => {
     const trimmed = newStateName.trim().toUpperCase();
     if (trimmed && !todoStates.includes(trimmed)) {
-      await setTodoStateColor(trimmed, 'theme:secondary');
-      setNewStateName('');
+      await setTodoStateColor(trimmed, "theme:secondary");
+      setNewStateName("");
       setShowAddState(false);
     }
   };
@@ -85,16 +94,16 @@ export default function ColorSettingsScreen() {
   };
 
   const getCurrentColor = (): ColorValue => {
-    if (!editingItem) return '#000000';
-    if (editingItem.type === 'todoState') {
-      return config.todoStateColors[editingItem.keyword] || 'theme:secondary';
+    if (!editingItem) return "#000000";
+    if (editingItem.type === "todoState") {
+      return config.todoStateColors[editingItem.keyword] || "theme:secondary";
     }
     return config.actionColors[editingItem.action];
   };
 
   const getPickerTitle = (): string => {
-    if (!editingItem) return 'Select Color';
-    if (editingItem.type === 'todoState') {
+    if (!editingItem) return "Select Color";
+    if (editingItem.type === "todoState") {
       return `Color for ${editingItem.keyword}`;
     }
     const action = actionButtons.find((a) => a.key === editingItem.action);
@@ -106,11 +115,16 @@ export default function ColorSettingsScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <Appbar.Header>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title="Color Settings" />
-        <Appbar.Action icon="restore" onPress={() => setShowResetConfirm(true)} />
+        <Appbar.Action
+          icon="restore"
+          onPress={() => setShowResetConfirm(true)}
+        />
       </Appbar.Header>
 
       <ScrollView style={styles.content}>
@@ -125,13 +139,20 @@ export default function ColorSettingsScreen() {
               right={() => (
                 <View style={styles.itemActions}>
                   <Pressable
-                    onPress={() => setEditingItem({ type: 'todoState', keyword })}
+                    onPress={() =>
+                      setEditingItem({ type: "todoState", keyword })
+                    }
                     style={styles.editButton}
                   >
                     <Text style={{ color: theme.colors.primary }}>Edit</Text>
                   </Pressable>
-                  {!['TODO', 'NEXT', 'DONE', 'WAITING', 'DEFAULT'].includes(keyword) && (
-                    <Pressable onPress={() => handleRemoveState(keyword)} style={styles.removeButton}>
+                  {!["TODO", "NEXT", "DONE", "WAITING", "DEFAULT"].includes(
+                    keyword,
+                  ) && (
+                    <Pressable
+                      onPress={() => handleRemoveState(keyword)}
+                      style={styles.removeButton}
+                    >
                       <Text style={{ color: theme.colors.error }}>Remove</Text>
                     </Pressable>
                   )}
@@ -142,11 +163,13 @@ export default function ColorSettingsScreen() {
           ))}
           <List.Item
             title="Default (fallback)"
-            description={config.todoStateColors['DEFAULT']}
-            left={() => <ColorSwatch color={getTodoStateColor('DEFAULT')} />}
+            description={config.todoStateColors["DEFAULT"]}
+            left={() => <ColorSwatch color={getTodoStateColor("DEFAULT")} />}
             right={() => (
               <Pressable
-                onPress={() => setEditingItem({ type: 'todoState', keyword: 'DEFAULT' })}
+                onPress={() =>
+                  setEditingItem({ type: "todoState", keyword: "DEFAULT" })
+                }
                 style={styles.editButton}
               >
                 <Text style={{ color: theme.colors.primary }}>Edit</Text>
@@ -154,7 +177,12 @@ export default function ColorSettingsScreen() {
             )}
             style={styles.listItem}
           />
-          <Button mode="outlined" onPress={() => setShowAddState(true)} style={styles.addButton} icon="plus">
+          <Button
+            mode="outlined"
+            onPress={() => setShowAddState(true)}
+            style={styles.addButton}
+            icon="plus"
+          >
             Add Custom State
           </Button>
         </List.Section>
@@ -167,14 +195,18 @@ export default function ColorSettingsScreen() {
               title={label}
               description={config.actionColors[key]}
               left={() => <ColorSwatch color={getActionColor(key)} />}
-              onPress={() => setEditingItem({ type: 'action', action: key })}
+              onPress={() => setEditingItem({ type: "action", action: key })}
               style={styles.listItem}
             />
           ))}
         </List.Section>
 
         <View style={styles.footer}>
-          <Button mode="outlined" onPress={() => setShowResetConfirm(true)} icon="restore">
+          <Button
+            mode="outlined"
+            onPress={() => setShowResetConfirm(true)}
+            icon="restore"
+          >
             Reset to Defaults
           </Button>
         </View>
@@ -202,8 +234,14 @@ export default function ColorSettingsScreen() {
               onChangeText={setNewStateName}
               autoCapitalize="characters"
             />
-            <Text style={[styles.dialogHint, { color: theme.colors.onSurfaceVariant }]}>
-              Enter the TODO keyword as it appears in your org files (e.g., SOMEDAY, HOLD, PROJECT)
+            <Text
+              style={[
+                styles.dialogHint,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
+            >
+              Enter the TODO keyword as it appears in your org files (e.g.,
+              SOMEDAY, HOLD, PROJECT)
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
@@ -217,11 +255,15 @@ export default function ColorSettingsScreen() {
 
       {/* Reset Confirmation Dialog */}
       <Portal>
-        <Dialog visible={showResetConfirm} onDismiss={() => setShowResetConfirm(false)}>
+        <Dialog
+          visible={showResetConfirm}
+          onDismiss={() => setShowResetConfirm(false)}
+        >
           <Dialog.Title>Reset Colors?</Dialog.Title>
           <Dialog.Content>
             <Text style={{ color: theme.colors.onSurface }}>
-              This will reset all colors to their default values. Custom states will be removed.
+              This will reset all colors to their default values. Custom states
+              will be removed.
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
@@ -251,11 +293,11 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     marginRight: 8,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   itemActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   editButton: {
