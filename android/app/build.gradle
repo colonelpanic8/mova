@@ -179,4 +179,11 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // Detox dependencies for E2E tests
+    androidTestImplementation('com.wix:detox:+')
+    androidTestImplementation('junit:junit:4.12')
+    androidTestImplementation('androidx.test.ext:junit:1.1.5')
+    androidTestImplementation('androidx.test:rules:1.5.0')
+    androidTestImplementation('androidx.test:runner:1.5.2')
 }
