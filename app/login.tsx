@@ -55,7 +55,7 @@ export default function LoginScreen() {
       } else {
         setError("Invalid credentials or server URL");
       }
-    } catch (err) {
+    } catch {
       setError("Connection failed. Check the URL and try again.");
     } finally {
       setLoading(false);

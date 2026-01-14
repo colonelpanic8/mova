@@ -8,7 +8,7 @@
 
 import { ColorPicker } from "@/components/ColorPicker";
 import { useColorPalette } from "@/context/ColorPaletteContext";
-import { ActionButtonType, ColorValue, isThemeReference } from "@/types/colors";
+import { ActionButtonType, ColorValue } from "@/types/colors";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -54,15 +54,6 @@ export default function ColorSettingsScreen() {
     { key: "deadline", label: "Deadline" },
     { key: "priority", label: "Priority" },
   ];
-
-  const resolveColor = (colorValue: ColorValue): string => {
-    if (isThemeReference(colorValue)) {
-      const key = colorValue.replace("theme:", "");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (theme.colors as any)[key] || colorValue;
-    }
-    return colorValue;
-  };
 
   const handleColorSelect = async (color: ColorValue) => {
     if (!editingItem) return;

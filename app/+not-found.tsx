@@ -11,7 +11,7 @@ export default function NotFoundScreen() {
       <View
         style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
-        <Text variant="headlineMedium">This screen doesn't exist.</Text>
+        <Text variant="headlineMedium">This screen does not exist.</Text>
         <Link href="/" style={styles.link}>
           <Text style={{ color: theme.colors.primary }}>
             Go to home screen!

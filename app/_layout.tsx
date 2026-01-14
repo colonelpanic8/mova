@@ -31,7 +31,7 @@ function RootLayoutNav() {
     } else if (!isAuthenticated && !segments[0]) {
       router.replace("/login");
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, router]);
 
   useEffect(() => {
     if (!isLoading) {
