@@ -4,12 +4,14 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     nixgl.url = "github:nix-community/nixGL";
+    org-agenda-api.url = "github:colonelpanic8/org-agenda-api";
   };
   outputs = inputs @ {
     self,
     nixpkgs,
     flake-utils,
     nixgl,
+    org-agenda-api,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (system: let
@@ -66,6 +68,7 @@
             export JAVA_HOME=${pkgs.jdk17.home}
             source ${android-sdk.out}/nix-support/setup-hook
             export PATH=${android-home}/emulator:${android-home}/cmdline-tools/${cmdLineToolsVersion}/bin:$(pwd)/node_modules/.bin:$PATH
+            export ORG_AGENDA_API_DIR="${org-agenda-api}"
             echo "Mova dev shell"
             echo "  node: $(node --version)"
             echo "  yarn: $(yarn --version)"
