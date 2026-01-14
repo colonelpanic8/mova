@@ -15,3 +15,32 @@
          "* TODO %?\n  SCHEDULED: %t\n  :PROPERTIES:\n  :CREATED: %U\n  :END:\n")
         ("d" "Dated Todo" entry (file "/data/org/inbox.org")
          "* TODO %? :dated:\n  SCHEDULED: %(org-insert-time-stamp (current-time))\n  :PROPERTIES:\n  :CREATED: %U\n  :END:\n")))
+
+;; API capture templates for the /capture endpoint
+(setq org-agenda-api-capture-templates
+      '(("todo"
+         :name "Todo"
+         :template ("t" "Todo" entry (file "/data/org/inbox.org")
+                    "* TODO %^{Title}\n"
+                    :immediate-finish t)
+         :prompts (("Title" :type string :required t)))
+        ("scheduled-todo"
+         :name "Scheduled Todo"
+         :template ("s" "Scheduled" entry (file "/data/org/inbox.org")
+                    "* TODO %^{Title}\nSCHEDULED: %^{When}t\n"
+                    :immediate-finish t)
+         :prompts (("Title" :type string :required t)
+                   ("When" :type date :required t)))
+        ("tagged-todo"
+         :name "Tagged Todo"
+         :template ("g" "Tagged" entry (file "/data/org/inbox.org")
+                    "* TODO %^{Title} %^{Tags}g\n"
+                    :immediate-finish t)
+         :prompts (("Title" :type string :required t)
+                   ("Tags" :type tags :required nil)))
+        ("note"
+         :name "Note"
+         :template ("n" "Note" entry (file "/data/org/inbox.org")
+                    "* %^{Title}\n[%U]\n\n%?"
+                    :immediate-finish t)
+         :prompts (("Title" :type string :required t)))))

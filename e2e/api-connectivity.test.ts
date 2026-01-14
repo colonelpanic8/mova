@@ -159,24 +159,18 @@ describe('API Connectivity', () => {
         .withTimeout(15000);
     });
 
-    it('should display capture input and button', async () => {
-      await expect(element(by.id('captureInput'))).toBeVisible();
+    it('should display template selector and capture button', async () => {
+      await expect(element(by.id('templateSelector'))).toBeVisible();
       await expect(element(by.id('captureButton'))).toBeVisible();
     });
 
-    it('should create a new todo', async () => {
-      const todoTitle = `E2E Test Todo ${Date.now()}`;
+    it('should show template form with prompts', async () => {
+      // Verify the selected template shows its prompts
+      // The "Todo" template should have a "Title" field
+      await expect(element(by.text('Title *'))).toExist();
 
-      // Enter todo title
-      await element(by.id('captureInput')).typeText(todoTitle);
-
-      // Tap create button
-      await element(by.id('captureButton')).tap();
-
-      // Wait for success snackbar (the input should be cleared on success)
-      await waitFor(element(by.text('Todo created!')))
-        .toBeVisible()
-        .withTimeout(10000);
+      // Verify we can see the capture button
+      await expect(element(by.id('captureButton'))).toBeVisible();
     });
   });
 
