@@ -30,6 +30,7 @@ export default function SearchScreen() {
     updatingIds,
     swipeableRefs,
     handleTodoPress,
+    scheduleTomorrow,
     openScheduleModal,
     openDeadlineModal,
     openPriorityModal,
@@ -134,6 +135,7 @@ export default function SearchScreen() {
                 isCompleting={completingIds.has(key)}
                 isUpdating={updatingIds.has(key)}
                 onTodoPress={handleTodoPress}
+                onTomorrowPress={scheduleTomorrow}
                 onSchedulePress={openScheduleModal}
                 onDeadlinePress={openDeadlineModal}
                 onPriorityPress={openPriorityModal}

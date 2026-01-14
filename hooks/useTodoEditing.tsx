@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, ReactNode } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import { Text, useTheme, Portal, Modal, Button, RadioButton, Switch, Snackbar } from 'react-native-paper';
+import { View, StyleSheet } from 'react-native';
+import { Text, useTheme, Portal, Modal, Button, RadioButton, Snackbar } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Swipeable } from 'react-native-gesture-handler';
 import { api, Todo, TodoUpdates, TodoStatesResponse } from '@/services/api';
@@ -22,6 +22,7 @@ export interface UseTodoEditingResult {
 
   // Actions
   handleTodoPress: (todo: Todo) => void;
+  scheduleTomorrow: (todo: Todo) => void;
   openScheduleModal: (todo: Todo) => void;
   openDeadlineModal: (todo: Todo) => void;
   openPriorityModal: (todo: Todo) => void;
@@ -39,7 +40,6 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [editModalType, setEditModalType] = useState<EditModalType>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [includeTime, setIncludeTime] = useState(false);
   const [selectedPriority, setSelectedPriority] = useState<string>('');
   const [selectedState, setSelectedState] = useState<string>('');
 
@@ -74,10 +74,8 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
       const existingDate = type === 'schedule' ? todo.scheduled : todo.deadline;
       if (existingDate) {
         setSelectedDate(new Date(existingDate));
-        setIncludeTime(existingDate.includes('T') && existingDate.includes(':'));
       } else {
         setSelectedDate(new Date());
-        setIncludeTime(false);
       }
     } else if (type === 'priority') {
       setSelectedPriority(todo.priority || '');
@@ -101,6 +99,44 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
   const openPriorityModal = useCallback((todo: Todo) => {
     openEditModal(todo, 'priority');
   }, [openEditModal]);
+
+  const scheduleTomorrow = useCallback(async (todo: Todo) => {
+    const key = getTodoKey(todo);
+    swipeableRefs.current.get(key)?.close();
+    setUpdatingIds(prev => new Set(prev).add(key));
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateString = tomorrow.toISOString().slice(0, 10);
+
+    try {
+      const result = await api.updateTodo(todo, { scheduled: dateString });
+
+      if (result.status === 'updated') {
+        setSnackbar({
+          visible: true,
+          message: `Scheduled for tomorrow: ${todo.title}`,
+          isError: false
+        });
+        onTodoUpdated?.(todo, { scheduled: dateString });
+      } else {
+        setSnackbar({
+          visible: true,
+          message: result.message || 'Failed to schedule',
+          isError: true
+        });
+      }
+    } catch (err) {
+      console.error('Failed to schedule todo:', err);
+      setSnackbar({ visible: true, message: 'Failed to schedule todo', isError: true });
+    } finally {
+      setUpdatingIds(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }, [onTodoUpdated]);
 
   const handleUpdateTodo = useCallback(async (updates: TodoUpdates) => {
     if (!editingTodo) return;
@@ -174,24 +210,6 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
     }
   }, [editingTodo, onTodoUpdated, closeEditModal]);
 
-  const handleSaveDate = useCallback(() => {
-    if (!editModalType || (editModalType !== 'schedule' && editModalType !== 'deadline')) return;
-
-    let dateString: string;
-    if (includeTime) {
-      dateString = selectedDate.toISOString().slice(0, 19);
-    } else {
-      dateString = selectedDate.toISOString().slice(0, 10);
-    }
-
-    handleUpdateTodo({ [editModalType]: dateString });
-  }, [editModalType, includeTime, selectedDate, handleUpdateTodo]);
-
-  const handleClearDate = useCallback(() => {
-    if (!editModalType || (editModalType !== 'schedule' && editModalType !== 'deadline')) return;
-    handleUpdateTodo({ [editModalType]: null });
-  }, [editModalType, handleUpdateTodo]);
-
   const handleSavePriority = useCallback((priority: string | null) => {
     handleUpdateTodo({ priority });
   }, [handleUpdateTodo]);
@@ -200,6 +218,18 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
     setSnackbar(prev => ({ ...prev, visible: false }));
   }, []);
 
+  // Handle native date picker result
+  const handleDatePickerChange = useCallback((event: any, date?: Date) => {
+    if (event.type === 'dismissed') {
+      closeEditModal();
+      return;
+    }
+    if (date && (editModalType === 'schedule' || editModalType === 'deadline')) {
+      const dateString = date.toISOString().slice(0, 10);
+      handleUpdateTodo({ [editModalType]: dateString });
+    }
+  }, [editModalType, handleUpdateTodo, closeEditModal]);
+
   const EditModals = useCallback(() => {
     const allStates = todoStates
       ? [...todoStates.active, ...todoStates.done]
@@ -207,48 +237,17 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
 
     return (
       <>
+        {/* Native Date Picker (Schedule/Deadline) - no modal wrapper needed */}
+        {(editModalType === 'schedule' || editModalType === 'deadline') && (
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display="default"
+            onChange={handleDatePickerChange}
+          />
+        )}
+
         <Portal>
-          {/* Date Modal (Schedule/Deadline) */}
-          <Modal
-            visible={editModalType === 'schedule' || editModalType === 'deadline'}
-            onDismiss={closeEditModal}
-            contentContainerStyle={[styles.modalContent, { backgroundColor: theme.colors.surface }]}
-          >
-            <Text variant="titleLarge" style={styles.modalTitle}>
-              {editModalType === 'schedule' ? 'Set Schedule' : 'Set Deadline'}
-            </Text>
-
-            <View style={styles.datePickerContainer}>
-              <DateTimePicker
-                value={selectedDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(_, date) => date && setSelectedDate(date)}
-              />
-            </View>
-
-            <View style={styles.switchRow}>
-              <Text>Include time</Text>
-              <Switch value={includeTime} onValueChange={setIncludeTime} />
-            </View>
-
-            {includeTime && (
-              <View style={styles.datePickerContainer}>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="time"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={(_, date) => date && setSelectedDate(date)}
-                />
-              </View>
-            )}
-
-            <View style={styles.modalButtons}>
-              <Button mode="outlined" onPress={handleClearDate}>Clear</Button>
-              <Button mode="outlined" onPress={closeEditModal}>Cancel</Button>
-              <Button mode="contained" onPress={handleSaveDate}>Save</Button>
-            </View>
-          </Modal>
 
           {/* Priority Modal */}
           <Modal
@@ -320,6 +319,7 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
           onDismiss={dismissSnackbar}
           duration={2000}
           style={snackbar.isError ? { backgroundColor: theme.colors.error } : undefined}
+          testID={snackbar.isError ? 'errorSnackbar' : 'successSnackbar'}
         >
           {snackbar.message}
         </Snackbar>
@@ -331,13 +331,11 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
     selectedDate,
     selectedPriority,
     selectedState,
-    includeTime,
     todoStates,
     snackbar,
     theme,
     closeEditModal,
-    handleSaveDate,
-    handleClearDate,
+    handleDatePickerChange,
     handleSavePriority,
     handleStateChange,
     dismissSnackbar,
@@ -349,6 +347,7 @@ export function useTodoEditing(options: UseTodoEditingOptions = {}): UseTodoEdit
     snackbar,
     swipeableRefs,
     handleTodoPress,
+    scheduleTomorrow,
     openScheduleModal,
     openDeadlineModal,
     openPriorityModal,
@@ -369,16 +368,6 @@ const styles = StyleSheet.create({
   modalSubtitle: {
     marginBottom: 16,
     opacity: 0.7,
-  },
-  datePickerContainer: {
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 8,
   },
   modalButtons: {
     flexDirection: 'row',
