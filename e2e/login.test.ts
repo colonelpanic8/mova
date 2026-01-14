@@ -1,4 +1,4 @@
-import { by, element, expect, waitFor } from "detox";
+import { by, device, element, expect, waitFor } from "detox";
 import {
   ensureFreshState,
   TEST_API_URL,
@@ -41,12 +41,21 @@ describe("Login Screen", () => {
     // Dismiss keyboard
     await element(by.id("passwordInput")).tapReturnKey();
 
+    // Wait for keyboard to dismiss
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     // Tap connect
     await element(by.id("connectButton")).tap();
 
-    // Should navigate to agenda screen
-    await waitFor(element(by.id("agendaScreen")))
-      .toBeVisible()
-      .withTimeout(10000);
+    // Disable synchronization to avoid Detox getting stuck on network requests/animations
+    await device.disableSynchronization();
+    try {
+      // Should navigate to agenda screen (longer timeout for login + data load)
+      await waitFor(element(by.id("agendaScreen")))
+        .toBeVisible()
+        .withTimeout(15000);
+    } finally {
+      await device.enableSynchronization();
+    }
   });
 });

@@ -1,3 +1,4 @@
+import { base64Encode } from "@/utils/base64";
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import {
   getPendingTodos,
@@ -42,7 +43,7 @@ async function createTodo(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+        Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
       },
       body: JSON.stringify({ title }),
     });
@@ -81,7 +82,7 @@ async function requestRestart(
     const response = await fetch(`${apiUrl}/restart`, {
       method: "POST",
       headers: {
-        Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+        Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
       },
     });
     return response.ok;

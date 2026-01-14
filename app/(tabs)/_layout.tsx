@@ -24,6 +24,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Agenda",
+          tabBarTestID: "tabAgenda",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="calendar-today"
@@ -37,6 +38,7 @@ export default function TabLayout() {
         name="views"
         options={{
           title: "Views",
+          tabBarTestID: "tabViews",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="view-list"
@@ -50,6 +52,7 @@ export default function TabLayout() {
         name="search"
         options={{
           title: "Search",
+          tabBarTestID: "tabSearch",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="magnify" size={size} color={color} />
           ),
@@ -59,6 +62,7 @@ export default function TabLayout() {
         name="capture"
         options={{
           title: "Capture",
+          tabBarTestID: "tabCapture",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="plus-circle-outline"
@@ -72,6 +76,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Settings",
+          tabBarTestID: "tabSettings",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="cog-outline"

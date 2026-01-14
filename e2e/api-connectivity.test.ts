@@ -155,8 +155,10 @@ describe("API Connectivity", () => {
 
   describe("Capture Screen", () => {
     beforeAll(async () => {
-      // Navigate to Capture tab
-      await element(by.text("Capture")).tap();
+      // Navigate to Capture tab using label (matches accessibility label)
+      await element(by.label(/Capture/))
+        .atIndex(0)
+        .tap();
     });
 
     it("should load the capture screen", async () => {
