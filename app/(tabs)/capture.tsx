@@ -338,6 +338,7 @@ export default function CaptureScreen() {
             onPress={() => handleTemplateSelect(QUICK_CAPTURE_KEY)}
             title="Quick Capture"
             leadingIcon={isQuickCapture ? "check" : "lightning-bolt"}
+            testID="menuItem-quick-capture"
           />
           {hasTemplates && <Divider />}
           {templateKeys.map((key) => (
@@ -346,6 +347,7 @@ export default function CaptureScreen() {
               onPress={() => handleTemplateSelect(key)}
               title={templates![key].name}
               leadingIcon={key === selectedTemplateKey ? "check" : undefined}
+              testID={`menuItem-${key}`}
             />
           ))}
         </Menu>

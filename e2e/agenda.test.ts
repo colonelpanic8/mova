@@ -91,7 +91,10 @@ describe("Agenda Screen - Tab Navigation", () => {
   it("should navigate to Search tab and back to Agenda", async () => {
     // Navigate to Search
     await navigateToTab("Search");
-    await expect(element(by.id("searchScreen"))).toBeVisible();
+    // Wait for search screen to load (may show loading first)
+    await waitFor(element(by.id("searchScreen")))
+      .toBeVisible()
+      .withTimeout(10000);
 
     // Navigate back to Agenda
     await navigateToTab("Agenda");
@@ -125,11 +128,11 @@ describe("Agenda Screen - Todo Manipulation", () => {
     // Swipe left on the first todo item to reveal actions
     await element(by.text("Team meeting")).swipe("left", "fast", 0.5);
 
-    // Should reveal Tomorrow, Schedule, Deadline, Priority buttons
-    await expect(element(by.text("Tomorrow"))).toBeVisible();
-    await expect(element(by.text("Schedule"))).toBeVisible();
-    await expect(element(by.text("Deadline"))).toBeVisible();
-    await expect(element(by.text("Priority"))).toBeVisible();
+    // Should reveal Tomorrow, Schedule, Deadline, Priority buttons (use testIDs to avoid multiple matches)
+    await expect(element(by.id("tomorrowActionButton_Team_meeting"))).toBeVisible();
+    await expect(element(by.id("scheduleActionButton_Team_meeting"))).toBeVisible();
+    await expect(element(by.id("deadlineActionButton_Team_meeting"))).toBeVisible();
+    await expect(element(by.id("priorityActionButton_Team_meeting"))).toBeVisible();
   });
 
   it("should schedule todo for tomorrow using direct swipe action", async () => {
@@ -139,8 +142,8 @@ describe("Agenda Screen - Todo Manipulation", () => {
     // Swipe left on a todo to reveal actions
     await element(by.text("Team meeting")).swipe("left", "fast", 0.5);
 
-    // Tap Tomorrow button directly (no modal)
-    await element(by.text("Tomorrow")).tap();
+    // Tap Tomorrow button using testID
+    await element(by.id("tomorrowActionButton_Team_meeting")).tap();
 
     // Should see success snackbar
     await waitFor(element(by.text(/Scheduled for tomorrow:/)))
@@ -157,8 +160,8 @@ describe("Agenda Screen - Todo Manipulation", () => {
     // Swipe left on a todo to reveal actions
     await element(by.text("Submit report")).swipe("left", "fast", 0.5);
 
-    // Tap Schedule button
-    await element(by.text("Schedule")).tap();
+    // Tap Schedule button using testID
+    await element(by.id("scheduleActionButton_Submit_report")).tap();
 
     // Modal should appear with title and buttons
     await expect(element(by.text("Set Schedule"))).toBeVisible();
@@ -174,8 +177,8 @@ describe("Agenda Screen - Todo Manipulation", () => {
     // Swipe left on Submit report todo
     await element(by.text("Submit report")).swipe("left", "fast", 0.5);
 
-    // Tap Schedule button to open modal
-    await element(by.text("Schedule")).tap();
+    // Tap Schedule button using testID to open modal
+    await element(by.id("scheduleActionButton_Submit_report")).tap();
 
     // Wait for modal
     await expect(element(by.text("Set Schedule"))).toBeVisible();

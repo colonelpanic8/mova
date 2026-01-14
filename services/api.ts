@@ -1,3 +1,5 @@
+import { base64Encode } from "@/utils/base64";
+
 export interface Todo {
   todo: string;
   title: string;
@@ -105,7 +107,7 @@ class OrgAgendaApi {
 
   configure(baseUrl: string, username: string, password: string) {
     this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
-    this.authHeader = `Basic ${btoa(`${username}:${password}`)}`;
+    this.authHeader = `Basic ${base64Encode(`${username}:${password}`)}`;
   }
 
   private async request<T>(

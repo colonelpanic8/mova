@@ -97,8 +97,12 @@ export async function loginWithTestCredentials(): Promise<void> {
     await element(by.id("passwordInput")).clearText();
     await element(by.id("passwordInput")).typeText(TEST_PASSWORD);
 
-    // Dismiss keyboard before tapping connect
-    await element(by.id("passwordInput")).tapReturnKey();
+    // Hide keyboard by tapping elsewhere (tapReturnKey can add extra chars on secure fields)
+    try {
+      await device.pressBack();
+    } catch {
+      // If pressBack fails, try tapping outside the input
+    }
 
     // Wait for keyboard to dismiss and button to be visible
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -230,12 +234,19 @@ export async function setupTestPreserveLogin(): Promise<void> {
 }
 
 /**
- * Navigate to a specific tab
+ * Navigate to a specific tab using testID for reliable selection
  */
 export async function navigateToTab(
-  tabName: "Agenda" | "Search" | "Capture",
+  tabName: "Agenda" | "Search" | "Capture" | "Views" | "Settings",
 ): Promise<void> {
-  await element(by.text(tabName)).tap();
+  const tabTestIds: Record<string, string> = {
+    Agenda: "tabAgenda",
+    Views: "tabViews",
+    Search: "tabSearch",
+    Capture: "tabCapture",
+    Settings: "tabSettings",
+  };
+  await element(by.id(tabTestIds[tabName])).tap();
 }
 
 /**

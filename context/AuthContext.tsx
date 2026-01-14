@@ -1,3 +1,4 @@
+import { base64Encode } from "@/utils/base64";
 import {
   clearWidgetCredentials,
   saveCredentialsToWidget,
@@ -126,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Test the credentials by hitting the /templates endpoint
       const response = await fetch(`${apiUrl}/templates`, {
         headers: {
-          Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+          Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
         },
       });
 
@@ -179,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function getAuthHeader(): string | null {
     if (state.username && state.password) {
-      return `Basic ${btoa(`${state.username}:${state.password}`)}`;
+      return `Basic ${base64Encode(`${state.username}:${state.password}`)}`;
     }
     return null;
   }

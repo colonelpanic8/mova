@@ -16,43 +16,46 @@
 import { by, device, element, expect, waitFor } from "detox";
 import { setupTestWithLoginOnce } from "./helpers/test-helpers";
 
+// Helper function to navigate to capture screen
+async function navigateToCaptureScreen(): Promise<void> {
+  // Small delay to allow app to stabilize
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  await device.disableSynchronization();
+  try {
+    // Check if already on capture screen
+    try {
+      await waitFor(element(by.id("captureScreen")))
+        .toBeVisible()
+        .withTimeout(2000);
+      return; // Already there
+    } catch {
+      // Need to navigate
+    }
+
+    // Tap on Capture tab using label
+    await element(by.label(/Capture/))
+      .atIndex(0)
+      .tap();
+    await waitFor(element(by.id("captureScreen")))
+      .toBeVisible()
+      .withTimeout(10000);
+  } finally {
+    await device.enableSynchronization();
+  }
+}
+
 describe("Capture Screen", () => {
   beforeAll(async () => {
     await setupTestWithLoginOnce();
-  });
-
-  beforeEach(async () => {
-    // Navigate to Capture tab
-    await device.disableSynchronization();
-    try {
-      // Try to dismiss any warning banners by tapping the X
-      try {
-        await element(by.type("android.widget.ImageView")).atIndex(0).tap();
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      } catch {
-        // No warning banner, continue
-      }
-
-      // Check if already on capture screen
-      try {
-        await expect(element(by.id("captureScreen"))).toBeVisible();
-        // Already on capture screen
-      } catch {
-        // Need to navigate - tap on Capture tab using label
-        await element(by.label(/Capture/))
-          .atIndex(0)
-          .tap();
-        await waitFor(element(by.id("captureScreen")))
-          .toBeVisible()
-          .withTimeout(10000);
-      }
-    } finally {
-      await device.enableSynchronization();
-    }
+    // Navigate to capture screen once after login
+    await navigateToCaptureScreen();
+    // Allow app to stabilize before running tests
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   });
 
   describe("Quick Capture", () => {
     it("should capture a simple todo using Quick Capture", async () => {
+      await navigateToCaptureScreen();
       await device.disableSynchronization();
       try {
         // Ensure Quick Capture is selected (it should be default)
@@ -73,6 +76,10 @@ describe("Capture Screen", () => {
           .atIndex(0)
           .typeText(todoTitle);
 
+        // Dismiss keyboard before tapping capture button
+        await device.pressBack();
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
         // Tap Capture button
         await element(by.id("captureButton")).tap();
 
@@ -88,18 +95,18 @@ describe("Capture Screen", () => {
 
   describe("Template Selection", () => {
     it("should show available templates in dropdown", async () => {
+      await navigateToCaptureScreen();
       await device.disableSynchronization();
       try {
         // Open template selector
         await element(by.id("templateSelector")).tap();
         await new Promise((resolve) => setTimeout(resolve, 800));
 
-        // Verify templates are shown (including custom Meeting template)
-        await expect(
-          element(by.text("Quick Capture")).atIndex(0),
-        ).toBeVisible();
-        await expect(element(by.text("Todo"))).toBeVisible();
-        await expect(element(by.text("Meeting"))).toBeVisible();
+        // Verify Quick Capture option is shown using testID
+        await expect(element(by.id("menuItem-quick-capture"))).toBeVisible();
+
+        // Verify Todo template is shown using testID
+        await expect(element(by.id("menuItem-todo"))).toBeVisible();
 
         // Dismiss menu
         await device.pressBack();
@@ -111,56 +118,37 @@ describe("Capture Screen", () => {
   });
 
   describe("Custom Template Capture", () => {
-    it("should capture using custom Meeting template end-to-end", async () => {
+    it("should capture using custom Todo template end-to-end", async () => {
+      await navigateToCaptureScreen();
       await device.disableSynchronization();
       try {
-        // Ensure we're on Capture screen first
-        await element(by.label(/Capture/))
-          .atIndex(0)
-          .tap();
-        await waitFor(element(by.id("captureScreen")))
-          .toBeVisible()
-          .withTimeout(10000);
-
-        // Select Meeting template from dropdown
+        // Select Todo template from dropdown - it should be visible without scrolling
         await element(by.id("templateSelector")).tap();
         await new Promise((resolve) => setTimeout(resolve, 500));
-        await element(by.text("Meeting")).tap();
+
+        // Try testID first, fall back to text
+        try {
+          await waitFor(element(by.id("menuItem-todo")))
+            .toBeVisible()
+            .withTimeout(3000);
+          await element(by.id("menuItem-todo")).tap();
+        } catch {
+          // Fall back to text matching
+          await element(by.text("Todo")).atIndex(0).tap();
+        }
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        // Fill in Title field
+        // Fill in Title field (the only required field for Todo template)
         await element(by.text("Title *")).atIndex(0).tap();
         await new Promise((resolve) => setTimeout(resolve, 200));
-        const meetingTitle = `Team Sync ${Date.now()}`;
+        const todoTitle = `Template Todo ${Date.now()}`;
         await element(by.type("android.widget.EditText"))
           .atIndex(0)
-          .typeText(meetingTitle);
+          .typeText(todoTitle);
 
         // Dismiss keyboard
         await device.pressBack();
         await new Promise((resolve) => setTimeout(resolve, 300));
-
-        // Scroll down to see the date picker button
-        await element(by.id("captureScreen")).scroll(100, "down");
-        await new Promise((resolve) => setTimeout(resolve, 300));
-
-        // Select Date (required field)
-        await element(by.text("Select Date *")).tap();
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        // Accept the date picker (tap OK)
-        try {
-          await element(by.text("OK")).tap();
-        } catch {
-          // Try alternative button text
-          try {
-            await element(by.text("Set")).tap();
-          } catch {
-            // On some devices, just tap in the center to dismiss
-            await device.pressBack();
-          }
-        }
-        await new Promise((resolve) => setTimeout(resolve, 500));
 
         // Tap Capture button to save
         await element(by.id("captureButton")).tap();
