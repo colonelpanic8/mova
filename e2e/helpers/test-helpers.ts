@@ -81,6 +81,12 @@ export async function loginWithTestCredentials(): Promise<void> {
     // Dismiss keyboard before tapping connect
     await element(by.id('passwordInput')).tapReturnKey();
 
+    // Wait for keyboard to dismiss and button to be visible
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await waitFor(element(by.id('connectButton')))
+      .toBeVisible()
+      .withTimeout(5000);
+
     // Tap connect button
     await element(by.id('connectButton')).tap();
 
