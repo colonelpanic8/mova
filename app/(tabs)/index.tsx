@@ -1,23 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
-import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
+import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity, Platform } from 'react-native';
+import { Text, useTheme, ActivityIndicator, IconButton } from 'react-native-paper';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useAuth } from '@/context/AuthContext';
 import { api, AgendaResponse, AgendaEntry } from '@/services/api';
+
+function formatDateForApi(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+function formatDateForDisplay(dateString: string): string {
+  const date = new Date(dateString + 'T00:00:00');
+  return date.toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
 
 export default function AgendaScreen() {
   const [agenda, setAgenda] = useState<AgendaResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
 
-  const fetchAgenda = useCallback(async () => {
+  const fetchAgenda = useCallback(async (date: Date) => {
     if (!apiUrl || !username || !password) return;
 
     try {
       api.configure(apiUrl, username, password);
-      const data = await api.getAgenda('day');
+      const dateString = formatDateForApi(date);
+      const data = await api.getAgenda('day', dateString);
       setAgenda(data);
       setError(null);
     } catch (err) {
@@ -27,47 +45,108 @@ export default function AgendaScreen() {
   }, [apiUrl, username, password]);
 
   useEffect(() => {
-    fetchAgenda().finally(() => setLoading(false));
-  }, [fetchAgenda]);
+    fetchAgenda(selectedDate).finally(() => setLoading(false));
+  }, [fetchAgenda, selectedDate]);
+
+  const goToPreviousDay = useCallback(() => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setSelectedDate(newDate);
+  }, [selectedDate]);
+
+  const goToNextDay = useCallback(() => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setSelectedDate(newDate);
+  }, [selectedDate]);
+
+  const goToToday = useCallback(() => {
+    setSelectedDate(new Date());
+  }, []);
+
+  const onDateChange = useCallback((event: DateTimePickerEvent, date?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (date) {
+      setSelectedDate(date);
+    }
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchAgenda();
+    await fetchAgenda(selectedDate);
     setRefreshing(false);
-  }, [fetchAgenda]);
+  }, [fetchAgenda, selectedDate]);
 
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" />
+      <View testID="agendaLoadingView" style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator testID="agendaLoadingIndicator" size="large" />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-        <Text variant="bodyLarge" style={{ color: theme.colors.error }}>
+      <View testID="agendaErrorView" style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <Text testID="agendaErrorText" variant="bodyLarge" style={{ color: theme.colors.error }}>
           {error}
         </Text>
       </View>
     );
   }
 
+  const isToday = formatDateForApi(selectedDate) === formatDateForApi(new Date());
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View testID="agendaScreen" style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
-        <Text variant="titleLarge">{agenda?.date}</Text>
+        <View style={styles.dateNavigation}>
+          <IconButton
+            icon="chevron-left"
+            onPress={goToPreviousDay}
+            testID="agendaPrevDay"
+          />
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            style={styles.dateButton}
+            testID="agendaDateButton"
+          >
+            <Text testID="agendaDateHeader" variant="titleMedium" style={styles.dateText}>
+              {agenda?.date ? formatDateForDisplay(agenda.date) : ''}
+            </Text>
+          </TouchableOpacity>
+          <IconButton
+            icon="chevron-right"
+            onPress={goToNextDay}
+            testID="agendaNextDay"
+          />
+        </View>
+        {!isToday && (
+          <TouchableOpacity onPress={goToToday} style={styles.todayButton} testID="agendaTodayButton">
+            <Text style={{ color: theme.colors.primary }}>Go to Today</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
+      {showDatePicker && (
+        <DateTimePicker
+          testID="agendaDatePicker"
+          value={selectedDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDateChange}
+        />
+      )}
+
       {agenda?.entries.length === 0 ? (
-        <View style={styles.centered}>
+        <View testID="agendaEmptyView" style={styles.centered}>
           <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
             No items for today
           </Text>
         </View>
       ) : (
         <FlatList
+          testID="agendaList"
           data={agenda?.entries}
           keyExtractor={(item, index) => item.id || `${index}-${item.pos}`}
           renderItem={({ item }) => (
@@ -126,9 +205,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    padding: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+  },
+  dateNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  dateText: {
+    textAlign: 'center',
+  },
+  todayButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
   },
   entry: {
     padding: 12,

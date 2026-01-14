@@ -39,6 +39,7 @@ export default function CaptureScreen() {
 
   return (
     <KeyboardAvoidingView
+      testID="captureScreen"
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
@@ -48,6 +49,7 @@ export default function CaptureScreen() {
         </Text>
 
         <TextInput
+          testID="captureInput"
           label="What needs to be done?"
           value={title}
           onChangeText={setTitle}
@@ -58,6 +60,7 @@ export default function CaptureScreen() {
         />
 
         <Button
+          testID="captureButton"
           mode="contained"
           onPress={handleCreate}
           loading={loading}

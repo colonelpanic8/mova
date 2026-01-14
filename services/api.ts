@@ -89,8 +89,12 @@ class OrgAgendaApi {
     return response.json();
   }
 
-  async getAgenda(span: 'day' | 'week' = 'day'): Promise<AgendaResponse> {
-    return this.request<AgendaResponse>(`/agenda?span=${span}`);
+  async getAgenda(span: 'day' | 'week' = 'day', date?: string): Promise<AgendaResponse> {
+    const params = new URLSearchParams({ span });
+    if (date) {
+      params.append('date', date);
+    }
+    return this.request<AgendaResponse>(`/agenda?${params.toString()}`);
   }
 
   async getAllTodos(): Promise<GetAllTodosResponse> {

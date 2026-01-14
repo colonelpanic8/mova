@@ -3,10 +3,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 
-const ORG_AGENDA_API_PATH = path.join(
-  os.homedir(),
-  'dotfiles/dotfiles/emacs.d/straight/repos/org-agenda-api'
-);
+const ORG_AGENDA_API_PATH =
+  process.env.ORG_AGENDA_API_DIR ||
+  path.join(os.homedir(), 'dotfiles/dotfiles/emacs.d/straight/repos/org-agenda-api');
 
 interface ContainerConfig {
   port?: number;

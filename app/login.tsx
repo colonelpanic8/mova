@@ -51,6 +51,7 @@ export default function LoginScreen() {
         </Text>
 
         <TextInput
+          testID="serverUrlInput"
           label="Server URL"
           value={apiUrl}
           onChangeText={setApiUrl}
@@ -63,6 +64,7 @@ export default function LoginScreen() {
         />
 
         <TextInput
+          testID="usernameInput"
           label="Username"
           value={username}
           onChangeText={setUsername}
@@ -73,6 +75,7 @@ export default function LoginScreen() {
         />
 
         <TextInput
+          testID="passwordInput"
           label="Password"
           value={password}
           onChangeText={setPassword}
@@ -82,6 +85,7 @@ export default function LoginScreen() {
         />
 
         <Button
+          testID="connectButton"
           mode="contained"
           onPress={handleLogin}
           loading={loading}

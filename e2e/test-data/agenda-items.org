@@ -1,0 +1,28 @@
+#+TITLE: Agenda Items
+
+* Calendar
+** TODO Morning standup
+   SCHEDULED: <2026-01-13 Mon 09:00>
+   Daily standup meeting
+
+** TODO Team meeting
+   SCHEDULED: <2026-01-14 Tue 10:00>
+   Weekly standup
+
+** TODO Submit report
+   DEADLINE: <2026-01-14 Tue>
+   Quarterly report due
+
+** TODO Doctor appointment
+   SCHEDULED: <2026-01-14 Tue 14:30>
+
+* Weekly Tasks
+** TODO Code review
+   SCHEDULED: <2026-01-13 Mon>
+   Review pending PRs
+
+** TODO Review code
+   SCHEDULED: <2026-01-14 Tue>
+
+** TODO Update dependencies
+   SCHEDULED: <2026-01-15 Wed>

@@ -371,16 +371,17 @@ export default function SearchScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" />
+      <View testID="searchLoadingView" style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator testID="searchLoadingIndicator" size="large" />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View testID="searchScreen" style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.searchContainer}>
         <Searchbar
+          testID="searchInput"
           placeholder="Search todos..."
           onChangeText={setSearchQuery}
           value={searchQuery}
@@ -389,19 +390,20 @@ export default function SearchScreen() {
       </View>
 
       {error ? (
-        <View style={styles.centered}>
-          <Text variant="bodyLarge" style={{ color: theme.colors.error }}>
+        <View testID="searchErrorView" style={styles.centered}>
+          <Text testID="searchErrorText" variant="bodyLarge" style={{ color: theme.colors.error }}>
             {error}
           </Text>
         </View>
       ) : filteredTodos.length === 0 ? (
-        <View style={styles.centered}>
+        <View testID="searchEmptyView" style={styles.centered}>
           <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
             {searchQuery ? 'No matching todos' : 'No todos found'}
           </Text>
         </View>
       ) : (
         <FlatList
+          testID="searchTodoList"
           data={filteredTodos}
           keyExtractor={(item) => getTodoKey(item)}
           renderItem={({ item }) => {
