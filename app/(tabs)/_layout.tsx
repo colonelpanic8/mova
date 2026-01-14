@@ -30,6 +30,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="views"
+        options={{
+          title: 'Views',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="view-list" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="search"
         options={{
           title: 'Search',

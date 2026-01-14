@@ -84,6 +84,21 @@ export interface CaptureResponse {
   message?: string;
 }
 
+export interface CustomView {
+  key: string;
+  name: string;
+}
+
+export interface CustomViewsResponse {
+  views: CustomView[];
+}
+
+export interface CustomViewResponse {
+  key: string;
+  name: string;
+  entries: AgendaEntry[];
+}
+
 class OrgAgendaApi {
   private baseUrl: string = '';
   private authHeader: string = '';
@@ -181,6 +196,14 @@ class OrgAgendaApi {
       method: 'POST',
       body: JSON.stringify({ template, values }),
     });
+  }
+
+  async getCustomViews(): Promise<CustomViewsResponse> {
+    return this.request<CustomViewsResponse>('/custom-views');
+  }
+
+  async getCustomView(key: string): Promise<CustomViewResponse> {
+    return this.request<CustomViewResponse>(`/custom-view?key=${encodeURIComponent(key)}`);
   }
 }
 

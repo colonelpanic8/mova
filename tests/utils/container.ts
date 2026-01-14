@@ -23,9 +23,16 @@ export interface RunningContainer {
 
 /**
  * Build the org-agenda-api container using Nix
+ *
+ * Note: If running in a nix devshell, the ORG_AGENDA_API_DIR env var is set to
+ * the flake input path. After updating flake.lock, you must re-enter the devshell
+ * or override the env var to use the local path:
+ *   ORG_AGENDA_API_DIR=~/dotfiles/.../org-agenda-api npm test
  */
 export function buildContainer(): string {
   console.log('Building org-agenda-api container...');
+  console.log(`Building from: ${ORG_AGENDA_API_PATH}`);
+
   const result = execSync(
     'nix build .#container --no-link --print-out-paths',
     {
@@ -109,6 +116,13 @@ export function createTestOrgDir(): string {
   :ID: test-task-active
   :END:
 
+* NEXT [#A] High priority next task :work:
+
+* STARTED Working on feature
+  :PROPERTIES:
+  :ID: test-task-started
+  :END:
+
 * DONE Completed task
   CLOSED: [2024-06-14 Fri]
 `
@@ -122,11 +136,13 @@ export function createTestOrgDir(): string {
 * Project A
 ** TODO Subtask A1 :work:
 ** TODO Subtask A2 :personal:
+** TODO [#A] Critical bug fix :work:
 
 * Project B
 ** WAITING Waiting for response
 ** TODO Follow up task
    DEADLINE: <2024-06-20 Thu>
+** STARTED Code review in progress :work:
 `
   );
 
@@ -157,18 +173,34 @@ export async function startContainer(
   // Create test org directory
   const orgDir = createTestOrgDir();
 
-  // Start container
+  // Custom elisp to configure org-agenda-custom-commands and todo states for testing
+  const customElispContent = `
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "NEXT(n)" "STARTED(s)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
+(setq org-agenda-custom-commands
+      '(("n" "Next actions" todo "NEXT")
+        ("s" "Started tasks" todo "STARTED")
+        ("w" "Waiting tasks" todo "WAITING")
+        ("h" "High priority" tags-todo "+PRIORITY=\\"A\\"")
+        ("W" "Work tasks" tags-todo "+work")))
+  `.trim();
+
+  // Start container using spawnSync to avoid shell escaping issues
   console.log(`Starting container on port ${port}...`);
-  execSync(
-    `docker run -d \
-      --name ${containerName} \
-      -p ${port}:80 \
-      -v ${orgDir}:/data/org \
-      -e GIT_SYNC_INTERVAL=${gitSyncInterval} \
-      -e GIT_SYNC_NEW_FILES=true \
-      ${imageName}`,
-    { encoding: 'utf-8' }
-  );
+  const dockerArgs = [
+    'run', '-d',
+    '--name', containerName,
+    '-p', `${port}:80`,
+    '-v', `${orgDir}:/data/org`,
+    '-e', `GIT_SYNC_INTERVAL=${gitSyncInterval}`,
+    '-e', 'GIT_SYNC_NEW_FILES=true',
+    '-e', `ORG_API_CUSTOM_ELISP_CONTENT=${customElispContent}`,
+    imageName,
+  ];
+  const result = require('child_process').spawnSync('docker', dockerArgs, { encoding: 'utf-8' });
+  if (result.status !== 0) {
+    throw new Error(`Docker run failed: ${result.stderr}`);
+  }
 
   const baseUrl = `http://localhost:${port}`;
 
@@ -253,5 +285,28 @@ export class TestApiClient {
 
   async getAgenda(span: 'day' | 'week' = 'day') {
     return this.get<{ span: string; entries: any[] }>(`/agenda?span=${span}`);
+  }
+
+  async getCustomViews() {
+    return this.get<{ views: Array<{ key: string; name: string }> }>(
+      '/custom-views'
+    );
+  }
+
+  async getCustomView(key: string) {
+    return this.get<{ key: string; name: string; entries: any[] }>(
+      `/custom-view?key=${encodeURIComponent(key)}`
+    );
+  }
+
+  async updateTodo(todo: { file: string; pos: number; title: string; id?: string | null }, updates: { scheduled?: string | null; deadline?: string | null; priority?: string | null }) {
+    // Match frontend behavior: only send id, file, pos, title + updates
+    return this.post<{ status: string; updates?: any; message?: string }>('/update', {
+      id: todo.id,
+      file: todo.file,
+      pos: todo.pos,
+      title: todo.title,
+      ...updates,
+    });
   }
 }
