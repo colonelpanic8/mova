@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Platform, NativeModules } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveCredentialsToWidget, clearWidgetCredentials } from '@/widgets/storage';
 
@@ -8,6 +9,25 @@ interface AuthState {
   password: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+}
+
+// Get launch arguments for test auto-login (async)
+async function getTestLaunchArgs(): Promise<{ apiUrl?: string; username?: string; password?: string } | null> {
+  try {
+    if (Platform.OS === 'android' && NativeModules.DetoxTestingArgs) {
+      const launchArgs = await NativeModules.DetoxTestingArgs.getLaunchArgs();
+      if (launchArgs?.detoxTestApiUrl && launchArgs?.detoxTestUsername && launchArgs?.detoxTestPassword) {
+        return {
+          apiUrl: launchArgs.detoxTestApiUrl,
+          username: launchArgs.detoxTestUsername,
+          password: launchArgs.detoxTestPassword,
+        };
+      }
+    }
+  } catch {
+    // Not in test mode
+  }
+  return null;
 }
 
 interface AuthContextType extends AuthState {
@@ -39,6 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function loadStoredCredentials() {
     try {
+      // Check for test launch args first (for Detox auto-login)
+      const testArgs = await getTestLaunchArgs();
+      if (testArgs?.apiUrl && testArgs?.username && testArgs?.password) {
+        console.log('Auto-login with test launch args');
+        setState({
+          apiUrl: testArgs.apiUrl,
+          username: testArgs.username,
+          password: testArgs.password,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return;
+      }
+
       const [apiUrl, username, password] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.API_URL),
         AsyncStorage.getItem(STORAGE_KEYS.USERNAME),
