@@ -41,7 +41,7 @@ const mockTodos = [
     level: 1,
     scheduled: '2024-06-15',
     deadline: null,
-    priority: 1,
+    priority: 'A',
     file: '/test/inbox.org',
     pos: 100,
     olpath: null,

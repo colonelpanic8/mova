@@ -1,4 +1,4 @@
-import { WidgetTaskHandler } from 'react-native-android-widget';
+import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 import {
   getWidgetCredentials,
   queuePendingTodo,
@@ -9,6 +9,12 @@ import {
 } from './storage';
 
 const MAX_RETRIES = 3;
+
+export interface WidgetTaskResult {
+  status: 'success' | 'no_auth' | 'queued' | 'retry_complete' | 'unknown_action';
+  message?: string;
+  error?: string;
+}
 const BACKOFF_BASE_MS = 2000;
 const RESTART_WAIT_MS = 10000;
 
@@ -163,7 +169,7 @@ async function processPendingTodos(): Promise<void> {
 /**
  * Widget task handler - called when widget interactions occur
  */
-export const widgetTaskHandler: WidgetTaskHandler = async (props) => {
+export async function widgetTaskHandler(props: WidgetTaskHandlerProps): Promise<WidgetTaskResult> {
   const { widgetInfo, clickAction, clickActionData } = props;
 
   if (clickAction === 'SUBMIT_TODO' && clickActionData?.text) {
@@ -203,6 +209,4 @@ export const widgetTaskHandler: WidgetTaskHandler = async (props) => {
   }
 
   return { status: 'unknown_action' };
-};
-
-export default widgetTaskHandler;
+}

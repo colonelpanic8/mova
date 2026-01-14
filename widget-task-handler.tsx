@@ -1,7 +1,7 @@
 import React from 'react';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 import { QuickCaptureWidget } from './widgets/QuickCaptureWidget';
-import { widgetTaskHandler } from './widgets/QuickCaptureTask';
+import { widgetTaskHandler, WidgetTaskResult } from './widgets/QuickCaptureTask';
 
 const nameToWidget = {
   QuickCaptureWidget: QuickCaptureWidget,

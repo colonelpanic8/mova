@@ -76,6 +76,6 @@ export async function isBackgroundSyncRegistered(): Promise<boolean> {
   return await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
 }
 
-export async function getBackgroundSyncStatus(): Promise<BackgroundFetch.BackgroundFetchStatus> {
+export async function getBackgroundSyncStatus(): Promise<BackgroundFetch.BackgroundFetchStatus | null> {
   return await BackgroundFetch.getStatusAsync();
 }
