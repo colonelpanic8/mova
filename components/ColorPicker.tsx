@@ -76,8 +76,8 @@ export function ColorPicker({
   const resolveDisplayColor = (colorValue: ColorValue): string => {
     if (isThemeReference(colorValue)) {
       const key = colorValue.replace("theme:", "");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (theme.colors as any)[key] || colorValue;
+      const colors = theme.colors as unknown as Record<string, string>;
+      return colors[key] || colorValue;
     }
     return colorValue;
   };
