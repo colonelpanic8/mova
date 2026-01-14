@@ -95,7 +95,15 @@ beforeEach(() => {
     todos: mockTodos,
     defaults: { notifyBefore: [30] },
   });
+  (api.getTodoStates as jest.Mock).mockResolvedValue({
+    active: ['TODO', 'NEXT', 'WAITING'],
+    done: ['DONE'],
+  });
   (api.completeTodo as jest.Mock).mockResolvedValue({
+    status: 'completed',
+    newState: 'DONE',
+  });
+  (api.setTodoState as jest.Mock).mockResolvedValue({
     status: 'completed',
     newState: 'DONE',
   });
@@ -402,7 +410,15 @@ describe('SearchScreen Component', () => {
       todos: mockTodos,
       defaults: { notifyBefore: [30] },
     });
+    (api.getTodoStates as jest.Mock).mockResolvedValue({
+      active: ['TODO', 'NEXT', 'WAITING'],
+      done: ['DONE'],
+    });
     (api.completeTodo as jest.Mock).mockResolvedValue({
+      status: 'completed',
+      newState: 'DONE',
+    });
+    (api.setTodoState as jest.Mock).mockResolvedValue({
       status: 'completed',
       newState: 'DONE',
     });
@@ -477,7 +493,7 @@ describe('SearchScreen Component', () => {
     });
   });
 
-  it('should complete a todo when tapped', async () => {
+  it('should open state modal when chip is tapped', async () => {
     const { getByText, getAllByText } = renderScreen(<SearchScreen />);
 
     await waitFor(() => {
@@ -488,23 +504,40 @@ describe('SearchScreen Component', () => {
     const todoChips = getAllByText('TODO');
     fireEvent.press(todoChips[0]);
 
+    // Modal should open with state options
     await waitFor(() => {
-      expect(api.completeTodo).toHaveBeenCalled();
+      expect(getByText('Change State')).toBeTruthy();
+      expect(getByText('DONE')).toBeTruthy();
     });
   });
 
-  it('should show snackbar after completing a todo', async () => {
+  it('should change state and show snackbar after selecting from modal', async () => {
     const { getByText, getAllByText } = renderScreen(<SearchScreen />);
 
     await waitFor(() => {
       expect(getByText('Buy groceries')).toBeTruthy();
     });
 
+    // Open the state modal
     const todoChips = getAllByText('TODO');
     fireEvent.press(todoChips[0]);
 
+    // Wait for modal to open
     await waitFor(() => {
-      expect(getByText('Completed: Buy groceries')).toBeTruthy();
+      expect(getByText('Change State')).toBeTruthy();
+    });
+
+    // Select DONE state
+    const doneOption = getByText('DONE');
+    fireEvent.press(doneOption);
+
+    // Press Change button
+    const changeButton = getByText('Change');
+    fireEvent.press(changeButton);
+
+    // Verify API was called with correct state
+    await waitFor(() => {
+      expect(api.setTodoState).toHaveBeenCalled();
     });
   });
 

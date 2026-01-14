@@ -13,7 +13,7 @@ interface ContainerConfig {
   gitSyncInterval?: number;
 }
 
-interface RunningContainer {
+export interface RunningContainer {
   id: string;
   name: string;
   port: number;
