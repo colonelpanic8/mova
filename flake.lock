@@ -223,11 +223,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1768376146,
-        "narHash": "sha256-j97tXWlmRjxuScuZa7XL6QUnjJUrHeqFaU25azcjE1g=",
+        "lastModified": 1768377600,
+        "narHash": "sha256-2IgAJt6hwXMaGAYO0wg5wFm4TDOg4vekhOcT/ga7plk=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "ea642ff6418101c736263ea1b2681da45e4c0b00",
+        "rev": "3cbf5898f548b0fcab493e4b03b79a1bc69517d2",
         "type": "github"
       },
       "original": {
