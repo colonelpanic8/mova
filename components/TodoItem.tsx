@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme, Chip } from 'react-native-paper';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Todo } from '@/services/api';
+import { useColorPalette } from '@/context/ColorPaletteContext';
 
 export interface TodoItemProps {
   todo: Todo;
@@ -29,20 +30,6 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-function getTodoColor(todo: string, theme: any): string {
-  switch (todo.toUpperCase()) {
-    case 'TODO':
-      return theme.colors.error;
-    case 'NEXT':
-      return theme.colors.primary;
-    case 'DONE':
-      return theme.colors.outline;
-    case 'WAITING':
-      return theme.colors.tertiary;
-    default:
-      return theme.colors.secondary;
-  }
-}
 
 export function getTodoKey(todo: Todo): string {
   return todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
@@ -53,6 +40,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
   ref
 ) {
   const theme = useTheme();
+  const { getTodoStateColor, getActionColor } = useColorPalette();
 
   const handleTodoPress = useCallback(() => {
     onTodoPress?.(todo);
@@ -71,7 +59,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
         {onTomorrowPress && (
           <TouchableOpacity
             testID={`tomorrowActionButton_${testIdSuffix}`}
-            style={[styles.swipeAction, { backgroundColor: theme.colors.secondary }]}
+            style={[styles.swipeAction, { backgroundColor: getActionColor('tomorrow') }]}
             onPress={() => onTomorrowPress(todo)}
           >
             <Text style={styles.swipeActionText}>Tomorrow</Text>
@@ -80,7 +68,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
         {onSchedulePress && (
           <TouchableOpacity
             testID={`scheduleActionButton_${testIdSuffix}`}
-            style={[styles.swipeAction, { backgroundColor: theme.colors.primary }]}
+            style={[styles.swipeAction, { backgroundColor: getActionColor('schedule') }]}
             onPress={() => onSchedulePress(todo)}
           >
             <Text style={styles.swipeActionText}>Schedule</Text>
@@ -89,7 +77,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
         {onDeadlinePress && (
           <TouchableOpacity
             testID={`deadlineActionButton_${testIdSuffix}`}
-            style={[styles.swipeAction, { backgroundColor: theme.colors.error }]}
+            style={[styles.swipeAction, { backgroundColor: getActionColor('deadline') }]}
             onPress={() => onDeadlinePress(todo)}
           >
             <Text style={styles.swipeActionText}>Deadline</Text>
@@ -98,7 +86,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
         {onPriorityPress && (
           <TouchableOpacity
             testID={`priorityActionButton_${testIdSuffix}`}
-            style={[styles.swipeAction, { backgroundColor: theme.colors.tertiary }]}
+            style={[styles.swipeAction, { backgroundColor: getActionColor('priority') }]}
             onPress={() => onPriorityPress(todo)}
           >
             <Text style={styles.swipeActionText}>Priority</Text>
@@ -106,7 +94,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
         )}
       </View>
     );
-  }, [onTomorrowPress, onSchedulePress, onDeadlinePress, onPriorityPress, theme, todo]);
+  }, [onTomorrowPress, onSchedulePress, onDeadlinePress, onPriorityPress, getActionColor, todo]);
 
   const hasSwipeActions = onTomorrowPress || onSchedulePress || onDeadlinePress || onPriorityPress;
 
@@ -131,7 +119,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
               compact
               style={[
                 styles.todoChip,
-                { backgroundColor: getTodoColor(todo.todo, theme) },
+                { backgroundColor: getTodoStateColor(todo.todo) },
                 isCompleting && styles.todoChipLoading,
               ]}
               textStyle={{ fontSize: 10, color: 'white' }}
