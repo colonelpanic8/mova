@@ -63,6 +63,27 @@ export interface TodoStatesResponse {
   done: string[];
 }
 
+export interface TemplatePrompt {
+  name: string;
+  type: 'string' | 'date' | 'tags';
+  required: boolean;
+}
+
+export interface Template {
+  name: string;
+  prompts: TemplatePrompt[];
+}
+
+export interface TemplatesResponse {
+  [key: string]: Template;
+}
+
+export interface CaptureResponse {
+  status: string;
+  template?: string;
+  message?: string;
+}
+
 class OrgAgendaApi {
   private baseUrl: string = '';
   private authHeader: string = '';
@@ -148,6 +169,17 @@ class OrgAgendaApi {
         title: todo.title,
         state: newState,
       }),
+    });
+  }
+
+  async getTemplates(): Promise<TemplatesResponse> {
+    return this.request<TemplatesResponse>('/templates');
+  }
+
+  async capture(template: string, values: Record<string, string | string[]>): Promise<CaptureResponse> {
+    return this.request<CaptureResponse>('/capture', {
+      method: 'POST',
+      body: JSON.stringify({ template, values }),
     });
   }
 }
