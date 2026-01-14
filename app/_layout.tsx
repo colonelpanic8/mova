@@ -27,7 +27,7 @@ function RootLayoutNav() {
       router.replace('/(tabs)');
     } else if (!isAuthenticated && inAuthGroup) {
       router.replace('/login');
-    } else if (!isAuthenticated && segments.length === 0) {
+    } else if (!isAuthenticated && !segments[0]) {
       router.replace('/login');
     }
   }, [isAuthenticated, isLoading, segments]);

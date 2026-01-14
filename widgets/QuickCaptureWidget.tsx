@@ -2,9 +2,6 @@ import React from 'react';
 import {
   FlexWidget,
   TextWidget,
-  TextInputWidget,
-  ImageWidget,
-  ClickActionHandler,
 } from 'react-native-android-widget';
 
 interface QuickCaptureWidgetProps {
@@ -58,7 +55,7 @@ export function QuickCaptureWidget({
         padding: 8,
       }}
     >
-      {/* Text Input */}
+      {/* Label */}
       <FlexWidget
         style={{
           flex: 1,
@@ -68,17 +65,14 @@ export function QuickCaptureWidget({
           paddingHorizontal: 12,
           justifyContent: 'center',
         }}
+        clickAction="OPEN_APP"
       >
-        <TextInputWidget
-          text={inputText}
-          hint="What needs to be done?"
-          maxLines={1}
+        <TextWidget
+          text={inputText || 'Tap to add todo...'}
           style={{
             fontSize: 14,
-            color: '#212121',
+            color: inputText ? '#212121' : '#757575',
           }}
-          clickAction="TEXT_INPUT"
-          clickActionData={{ field: 'todo_text' }}
         />
       </FlexWidget>
 
@@ -93,15 +87,13 @@ export function QuickCaptureWidget({
           justifyContent: 'center',
           alignItems: 'center',
         }}
-        clickAction="SUBMIT_TODO"
-        clickActionData={{ text: inputText }}
+        clickAction="OPEN_APP"
       >
         <TextWidget
           text="+"
           style={{
             fontSize: 24,
             color: '#FFFFFF',
-            fontWeight: 'bold',
           }}
         />
       </FlexWidget>
