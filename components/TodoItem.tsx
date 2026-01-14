@@ -140,7 +140,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
             </Chip>
           </TouchableOpacity>
         )}
-        {todo.priority && (
+        {todo.priority && todo.priority.trim() && (
           <Chip
             mode="outlined"
             compact
@@ -236,12 +236,17 @@ const styles = StyleSheet.create({
   },
   swipeActions: {
     flexDirection: 'row',
+    alignItems: 'stretch',
+    width: '100%',
+    paddingHorizontal: 4,
   },
   swipeAction: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    width: 70,
-    paddingHorizontal: 8,
+    marginVertical: 4,
+    marginHorizontal: 2,
+    borderRadius: 10,
   },
   swipeActionText: {
     color: 'white',

@@ -9,11 +9,30 @@
  */
 
 import { by, device, element, expect, waitFor } from 'detox';
+import { execSync } from 'child_process';
 
 // Test container configuration
 export const TEST_API_URL = 'http://10.0.2.2:8080'; // Android emulator localhost
 export const TEST_USERNAME = 'testuser';
 export const TEST_PASSWORD = 'testpass';
+
+/**
+ * Reset test data to its original state using git checkout.
+ * Also restarts the test container so Emacs picks up the fresh files.
+ * This ensures tests always start with clean, predictable data.
+ */
+export function resetTestData(): void {
+  try {
+    // Reset files to git state
+    execSync('git checkout e2e/test-data/', { stdio: 'pipe' });
+    // Restart container so Emacs reloads the files
+    execSync('docker restart mova-test-api', { stdio: 'pipe', timeout: 10000 });
+    // Wait for container to be ready
+    execSync('sleep 2', { stdio: 'pipe' });
+  } catch (error) {
+    console.warn('Failed to reset test data:', error);
+  }
+}
 
 /**
  * Launch args for auto-login during tests
@@ -151,6 +170,9 @@ async function isAlreadyLoggedIn(): Promise<boolean> {
  *   });
  */
 export async function setupTestWithLoginOnce(): Promise<void> {
+  // Reset test data to ensure clean state
+  resetTestData();
+
   await launchAppWithAutoLogin();
 
   // Check if auto-login worked (agendaScreen visible within 5 seconds)
