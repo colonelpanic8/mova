@@ -52,7 +52,6 @@ export function useDeepLinks() {
     const { action, params } = parsed;
 
     if (!isAuthenticated) {
-      Alert.alert('Not logged in', 'Please log in to Mova first');
       return;
     }
 
