@@ -54,6 +54,7 @@
             watchman
             alejandra
             jdk17
+            just
           ] ++ (
             if system == "x86_64-linux"
             then [pkgs.nixgl.auto.nixGLDefault pkgs.nixgl.nixGLIntel]
@@ -74,9 +75,11 @@
             echo "  yarn: $(yarn --version)"
             echo ""
             echo "Commands:"
-            echo "  yarn start    - Start Expo dev server"
-            echo "  yarn android  - Run on Android"
-            echo "  yarn web      - Run in browser"
+            echo "  yarn start       - Start Expo dev server"
+            echo "  yarn android     - Run on Android"
+            echo "  yarn web         - Run in browser"
+            echo "  just emulator    - Start Android emulator"
+            echo "  just --list      - Show all just commands"
           '';
         };
       };
