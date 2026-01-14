@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { TextInput, Button, Text, Snackbar, useTheme, Menu } from 'react-native-paper';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
@@ -57,9 +57,11 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Mova
-        </Text>
+        <Image
+          source={require('@/assets/images/mova.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text variant="bodyMedium" style={styles.subtitle}>
           Connect to your org-agenda-api server
         </Text>
@@ -157,9 +159,11 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
   },
-  title: {
-    textAlign: 'center',
-    marginBottom: 8,
+  logo: {
+    width: 200,
+    height: 150,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   subtitle: {
     textAlign: 'center',
