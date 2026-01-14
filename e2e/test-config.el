@@ -43,4 +43,13 @@
          :template ("n" "Note" entry (file "/data/org/inbox.org")
                     "* %^{Title}\n[%U]\n\n%?"
                     :immediate-finish t)
-         :prompts (("Title" :type string :required t)))))
+         :prompts (("Title" :type string :required t)))
+        ("meeting"
+         :name "Meeting"
+         :template ("m" "Meeting" entry (file "/data/org/inbox.org")
+                    "* TODO %^{Title} :meeting:\nSCHEDULED: %^{Date}t\n:PROPERTIES:\n:ATTENDEES: %^{Attendees}\n:END:\n%^{Notes}\n"
+                    :immediate-finish t)
+         :prompts (("Title" :type string :required t)
+                   ("Date" :type date :required t)
+                   ("Attendees" :type tags :required nil)
+                   ("Notes" :type string :required nil)))))
