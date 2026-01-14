@@ -24,6 +24,7 @@
     "typecheck": "tsc",
     "prettier": "prettier . --check",
     "prettier:fix": "prettier . --write",
+    "validate": "yarn typecheck && yarn lint && yarn prettier",
     "postinstall": "patch-package"
   },
   "dependencies": {
