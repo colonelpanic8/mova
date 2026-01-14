@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, Snackbar, useTheme } from 'react-native-paper';
+import { TextInput, Button, Text, Snackbar, useTheme, Menu } from 'react-native-paper';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
+
+const DEFAULT_URLS = [
+  'https://colonelpanic-org-agenda.fly.dev',
+];
 
 export default function LoginScreen() {
   const [apiUrl, setApiUrl] = useState('');
@@ -10,8 +14,18 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showUrlSuggestions, setShowUrlSuggestions] = useState(false);
   const { login } = useAuth();
   const theme = useTheme();
+
+  const filteredUrls = DEFAULT_URLS.filter(url =>
+    url.toLowerCase().includes(apiUrl.toLowerCase())
+  );
+
+  const handleUrlSelect = (url: string) => {
+    setApiUrl(url);
+    setShowUrlSuggestions(false);
+  };
 
   async function handleLogin() {
     if (!apiUrl || !username || !password) {
@@ -50,18 +64,41 @@ export default function LoginScreen() {
           Connect to your org-agenda-api server
         </Text>
 
-        <TextInput
-          testID="serverUrlInput"
-          label="Server URL"
-          value={apiUrl}
-          onChangeText={setApiUrl}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          placeholder="https://your-server.fly.dev"
-          style={styles.input}
-          mode="outlined"
-        />
+        <View style={styles.urlInputContainer}>
+          <Menu
+            visible={showUrlSuggestions && filteredUrls.length > 0}
+            onDismiss={() => setShowUrlSuggestions(false)}
+            anchor={
+              <TextInput
+                testID="serverUrlInput"
+                label="Server URL"
+                value={apiUrl}
+                onChangeText={(text) => {
+                  setApiUrl(text);
+                  setShowUrlSuggestions(true);
+                }}
+                onFocus={() => setShowUrlSuggestions(true)}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                placeholder="https://your-server.fly.dev"
+                style={styles.input}
+                mode="outlined"
+              />
+            }
+            anchorPosition="bottom"
+            style={styles.menu}
+          >
+            {filteredUrls.map((url, index) => (
+              <Menu.Item
+                key={url}
+                onPress={() => handleUrlSelect(url)}
+                title={url}
+                testID={`urlSuggestion-${index}`}
+              />
+            ))}
+          </Menu>
+        </View>
 
         <TextInput
           testID="usernameInput"
@@ -70,7 +107,7 @@ export default function LoginScreen() {
           onChangeText={setUsername}
           autoCapitalize="none"
           autoCorrect={false}
-          style={styles.input}
+          style={styles.otherInput}
           mode="outlined"
         />
 
@@ -80,7 +117,7 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
-          style={styles.input}
+          style={styles.otherInput}
           mode="outlined"
         />
 
@@ -129,8 +166,18 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     opacity: 0.7,
   },
-  input: {
+  urlInputContainer: {
     marginBottom: 16,
+    zIndex: 1,
+  },
+  input: {
+    marginBottom: 0,
+  },
+  otherInput: {
+    marginBottom: 16,
+  },
+  menu: {
+    width: '100%',
   },
   button: {
     marginTop: 8,
