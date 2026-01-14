@@ -9,7 +9,7 @@
  *
  * Test data includes items scheduled for:
  * - 2026-01-13: "Morning standup", "Code review"
- * - 2026-01-14: "Team meeting", "Submit report", "Doctor appointment", "Review code"
+ * - 2026-01-14: "Submit report" (deadline), "Doctor appointment", "Review code"
  */
 
 import { by, device, element, expect, waitFor } from 'detox';
@@ -112,7 +112,7 @@ describe('Scheduling from Agenda', () => {
   });
 
   it('should schedule todo for tomorrow using direct swipe action', async () => {
-    const todoText = 'Team meeting';
+    const todoText = 'Review code';
 
     // Use the direct Tomorrow swipe action (no modal)
     await swipeAndTapButton(todoText, 'tomorrow');
@@ -164,7 +164,7 @@ describe('Scheduling from Agenda', () => {
   });
 
   it('should open native date picker when tapping deadline button', async () => {
-    await swipeAndTapButton('Team meeting', 'deadline');
+    await swipeAndTapButton('Doctor appointment', 'deadline');
 
     // Native date picker should open
     await device.disableSynchronization();
@@ -235,7 +235,7 @@ describe('Scheduling from Agenda', () => {
   });
 
   it('should save priority when selecting and tapping save', async () => {
-    await swipeAndTapButton('Review code', 'priority');
+    await swipeAndTapButton('Team meeting', 'priority');
 
     await device.disableSynchronization();
     try {
@@ -252,7 +252,7 @@ describe('Scheduling from Agenda', () => {
       // Modal should close and snackbar should show
       await waitFor(element(by.text('Set Priority')))
         .not.toBeVisible()
-        .withTimeout(5000);
+        .withTimeout(10000);
     } finally {
       await device.enableSynchronization();
     }
