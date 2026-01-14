@@ -35,6 +35,24 @@ export default function AgendaScreen() {
   const handleTodoUpdated = useCallback((todo: Todo, updates: Partial<Todo>) => {
     setAgenda(prev => {
       if (!prev) return prev;
+
+      // If schedule changed, check if item should be removed from current view
+      if (updates.scheduled !== undefined) {
+        const currentDateStr = formatDateForApi(selectedDate);
+        const newScheduledDate = updates.scheduled?.split('T')[0];
+
+        // If scheduled to a different day, remove from current view
+        if (newScheduledDate && newScheduledDate !== currentDateStr) {
+          return {
+            ...prev,
+            entries: prev.entries.filter(entry =>
+              getTodoKey(entry) !== getTodoKey(todo)
+            ),
+          };
+        }
+      }
+
+      // Otherwise update in place
       return {
         ...prev,
         entries: prev.entries.map(entry =>
@@ -42,13 +60,14 @@ export default function AgendaScreen() {
         ),
       };
     });
-  }, []);
+  }, [selectedDate]);
 
   const {
     completingIds,
     updatingIds,
     swipeableRefs,
     handleTodoPress,
+    scheduleTomorrow,
     openScheduleModal,
     openDeadlineModal,
     openPriorityModal,
@@ -195,6 +214,7 @@ export default function AgendaScreen() {
                 isCompleting={completingIds.has(key)}
                 isUpdating={updatingIds.has(key)}
                 onTodoPress={handleTodoPress}
+                onTomorrowPress={scheduleTomorrow}
                 onSchedulePress={openScheduleModal}
                 onDeadlinePress={openDeadlineModal}
                 onPriorityPress={openPriorityModal}

@@ -9,6 +9,7 @@ export interface TodoItemProps {
   isCompleting?: boolean;
   isUpdating?: boolean;
   onTodoPress?: (todo: Todo) => void;
+  onTomorrowPress?: (todo: Todo) => void;
   onSchedulePress?: (todo: Todo) => void;
   onDeadlinePress?: (todo: Todo) => void;
   onPriorityPress?: (todo: Todo) => void;
@@ -48,7 +49,7 @@ export function getTodoKey(todo: Todo): string {
 }
 
 export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
-  { todo, isCompleting, isUpdating, onTodoPress, onSchedulePress, onDeadlinePress, onPriorityPress },
+  { todo, isCompleting, isUpdating, onTodoPress, onTomorrowPress, onSchedulePress, onDeadlinePress, onPriorityPress },
   ref
 ) {
   const theme = useTheme();
@@ -58,14 +59,27 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
   }, [onTodoPress, todo]);
 
   const renderRightActions = useCallback(() => {
-    if (!onSchedulePress && !onDeadlinePress && !onPriorityPress) {
+    if (!onTomorrowPress && !onSchedulePress && !onDeadlinePress && !onPriorityPress) {
       return null;
     }
 
+    // Create a unique suffix for testIDs based on todo title (sanitized for testID)
+    const testIdSuffix = todo.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+
     return (
       <View style={styles.swipeActions}>
+        {onTomorrowPress && (
+          <TouchableOpacity
+            testID={`tomorrowActionButton_${testIdSuffix}`}
+            style={[styles.swipeAction, { backgroundColor: theme.colors.secondary }]}
+            onPress={() => onTomorrowPress(todo)}
+          >
+            <Text style={styles.swipeActionText}>Tomorrow</Text>
+          </TouchableOpacity>
+        )}
         {onSchedulePress && (
           <TouchableOpacity
+            testID={`scheduleActionButton_${testIdSuffix}`}
             style={[styles.swipeAction, { backgroundColor: theme.colors.primary }]}
             onPress={() => onSchedulePress(todo)}
           >
@@ -74,6 +88,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
         )}
         {onDeadlinePress && (
           <TouchableOpacity
+            testID={`deadlineActionButton_${testIdSuffix}`}
             style={[styles.swipeAction, { backgroundColor: theme.colors.error }]}
             onPress={() => onDeadlinePress(todo)}
           >
@@ -82,6 +97,7 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
         )}
         {onPriorityPress && (
           <TouchableOpacity
+            testID={`priorityActionButton_${testIdSuffix}`}
             style={[styles.swipeAction, { backgroundColor: theme.colors.tertiary }]}
             onPress={() => onPriorityPress(todo)}
           >
@@ -90,9 +106,9 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
         )}
       </View>
     );
-  }, [onSchedulePress, onDeadlinePress, onPriorityPress, theme, todo]);
+  }, [onTomorrowPress, onSchedulePress, onDeadlinePress, onPriorityPress, theme, todo]);
 
-  const hasSwipeActions = onSchedulePress || onDeadlinePress || onPriorityPress;
+  const hasSwipeActions = onTomorrowPress || onSchedulePress || onDeadlinePress || onPriorityPress;
 
   const content = (
     <View style={[
