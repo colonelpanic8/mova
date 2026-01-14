@@ -1,11 +1,24 @@
 ;; Test configuration for E2E testing
-;; Sets up org-agenda-files and capture templates
+;; Sets up org-agenda-files, capture templates, and custom views
 
 ;; Set org-agenda-files to include test data
 (setq org-agenda-files '("/data/org"))
 
 ;; Ensure we're using the test org directory
 (setq org-directory "/data/org")
+
+;; Configure todo keywords with NEXT, STARTED, WAITING states
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "NEXT(n)" "STARTED(s)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
+
+;; Custom agenda views for testing
+;; These views are exposed via the /custom-views API endpoint
+(setq org-agenda-custom-commands
+      '(("n" "Next actions" todo "NEXT")
+        ("s" "Started tasks" todo "STARTED")
+        ("w" "Waiting tasks" todo "WAITING")
+        ("h" "High priority" tags-todo "+PRIORITY=\"A\"")
+        ("W" "Work tasks" tags-todo "+work")))
 
 ;; Custom capture template that auto-inserts the current date
 ;; Template "t" creates a TODO with scheduled date set to today

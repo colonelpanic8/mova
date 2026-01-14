@@ -26,3 +26,36 @@
 
 ** TODO Update dependencies
    SCHEDULED: <2026-01-15 Wed>
+
+* Next Action Items
+** NEXT Prepare demo for stakeholders
+   Demo the new features
+
+** NEXT Review pull request from team
+   :PROPERTIES:
+   :ID: next-pr-review
+   :END:
+
+** NEXT [#A] Fix critical bug :work:
+   High priority next action
+
+* In Progress
+** STARTED Writing documentation :work:
+   Currently working on API docs
+
+** STARTED Refactoring auth module
+   Making the code cleaner
+
+* Blocked
+** WAITING Client approval for design
+   Need sign-off before proceeding
+
+** WAITING Response from vendor
+   Waiting on pricing info
+
+* Work Projects
+** TODO [#A] Deploy to production :work:
+   Critical deployment task
+
+** TODO Backend API improvements :work:
+   Refactor endpoints
