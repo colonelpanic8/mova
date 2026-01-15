@@ -67,7 +67,6 @@
           GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${aapt2Binary}";
           shellHook = ''
             export JAVA_HOME=${pkgs.jdk17.home}
-            source ${android-sdk.out}/nix-support/setup-hook
             export PATH=${android-home}/emulator:${android-home}/cmdline-tools/${cmdLineToolsVersion}/bin:$(pwd)/node_modules/.bin:$PATH
             export ORG_AGENDA_API_DIR="${org-agenda-api}"
             echo "Mova dev shell"

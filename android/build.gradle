@@ -22,3 +22,15 @@ allprojects {
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
+
+// Apply packaging options to all library projects to avoid duplicate native libs in androidTest
+subprojects { subproject ->
+    subproject.plugins.withId('com.android.library') {
+        subproject.android {
+            packagingOptions {
+                pickFirst '**/libfbjni.so'
+                pickFirst '**/libc++_shared.so'
+            }
+        }
+    }
+}

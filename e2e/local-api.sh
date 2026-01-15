@@ -67,18 +67,33 @@ build_container() {
 
   log_info "Building container from $ORG_AGENDA_API_DIR..." >&2
 
-  pushd "$ORG_AGENDA_API_DIR" > /dev/null
-  nix build .#container -o result-container
-
-  log_info "Loading container into Docker..." >&2
-
-  # Get the loaded image name - capture output separately
+  local container_result
   local load_output
-  load_output=$(docker load < result-container 2>&1)
   local image_name
-  image_name=$(echo "$load_output" | grep -oP 'Loaded image: \K.*')
 
-  popd > /dev/null
+  # Check if we're building from a nix store path (read-only)
+  if [[ "$ORG_AGENDA_API_DIR" == /nix/store/* ]]; then
+    log_info "Building from nix store path via github flake..." >&2
+    # Build from github since we can't build from nix store
+    container_result=$(mktemp -d)/result-container
+    nix build "github:colonelpanic8/org-agenda-api#container" -o "$container_result"
+
+    log_info "Loading container into Docker..." >&2
+    load_output=$(docker load < "$container_result" 2>&1)
+    image_name=$(echo "$load_output" | grep -oP 'Loaded image: \K\S+')
+    rm -rf "$(dirname "$container_result")"
+  else
+    pushd "$ORG_AGENDA_API_DIR" > /dev/null
+    nix build .#container -o result-container
+
+    log_info "Loading container into Docker..." >&2
+
+    # Get the loaded image name - capture output separately
+    load_output=$(docker load < result-container 2>&1)
+    image_name=$(echo "$load_output" | grep -oP 'Loaded image: \K.*')
+
+    popd > /dev/null
+  fi
 
   # Return just the image name to stdout
   echo "$image_name"
