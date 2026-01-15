@@ -202,6 +202,178 @@ describe("org-agenda-api integration tests", () => {
 
       expect(response.status).toBe("updated");
     });
+
+    it("should persist scheduled date after update", async () => {
+      // Create a todo to update
+      const title = `Persist schedule test ${Date.now()}`;
+      await client.createTodo(title);
+      await new Promise((r) => setTimeout(r, 1000));
+
+      // Get the todo
+      const todos = await client.getAllTodos();
+      const todo = todos.todos.find((t: any) => t.title === title);
+      expect(todo).toBeTruthy();
+      expect(todo.scheduled).toBeNull(); // Should not be scheduled initially
+
+      // Schedule it for a week from now
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const dateString = futureDate.toISOString().slice(0, 10);
+
+      const response = await client.updateTodo(
+        {
+          file: todo.file,
+          pos: todo.pos,
+          title: todo.title,
+          id: todo.id,
+        },
+        { scheduled: dateString },
+      );
+
+      expect(response.status).toBe("updated");
+
+      // Wait for file system and cache to sync
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Fetch todos again and verify the scheduled date persisted
+      const updatedTodos = await client.getAllTodos();
+      const updatedTodo = updatedTodos.todos.find((t: any) => t.title === title);
+
+      expect(updatedTodo).toBeTruthy();
+      expect(updatedTodo.scheduled).toBe(dateString);
+    });
+
+    it("should persist deadline date after update", async () => {
+      // Create a todo to update
+      const title = `Persist deadline test ${Date.now()}`;
+      await client.createTodo(title);
+      await new Promise((r) => setTimeout(r, 1000));
+
+      // Get the todo
+      const todos = await client.getAllTodos();
+      const todo = todos.todos.find((t: any) => t.title === title);
+      expect(todo).toBeTruthy();
+
+      // Set deadline for a week from now
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const dateString = futureDate.toISOString().slice(0, 10);
+
+      const response = await client.updateTodo(
+        {
+          file: todo.file,
+          pos: todo.pos,
+          title: todo.title,
+          id: todo.id,
+        },
+        { deadline: dateString },
+      );
+
+      expect(response.status).toBe("updated");
+
+      // Wait for file system and cache to sync
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Fetch todos again and verify the deadline persisted
+      const updatedTodos = await client.getAllTodos();
+      const updatedTodo = updatedTodos.todos.find((t: any) => t.title === title);
+
+      expect(updatedTodo).toBeTruthy();
+      expect(updatedTodo.deadline).toBe(dateString);
+    });
+  });
+
+  describe("POST /update - field name validation", () => {
+    // This test documents the API contract and would catch bugs where
+    // 'schedule' is sent instead of 'scheduled'
+    it("should NOT update when sending 'schedule' instead of 'scheduled'", async () => {
+      // Create a todo to update
+      const title = `Field name test ${Date.now()}`;
+      await client.createTodo(title);
+      await new Promise((r) => setTimeout(r, 1000));
+
+      // Get the todo
+      const todos = await client.getAllTodos();
+      const todo = todos.todos.find((t: any) => t.title === title);
+      expect(todo).toBeTruthy();
+      expect(todo.scheduled).toBeNull();
+
+      // Try to schedule using WRONG field name 'schedule' (missing 'd')
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const dateString = futureDate.toISOString().slice(0, 10);
+
+      // Send request with wrong field name
+      const response = await fetch(`${client["baseUrl"]}/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file: todo.file,
+          pos: todo.pos,
+          title: todo.title,
+          schedule: dateString, // WRONG: should be 'scheduled'
+        }),
+      });
+      const result = await response.json();
+
+      // API returns success but with no updates applied
+      expect(result.status).toBe("updated");
+
+      // Wait for any potential file system sync
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Fetch todos again - the scheduled date should NOT have changed
+      const updatedTodos = await client.getAllTodos();
+      const updatedTodo = updatedTodos.todos.find((t: any) => t.title === title);
+
+      expect(updatedTodo).toBeTruthy();
+      // CRITICAL: The scheduled date should still be null because we sent wrong field
+      expect(updatedTodo.scheduled).toBeNull();
+    });
+
+    it("should update when sending correct 'scheduled' field name", async () => {
+      // Create a todo to update
+      const title = `Correct field name test ${Date.now()}`;
+      await client.createTodo(title);
+      await new Promise((r) => setTimeout(r, 1000));
+
+      // Get the todo
+      const todos = await client.getAllTodos();
+      const todo = todos.todos.find((t: any) => t.title === title);
+      expect(todo).toBeTruthy();
+      expect(todo.scheduled).toBeNull();
+
+      // Schedule using CORRECT field name 'scheduled'
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const dateString = futureDate.toISOString().slice(0, 10);
+
+      // Send request with correct field name
+      const response = await fetch(`${client["baseUrl"]}/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file: todo.file,
+          pos: todo.pos,
+          title: todo.title,
+          scheduled: dateString, // CORRECT: with 'd'
+        }),
+      });
+      const result = await response.json();
+
+      expect(result.status).toBe("updated");
+
+      // Wait for file system sync
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Fetch todos again - the scheduled date SHOULD have changed
+      const updatedTodos = await client.getAllTodos();
+      const updatedTodo = updatedTodos.todos.find((t: any) => t.title === title);
+
+      expect(updatedTodo).toBeTruthy();
+      // CRITICAL: The scheduled date should now be set
+      expect(updatedTodo.scheduled).toBe(dateString);
+    });
   });
 
   describe("GET /custom-views", () => {
