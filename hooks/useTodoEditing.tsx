@@ -173,13 +173,19 @@ export function useTodoEditing(
 
   const handleUpdateTodo = useCallback(
     async (updates: TodoUpdates) => {
-      if (!editingTodo) return;
+      console.log("[handleUpdateTodo] called with updates:", updates, "editingTodo:", editingTodo?.title);
+      if (!editingTodo) {
+        console.log("[handleUpdateTodo] No editingTodo, returning early");
+        return;
+      }
 
       const key = getTodoKey(editingTodo);
       setUpdatingIds((prev) => new Set(prev).add(key));
 
       try {
+        console.log("[handleUpdateTodo] Calling api.updateTodo");
         const result = await api.updateTodo(editingTodo, updates);
+        console.log("[handleUpdateTodo] API result:", result);
 
         if (result.status === "updated") {
           setSnackbar({
@@ -271,6 +277,7 @@ export function useTodoEditing(
   // Handle native date picker result
   const handleDatePickerChange = useCallback(
     (event: any, date?: Date) => {
+      console.log("[DatePicker] event:", event.type, "date:", date, "editModalType:", editModalType);
       if (event.type === "dismissed") {
         closeEditModal();
         return;
@@ -280,7 +287,12 @@ export function useTodoEditing(
         (editModalType === "schedule" || editModalType === "deadline")
       ) {
         const dateString = date.toISOString().slice(0, 10);
-        handleUpdateTodo({ [editModalType]: dateString });
+        // API expects "scheduled" not "schedule"
+        const fieldName = editModalType === "schedule" ? "scheduled" : editModalType;
+        console.log("[DatePicker] Updating with dateString:", dateString, "fieldName:", fieldName);
+        handleUpdateTodo({ [fieldName]: dateString });
+      } else {
+        console.log("[DatePicker] Not updating - date:", date, "editModalType:", editModalType);
       }
     },
     [editModalType, handleUpdateTodo, closeEditModal],
