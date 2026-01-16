@@ -14,6 +14,14 @@ import {
   useTheme,
 } from "react-native-paper";
 
+// Format a Date to YYYY-MM-DD using local time (not UTC)
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 type EditModalType = "schedule" | "deadline" | "priority" | "state" | null;
 
 export interface UseTodoEditingOptions {
@@ -87,7 +95,9 @@ export function useTodoEditing(
     if (type === "schedule" || type === "deadline") {
       const existingDate = type === "schedule" ? todo.scheduled : todo.deadline;
       if (existingDate) {
-        setSelectedDate(new Date(existingDate));
+        // Parse date-only strings as local time to avoid timezone shift
+        const hasTime = existingDate.includes("T") && existingDate.includes(":");
+        setSelectedDate(hasTime ? new Date(existingDate) : new Date(existingDate + "T00:00:00"));
       } else {
         setSelectedDate(new Date());
       }
@@ -134,7 +144,7 @@ export function useTodoEditing(
 
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateString = tomorrow.toISOString().slice(0, 10);
+      const dateString = formatLocalDate(tomorrow);
 
       try {
         const result = await api.updateTodo(todo, { scheduled: dateString });
@@ -286,7 +296,7 @@ export function useTodoEditing(
         date &&
         (editModalType === "schedule" || editModalType === "deadline")
       ) {
-        const dateString = date.toISOString().slice(0, 10);
+        const dateString = formatLocalDate(date);
         // API expects "scheduled" not "schedule"
         const fieldName = editModalType === "schedule" ? "scheduled" : editModalType;
         console.log("[DatePicker] Updating with dateString:", dateString, "fieldName:", fieldName);
