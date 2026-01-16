@@ -17,6 +17,12 @@ import { MD3LightTheme, PaperProvider } from "react-native-paper";
 // Mock the modules before importing the component
 jest.mock("../../services/api");
 jest.mock("../../context/AuthContext");
+jest.mock("../../context/ColorPaletteContext", () => ({
+  useColorPalette: () => ({
+    getTodoStateColor: (keyword: string) => "#888888",
+    getActionColor: (action: string) => "#666666",
+  }),
+}));
 jest.mock("@react-native-community/datetimepicker", () => {
   const React = require("react");
   return {
@@ -102,6 +108,10 @@ beforeEach(() => {
   // Mock API methods
   (api.configure as jest.Mock).mockImplementation(() => {});
   (api.getAgenda as jest.Mock).mockResolvedValue(mockAgendaResponse);
+  (api.getTodoStates as jest.Mock).mockResolvedValue({
+    active: ["TODO", "NEXT", "WAITING"],
+    done: ["DONE", "CANCELLED"],
+  });
 });
 
 // Helper to render with providers
@@ -167,9 +177,9 @@ describe("AgendaScreen", () => {
     });
 
     await waitFor(() => {
-      // 'work' tag appears on multiple entries
-      expect(getAllByText("work").length).toBeGreaterThan(0);
-      expect(getByText("meeting")).toBeTruthy();
+      // Tags are rendered with colons, e.g., ":work:"
+      expect(getAllByText(":work:").length).toBeGreaterThan(0);
+      expect(getByText(":meeting:")).toBeTruthy();
     });
   });
 
@@ -211,7 +221,7 @@ describe("AgendaScreen", () => {
       "testuser",
       "testpass",
     );
-    expect(api.getAgenda).toHaveBeenCalledWith("day", expect.any(String));
+    expect(api.getAgenda).toHaveBeenCalledWith("day", expect.any(String), expect.any(Boolean));
   });
 
   it("should display the date header", async () => {
@@ -246,9 +256,9 @@ describe("AgendaScreen Data Processing", () => {
       expect(getByText("Morning standup")).toBeTruthy();
     });
 
-    // Should show "Scheduled:" prefix (multiple entries have scheduled times)
+    // Should show "S:" prefix for scheduled (multiple entries have scheduled times)
     await waitFor(() => {
-      expect(getAllByText(/Scheduled:/).length).toBeGreaterThan(0);
+      expect(getAllByText(/^S:/).length).toBeGreaterThan(0);
     });
   });
 
@@ -259,9 +269,9 @@ describe("AgendaScreen Data Processing", () => {
       expect(getByText("Submit report")).toBeTruthy();
     });
 
-    // Should show "Deadline:" prefix
+    // Should show "D:" prefix for deadline
     await waitFor(() => {
-      expect(getByText(/Deadline:/)).toBeTruthy();
+      expect(getByText(/^D:/)).toBeTruthy();
     });
   });
 });

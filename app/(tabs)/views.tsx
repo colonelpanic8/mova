@@ -1,6 +1,6 @@
 import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
-import { useTodoEditing } from "@/hooks/useTodoEditing";
+import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
   api,
   CustomView,
@@ -51,20 +51,6 @@ export default function ViewsScreen() {
     },
     [],
   );
-
-  const {
-    completingIds,
-    updatingIds,
-    swipeableRefs,
-    handleTodoPress,
-    openScheduleModal,
-    openDeadlineModal,
-    openPriorityModal,
-    EditModals,
-  } = useTodoEditing({
-    onTodoUpdated: handleTodoUpdated,
-    todoStates,
-  });
 
   const fetchViews = useCallback(async () => {
     if (!apiUrl || !username || !password) return;
@@ -162,63 +148,47 @@ export default function ViewsScreen() {
   // Show view entries
   if (selectedView) {
     return (
-      <View
-        testID="viewEntriesScreen"
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
+      <TodoEditingProvider onTodoUpdated={handleTodoUpdated} todoStates={todoStates}>
         <View
-          style={[
-            styles.header,
-            { borderBottomColor: theme.colors.outlineVariant },
-          ]}
+          testID="viewEntriesScreen"
+          style={[styles.container, { backgroundColor: theme.colors.background }]}
         >
-          <IconButton
-            icon="arrow-left"
-            onPress={handleBack}
-            testID="viewBackButton"
-          />
-          <Text variant="titleMedium" style={styles.headerTitle}>
-            {selectedView.name}
-          </Text>
-          <View style={{ width: 48 }} />
-        </View>
-
-        {selectedView.entries.length === 0 ? (
-          <View testID="viewEmptyView" style={styles.centered}>
-            <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
-              No items in this view
+          <View
+            style={[
+              styles.header,
+              { borderBottomColor: theme.colors.outlineVariant },
+            ]}
+          >
+            <IconButton
+              icon="arrow-left"
+              onPress={handleBack}
+              testID="viewBackButton"
+            />
+            <Text variant="titleMedium" style={styles.headerTitle}>
+              {selectedView.name}
             </Text>
+            <View style={{ width: 48 }} />
           </View>
-        ) : (
-          <FlatList
-            testID="viewEntriesList"
-            data={selectedView.entries}
-            keyExtractor={(item) => getTodoKey(item)}
-            renderItem={({ item }) => {
-              const key = getTodoKey(item);
-              return (
-                <TodoItem
-                  ref={(ref) => {
-                    if (ref) swipeableRefs.current.set(key, ref);
-                  }}
-                  todo={item}
-                  isCompleting={completingIds.has(key)}
-                  isUpdating={updatingIds.has(key)}
-                  onTodoPress={handleTodoPress}
-                  onSchedulePress={openScheduleModal}
-                  onDeadlinePress={openDeadlineModal}
-                  onPriorityPress={openPriorityModal}
-                />
-              );
-            }}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          />
-        )}
 
-        <EditModals />
-      </View>
+          {selectedView.entries.length === 0 ? (
+            <View testID="viewEmptyView" style={styles.centered}>
+              <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
+                No items in this view
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              testID="viewEntriesList"
+              data={selectedView.entries}
+              keyExtractor={(item) => getTodoKey(item)}
+              renderItem={({ item }) => <TodoItem todo={item} />}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            />
+          )}
+        </View>
+      </TodoEditingProvider>
     );
   }
 
