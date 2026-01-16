@@ -17,8 +17,9 @@ export interface TodoItemProps {
 }
 
 function formatDate(dateString: string): string {
-  const date = new Date(dateString);
   const hasTime = dateString.includes("T") && dateString.includes(":");
+  // Parse date-only strings as local time to avoid timezone shift
+  const date = hasTime ? new Date(dateString) : new Date(dateString + "T00:00:00");
   if (hasTime) {
     return date.toLocaleString(undefined, {
       month: "short",
