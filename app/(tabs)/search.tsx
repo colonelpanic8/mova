@@ -1,6 +1,6 @@
 import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
-import { useTodoEditing } from "@/hooks/useTodoEditing";
+import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { api, Todo, TodoStatesResponse } from "@/services/api";
 import React, { useCallback, useEffect, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
@@ -32,21 +32,6 @@ export default function SearchScreen() {
     },
     [],
   );
-
-  const {
-    completingIds,
-    updatingIds,
-    swipeableRefs,
-    handleTodoPress,
-    scheduleTomorrow,
-    openScheduleModal,
-    openDeadlineModal,
-    openPriorityModal,
-    EditModals,
-  } = useTodoEditing({
-    onTodoUpdated: handleTodoUpdated,
-    todoStates,
-  });
 
   const fetchTodos = useCallback(async () => {
     if (!apiUrl || !username || !password) return;
@@ -109,67 +94,50 @@ export default function SearchScreen() {
   }
 
   return (
-    <View
-      testID="searchScreen"
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      <View style={styles.searchContainer}>
-        <Searchbar
-          testID="searchInput"
-          placeholder="Search todos..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-        />
+    <TodoEditingProvider onTodoUpdated={handleTodoUpdated} todoStates={todoStates}>
+      <View
+        testID="searchScreen"
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
+        <View style={styles.searchContainer}>
+          <Searchbar
+            testID="searchInput"
+            placeholder="Search todos..."
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchbar}
+          />
+        </View>
+
+        {error ? (
+          <View testID="searchErrorView" style={styles.centered}>
+            <Text
+              testID="searchErrorText"
+              variant="bodyLarge"
+              style={{ color: theme.colors.error }}
+            >
+              {error}
+            </Text>
+          </View>
+        ) : filteredTodos.length === 0 ? (
+          <View testID="searchEmptyView" style={styles.centered}>
+            <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
+              {searchQuery ? "No matching todos" : "No todos found"}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            testID="searchTodoList"
+            data={filteredTodos}
+            keyExtractor={(item) => getTodoKey(item)}
+            renderItem={({ item }) => <TodoItem todo={item} />}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          />
+        )}
       </View>
-
-      {error ? (
-        <View testID="searchErrorView" style={styles.centered}>
-          <Text
-            testID="searchErrorText"
-            variant="bodyLarge"
-            style={{ color: theme.colors.error }}
-          >
-            {error}
-          </Text>
-        </View>
-      ) : filteredTodos.length === 0 ? (
-        <View testID="searchEmptyView" style={styles.centered}>
-          <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
-            {searchQuery ? "No matching todos" : "No todos found"}
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          testID="searchTodoList"
-          data={filteredTodos}
-          keyExtractor={(item) => getTodoKey(item)}
-          renderItem={({ item }) => {
-            const key = getTodoKey(item);
-            return (
-              <TodoItem
-                ref={(ref) => {
-                  if (ref) swipeableRefs.current.set(key, ref);
-                }}
-                todo={item}
-                isCompleting={completingIds.has(key)}
-                isUpdating={updatingIds.has(key)}
-                onTodoPress={handleTodoPress}
-                onTomorrowPress={scheduleTomorrow}
-                onSchedulePress={openScheduleModal}
-                onDeadlinePress={openDeadlineModal}
-                onPriorityPress={openPriorityModal}
-              />
-            );
-          }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        />
-      )}
-
-      <EditModals />
-    </View>
+    </TodoEditingProvider>
   );
 }
 

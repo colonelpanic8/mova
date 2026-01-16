@@ -1,6 +1,6 @@
 import { TodoItem, getTodoKey } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
-import { useTodoEditing } from "@/hooks/useTodoEditing";
+import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { AgendaResponse, Todo, TodoStatesResponse, api } from "@/services/api";
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -84,21 +84,6 @@ export default function AgendaScreen() {
     },
     [selectedDate],
   );
-
-  const {
-    completingIds,
-    updatingIds,
-    swipeableRefs,
-    handleTodoPress,
-    scheduleTomorrow,
-    openScheduleModal,
-    openDeadlineModal,
-    openPriorityModal,
-    EditModals,
-  } = useTodoEditing({
-    onTodoUpdated: handleTodoUpdated,
-    todoStates,
-  });
 
   const fetchAgenda = useCallback(
     async (date: Date) => {
@@ -194,94 +179,77 @@ export default function AgendaScreen() {
     formatDateForApi(selectedDate) === formatDateForApi(new Date());
 
   return (
-    <View
-      testID="agendaScreen"
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      <View style={styles.header}>
-        <View style={styles.dateNavigation}>
-          <IconButton
-            icon="chevron-left"
-            onPress={goToPreviousDay}
-            testID="agendaPrevDay"
-          />
-          <TouchableOpacity
-            onPress={() => setShowDatePicker(true)}
-            style={styles.dateButton}
-            testID="agendaDateButton"
-          >
-            <Text
-              testID="agendaDateHeader"
-              variant="titleMedium"
-              style={styles.dateText}
+    <TodoEditingProvider onTodoUpdated={handleTodoUpdated} todoStates={todoStates}>
+      <View
+        testID="agendaScreen"
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
+        <View style={styles.header}>
+          <View style={styles.dateNavigation}>
+            <IconButton
+              icon="chevron-left"
+              onPress={goToPreviousDay}
+              testID="agendaPrevDay"
+            />
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              style={styles.dateButton}
+              testID="agendaDateButton"
             >
-              {agenda?.date ? formatDateForDisplay(agenda.date) : ""}
-            </Text>
-          </TouchableOpacity>
-          <IconButton
-            icon="chevron-right"
-            onPress={goToNextDay}
-            testID="agendaNextDay"
-          />
+              <Text
+                testID="agendaDateHeader"
+                variant="titleMedium"
+                style={styles.dateText}
+              >
+                {agenda?.date ? formatDateForDisplay(agenda.date) : ""}
+              </Text>
+            </TouchableOpacity>
+            <IconButton
+              icon="chevron-right"
+              onPress={goToNextDay}
+              testID="agendaNextDay"
+            />
+          </View>
+          {!isToday && (
+            <TouchableOpacity
+              onPress={goToToday}
+              style={styles.todayButton}
+              testID="agendaTodayButton"
+            >
+              <Text style={{ color: theme.colors.primary }}>Go to Today</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        {!isToday && (
-          <TouchableOpacity
-            onPress={goToToday}
-            style={styles.todayButton}
-            testID="agendaTodayButton"
-          >
-            <Text style={{ color: theme.colors.primary }}>Go to Today</Text>
-          </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            testID="agendaDatePicker"
+            value={selectedDate}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={onDateChange}
+          />
+        )}
+
+        {agenda?.entries.length === 0 ? (
+          <View testID="agendaEmptyView" style={styles.centered}>
+            <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
+              No items for today
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            testID="agendaList"
+            data={agenda?.entries}
+            keyExtractor={(item) => getTodoKey(item)}
+            renderItem={({ item }) => <TodoItem todo={item} />}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          />
         )}
       </View>
-
-      {showDatePicker && (
-        <DateTimePicker
-          testID="agendaDatePicker"
-          value={selectedDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={onDateChange}
-        />
-      )}
-
-      {agenda?.entries.length === 0 ? (
-        <View testID="agendaEmptyView" style={styles.centered}>
-          <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
-            No items for today
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          testID="agendaList"
-          data={agenda?.entries}
-          keyExtractor={(item) => getTodoKey(item)}
-          renderItem={({ item }) => {
-            const key = getTodoKey(item);
-            return (
-              <TodoItem
-                ref={(ref) => {
-                  if (ref) swipeableRefs.current.set(key, ref);
-                }}
-                todo={item}
-                isCompleting={completingIds.has(key)}
-                isUpdating={updatingIds.has(key)}
-                onTodoPress={handleTodoPress}
-                onTomorrowPress={scheduleTomorrow}
-                onSchedulePress={openScheduleModal}
-                onDeadlinePress={openDeadlineModal}
-                onPriorityPress={openPriorityModal}
-              />
-            );
-          }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        />
-      )}
-
-      <EditModals />
-    </View>
+    </TodoEditingProvider>
   );
 }
 

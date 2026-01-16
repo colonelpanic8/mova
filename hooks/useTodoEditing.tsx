@@ -1,7 +1,13 @@
-import { getTodoKey } from "@/components/TodoItem";
 import { api, Todo, TodoStatesResponse, TodoUpdates } from "@/services/api";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { ReactNode, useCallback, useRef, useState } from "react";
+import React, {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+} from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import {
@@ -13,6 +19,11 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
+
+// Helper function duplicated here to avoid circular dependency
+function getTodoKey(todo: Todo): string {
+  return todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
+}
 
 // Format a Date to YYYY-MM-DD using local time (not UTC)
 function formatLocalDate(date: Date): string {
@@ -496,6 +507,40 @@ export function useTodoEditing(
     dismissSnackbar,
     EditModals,
   };
+}
+
+// Context for TodoItem to consume editing functionality directly
+const TodoEditingContext = createContext<UseTodoEditingResult | null>(null);
+
+export function useTodoEditingContext(): UseTodoEditingResult {
+  const context = useContext(TodoEditingContext);
+  if (!context) {
+    throw new Error(
+      "useTodoEditingContext must be used within a TodoEditingProvider",
+    );
+  }
+  return context;
+}
+
+export interface TodoEditingProviderProps {
+  children: ReactNode;
+  onTodoUpdated?: (todo: Todo, updates: Partial<Todo>) => void;
+  todoStates?: TodoStatesResponse | null;
+}
+
+export function TodoEditingProvider({
+  children,
+  onTodoUpdated,
+  todoStates,
+}: TodoEditingProviderProps) {
+  const editing = useTodoEditing({ onTodoUpdated, todoStates });
+
+  return (
+    <TodoEditingContext.Provider value={editing}>
+      {children}
+      <editing.EditModals />
+    </TodoEditingContext.Provider>
+  );
 }
 
 const styles = StyleSheet.create({

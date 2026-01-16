@@ -23,6 +23,12 @@ import { MD3LightTheme, PaperProvider } from "react-native-paper";
 // Mock the modules before importing the component
 jest.mock("../../services/api");
 jest.mock("../../context/AuthContext");
+jest.mock("../../context/ColorPaletteContext", () => ({
+  useColorPalette: () => ({
+    getTodoStateColor: (keyword: string) => "#888888",
+    getActionColor: (action: string) => "#666666",
+  }),
+}));
 
 // Mock Portal for modals
 jest.mock("react-native-paper", () => {
