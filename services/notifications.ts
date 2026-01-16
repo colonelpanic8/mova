@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 import { NotificationDefaults, Todo } from "./api";
 
 const NOTIFICATIONS_ENABLED_KEY = "notifications_enabled";
@@ -8,18 +9,21 @@ const LAST_SYNC_KEY = "last_notification_sync";
 // Done states that should not trigger notifications
 const DONE_STATES = ["DONE", "CANCELLED", "CANCELED"];
 
-// Configure how notifications are displayed when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Configure how notifications are displayed when app is in foreground (native only)
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export async function requestNotificationPermissions(): Promise<boolean> {
+  if (Platform.OS === "web") return false;
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
@@ -47,6 +51,7 @@ export async function setNotificationsEnabled(enabled: boolean): Promise<void> {
 }
 
 export async function cancelAllNotifications(): Promise<void> {
+  if (Platform.OS === "web") return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
@@ -71,6 +76,7 @@ export async function scheduleNotificationsForTodos(
   todos: Todo[],
   defaults: NotificationDefaults,
 ): Promise<number> {
+  if (Platform.OS === "web") return 0;
   const enabled = await getNotificationsEnabled();
   if (!enabled) return 0;
 
@@ -152,6 +158,7 @@ export async function getLastSyncTime(): Promise<Date | null> {
 }
 
 export async function getScheduledNotificationCount(): Promise<number> {
+  if (Platform.OS === "web") return 0;
   const notifications = await Notifications.getAllScheduledNotificationsAsync();
   return notifications.length;
 }
