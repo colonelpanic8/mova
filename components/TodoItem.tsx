@@ -1,7 +1,7 @@
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { Todo } from "@/services/api";
-import React, { forwardRef, useCallback } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { Chip, Text, useTheme } from "react-native-paper";
 
@@ -50,10 +50,19 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
 ) {
   const theme = useTheme();
   const { getTodoStateColor, getActionColor } = useColorPalette();
+  const internalRef = useRef<Swipeable>(null);
+
+  // Forward the internal ref to the parent
+  useImperativeHandle(ref, () => internalRef.current!, []);
 
   const handleTodoPress = useCallback(() => {
     onTodoPress?.(todo);
   }, [onTodoPress, todo]);
+
+  const handleBodyPress = useCallback(() => {
+    // Toggle the swipeable open/close
+    internalRef.current?.openRight();
+  }, []);
 
   const renderRightActions = useCallback(() => {
     if (
@@ -135,79 +144,81 @@ export const TodoItem = forwardRef<Swipeable, TodoItemProps>(function TodoItem(
     onTomorrowPress || onSchedulePress || onDeadlinePress || onPriorityPress;
 
   const content = (
-    <View
-      style={[
-        styles.todoItem,
-        {
-          borderBottomColor: theme.colors.outlineVariant,
-          backgroundColor: theme.colors.background,
-          opacity: isUpdating ? 0.6 : 1,
-        },
-      ]}
-    >
-      <View style={styles.todoHeader}>
-        {todo.todo && (
-          <TouchableOpacity
-            onPress={handleTodoPress}
-            disabled={isCompleting || !onTodoPress}
-            activeOpacity={0.7}
-          >
-            <Chip
-              mode="flat"
-              compact
-              style={[
-                styles.todoChip,
-                { backgroundColor: getTodoStateColor(todo.todo) },
-                isCompleting && styles.todoChipLoading,
-              ]}
-              textStyle={{ fontSize: 10, color: "white" }}
+    <Pressable onPress={handleBodyPress}>
+      <View
+        style={[
+          styles.todoItem,
+          {
+            borderBottomColor: theme.colors.outlineVariant,
+            backgroundColor: theme.colors.background,
+            opacity: isUpdating ? 0.6 : 1,
+          },
+        ]}
+      >
+        <View style={styles.todoHeader}>
+          {todo.todo && (
+            <TouchableOpacity
+              onPress={handleTodoPress}
+              disabled={isCompleting || !onTodoPress}
+              activeOpacity={0.7}
             >
-              {isCompleting ? "..." : todo.todo}
+              <Chip
+                mode="flat"
+                compact
+                style={[
+                  styles.todoChip,
+                  { backgroundColor: getTodoStateColor(todo.todo) },
+                  isCompleting && styles.todoChipLoading,
+                ]}
+                textStyle={{ fontSize: 10, color: "white" }}
+              >
+                {isCompleting ? "..." : todo.todo}
+              </Chip>
+            </TouchableOpacity>
+          )}
+          {todo.priority && todo.priority.trim() && (
+            <Chip
+              mode="outlined"
+              compact
+              style={styles.priorityChip}
+              textStyle={{ fontSize: 10 }}
+            >
+              #{todo.priority}
             </Chip>
-          </TouchableOpacity>
-        )}
-        {todo.priority && todo.priority.trim() && (
-          <Chip
-            mode="outlined"
-            compact
-            style={styles.priorityChip}
-            textStyle={{ fontSize: 10 }}
-          >
-            #{todo.priority}
-          </Chip>
-        )}
-        <Text variant="bodyMedium" style={styles.todoTitle} numberOfLines={2}>
-          {todo.title}
-        </Text>
-      </View>
-      <View style={styles.metaRow}>
-        {todo.scheduled && (
-          <Text style={[styles.metaText, { color: theme.colors.primary }]}>
-            S: {formatDate(todo.scheduled)}
+          )}
+          <Text variant="bodyMedium" style={styles.todoTitle} numberOfLines={2}>
+            {todo.title}
           </Text>
-        )}
-        {todo.deadline && (
-          <Text style={[styles.metaText, { color: theme.colors.error }]}>
-            D: {formatDate(todo.deadline)}
-          </Text>
-        )}
-      </View>
-      {todo.tags && todo.tags.length > 0 && (
-        <View style={styles.tagsContainer}>
-          {todo.tags.map((tag, i) => (
-            <Text key={i} style={[styles.tag, { color: theme.colors.primary }]}>
-              :{tag}:
-            </Text>
-          ))}
         </View>
-      )}
-    </View>
+        <View style={styles.metaRow}>
+          {todo.scheduled && (
+            <Text style={[styles.metaText, { color: theme.colors.primary }]}>
+              S: {formatDate(todo.scheduled)}
+            </Text>
+          )}
+          {todo.deadline && (
+            <Text style={[styles.metaText, { color: theme.colors.error }]}>
+              D: {formatDate(todo.deadline)}
+            </Text>
+          )}
+        </View>
+        {todo.tags && todo.tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {todo.tags.map((tag, i) => (
+              <Text key={i} style={[styles.tag, { color: theme.colors.primary }]}>
+                :{tag}:
+              </Text>
+            ))}
+          </View>
+        )}
+      </View>
+    </Pressable>
   );
 
   if (hasSwipeActions) {
     return (
       <Swipeable
-        ref={ref}
+        ref={internalRef}
         renderRightActions={renderRightActions}
         overshootRight={false}
       >
