@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   },
   todoHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 8,
   },
   todoChip: {
@@ -237,7 +237,8 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   priorityChip: {
-    height: 20,
+    minHeight: 24,
+    justifyContent: "center",
   },
   todoTitle: {
     flex: 1,
