@@ -308,14 +308,6 @@ export function useTodoEditing(
     [editModalType, handleUpdateTodo, closeEditModal],
   );
 
-  const handleWebDateSave = useCallback(() => {
-    if (editModalType === "schedule" || editModalType === "deadline") {
-      const dateString = formatLocalDate(selectedDate);
-      const fieldName = editModalType === "schedule" ? "scheduled" : editModalType;
-      handleUpdateTodo({ [fieldName]: dateString });
-    }
-  }, [editModalType, selectedDate, handleUpdateTodo]);
-
   const EditModals = useCallback(() => {
     const allStates = todoStates
       ? [...todoStates.active, ...todoStates.done]
@@ -336,60 +328,38 @@ export function useTodoEditing(
         )}
 
         <Portal>
-          {/* Web Date Picker Modal (Schedule/Deadline) */}
-          {Platform.OS === "web" && (
-            <Modal
-              visible={isDateModal}
-              onDismiss={closeEditModal}
-              contentContainerStyle={[
-                styles.modalContent,
-                { backgroundColor: theme.colors.surface },
-              ]}
-            >
-              <Text variant="titleLarge" style={styles.modalTitle}>
-                {editModalType === "schedule" ? "Set Schedule Date" : "Set Deadline"}
-              </Text>
-              <Text
-                variant="bodyMedium"
-                style={styles.modalSubtitle}
-                numberOfLines={1}
-              >
-                {editingTodo?.title}
-              </Text>
-
-              {/* Use native HTML date input for proper browser date picker */}
-              <input
-                type="date"
-                value={formatLocalDate(selectedDate)}
-                onChange={(e) => {
-                  const parsed = new Date(e.target.value + "T00:00:00");
-                  if (!isNaN(parsed.getTime())) {
-                    setSelectedDate(parsed);
+          {/* Web Date Picker - hidden input that auto-opens picker */}
+          {Platform.OS === "web" && isDateModal && (
+            <input
+              type="date"
+              value={formatLocalDate(selectedDate)}
+              onChange={(e) => {
+                const parsed = new Date(e.target.value + "T00:00:00");
+                if (!isNaN(parsed.getTime())) {
+                  // Auto-save on selection
+                  const dateString = formatLocalDate(parsed);
+                  const fieldName = editModalType === "schedule" ? "scheduled" : "deadline";
+                  handleUpdateTodo({ [fieldName]: dateString });
+                }
+              }}
+              onBlur={closeEditModal}
+              ref={(el) => {
+                // Auto-open the picker when mounted
+                if (el) {
+                  try {
+                    el.showPicker();
+                  } catch {
+                    // Fallback: just focus if showPicker not supported
+                    el.focus();
                   }
-                }}
-                style={{
-                  borderWidth: 1,
-                  borderStyle: "solid",
-                  borderColor: theme.colors.outline,
-                  borderRadius: 8,
-                  padding: 12,
-                  fontSize: 16,
-                  color: theme.colors.onSurface,
-                  backgroundColor: theme.colors.surfaceVariant,
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
-              />
-
-              <View style={styles.modalButtons}>
-                <Button mode="outlined" onPress={closeEditModal}>
-                  Cancel
-                </Button>
-                <Button mode="contained" onPress={handleWebDateSave}>
-                  Save
-                </Button>
-              </View>
-            </Modal>
+                }
+              }}
+              style={{
+                position: "absolute",
+                opacity: 0,
+                pointerEvents: "none",
+              }}
+            />
           )}
 
           {/* Priority Modal */}
@@ -509,7 +479,7 @@ export function useTodoEditing(
     handleDatePickerChange,
     handleSavePriority,
     handleStateChange,
-    handleWebDateSave,
+    handleUpdateTodo,
     dismissSnackbar,
   ]);
 
