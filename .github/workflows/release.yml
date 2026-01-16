@@ -43,7 +43,7 @@ jobs:
 
       - name: Install dependencies and build APK
         run: |
-          nix develop --command bash -c '
+          NIXPKGS_ALLOW_UNFREE=1 nix develop --impure --command bash -c '
             yarn install --frozen-lockfile
             cd android
             ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
