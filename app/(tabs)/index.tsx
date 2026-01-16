@@ -107,8 +107,10 @@ export default function AgendaScreen() {
       try {
         api.configure(apiUrl, username, password);
         const dateString = formatDateForApi(date);
+        const todayString = formatDateForApi(new Date());
+        const includeOverdue = dateString <= todayString;
         const [agendaData, statesData] = await Promise.all([
-          api.getAgenda("day", dateString),
+          api.getAgenda("day", dateString, includeOverdue),
           api.getTodoStates().catch(() => null),
         ]);
         setAgenda(agendaData);
