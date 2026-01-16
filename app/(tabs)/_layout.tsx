@@ -4,9 +4,16 @@ import { Tabs } from "expo-router";
 import React from "react";
 import { View } from "react-native";
 import { useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const TAB_BAR_HEIGHT = 49;
 
 export default function TabLayout() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+
+  // Tab bar height includes safe area bottom inset
+  const tabBarTotalHeight = TAB_BAR_HEIGHT + insets.bottom;
 
   return (
     <View style={{ flex: 1 }}>
@@ -23,7 +30,7 @@ export default function TabLayout() {
           headerTintColor: theme.colors.onSurface,
           // Add padding at the bottom of screen content for the capture bar
           sceneStyle: {
-            paddingBottom: 44,
+            paddingBottom: 52, // CaptureBar height
           },
         }}
       >
@@ -89,7 +96,7 @@ export default function TabLayout() {
       <View
         style={{
           position: "absolute",
-          bottom: 49, // Height of tab bar
+          bottom: tabBarTotalHeight,
           left: 0,
           right: 0,
         }}
