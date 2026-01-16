@@ -133,10 +133,14 @@ class OrgAgendaApi {
   async getAgenda(
     span: "day" | "week" = "day",
     date?: string,
+    includeOverdue?: boolean,
   ): Promise<AgendaResponse> {
     const params = new URLSearchParams({ span });
     if (date) {
       params.append("date", date);
+    }
+    if (includeOverdue !== undefined) {
+      params.append("include_overdue", includeOverdue ? "true" : "false");
     }
     return this.request<AgendaResponse>(`/agenda?${params.toString()}`);
   }
