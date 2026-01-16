@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as TaskManager from "expo-task-manager";
+import { Platform } from "react-native";
 import { api } from "./api";
 import {
   getNotificationsEnabled,
@@ -27,36 +28,39 @@ async function getStoredCredentials(): Promise<{
   return { apiUrl, username, password };
 }
 
-// Define the background task
-TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
-  try {
-    const enabled = await getNotificationsEnabled();
-    if (!enabled) {
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+// Define the background task (native only)
+if (Platform.OS !== "web") {
+  TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
+    try {
+      const enabled = await getNotificationsEnabled();
+      if (!enabled) {
+        return BackgroundFetch.BackgroundFetchResult.NoData;
+      }
+
+      const { apiUrl, username, password } = await getStoredCredentials();
+      if (!apiUrl || !username || !password) {
+        return BackgroundFetch.BackgroundFetchResult.NoData;
+      }
+
+      api.configure(apiUrl, username, password);
+      const response = await api.getAllTodos();
+
+      const count = await scheduleNotificationsForTodos(
+        response.todos,
+        response.defaults,
+      );
+      console.log(`Background sync: scheduled ${count} notifications`);
+
+      return BackgroundFetch.BackgroundFetchResult.NewData;
+    } catch (err) {
+      console.error("Background sync failed:", err);
+      return BackgroundFetch.BackgroundFetchResult.Failed;
     }
-
-    const { apiUrl, username, password } = await getStoredCredentials();
-    if (!apiUrl || !username || !password) {
-      return BackgroundFetch.BackgroundFetchResult.NoData;
-    }
-
-    api.configure(apiUrl, username, password);
-    const response = await api.getAllTodos();
-
-    const count = await scheduleNotificationsForTodos(
-      response.todos,
-      response.defaults,
-    );
-    console.log(`Background sync: scheduled ${count} notifications`);
-
-    return BackgroundFetch.BackgroundFetchResult.NewData;
-  } catch (err) {
-    console.error("Background sync failed:", err);
-    return BackgroundFetch.BackgroundFetchResult.Failed;
-  }
-});
+  });
+}
 
 export async function registerBackgroundSync(): Promise<void> {
+  if (Platform.OS === "web") return;
   try {
     await BackgroundFetch.registerTaskAsync(BACKGROUND_SYNC_TASK, {
       minimumInterval: 15 * 60, // 15 minutes (minimum on iOS)
@@ -70,6 +74,7 @@ export async function registerBackgroundSync(): Promise<void> {
 }
 
 export async function unregisterBackgroundSync(): Promise<void> {
+  if (Platform.OS === "web") return;
   try {
     await BackgroundFetch.unregisterTaskAsync(BACKGROUND_SYNC_TASK);
     console.log("Background sync unregistered");
@@ -79,9 +84,11 @@ export async function unregisterBackgroundSync(): Promise<void> {
 }
 
 export async function isBackgroundSyncRegistered(): Promise<boolean> {
+  if (Platform.OS === "web") return false;
   return await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
 }
 
 export async function getBackgroundSyncStatus(): Promise<BackgroundFetch.BackgroundFetchStatus | null> {
+  if (Platform.OS === "web") return null;
   return await BackgroundFetch.getStatusAsync();
 }
