@@ -2,7 +2,7 @@ import { getTodoKey } from "@/components/TodoItem";
 import { api, Todo, TodoStatesResponse, TodoUpdates } from "@/services/api";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { ReactNode, useCallback, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import {
   Button,
@@ -308,15 +308,25 @@ export function useTodoEditing(
     [editModalType, handleUpdateTodo, closeEditModal],
   );
 
+  const handleWebDateSave = useCallback(() => {
+    if (editModalType === "schedule" || editModalType === "deadline") {
+      const dateString = formatLocalDate(selectedDate);
+      const fieldName = editModalType === "schedule" ? "scheduled" : editModalType;
+      handleUpdateTodo({ [fieldName]: dateString });
+    }
+  }, [editModalType, selectedDate, handleUpdateTodo]);
+
   const EditModals = useCallback(() => {
     const allStates = todoStates
       ? [...todoStates.active, ...todoStates.done]
       : ["TODO", "NEXT", "WAITING", "DONE"];
 
+    const isDateModal = editModalType === "schedule" || editModalType === "deadline";
+
     return (
       <>
-        {/* Native Date Picker (Schedule/Deadline) - no modal wrapper needed */}
-        {(editModalType === "schedule" || editModalType === "deadline") && (
+        {/* Native Date Picker (Schedule/Deadline) - only on native platforms */}
+        {isDateModal && Platform.OS !== "web" && (
           <DateTimePicker
             value={selectedDate}
             mode="date"
@@ -326,6 +336,62 @@ export function useTodoEditing(
         )}
 
         <Portal>
+          {/* Web Date Picker Modal (Schedule/Deadline) */}
+          {Platform.OS === "web" && (
+            <Modal
+              visible={isDateModal}
+              onDismiss={closeEditModal}
+              contentContainerStyle={[
+                styles.modalContent,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <Text variant="titleLarge" style={styles.modalTitle}>
+                {editModalType === "schedule" ? "Set Schedule Date" : "Set Deadline"}
+              </Text>
+              <Text
+                variant="bodyMedium"
+                style={styles.modalSubtitle}
+                numberOfLines={1}
+              >
+                {editingTodo?.title}
+              </Text>
+
+              {/* Use native HTML date input for proper browser date picker */}
+              <input
+                type="date"
+                value={formatLocalDate(selectedDate)}
+                onChange={(e) => {
+                  const parsed = new Date(e.target.value + "T00:00:00");
+                  if (!isNaN(parsed.getTime())) {
+                    setSelectedDate(parsed);
+                  }
+                }}
+                style={{
+                  borderWidth: 1,
+                  borderStyle: "solid",
+                  borderColor: theme.colors.outline,
+                  borderRadius: 8,
+                  padding: 12,
+                  fontSize: 16,
+                  color: theme.colors.onSurface,
+                  backgroundColor: theme.colors.surfaceVariant,
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              />
+
+              <View style={styles.modalButtons}>
+                <Button mode="outlined" onPress={closeEditModal}>
+                  Cancel
+                </Button>
+                <Button mode="contained" onPress={handleWebDateSave}>
+                  Save
+                </Button>
+              </View>
+            </Modal>
+          )}
+
           {/* Priority Modal */}
           <Modal
             visible={editModalType === "priority"}
@@ -443,6 +509,7 @@ export function useTodoEditing(
     handleDatePickerChange,
     handleSavePriority,
     handleStateChange,
+    handleWebDateSave,
     dismissSnackbar,
   ]);
 
