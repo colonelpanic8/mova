@@ -209,6 +209,12 @@ export default function AgendaScreen() {
               onPress={goToNextDay}
               testID="agendaNextDay"
             />
+            <IconButton
+              icon="refresh"
+              onPress={onRefresh}
+              disabled={refreshing}
+              testID="agendaRefreshButton"
+            />
           </View>
           {!isToday && (
             <TouchableOpacity

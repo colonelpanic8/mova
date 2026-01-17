@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
+  IconButton,
   Searchbar,
   Text,
   useTheme,
@@ -107,6 +108,12 @@ export default function SearchScreen() {
             value={searchQuery}
             style={styles.searchbar}
           />
+          <IconButton
+            icon="refresh"
+            onPress={onRefresh}
+            disabled={refreshing}
+            testID="searchRefreshButton"
+          />
         </View>
 
         {error ? (
@@ -151,9 +158,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
+    paddingRight: 4,
   },
   searchbar: {
+    flex: 1,
     elevation: 0,
   },
 });

@@ -167,7 +167,12 @@ export default function ViewsScreen() {
             <Text variant="titleMedium" style={styles.headerTitle}>
               {selectedView.name}
             </Text>
-            <View style={{ width: 48 }} />
+            <IconButton
+              icon="refresh"
+              onPress={onRefresh}
+              disabled={refreshing}
+              testID="viewRefreshButton"
+            />
           </View>
 
           {selectedView.entries.length === 0 ? (
@@ -198,6 +203,23 @@ export default function ViewsScreen() {
       testID="viewsListScreen"
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: theme.colors.outlineVariant },
+        ]}
+      >
+        <View style={{ width: 48 }} />
+        <Text variant="titleMedium" style={styles.headerTitle}>
+          Views
+        </Text>
+        <IconButton
+          icon="refresh"
+          onPress={onRefresh}
+          disabled={refreshing}
+          testID="viewsRefreshButton"
+        />
+      </View>
       {views.length === 0 ? (
         <View testID="viewsEmptyView" style={styles.centered}>
           <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
