@@ -12,6 +12,7 @@ import {
   DEFAULT_COLOR_PALETTE,
   getThemeColorKey,
   isThemeReference,
+  PriorityLevel,
 } from "@/types/colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
@@ -34,6 +35,7 @@ interface ColorPaletteContextType {
   // Resolved color getters (resolve theme references to actual colors)
   getTodoStateColor: (keyword: string) => string;
   getActionColor: (action: ActionButtonType) => string;
+  getPriorityColor: (priority: PriorityLevel) => string;
 
   // Get all configured todo states (for settings UI)
   getConfiguredTodoStates: () => string[];
@@ -43,6 +45,10 @@ interface ColorPaletteContextType {
   removeTodoStateColor: (keyword: string) => Promise<void>;
   setActionColor: (
     action: ActionButtonType,
+    color: ColorValue,
+  ) => Promise<void>;
+  setPriorityColor: (
+    priority: PriorityLevel,
     color: ColorValue,
   ) => Promise<void>;
   resetToDefaults: () => Promise<void>;
@@ -80,6 +86,10 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
           actionColors: {
             ...DEFAULT_COLOR_PALETTE.actionColors,
             ...parsed.actionColors,
+          },
+          priorityColors: {
+            ...DEFAULT_COLOR_PALETTE.priorityColors,
+            ...parsed.priorityColors,
           },
         });
       }
@@ -140,6 +150,13 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     [config, resolveColor],
   );
 
+  const getPriorityColor = useCallback(
+    (priority: PriorityLevel): string => {
+      return resolveColor(config.priorityColors[priority]);
+    },
+    [config, resolveColor],
+  );
+
   const getConfiguredTodoStates = useCallback((): string[] => {
     return Object.keys(config.todoStateColors).filter(
       (key) => key !== "DEFAULT",
@@ -191,6 +208,20 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     [config],
   );
 
+  const setPriorityColor = useCallback(
+    async (priority: PriorityLevel, color: ColorValue) => {
+      const newConfig = {
+        ...config,
+        priorityColors: {
+          ...config.priorityColors,
+          [priority]: color,
+        },
+      };
+      await saveConfig(newConfig);
+    },
+    [config],
+  );
+
   const resetToDefaults = useCallback(async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
     setConfig(DEFAULT_COLOR_PALETTE);
@@ -203,10 +234,12 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
         isLoading,
         getTodoStateColor,
         getActionColor,
+        getPriorityColor,
         getConfiguredTodoStates,
         setTodoStateColor,
         removeTodoStateColor,
         setActionColor,
+        setPriorityColor,
         resetToDefaults,
       }}
     >
