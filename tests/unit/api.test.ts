@@ -74,6 +74,38 @@ describe("OrgAgendaApi", () => {
       );
       expect(result.status).toBe("created");
     });
+
+    it("should make POST request with optional fields", async () => {
+      const mockFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: "created", title: "Test" }),
+      });
+      global.fetch = mockFetch;
+
+      api.configure("http://test.com", "user", "pass");
+      await api.createTodo("Test todo", {
+        scheduled: "2026-01-20",
+        deadline: "2026-01-25",
+        priority: "A",
+        tags: ["work", "urgent"],
+        todo: "NEXT",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://test.com/create-todo",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            title: "Test todo",
+            scheduled: "2026-01-20",
+            deadline: "2026-01-25",
+            priority: "A",
+            tags: ["work", "urgent"],
+            todo: "NEXT",
+          }),
+        }),
+      );
+    });
   });
 
   describe("completeTodo", () => {
