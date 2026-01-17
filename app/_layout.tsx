@@ -9,6 +9,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
 
+// Register background sync task (imported here to avoid loading expo modules in widget headless context)
+import "@/services/backgroundSync";
+
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {

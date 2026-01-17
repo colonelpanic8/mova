@@ -41,7 +41,29 @@
         <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
       </intent-filter>
     </activity>
-    <receiver android:name=".widget.QuickCaptureWidget" android:exported="false" android:label="Mova Quick Capture">
+    <activity
+        android:name=".QuickCaptureActivity"
+        android:exported="true"
+        android:theme="@style/Theme.QuickCapture"
+        android:excludeFromRecents="true"
+        android:launchMode="singleInstance"
+        android:taskAffinity="">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="mova" android:host="capture"/>
+      </intent-filter>
+    </activity>
+    <activity
+        android:name=".TemplateConfigActivity"
+        android:exported="true"
+        android:theme="@style/AppTheme">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+      </intent-filter>
+    </activity>
+    <receiver android:name=".widget.QuickCaptureWidget" android:exported="true" android:label="Mova Quick Capture">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
         <action android:name="com.anonymous.mova.WIDGET_CLICK"/>

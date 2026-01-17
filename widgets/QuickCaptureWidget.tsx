@@ -2,41 +2,38 @@ import React from "react";
 import { FlexWidget, TextWidget } from "react-native-android-widget";
 
 interface QuickCaptureWidgetProps {
-  inputText?: string;
   status?: "idle" | "submitting" | "success" | "error" | "offline";
+  widgetId?: number;
 }
 
 export function QuickCaptureWidget({
-  inputText = "",
   status = "idle",
+  widgetId,
 }: QuickCaptureWidgetProps) {
-  const getBackgroundColor = () => {
+  // Match app's surfaceVariant color
+  const getContainerColor = () => {
     switch (status) {
       case "success":
-        return "#4CAF50"; // Green
+        return "#C8E6C9"; // Light green
       case "error":
-        return "#F44336"; // Red
+        return "#FFCDD2"; // Light red
       case "offline":
-        return "#FF9800"; // Orange
-      case "submitting":
-        return "#9E9E9E"; // Gray
+        return "#FFE0B2"; // Light orange
       default:
-        return "#FFFFFF"; // White
+        return "#E7E0EC"; // surfaceVariant from MD3
     }
   };
 
-  const getStatusIcon = () => {
+  const getStatusText = () => {
     switch (status) {
       case "success":
-        return "check";
+        return "Captured!";
       case "error":
-        return "error";
+        return "Error - tap to retry";
       case "offline":
-        return "cloud_off";
-      case "submitting":
-        return "sync";
+        return "Queued - will sync";
       default:
-        return "add";
+        return "Capture...";
     }
   };
 
@@ -47,50 +44,52 @@ export function QuickCaptureWidget({
         width: "match_parent",
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: getBackgroundColor(),
-        borderRadius: 8,
-        padding: 8,
+        backgroundColor: getContainerColor(),
+        borderRadius: 16,
+        paddingLeft: 12,
+        paddingRight: 4,
+        paddingTop: 4,
+        paddingBottom: 4,
       }}
+      clickAction="OPEN_URI"
+      clickActionData={{ uri: `mova://capture${widgetId ? `?widgetId=${widgetId}` : ""}` }}
     >
-      {/* Label */}
+      {/* Input area - styled like the app's TextInput */}
       <FlexWidget
         style={{
           flex: 1,
-          height: "match_parent",
-          backgroundColor: "#F5F5F5",
-          borderRadius: 4,
-          paddingHorizontal: 12,
+          height: 36,
+          backgroundColor: "#FFFBFE", // surface color
+          borderRadius: 18,
+          paddingLeft: 16,
+          paddingRight: 16,
           justifyContent: "center",
         }}
-        clickAction="OPEN_APP"
       >
         <TextWidget
-          text={inputText || "Tap to add todo..."}
+          text={getStatusText()}
           style={{
             fontSize: 14,
-            color: inputText ? "#212121" : "#757575",
+            color: status === "idle" ? "#49454F" : "#1C1B1F",
           }}
         />
       </FlexWidget>
 
-      {/* Submit Button */}
+      {/* Send button - matches app's IconButton */}
       <FlexWidget
         style={{
-          width: 48,
-          height: 48,
-          marginLeft: 8,
-          backgroundColor: "#6200EE",
-          borderRadius: 24,
+          width: 40,
+          height: 40,
+          marginLeft: 4,
           justifyContent: "center",
           alignItems: "center",
         }}
-        clickAction="OPEN_APP"
       >
         <TextWidget
-          text="+"
+          text="➤"
           style={{
-            fontSize: 24,
-            color: "#FFFFFF",
+            fontSize: 20,
+            color: "#6750A4", // primary color
           }}
         />
       </FlexWidget>
