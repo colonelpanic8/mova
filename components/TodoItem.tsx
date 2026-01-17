@@ -1,6 +1,7 @@
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
+import { PriorityLevel } from "@/types/colors";
 import React, { useCallback, useEffect, useRef } from "react";
 import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
@@ -31,12 +32,13 @@ export function getTodoKey(todo: Todo): string {
 
 export function TodoItem({ todo }: TodoItemProps) {
   const theme = useTheme();
-  const { getTodoStateColor, getActionColor } = useColorPalette();
+  const { getTodoStateColor, getActionColor, getPriorityColor } = useColorPalette();
   const {
     completingIds,
     updatingIds,
     swipeableRefs,
     handleTodoPress,
+    scheduleToday,
     scheduleTomorrow,
     openScheduleModal,
     openDeadlineModal,
@@ -106,14 +108,14 @@ export function TodoItem({ todo }: TodoItemProps) {
           <Text style={styles.swipeActionText}>Deadline</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          testID={`priorityActionButton_${testIdSuffix}`}
+          testID={`todayActionButton_${testIdSuffix}`}
           style={[
             styles.swipeAction,
-            { backgroundColor: getActionColor("priority") },
+            { backgroundColor: getActionColor("today") },
           ]}
-          onPress={() => openPriorityModal(todo)}
+          onPress={() => scheduleToday(todo)}
         >
-          <Text style={styles.swipeActionText}>Priority</Text>
+          <Text style={styles.swipeActionText}>Today</Text>
         </TouchableOpacity>
       </View>
     );
@@ -121,10 +123,10 @@ export function TodoItem({ todo }: TodoItemProps) {
     testIdSuffix,
     getActionColor,
     todo,
+    scheduleToday,
     scheduleTomorrow,
     openScheduleModal,
     openDeadlineModal,
-    openPriorityModal,
   ]);
 
   return (
@@ -162,11 +164,19 @@ export function TodoItem({ todo }: TodoItemProps) {
             )}
             {todo.priority && todo.priority.trim() && (
               <Chip
-                mode="outlined"
+                mode="flat"
                 compact
                 onPress={() => openPriorityModal(todo)}
-                style={styles.priorityChip}
-                textStyle={{ fontSize: 10 }}
+                style={[
+                  styles.priorityChip,
+                  ["A", "B", "C", "D", "E"].includes(todo.priority.toUpperCase())
+                    ? { backgroundColor: getPriorityColor(todo.priority.toUpperCase() as PriorityLevel) }
+                    : { backgroundColor: theme.colors.surfaceVariant },
+                ]}
+                textStyle={{
+                  fontSize: 10,
+                  color: ["A", "B", "C", "D", "E"].includes(todo.priority.toUpperCase()) ? "white" : theme.colors.onSurfaceVariant,
+                }}
               >
                 #{todo.priority}
               </Chip>

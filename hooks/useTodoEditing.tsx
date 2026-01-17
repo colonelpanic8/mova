@@ -49,6 +49,7 @@ export interface UseTodoEditingResult {
 
   // Actions
   handleTodoPress: (todo: Todo) => void;
+  scheduleToday: (todo: Todo) => void;
   scheduleTomorrow: (todo: Todo) => void;
   openScheduleModal: (todo: Todo) => void;
   openDeadlineModal: (todo: Todo) => void;
@@ -145,6 +146,50 @@ export function useTodoEditing(
       openEditModal(todo, "priority");
     },
     [openEditModal],
+  );
+
+  const scheduleToday = useCallback(
+    async (todo: Todo) => {
+      const key = getTodoKey(todo);
+      swipeableRefs.current.get(key)?.close();
+      setUpdatingIds((prev) => new Set(prev).add(key));
+
+      const today = new Date();
+      const dateString = formatLocalDate(today);
+
+      try {
+        const result = await api.updateTodo(todo, { scheduled: dateString });
+
+        if (result.status === "updated") {
+          setSnackbar({
+            visible: true,
+            message: `Scheduled for today: ${todo.title}`,
+            isError: false,
+          });
+          onTodoUpdated?.(todo, { scheduled: dateString });
+        } else {
+          setSnackbar({
+            visible: true,
+            message: result.message || "Failed to schedule",
+            isError: true,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to schedule todo:", err);
+        setSnackbar({
+          visible: true,
+          message: "Failed to schedule todo",
+          isError: true,
+        });
+      } finally {
+        setUpdatingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [onTodoUpdated],
   );
 
   const scheduleTomorrow = useCallback(
@@ -391,9 +436,11 @@ export function useTodoEditing(
               value={selectedPriority}
             >
               <RadioButton.Item label="None" value="" />
-              <RadioButton.Item label="A - High" value="A" />
-              <RadioButton.Item label="B - Medium" value="B" />
-              <RadioButton.Item label="C - Low" value="C" />
+              <RadioButton.Item label="A - Highest" value="A" />
+              <RadioButton.Item label="B - High" value="B" />
+              <RadioButton.Item label="C - Medium" value="C" />
+              <RadioButton.Item label="D - Low" value="D" />
+              <RadioButton.Item label="E - Lowest" value="E" />
             </RadioButton.Group>
 
             <View style={styles.modalButtons}>
@@ -500,6 +547,7 @@ export function useTodoEditing(
     snackbar,
     swipeableRefs,
     handleTodoPress,
+    scheduleToday,
     scheduleTomorrow,
     openScheduleModal,
     openDeadlineModal,

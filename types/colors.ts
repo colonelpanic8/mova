@@ -46,16 +46,28 @@ export const PRESET_COLORS = [
 // Action button types
 export type ActionButtonType =
   | "tomorrow"
+  | "today"
   | "schedule"
-  | "deadline"
-  | "priority";
+  | "deadline";
+
+// Priority levels
+export type PriorityLevel = "A" | "B" | "C" | "D" | "E";
 
 // Action button color configuration
 export interface ActionButtonColorConfig {
   tomorrow: ColorValue;
+  today: ColorValue;
   schedule: ColorValue;
   deadline: ColorValue;
-  priority: ColorValue;
+}
+
+// Priority color configuration
+export interface PriorityColorConfig {
+  A: ColorValue;
+  B: ColorValue;
+  C: ColorValue;
+  D: ColorValue;
+  E: ColorValue;
 }
 
 // Complete color palette configuration
@@ -64,13 +76,15 @@ export interface ColorPaletteConfig {
   todoStateColors: Record<string, ColorValue>;
   // Action button colors
   actionColors: ActionButtonColorConfig;
+  // Priority colors (A, B, C)
+  priorityColors: PriorityColorConfig;
   // Version for migration purposes
   version: number;
 }
 
 // Default color values (matching current behavior)
 export const DEFAULT_COLOR_PALETTE: ColorPaletteConfig = {
-  version: 1,
+  version: 2,
   todoStateColors: {
     TODO: "theme:error",
     NEXT: "theme:primary",
@@ -82,9 +96,16 @@ export const DEFAULT_COLOR_PALETTE: ColorPaletteConfig = {
   },
   actionColors: {
     tomorrow: "theme:secondary",
-    schedule: "theme:primary",
+    today: "theme:primary",
+    schedule: "theme:tertiary",
     deadline: "theme:error",
-    priority: "theme:tertiary",
+  },
+  priorityColors: {
+    A: "theme:error",
+    B: "#FF9800",
+    C: "#FFC107",
+    D: "#8BC34A",
+    E: "theme:outline",
   },
 };
 

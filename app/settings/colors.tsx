@@ -3,12 +3,13 @@
  *
  * Allows customization of:
  * - TODO state colors (TODO, NEXT, DONE, WAITING, custom states)
- * - Action button colors (Tomorrow, Schedule, Deadline, Priority)
+ * - Priority colors (A, B, C)
+ * - Action button colors (Today, Tomorrow, Schedule, Deadline)
  */
 
 import { ColorPicker } from "@/components/ColorPicker";
 import { useColorPalette } from "@/context/ColorPaletteContext";
-import { ActionButtonType, ColorValue } from "@/types/colors";
+import { ActionButtonType, ColorValue, PriorityLevel } from "@/types/colors";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -26,6 +27,7 @@ import {
 type EditingItem =
   | { type: "todoState"; keyword: string }
   | { type: "action"; action: ActionButtonType }
+  | { type: "priority"; level: PriorityLevel }
   | null;
 
 export default function ColorSettingsScreen() {
@@ -35,10 +37,12 @@ export default function ColorSettingsScreen() {
     config,
     getTodoStateColor,
     getActionColor,
+    getPriorityColor,
     getConfiguredTodoStates,
     setTodoStateColor,
     removeTodoStateColor,
     setActionColor,
+    setPriorityColor,
     resetToDefaults,
   } = useColorPalette();
 
@@ -49,10 +53,17 @@ export default function ColorSettingsScreen() {
 
   const todoStates = getConfiguredTodoStates();
   const actionButtons: { key: ActionButtonType; label: string }[] = [
+    { key: "today", label: "Today" },
     { key: "tomorrow", label: "Tomorrow" },
     { key: "schedule", label: "Schedule" },
     { key: "deadline", label: "Deadline" },
-    { key: "priority", label: "Priority" },
+  ];
+  const priorityLevels: { key: PriorityLevel; label: string }[] = [
+    { key: "A", label: "Priority A (Highest)" },
+    { key: "B", label: "Priority B (High)" },
+    { key: "C", label: "Priority C (Medium)" },
+    { key: "D", label: "Priority D (Low)" },
+    { key: "E", label: "Priority E (Lowest)" },
   ];
 
   const handleColorSelect = async (color: ColorValue) => {
@@ -60,8 +71,10 @@ export default function ColorSettingsScreen() {
 
     if (editingItem.type === "todoState") {
       await setTodoStateColor(editingItem.keyword, color);
-    } else {
+    } else if (editingItem.type === "action") {
       await setActionColor(editingItem.action, color);
+    } else if (editingItem.type === "priority") {
+      await setPriorityColor(editingItem.level, color);
     }
     setEditingItem(null);
   };
@@ -88,17 +101,26 @@ export default function ColorSettingsScreen() {
     if (!editingItem) return "#000000";
     if (editingItem.type === "todoState") {
       return config.todoStateColors[editingItem.keyword] || "theme:secondary";
+    } else if (editingItem.type === "action") {
+      return config.actionColors[editingItem.action];
+    } else if (editingItem.type === "priority") {
+      return config.priorityColors[editingItem.level];
     }
-    return config.actionColors[editingItem.action];
+    return "#000000";
   };
 
   const getPickerTitle = (): string => {
     if (!editingItem) return "Select Color";
     if (editingItem.type === "todoState") {
       return `Color for ${editingItem.keyword}`;
+    } else if (editingItem.type === "action") {
+      const action = actionButtons.find((a) => a.key === editingItem.action);
+      return `Color for ${action?.label || editingItem.action}`;
+    } else if (editingItem.type === "priority") {
+      const priority = priorityLevels.find((p) => p.key === editingItem.level);
+      return `Color for ${priority?.label || editingItem.level}`;
     }
-    const action = actionButtons.find((a) => a.key === editingItem.action);
-    return `Color for ${action?.label || editingItem.action}`;
+    return "Select Color";
   };
 
   const ColorSwatch = ({ color }: { color: string }) => (
@@ -176,6 +198,20 @@ export default function ColorSettingsScreen() {
           >
             Add Custom State
           </Button>
+        </List.Section>
+
+        <List.Section>
+          <List.Subheader>Priority Colors</List.Subheader>
+          {priorityLevels.map(({ key, label }) => (
+            <List.Item
+              key={key}
+              title={label}
+              description={config.priorityColors[key]}
+              left={() => <ColorSwatch color={getPriorityColor(key)} />}
+              onPress={() => setEditingItem({ type: "priority", level: key })}
+              style={styles.listItem}
+            />
+          ))}
         </List.Section>
 
         <List.Section>
