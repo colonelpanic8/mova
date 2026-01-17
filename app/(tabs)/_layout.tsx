@@ -1,108 +1,160 @@
 import { CaptureBar } from "@/components/CaptureBar";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
 import React from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useTheme } from "react-native-paper";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const TAB_BAR_HEIGHT = 49;
+// Hidden routes that shouldn't appear in tab bar
+const HIDDEN_ROUTES = new Set(["capture"]);
+
+// Custom tab bar that includes CaptureBar above the tabs
+function CustomTabBar(props: BottomTabBarProps) {
+  const { state, descriptors, navigation, insets } = props;
+  const theme = useTheme();
+
+  return (
+    <View style={{ backgroundColor: theme.colors.surface }}>
+      <CaptureBar />
+      <View
+        style={{
+          flexDirection: "row",
+          paddingBottom: insets.bottom,
+          backgroundColor: theme.colors.surface,
+        }}
+      >
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+
+          // Skip hidden tabs
+          if (HIDDEN_ROUTES.has(route.name)) {
+            return null;
+          }
+
+          const isFocused = state.index === index;
+          const color = isFocused ? theme.colors.primary : theme.colors.outline;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: "tabPress",
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          const onLongPress = () => {
+            navigation.emit({
+              type: "tabLongPress",
+              target: route.key,
+            });
+          };
+
+          // Get the icon from options
+          const icon = options.tabBarIcon?.({ focused: isFocused, color, size: 24 });
+
+          return (
+            <Pressable
+              key={route.key}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              testID={(options as any).tabBarTestID}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 8,
+              }}
+            >
+              {icon}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 export default function TabLayout() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
-
-  // Tab bar height includes safe area bottom inset
-  const tabBarTotalHeight = TAB_BAR_HEIGHT + insets.bottom;
 
   return (
-    <View style={{ flex: 1 }}>
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: theme.colors.primary,
-          tabBarInactiveTintColor: theme.colors.outline,
-          tabBarStyle: {
-            backgroundColor: theme.colors.surface,
-          },
-          headerStyle: {
-            backgroundColor: theme.colors.surface,
-          },
-          headerTintColor: theme.colors.onSurface,
-          // Add padding at the bottom of screen content for the capture bar
-          sceneStyle: {
-            paddingBottom: 52, // CaptureBar height
-          },
+    <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.outline,
+        headerStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerTintColor: theme.colors.onSurface,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Agenda",
+          tabBarTestID: "tabAgenda",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="calendar-today"
+              size={size}
+              color={color}
+            />
+          ),
         }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: "Agenda",
-            tabBarTestID: "tabAgenda",
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons
-                name="calendar-today"
-                size={size}
-                color={color}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="views"
-          options={{
-            title: "Views",
-            tabBarTestID: "tabViews",
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons
-                name="view-list"
-                size={size}
-                color={color}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="search"
-          options={{
-            title: "Search",
-            tabBarTestID: "tabSearch",
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="magnify" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="capture"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: "Settings",
-            tabBarTestID: "tabSettings",
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons
-                name="cog-outline"
-                size={size}
-                color={color}
-              />
-            ),
-          }}
-        />
-      </Tabs>
-      <View
-        style={{
-          position: "absolute",
-          bottom: tabBarTotalHeight,
-          left: 0,
-          right: 0,
+      />
+      <Tabs.Screen
+        name="views"
+        options={{
+          title: "Views",
+          tabBarTestID: "tabViews",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="view-list"
+              size={size}
+              color={color}
+            />
+          ),
         }}
-      >
-        <CaptureBar />
-      </View>
-    </View>
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: "Search",
+          tabBarTestID: "tabSearch",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="magnify" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="capture"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarTestID: "tabSettings",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="cog-outline"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
