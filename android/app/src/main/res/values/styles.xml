@@ -11,4 +11,12 @@
     <item name="postSplashScreenTheme">@style/AppTheme</item>
     <item name="android:windowSplashScreenBehavior">icon_preferred</item>
   </style>
+  <style name="Theme.QuickCapture" parent="Theme.AppCompat.DayNight.Dialog">
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:backgroundDimEnabled">true</item>
+    <item name="android:windowIsFloating">true</item>
+    <item name="android:windowNoTitle">true</item>
+    <item name="android:windowCloseOnTouchOutside">true</item>
+    <item name="colorPrimary">@color/colorPrimary</item>
+  </style>
 </resources>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@android:color/white">
+
+    <TextView
+        android:id="@+id/capture_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quick Capture"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#1C1B1F"
+        android:layout_marginBottom="12dp" />
+
+    <EditText
+        android:id="@+id/capture_edit_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter task..."
+        android:inputType="text"
+        android:imeOptions="actionDone"
+        android:background="@drawable/edit_text_background"
+        android:padding="12dp"
+        android:textSize="16sp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp">
+
+        <Button
+            android:id="@+id/capture_submit_button"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Capture"
+            android:backgroundTint="#6750A4"
+            android:textColor="@android:color/white" />
+
+        <ProgressBar
+            android:id="@+id/capture_progress"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            android:indeterminateTint="@android:color/white" />
+
+    </FrameLayout>
+
+</LinearLayout>
