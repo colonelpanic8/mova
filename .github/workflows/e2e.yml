@@ -14,6 +14,20 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      - name: Free disk space
+        run: |
+          echo "Before cleanup:"
+          df -h
+          # Remove unnecessary large packages (keep Android SDK!)
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/share/swift
+          sudo docker image prune --all --force
+          echo "After cleanup:"
+          df -h
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -37,14 +51,6 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
-      - name: Cache Nix store
-        uses: actions/cache@v4
-        with:
-          path: /nix/store
-          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-nix-
-
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -58,13 +64,15 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build org-agenda-api container
+      - name: Build and load org-agenda-api container
         run: |
           echo "Building org-agenda-api container from GitHub..."
           nix build "github:colonelpanic8/org-agenda-api#container" -o result-container
+
           # Load and capture the image name from docker load output
           LOAD_OUTPUT=$(docker load < result-container)
           echo "Docker load output: $LOAD_OUTPUT"
+
           # Extract image name from "Loaded image: <name>" output
           IMAGE_NAME=$(echo "$LOAD_OUTPUT" | grep -oP 'Loaded image: \K.*' | tr -d '[:space:]')
           echo "Extracted image name: $IMAGE_NAME"
@@ -73,6 +81,13 @@ jobs:
             exit 1
           fi
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+          # Clean up Nix store to free disk space for Android build
+          rm -rf result-container
+          nix-collect-garbage -d
+
+          echo "After Nix cleanup:"
+          df -h
 
       - name: Prepare test data
         run: |
@@ -170,6 +185,7 @@ jobs:
           path: |
             artifacts/
             android/app/build/outputs/androidTest-results/
+          if-no-files-found: ignore
 
       - name: Upload Detox logs
         if: failure()
@@ -177,6 +193,7 @@ jobs:
         with:
           name: detox-logs
           path: artifacts/
+          if-no-files-found: ignore
 
       - name: Stop test container
         if: always()
