@@ -26,7 +26,7 @@ export function StatePicker({ value, onChange }: StatePickerProps) {
         State
       </Text>
       <View style={styles.chips}>
-        {allStates.slice(0, 4).map((state) => (
+        {allStates.map((state) => (
           <Chip
             key={state}
             selected={value === state}
@@ -55,7 +55,5 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
   },
-  chip: {
-    marginRight: 4,
-  },
+  chip: {},
 });
