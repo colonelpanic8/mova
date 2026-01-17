@@ -4,11 +4,13 @@ import { FlexWidget, TextWidget } from "react-native-android-widget";
 interface QuickCaptureWidgetProps {
   inputText?: string;
   status?: "idle" | "submitting" | "success" | "error" | "offline";
+  templateName?: string;
 }
 
 export function QuickCaptureWidget({
   inputText = "",
   status = "idle",
+  templateName = "Quick Capture",
 }: QuickCaptureWidgetProps) {
   const getBackgroundColor = () => {
     switch (status) {
@@ -65,7 +67,7 @@ export function QuickCaptureWidget({
         clickAction="OPEN_APP"
       >
         <TextWidget
-          text={inputText || "Tap to add todo..."}
+          text={inputText || `Tap to add (${templateName})...`}
           style={{
             fontSize: 14,
             color: inputText ? "#212121" : "#757575",
