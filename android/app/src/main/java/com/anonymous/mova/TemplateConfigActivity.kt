@@ -107,7 +107,9 @@ class TemplateConfigActivity : AppCompatActivity() {
                 id = View.generateViewId()
                 text = template.name
                 textSize = 16f
-                setPadding(0, 16, 0, 16)
+                setTextColor(0xFF1C1B1F.toInt())  // Dark text color
+                setPadding(24, 24, 24, 24)
+                buttonTintList = android.content.res.ColorStateList.valueOf(0xFF6750A4.toInt())  // Purple tint
             }
             radioGroup.addView(radioButton)
 

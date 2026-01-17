@@ -1,7 +1,7 @@
 import { api, TemplatesResponse } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { NativeModules, ScrollView, StyleSheet, View } from "react-native";
 import type { WidgetConfigurationScreenProps } from "react-native-android-widget";
 import {
   ActivityIndicator,
@@ -12,16 +12,32 @@ import {
 } from "react-native-paper";
 import { QuickCaptureWidget } from "./QuickCaptureWidget";
 
+const { SharedStorage } = NativeModules;
+
 const AUTH_STORAGE_KEY = "mova_auth";
 const QUICK_CAPTURE_KEY = "__quick_capture__";
 
-// Get the storage key for a widget's template selection
+// Get the storage key for a widget's template selection (for AsyncStorage - JS config screen)
 export function getWidgetTemplateKey(widgetId: number): string {
   return `mova_widget_template_${widgetId}`;
 }
 
 // Get the selected template for a widget
+// Checks both SharedPreferences (native config) and AsyncStorage (JS config)
 export async function getWidgetTemplate(widgetId: number): Promise<string> {
+  // First check SharedPreferences (used by native TemplateConfigActivity)
+  if (SharedStorage) {
+    try {
+      const template = await SharedStorage.getItem(`widget_${widgetId}_template_key`);
+      if (template) {
+        return template;
+      }
+    } catch (e) {
+      console.log("[Widget] Failed to read from SharedPreferences:", e);
+    }
+  }
+
+  // Fall back to AsyncStorage (used by JS WidgetConfigurationScreen)
   const key = getWidgetTemplateKey(widgetId);
   const template = await AsyncStorage.getItem(key);
   return template || QUICK_CAPTURE_KEY;
@@ -56,9 +72,11 @@ export function WidgetConfigurationScreen({
       const data = await api.getTemplates();
       setTemplates(data);
 
-      // Load previously selected template for this widget
+      // Load previously selected template for this widget (from SharedPreferences)
       const savedTemplate = await getWidgetTemplate(widgetInfo.widgetId);
-      setSelectedTemplate(savedTemplate);
+      if (savedTemplate) {
+        setSelectedTemplate(savedTemplate);
+      }
     } catch (err) {
       console.error("Failed to load templates:", err);
       setError("Failed to load templates");
@@ -76,16 +94,18 @@ export function WidgetConfigurationScreen({
   };
 
   const handleConfirm = async () => {
-    // Save the selected template
-    const key = getWidgetTemplateKey(widgetInfo.widgetId);
-    await AsyncStorage.setItem(key, selectedTemplate);
-
-    // Render the widget
+    // Save the selected template to SharedPreferences (same as native config)
     const templateName =
       selectedTemplate === QUICK_CAPTURE_KEY
         ? "Quick Capture"
         : templates?.[selectedTemplate]?.name || "Capture";
 
+    if (SharedStorage) {
+      await SharedStorage.setItem(`widget_${widgetInfo.widgetId}_template_key`, selectedTemplate);
+      await SharedStorage.setItem(`widget_${widgetInfo.widgetId}_template_name`, templateName);
+    }
+
+    // Render the widget
     renderWidget(<QuickCaptureWidget templateName={templateName} />);
     setResult("ok");
   };
