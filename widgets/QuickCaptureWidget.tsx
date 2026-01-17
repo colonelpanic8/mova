@@ -4,11 +4,13 @@ import { FlexWidget, TextWidget } from "react-native-android-widget";
 interface QuickCaptureWidgetProps {
   status?: "idle" | "submitting" | "success" | "error" | "offline";
   widgetId?: number;
+  templateName?: string;
 }
 
 export function QuickCaptureWidget({
   status = "idle",
   widgetId,
+  templateName = "Quick Capture",
 }: QuickCaptureWidgetProps) {
   // Match app's surfaceVariant color
   const getContainerColor = () => {
@@ -67,7 +69,7 @@ export function QuickCaptureWidget({
         }}
       >
         <TextWidget
-          text={getStatusText()}
+          text={status === "idle" ? `Tap to add (${templateName})...` : getStatusText()}
           style={{
             fontSize: 14,
             color: status === "idle" ? "#49454F" : "#1C1B1F",

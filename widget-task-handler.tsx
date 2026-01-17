@@ -1,8 +1,13 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import { FlexWidget, TextWidget } from "react-native-android-widget";
 import { widgetTaskHandler } from "./widgets/QuickCaptureTask";
 import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
+import { getWidgetTemplate } from "./widgets/WidgetConfigurationScreen";
+
+const QUICK_CAPTURE_KEY = "__quick_capture__";
+const AUTH_STORAGE_KEY = "mova_auth";
 
 const nameToWidget = {
   QuickCaptureWidget: QuickCaptureWidget,
@@ -28,6 +33,37 @@ function ErrorWidget({ message }: { message: string }) {
   );
 }
 
+async function getTemplateName(widgetId: number): Promise<string> {
+  try {
+    const templateKey = await getWidgetTemplate(widgetId);
+
+    if (templateKey === QUICK_CAPTURE_KEY) {
+      return "Quick Capture";
+    }
+
+    // Try to get template name from API
+    const authData = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+    if (authData) {
+      const { apiUrl, username, password } = JSON.parse(authData);
+      const response = await fetch(`${apiUrl}/templates`, {
+        headers: {
+          Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+        },
+      });
+      if (response.ok) {
+        const templates = await response.json();
+        if (templates[templateKey]) {
+          return templates[templateKey].name;
+        }
+      }
+    }
+
+    return "Capture";
+  } catch {
+    return "Quick Capture";
+  }
+}
+
 export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
   const { widgetInfo, widgetAction, clickAction, renderWidget } = props;
 
@@ -47,6 +83,9 @@ export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
       return;
     }
 
+    // Get the template name for this widget
+    const templateName = await getTemplateName(widgetInfo.widgetId);
+
     // Handle click actions
     if (clickAction) {
       const result = await widgetTaskHandler(props);
@@ -61,12 +100,12 @@ export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
               ? "error"
               : "idle";
 
-      renderWidget(<Widget status={status} widgetId={widgetInfo.widgetId} />);
+      renderWidget(<Widget status={status} widgetId={widgetInfo.widgetId} templateName={templateName} />);
       return;
     }
 
     // Default render
-    renderWidget(<Widget widgetId={widgetInfo.widgetId} />);
+    renderWidget(<Widget widgetId={widgetInfo.widgetId} templateName={templateName} />);
   } catch (error) {
     console.error("[Widget] Error:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);

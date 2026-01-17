@@ -2,8 +2,14 @@ import { CaptureBar } from "@/components/CaptureBar";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
-import React from "react";
-import { Pressable, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  View,
+} from "react-native";
 import { useTheme } from "react-native-paper";
 
 // Hidden routes that shouldn't appear in tab bar
@@ -13,72 +19,100 @@ const HIDDEN_ROUTES = new Set(["capture"]);
 function CustomTabBar(props: BottomTabBarProps) {
   const { state, descriptors, navigation, insets } = props;
   const theme = useTheme();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   return (
-    <View style={{ backgroundColor: theme.colors.surface }}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ backgroundColor: theme.colors.surface }}
+    >
       <CaptureBar />
-      <View
-        style={{
-          flexDirection: "row",
-          paddingBottom: insets.bottom,
-          backgroundColor: theme.colors.surface,
-        }}
-      >
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
+      {!keyboardVisible && (
+        <View
+          style={{
+            flexDirection: "row",
+            paddingBottom: insets.bottom,
+            backgroundColor: theme.colors.surface,
+          }}
+        >
+          {state.routes.map((route, index) => {
+            const { options } = descriptors[route.key];
 
-          // Skip hidden tabs
-          if (HIDDEN_ROUTES.has(route.name)) {
-            return null;
-          }
-
-          const isFocused = state.index === index;
-          const color = isFocused ? theme.colors.primary : theme.colors.outline;
-
-          const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+            // Skip hidden tabs
+            if (HIDDEN_ROUTES.has(route.name)) {
+              return null;
             }
-          };
 
-          const onLongPress = () => {
-            navigation.emit({
-              type: "tabLongPress",
-              target: route.key,
+            const isFocused = state.index === index;
+            const color = isFocused
+              ? theme.colors.primary
+              : theme.colors.outline;
+
+            const onPress = () => {
+              const event = navigation.emit({
+                type: "tabPress",
+                target: route.key,
+                canPreventDefault: true,
+              });
+
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            const onLongPress = () => {
+              navigation.emit({
+                type: "tabLongPress",
+                target: route.key,
+              });
+            };
+
+            // Get the icon from options
+            const icon = options.tabBarIcon?.({
+              focused: isFocused,
+              color,
+              size: 24,
             });
-          };
 
-          // Get the icon from options
-          const icon = options.tabBarIcon?.({ focused: isFocused, color, size: 24 });
-
-          return (
-            <Pressable
-              key={route.key}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              testID={(options as any).tabBarTestID}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-                paddingVertical: 8,
-              }}
-            >
-              {icon}
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
+            return (
+              <Pressable
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityState={isFocused ? { selected: true } : {}}
+                accessibilityLabel={options.tabBarAccessibilityLabel}
+                testID={(options as any).tabBarButtonTestID}
+                onPress={onPress}
+                onLongPress={onLongPress}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingVertical: 8,
+                }}
+              >
+                {icon}
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </KeyboardAvoidingView>
   );
 }
 
@@ -101,7 +135,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Agenda",
-          tabBarTestID: "tabAgenda",
+          tabBarButtonTestID: "tabAgenda",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="calendar-today"
@@ -115,7 +149,7 @@ export default function TabLayout() {
         name="views"
         options={{
           title: "Views",
-          tabBarTestID: "tabViews",
+          tabBarButtonTestID: "tabViews",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="view-list"
@@ -129,7 +163,7 @@ export default function TabLayout() {
         name="search"
         options={{
           title: "Search",
-          tabBarTestID: "tabSearch",
+          tabBarButtonTestID: "tabSearch",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="magnify" size={size} color={color} />
           ),
@@ -145,7 +179,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Settings",
-          tabBarTestID: "tabSettings",
+          tabBarButtonTestID: "tabSettings",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="cog-outline"

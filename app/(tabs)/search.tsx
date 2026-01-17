@@ -95,7 +95,10 @@ export default function SearchScreen() {
   }
 
   return (
-    <TodoEditingProvider onTodoUpdated={handleTodoUpdated} todoStates={todoStates}>
+    <TodoEditingProvider
+      onTodoUpdated={handleTodoUpdated}
+      todoStates={todoStates}
+    >
       <View
         testID="searchScreen"
         style={[styles.container, { backgroundColor: theme.colors.background }]}

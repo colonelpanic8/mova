@@ -108,8 +108,13 @@ export function useTodoEditing(
       const existingDate = type === "schedule" ? todo.scheduled : todo.deadline;
       if (existingDate) {
         // Parse date-only strings as local time to avoid timezone shift
-        const hasTime = existingDate.includes("T") && existingDate.includes(":");
-        setSelectedDate(hasTime ? new Date(existingDate) : new Date(existingDate + "T00:00:00"));
+        const hasTime =
+          existingDate.includes("T") && existingDate.includes(":");
+        setSelectedDate(
+          hasTime
+            ? new Date(existingDate)
+            : new Date(existingDate + "T00:00:00"),
+        );
       } else {
         setSelectedDate(new Date());
       }
@@ -239,7 +244,12 @@ export function useTodoEditing(
 
   const handleUpdateTodo = useCallback(
     async (updates: TodoUpdates) => {
-      console.log("[handleUpdateTodo] called with updates:", updates, "editingTodo:", editingTodo?.title);
+      console.log(
+        "[handleUpdateTodo] called with updates:",
+        updates,
+        "editingTodo:",
+        editingTodo?.title,
+      );
       if (!editingTodo) {
         console.log("[handleUpdateTodo] No editingTodo, returning early");
         return;
@@ -343,7 +353,14 @@ export function useTodoEditing(
   // Handle native date picker result
   const handleDatePickerChange = useCallback(
     (event: any, date?: Date) => {
-      console.log("[DatePicker] event:", event.type, "date:", date, "editModalType:", editModalType);
+      console.log(
+        "[DatePicker] event:",
+        event.type,
+        "date:",
+        date,
+        "editModalType:",
+        editModalType,
+      );
       if (event.type === "dismissed") {
         closeEditModal();
         return;
@@ -354,11 +371,22 @@ export function useTodoEditing(
       ) {
         const dateString = formatLocalDate(date);
         // API expects "scheduled" not "schedule"
-        const fieldName = editModalType === "schedule" ? "scheduled" : editModalType;
-        console.log("[DatePicker] Updating with dateString:", dateString, "fieldName:", fieldName);
+        const fieldName =
+          editModalType === "schedule" ? "scheduled" : editModalType;
+        console.log(
+          "[DatePicker] Updating with dateString:",
+          dateString,
+          "fieldName:",
+          fieldName,
+        );
         handleUpdateTodo({ [fieldName]: dateString });
       } else {
-        console.log("[DatePicker] Not updating - date:", date, "editModalType:", editModalType);
+        console.log(
+          "[DatePicker] Not updating - date:",
+          date,
+          "editModalType:",
+          editModalType,
+        );
       }
     },
     [editModalType, handleUpdateTodo, closeEditModal],
@@ -369,7 +397,8 @@ export function useTodoEditing(
       ? [...todoStates.active, ...todoStates.done]
       : ["TODO", "NEXT", "WAITING", "DONE"];
 
-    const isDateModal = editModalType === "schedule" || editModalType === "deadline";
+    const isDateModal =
+      editModalType === "schedule" || editModalType === "deadline";
 
     return (
       <>
@@ -394,7 +423,8 @@ export function useTodoEditing(
                 if (!isNaN(parsed.getTime())) {
                   // Auto-save on selection
                   const dateString = formatLocalDate(parsed);
-                  const fieldName = editModalType === "schedule" ? "scheduled" : "deadline";
+                  const fieldName =
+                    editModalType === "schedule" ? "scheduled" : "deadline";
                   handleUpdateTodo({ [fieldName]: dateString });
                 }
               }}
