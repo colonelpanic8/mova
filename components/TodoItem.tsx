@@ -164,6 +164,7 @@ export function TodoItem({ todo }: TodoItemProps) {
               <Chip
                 mode="outlined"
                 compact
+                onPress={() => openPriorityModal(todo)}
                 style={styles.priorityChip}
                 textStyle={{ fontSize: 10 }}
               >
