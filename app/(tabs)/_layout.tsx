@@ -3,7 +3,13 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  View,
+} from "react-native";
 import { useTheme } from "react-native-paper";
 
 // Hidden routes that shouldn't appear in tab bar
@@ -18,11 +24,11 @@ function CustomTabBar(props: BottomTabBarProps) {
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      () => setKeyboardVisible(true)
+      () => setKeyboardVisible(true),
     );
     const hideSubscription = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setKeyboardVisible(false)
+      () => setKeyboardVisible(false),
     );
 
     return () => {
@@ -54,7 +60,9 @@ function CustomTabBar(props: BottomTabBarProps) {
             }
 
             const isFocused = state.index === index;
-            const color = isFocused ? theme.colors.primary : theme.colors.outline;
+            const color = isFocused
+              ? theme.colors.primary
+              : theme.colors.outline;
 
             const onPress = () => {
               const event = navigation.emit({
@@ -76,7 +84,11 @@ function CustomTabBar(props: BottomTabBarProps) {
             };
 
             // Get the icon from options
-            const icon = options.tabBarIcon?.({ focused: isFocused, color, size: 24 });
+            const icon = options.tabBarIcon?.({
+              focused: isFocused,
+              color,
+              size: 24,
+            });
 
             return (
               <Pressable
@@ -84,7 +96,7 @@ function CustomTabBar(props: BottomTabBarProps) {
                 accessibilityRole="button"
                 accessibilityState={isFocused ? { selected: true } : {}}
                 accessibilityLabel={options.tabBarAccessibilityLabel}
-                testID={(options as any).tabBarTestID}
+                testID={(options as any).tabBarButtonTestID}
                 onPress={onPress}
                 onLongPress={onLongPress}
                 style={{
@@ -123,7 +135,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Agenda",
-          tabBarTestID: "tabAgenda",
+          tabBarButtonTestID: "tabAgenda",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="calendar-today"
@@ -137,7 +149,7 @@ export default function TabLayout() {
         name="views"
         options={{
           title: "Views",
-          tabBarTestID: "tabViews",
+          tabBarButtonTestID: "tabViews",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="view-list"
@@ -151,7 +163,7 @@ export default function TabLayout() {
         name="search"
         options={{
           title: "Search",
-          tabBarTestID: "tabSearch",
+          tabBarButtonTestID: "tabSearch",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="magnify" size={size} color={color} />
           ),
@@ -167,7 +179,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Settings",
-          tabBarTestID: "tabSettings",
+          tabBarButtonTestID: "tabSettings",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="cog-outline"
