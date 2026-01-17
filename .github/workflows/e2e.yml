@@ -62,9 +62,16 @@ jobs:
         run: |
           echo "Building org-agenda-api container from GitHub..."
           nix build "github:colonelpanic8/org-agenda-api#container" -o result-container
-          docker load < result-container
-          # Get the image name
-          IMAGE_NAME=$(docker images --format "{{.Repository}}:{{.Tag}}" | head -1)
+          # Load and capture the image name from docker load output
+          LOAD_OUTPUT=$(docker load < result-container)
+          echo "Docker load output: $LOAD_OUTPUT"
+          # Extract image name from "Loaded image: <name>" output
+          IMAGE_NAME=$(echo "$LOAD_OUTPUT" | grep -oP 'Loaded image: \K.*' | tr -d '[:space:]')
+          echo "Extracted image name: $IMAGE_NAME"
+          if [ -z "$IMAGE_NAME" ]; then
+            echo "Failed to extract image name!"
+            exit 1
+          fi
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
       - name: Prepare test data
