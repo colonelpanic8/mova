@@ -91,6 +91,10 @@ export default function LoginScreen() {
                   setShowUrlSuggestions(true);
                 }}
                 onFocus={() => setShowUrlSuggestions(true)}
+                onBlur={() => {
+                  // Delay to allow menu item click to register
+                  setTimeout(() => setShowUrlSuggestions(false), 150);
+                }}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
