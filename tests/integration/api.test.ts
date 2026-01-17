@@ -237,7 +237,9 @@ describe("org-agenda-api integration tests", () => {
 
       // Fetch todos again and verify the scheduled date persisted
       const updatedTodos = await client.getAllTodos();
-      const updatedTodo = updatedTodos.todos.find((t: any) => t.title === title);
+      const updatedTodo = updatedTodos.todos.find(
+        (t: any) => t.title === title,
+      );
 
       expect(updatedTodo).toBeTruthy();
       expect(updatedTodo.scheduled).toBe(dateString);
@@ -276,7 +278,9 @@ describe("org-agenda-api integration tests", () => {
 
       // Fetch todos again and verify the deadline persisted
       const updatedTodos = await client.getAllTodos();
-      const updatedTodo = updatedTodos.todos.find((t: any) => t.title === title);
+      const updatedTodo = updatedTodos.todos.find(
+        (t: any) => t.title === title,
+      );
 
       expect(updatedTodo).toBeTruthy();
       expect(updatedTodo.deadline).toBe(dateString);
@@ -306,7 +310,9 @@ describe("org-agenda-api integration tests", () => {
       // Wait for the todo to appear (cache invalidation may take time)
       const todo = await waitForTodo(title, 10000);
       if (!todo) {
-        console.log("Warning: Todo not found in cache after creation - skipping field name test");
+        console.log(
+          "Warning: Todo not found in cache after creation - skipping field name test",
+        );
         return; // Skip test if todo doesn't appear (caching issue)
       }
       expect(todo).toBeTruthy();
@@ -338,7 +344,9 @@ describe("org-agenda-api integration tests", () => {
 
       // Fetch todos again - the scheduled date should NOT have changed
       const updatedTodos = await client.getAllTodos();
-      const updatedTodo = updatedTodos.todos.find((t: any) => t.title === title);
+      const updatedTodo = updatedTodos.todos.find(
+        (t: any) => t.title === title,
+      );
 
       expect(updatedTodo).toBeTruthy();
       // CRITICAL: The scheduled date should still be null because we sent wrong field
@@ -353,7 +361,9 @@ describe("org-agenda-api integration tests", () => {
       // Wait for the todo to appear (cache invalidation may take time)
       const todo = await waitForTodo(title, 10000);
       if (!todo) {
-        console.log("Warning: Todo not found in cache after creation - skipping field name test");
+        console.log(
+          "Warning: Todo not found in cache after creation - skipping field name test",
+        );
         return; // Skip test if todo doesn't appear (caching issue)
       }
       expect(todo).toBeTruthy();
@@ -384,7 +394,9 @@ describe("org-agenda-api integration tests", () => {
 
       // Fetch todos again - the scheduled date SHOULD have changed
       const updatedTodos = await client.getAllTodos();
-      const updatedTodo = updatedTodos.todos.find((t: any) => t.title === title);
+      const updatedTodo = updatedTodos.todos.find(
+        (t: any) => t.title === title,
+      );
 
       expect(updatedTodo).toBeTruthy();
       // CRITICAL: The scheduled date should now be set

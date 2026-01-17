@@ -129,10 +129,18 @@ describe("Agenda Screen - Todo Manipulation", () => {
     await element(by.text("Team meeting")).swipe("left", "fast", 0.5);
 
     // Should reveal Tomorrow, Schedule, Deadline, Priority buttons (use testIDs to avoid multiple matches)
-    await expect(element(by.id("tomorrowActionButton_Team_meeting"))).toBeVisible();
-    await expect(element(by.id("scheduleActionButton_Team_meeting"))).toBeVisible();
-    await expect(element(by.id("deadlineActionButton_Team_meeting"))).toBeVisible();
-    await expect(element(by.id("priorityActionButton_Team_meeting"))).toBeVisible();
+    await expect(
+      element(by.id("tomorrowActionButton_Team_meeting")),
+    ).toBeVisible();
+    await expect(
+      element(by.id("scheduleActionButton_Team_meeting")),
+    ).toBeVisible();
+    await expect(
+      element(by.id("deadlineActionButton_Team_meeting")),
+    ).toBeVisible();
+    await expect(
+      element(by.id("priorityActionButton_Team_meeting")),
+    ).toBeVisible();
   });
 
   it("should schedule todo for tomorrow using direct swipe action", async () => {

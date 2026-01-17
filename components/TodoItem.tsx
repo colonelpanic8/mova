@@ -14,7 +14,9 @@ export interface TodoItemProps {
 function formatDate(dateString: string): string {
   const hasTime = dateString.includes("T") && dateString.includes(":");
   // Parse date-only strings as local time to avoid timezone shift
-  const date = hasTime ? new Date(dateString) : new Date(dateString + "T00:00:00");
+  const date = hasTime
+    ? new Date(dateString)
+    : new Date(dateString + "T00:00:00");
   if (hasTime) {
     return date.toLocaleString(undefined, {
       month: "short",
@@ -32,7 +34,8 @@ export function getTodoKey(todo: Todo): string {
 
 export function TodoItem({ todo }: TodoItemProps) {
   const theme = useTheme();
-  const { getTodoStateColor, getActionColor, getPriorityColor } = useColorPalette();
+  const { getTodoStateColor, getActionColor, getPriorityColor } =
+    useColorPalette();
   const {
     completingIds,
     updatingIds,
@@ -169,19 +172,33 @@ export function TodoItem({ todo }: TodoItemProps) {
                 onPress={() => openPriorityModal(todo)}
                 style={[
                   styles.priorityChip,
-                  ["A", "B", "C", "D", "E"].includes(todo.priority.toUpperCase())
-                    ? { backgroundColor: getPriorityColor(todo.priority.toUpperCase() as PriorityLevel) }
+                  ["A", "B", "C", "D", "E"].includes(
+                    todo.priority.toUpperCase(),
+                  )
+                    ? {
+                        backgroundColor: getPriorityColor(
+                          todo.priority.toUpperCase() as PriorityLevel,
+                        ),
+                      }
                     : { backgroundColor: theme.colors.surfaceVariant },
                 ]}
                 textStyle={{
                   fontSize: 10,
-                  color: ["A", "B", "C", "D", "E"].includes(todo.priority.toUpperCase()) ? "white" : theme.colors.onSurfaceVariant,
+                  color: ["A", "B", "C", "D", "E"].includes(
+                    todo.priority.toUpperCase(),
+                  )
+                    ? "white"
+                    : theme.colors.onSurfaceVariant,
                 }}
               >
                 #{todo.priority}
               </Chip>
             )}
-            <Text variant="bodyMedium" style={styles.todoTitle} numberOfLines={2}>
+            <Text
+              variant="bodyMedium"
+              style={styles.todoTitle}
+              numberOfLines={2}
+            >
               {todo.title}
             </Text>
           </View>
@@ -200,7 +217,10 @@ export function TodoItem({ todo }: TodoItemProps) {
           {todo.tags && todo.tags.length > 0 && (
             <View style={styles.tagsContainer}>
               {todo.tags.map((tag, i) => (
-                <Text key={i} style={[styles.tag, { color: theme.colors.primary }]}>
+                <Text
+                  key={i}
+                  style={[styles.tag, { color: theme.colors.primary }]}
+                >
                   :{tag}:
                 </Text>
               ))}

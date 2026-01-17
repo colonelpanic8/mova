@@ -17,9 +17,8 @@ const QUICK_CAPTURE_KEY = "__quick_capture__";
 
 export function CaptureBar() {
   const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
-  const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>(
-    QUICK_CAPTURE_KEY,
-  );
+  const [selectedTemplateKey, setSelectedTemplateKey] =
+    useState<string>(QUICK_CAPTURE_KEY);
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -180,7 +179,9 @@ export function CaptureBar() {
                   key={key}
                   onPress={() => handleTemplateSelect(key)}
                   title={template.name}
-                  leadingIcon={key === selectedTemplateKey ? "check" : undefined}
+                  leadingIcon={
+                    key === selectedTemplateKey ? "check" : undefined
+                  }
                 />
               ))}
             </>
@@ -219,7 +220,9 @@ export function CaptureBar() {
         onDismiss={() => setMessage(null)}
         duration={2000}
         style={[
-          message?.isError ? { backgroundColor: theme.colors.error } : undefined,
+          message?.isError
+            ? { backgroundColor: theme.colors.error }
+            : undefined,
           styles.snackbar,
         ]}
       >

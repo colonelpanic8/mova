@@ -34,7 +34,8 @@ export function WidgetConfigurationScreen({
 }: WidgetConfigurationScreenProps) {
   const theme = useTheme();
   const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(QUICK_CAPTURE_KEY);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<string>(QUICK_CAPTURE_KEY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,9 +81,10 @@ export function WidgetConfigurationScreen({
     await AsyncStorage.setItem(key, selectedTemplate);
 
     // Render the widget
-    const templateName = selectedTemplate === QUICK_CAPTURE_KEY
-      ? "Quick Capture"
-      : templates?.[selectedTemplate]?.name || "Capture";
+    const templateName =
+      selectedTemplate === QUICK_CAPTURE_KEY
+        ? "Quick Capture"
+        : templates?.[selectedTemplate]?.name || "Capture";
 
     renderWidget(<QuickCaptureWidget templateName={templateName} />);
     setResult("ok");
@@ -94,7 +96,9 @@ export function WidgetConfigurationScreen({
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <View style={styles.centered}>
           <ActivityIndicator size="large" />
           <Text style={styles.loadingText}>Loading templates...</Text>
@@ -105,7 +109,9 @@ export function WidgetConfigurationScreen({
 
   if (error) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <View style={styles.centered}>
           <Text style={[styles.errorText, { color: theme.colors.error }]}>
             {error}
@@ -121,7 +127,9 @@ export function WidgetConfigurationScreen({
   const templateKeys = templates ? Object.keys(templates) : [];
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <View style={styles.header}>
         <Text variant="headlineSmall" style={styles.title}>
           Configure Widget
@@ -155,10 +163,16 @@ export function WidgetConfigurationScreen({
             key={key}
             title={templates![key].name}
             description={`${templates![key].prompts.length} field(s)`}
-            left={(props) => <List.Icon {...props} icon="file-document-outline" />}
+            left={(props) => (
+              <List.Icon {...props} icon="file-document-outline" />
+            )}
             right={(props) =>
               selectedTemplate === key ? (
-                <List.Icon {...props} icon="check" color={theme.colors.primary} />
+                <List.Icon
+                  {...props}
+                  icon="check"
+                  color={theme.colors.primary}
+                />
               ) : null
             }
             onPress={() => handleSelectTemplate(key)}

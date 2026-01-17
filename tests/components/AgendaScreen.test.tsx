@@ -221,7 +221,11 @@ describe("AgendaScreen", () => {
       "testuser",
       "testpass",
     );
-    expect(api.getAgenda).toHaveBeenCalledWith("day", expect.any(String), expect.any(Boolean));
+    expect(api.getAgenda).toHaveBeenCalledWith(
+      "day",
+      expect.any(String),
+      expect.any(Boolean),
+    );
   });
 
   it("should display the date header", async () => {

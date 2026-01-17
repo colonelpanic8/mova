@@ -32,12 +32,14 @@ export function base64Encode(str: string): string {
     // First character is always valid
     result += chars.charAt((a >> 2) & 63);
     // Second character
-    result +=
-      chars.charAt(((a & 3) << 4) | ((b !== undefined ? b >> 4 : 0) & 15));
+    result += chars.charAt(
+      ((a & 3) << 4) | ((b !== undefined ? b >> 4 : 0) & 15),
+    );
     // Third character (or padding)
     if (b !== undefined) {
-      result +=
-        chars.charAt(((b & 15) << 2) | ((c !== undefined ? c >> 6 : 0) & 3));
+      result += chars.charAt(
+        ((b & 15) << 2) | ((c !== undefined ? c >> 6 : 0) & 3),
+      );
     } else {
       result += "=";
     }
