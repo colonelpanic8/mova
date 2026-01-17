@@ -16,6 +16,10 @@ build-android:
 build-android-device:
     cd android && ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -DtestBuildType=debug -PreactNativeArchitectures=arm64-v8a
 
+# Build Android release APK (arm64)
+release-android:
+    cd android && ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
+
 # Clean Android build
 clean-android:
     cd android && ./gradlew clean

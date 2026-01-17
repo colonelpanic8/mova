@@ -13,9 +13,15 @@
  */
 
 import { by, device, element, expect, waitFor } from "detox";
+import { setupTestWithLoginOnce } from "./helpers/test-helpers";
+// Use Jest's expect for value assertions (not UI elements)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { expect: jestExpect } = require("@jest/globals");
 
 // Helper to fetch a todo via API and verify its scheduled date
-async function fetchTodoScheduledDate(todoTitle: string): Promise<string | null> {
+async function fetchTodoScheduledDate(
+  todoTitle: string,
+): Promise<string | null> {
   const baseUrl = process.env.API_URL || "http://10.0.2.2:8080";
   try {
     const response = await fetch(`${baseUrl}/get-all-todos`);
@@ -27,7 +33,6 @@ async function fetchTodoScheduledDate(todoTitle: string): Promise<string | null>
     return null;
   }
 }
-import { setupTestWithLoginOnce } from "./helpers/test-helpers";
 
 // Helper to swipe and tap a button for a specific todo
 async function swipeAndTapButton(
@@ -165,8 +170,8 @@ describe("Scheduling from Agenda", () => {
     const expectedDate = tomorrow.toISOString().slice(0, 10);
 
     // The scheduled date should have changed to tomorrow
-    expect(scheduledAfter).not.toBe(scheduledBefore);
-    expect(scheduledAfter).toBe(expectedDate);
+    jestExpect(scheduledAfter).not.toBe(scheduledBefore);
+    jestExpect(scheduledAfter).toBe(expectedDate);
   });
 
   it("should open native date picker when tapping schedule button", async () => {
@@ -254,10 +259,12 @@ describe("Scheduling from Agenda", () => {
 
     // The scheduled date should have changed (it will be set to today's date by default picker)
     // At minimum, verify the API was actually called and a date was set
-    expect(scheduledAfter).not.toBeNull();
+    jestExpect(scheduledAfter).not.toBeNull();
     // If it was previously null, it should now be set
     // If it was previously set, it should have been updated (might be same date if user didn't change)
-    console.log(`Scheduled date changed: ${scheduledBefore} -> ${scheduledAfter}`);
+    console.log(
+      `Scheduled date changed: ${scheduledBefore} -> ${scheduledAfter}`,
+    );
   });
 
   it("should schedule item for a week from now using date picker", async () => {
@@ -277,7 +284,9 @@ describe("Scheduling from Agenda", () => {
       // Android date pickers often have navigation arrows
       try {
         // Try tapping "Next" button multiple times to go forward
-        const nextButton = element(by.type("android.widget.ImageButton")).atIndex(1);
+        const nextButton = element(
+          by.type("android.widget.ImageButton"),
+        ).atIndex(1);
         await nextButton.tap();
         await new Promise((resolve) => setTimeout(resolve, 300));
       } catch {

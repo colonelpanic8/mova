@@ -179,7 +179,10 @@ export default function AgendaScreen() {
     formatDateForApi(selectedDate) === formatDateForApi(new Date());
 
   return (
-    <TodoEditingProvider onTodoUpdated={handleTodoUpdated} todoStates={todoStates}>
+    <TodoEditingProvider
+      onTodoUpdated={handleTodoUpdated}
+      todoStates={todoStates}
+    >
       <View
         testID="agendaScreen"
         style={[styles.container, { backgroundColor: theme.colors.background }]}

@@ -148,10 +148,16 @@ export default function ViewsScreen() {
   // Show view entries
   if (selectedView) {
     return (
-      <TodoEditingProvider onTodoUpdated={handleTodoUpdated} todoStates={todoStates}>
+      <TodoEditingProvider
+        onTodoUpdated={handleTodoUpdated}
+        todoStates={todoStates}
+      >
         <View
           testID="viewEntriesScreen"
-          style={[styles.container, { backgroundColor: theme.colors.background }]}
+          style={[
+            styles.container,
+            { backgroundColor: theme.colors.background },
+          ]}
         >
           <View
             style={[
