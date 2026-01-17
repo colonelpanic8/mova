@@ -4,7 +4,7 @@ import {
   PriorityPicker,
   StatePicker,
 } from "@/components/capture";
-import { api, CreateTodoOptions, TemplatePrompt, TemplatesResponse } from "@/services/api";
+import { api, TemplatePrompt, TemplatesResponse } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
   DateTimePickerEvent,
