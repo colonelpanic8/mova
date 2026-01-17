@@ -1,6 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/services/api";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import {
   Button,
+  Chip,
   Menu,
   Snackbar,
   Text,
@@ -19,6 +20,14 @@ import {
 
 const DEFAULT_URLS = ["https://colonelpanic-org-agenda.fly.dev"];
 
+// Detect the current origin on web platform
+function getWebOrigin(): string | null {
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return null;
+}
+
 export default function LoginScreen() {
   const [apiUrl, setApiUrl] = useState("");
   const [username, setUsername] = useState("");
@@ -26,8 +35,18 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showUrlSuggestions, setShowUrlSuggestions] = useState(false);
+  const [serverLocked, setServerLocked] = useState(false);
   const { login } = useAuth();
   const theme = useTheme();
+
+  // On web, auto-detect origin and lock the server field
+  useEffect(() => {
+    const origin = getWebOrigin();
+    if (origin) {
+      setApiUrl(origin);
+      setServerLocked(true);
+    }
+  }, []);
 
   const filteredUrls = DEFAULT_URLS.filter((url) =>
     url.toLowerCase().includes(apiUrl.toLowerCase()),
@@ -36,6 +55,17 @@ export default function LoginScreen() {
   const handleUrlSelect = (url: string) => {
     setApiUrl(url);
     setShowUrlSuggestions(false);
+  };
+
+  const handleUnlockServer = () => {
+    setServerLocked(false);
+  };
+
+  const handleLockServer = () => {
+    if (apiUrl) {
+      setServerLocked(true);
+      setShowUrlSuggestions(false);
+    }
   };
 
   async function handleLogin() {
@@ -62,6 +92,89 @@ export default function LoginScreen() {
     }
   }
 
+  const renderServerField = () => {
+    if (serverLocked) {
+      // Locked state - show as a chip/badge with edit button
+      return (
+        <View style={styles.lockedServerContainer}>
+          <View style={styles.lockedServerContent}>
+            <Text variant="labelMedium" style={styles.lockedServerLabel}>
+              Server
+            </Text>
+            <Chip
+              icon="server"
+              mode="outlined"
+              style={styles.serverChip}
+              textStyle={styles.serverChipText}
+            >
+              {apiUrl}
+            </Chip>
+          </View>
+          <Button
+            mode="text"
+            compact
+            onPress={handleUnlockServer}
+            style={styles.editButton}
+          >
+            Edit
+          </Button>
+        </View>
+      );
+    }
+
+    // Unlocked state - show editable text input with suggestions
+    return (
+      <View style={styles.urlInputContainer}>
+        <Menu
+          visible={showUrlSuggestions && filteredUrls.length > 0}
+          onDismiss={() => setShowUrlSuggestions(false)}
+          anchor={
+            <TextInput
+              testID="serverUrlInput"
+              label="Server URL"
+              value={apiUrl}
+              onChangeText={(text) => {
+                setApiUrl(text);
+                setShowUrlSuggestions(true);
+              }}
+              onFocus={() => setShowUrlSuggestions(true)}
+              onBlur={() => {
+                // Delay to allow menu item click to register
+                setTimeout(() => setShowUrlSuggestions(false), 150);
+              }}
+              onSubmitEditing={handleLockServer}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              placeholder="https://your-server.fly.dev"
+              style={styles.input}
+              mode="outlined"
+              right={
+                apiUrl ? (
+                  <TextInput.Icon icon="check" onPress={handleLockServer} />
+                ) : undefined
+              }
+            />
+          }
+          anchorPosition="bottom"
+          style={styles.menu}
+        >
+          {filteredUrls.map((url, index) => (
+            <Menu.Item
+              key={url}
+              onPress={() => {
+                handleUrlSelect(url);
+                setServerLocked(true);
+              }}
+              title={url}
+              testID={`urlSuggestion-${index}`}
+            />
+          ))}
+        </Menu>
+      </View>
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -77,45 +190,7 @@ export default function LoginScreen() {
           Connect to your org-agenda-api server
         </Text>
 
-        <View style={styles.urlInputContainer}>
-          <Menu
-            visible={showUrlSuggestions && filteredUrls.length > 0}
-            onDismiss={() => setShowUrlSuggestions(false)}
-            anchor={
-              <TextInput
-                testID="serverUrlInput"
-                label="Server URL"
-                value={apiUrl}
-                onChangeText={(text) => {
-                  setApiUrl(text);
-                  setShowUrlSuggestions(true);
-                }}
-                onFocus={() => setShowUrlSuggestions(true)}
-                onBlur={() => {
-                  // Delay to allow menu item click to register
-                  setTimeout(() => setShowUrlSuggestions(false), 150);
-                }}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-                placeholder="https://your-server.fly.dev"
-                style={styles.input}
-                mode="outlined"
-              />
-            }
-            anchorPosition="bottom"
-            style={styles.menu}
-          >
-            {filteredUrls.map((url, index) => (
-              <Menu.Item
-                key={url}
-                onPress={() => handleUrlSelect(url)}
-                title={url}
-                testID={`urlSuggestion-${index}`}
-              />
-            ))}
-          </Menu>
-        </View>
+        {renderServerField()}
 
         <TextInput
           testID="usernameInput"
@@ -200,5 +275,28 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
+  },
+  lockedServerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  lockedServerContent: {
+    flex: 1,
+  },
+  lockedServerLabel: {
+    marginBottom: 4,
+    opacity: 0.7,
+  },
+  serverChip: {
+    alignSelf: "flex-start",
+  },
+  serverChipText: {
+    fontSize: 14,
+  },
+  editButton: {
+    marginLeft: 8,
   },
 });
