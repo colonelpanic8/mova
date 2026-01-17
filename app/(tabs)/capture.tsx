@@ -1,5 +1,10 @@
 import { useAuth } from "@/context/AuthContext";
-import { api, TemplatePrompt, TemplatesResponse } from "@/services/api";
+import {
+  ExpandableOptions,
+  PriorityPicker,
+  StatePicker,
+} from "@/components/capture";
+import { api, CreateTodoOptions, TemplatePrompt, TemplatesResponse } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -173,6 +178,13 @@ export default function CaptureScreen() {
     isError: boolean;
   } | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [optionalFields, setOptionalFields] = useState<{
+    scheduled?: string;
+    deadline?: string;
+    priority?: string | null;
+    tags?: string[];
+    todo?: string;
+  }>({});
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
 
@@ -213,7 +225,15 @@ export default function CaptureScreen() {
   // Reset form values when template changes
   useEffect(() => {
     setValues({});
+    setOptionalFields({});
   }, [selectedTemplateKey]);
+
+  const handleOptionalFieldChange = <K extends keyof typeof optionalFields>(
+    field: K,
+    value: (typeof optionalFields)[K]
+  ) => {
+    setOptionalFields((prev) => ({ ...prev, [field]: value }));
+  };
 
   const isQuickCapture = selectedTemplateKey === QUICK_CAPTURE_KEY;
   const selectedTemplate =
@@ -238,7 +258,6 @@ export default function CaptureScreen() {
 
     try {
       if (isQuickCapture) {
-        // Quick Capture: just create a simple todo with title
         const title =
           typeof values["title"] === "string" ? values["title"].trim() : "";
         if (!title) {
@@ -247,10 +266,22 @@ export default function CaptureScreen() {
           return;
         }
 
-        const result = await api.createTodo(title);
+        // Build options from optional fields, filtering out empty values
+        const options: Record<string, string | string[] | undefined> = {};
+        if (optionalFields.scheduled) options.scheduled = optionalFields.scheduled;
+        if (optionalFields.deadline) options.deadline = optionalFields.deadline;
+        if (optionalFields.priority) options.priority = optionalFields.priority;
+        if (optionalFields.tags?.length) options.tags = optionalFields.tags;
+        if (optionalFields.todo && optionalFields.todo !== "TODO") options.todo = optionalFields.todo;
+
+        const result = await api.createTodo(
+          title,
+          Object.keys(options).length > 0 ? options : undefined
+        );
         if (result.status === "created") {
           setMessage({ text: "Captured!", isError: false });
           setValues({});
+          setOptionalFields({});
         } else {
           setMessage({ text: "Capture failed", isError: true });
         }
@@ -360,16 +391,54 @@ export default function CaptureScreen() {
         contentContainerStyle={styles.formContent}
       >
         {isQuickCapture ? (
-          <TextInput
-            label="Title *"
-            value={typeof values["title"] === "string" ? values["title"] : ""}
-            onChangeText={(text) => handleValueChange("title", text)}
-            mode="outlined"
-            style={styles.input}
-            multiline
-            numberOfLines={2}
-            autoFocus
-          />
+          <>
+            <TextInput
+              label="Title *"
+              value={typeof values["title"] === "string" ? values["title"] : ""}
+              onChangeText={(text) => handleValueChange("title", text)}
+              mode="outlined"
+              style={styles.input}
+              multiline
+              numberOfLines={2}
+              autoFocus
+            />
+
+            <ExpandableOptions>
+              <StatePicker
+                value={optionalFields.todo || "TODO"}
+                onChange={(v) => handleOptionalFieldChange("todo", v)}
+              />
+
+              <PriorityPicker
+                value={optionalFields.priority || null}
+                onChange={(v) => handleOptionalFieldChange("priority", v)}
+              />
+
+              <PromptField
+                prompt={{ name: "Schedule", type: "date", required: false }}
+                value={optionalFields.scheduled || ""}
+                onChange={(v) =>
+                  handleOptionalFieldChange("scheduled", v as string)
+                }
+              />
+
+              <PromptField
+                prompt={{ name: "Deadline", type: "date", required: false }}
+                value={optionalFields.deadline || ""}
+                onChange={(v) =>
+                  handleOptionalFieldChange("deadline", v as string)
+                }
+              />
+
+              <PromptField
+                prompt={{ name: "Tags", type: "tags", required: false }}
+                value={optionalFields.tags || []}
+                onChange={(v) =>
+                  handleOptionalFieldChange("tags", v as string[])
+                }
+              />
+            </ExpandableOptions>
+          </>
         ) : (
           selectedTemplate?.prompts.map((prompt) => (
             <PromptField
