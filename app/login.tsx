@@ -85,7 +85,9 @@ export default function LoginScreen() {
         // Configure the API service
         console.log("[LoginScreen] Configuring API service...");
         api.configure(apiUrl, username, password);
-        console.log("[LoginScreen] API configured, navigation should happen via context update");
+        console.log(
+          "[LoginScreen] API configured, navigation should happen via context update",
+        );
       } else {
         setError("Invalid credentials or server URL");
       }

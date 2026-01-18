@@ -31,12 +31,14 @@ You need a running org-agenda-api instance for Mova to connect to. See the [org-
 ## Features
 
 ### Agenda View
+
 - Daily agenda with date navigation
 - Shows scheduled items, deadlines, and overdue tasks
 - Pull-to-refresh synchronization
 - Inline task completion and editing
 
 ### Capture
+
 - Template-based task capture using your org-mode capture templates
 - Dynamic form fields (text, dates, tags) defined by templates
 - Priority and TODO state selection
@@ -44,20 +46,24 @@ You need a running org-agenda-api instance for Mova to connect to. See the [org-
 - Remembers your last-used template
 
 ### Search
+
 - Full-text search across all TODO items
 - Searches title, tags, and TODO state
 - Real-time filtering
 
 ### Custom Views
+
 - Access your custom org-agenda commands
 - Dynamic view rendering from server-defined views
 
 ### Android Widget
+
 - Quick Capture widget for home screen
 - Capture tasks without opening the app
 - Configurable template per widget instance
 
 ### Notifications
+
 - Background sync for upcoming tasks
 - Configurable notification intervals
 - Scheduled and deadline reminders
@@ -168,14 +174,15 @@ yarn e2e:android
 Capture templates are defined in your Emacs org-mode configuration and exposed via the org-agenda-api `/templates` endpoint. Mova automatically fetches and renders forms based on your template definitions.
 
 Example template structure from org-agenda-api:
+
 ```json
 {
   "todo": {
     "name": "Todo",
     "prompts": [
-      {"name": "title", "type": "string", "required": true},
-      {"name": "scheduled", "type": "date", "required": false},
-      {"name": "tags", "type": "tags", "required": false}
+      { "name": "title", "type": "string", "required": true },
+      { "name": "scheduled", "type": "date", "required": false },
+      { "name": "tags", "type": "tags", "required": false }
     ]
   }
 }
@@ -184,6 +191,7 @@ Example template structure from org-agenda-api:
 ### Notifications
 
 Configure notification preferences in Settings:
+
 - Enable/disable notifications
 - Set reminder intervals (e.g., 15 minutes before)
 - Background sync frequency (default: 15 minutes)
