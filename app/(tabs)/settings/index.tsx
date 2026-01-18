@@ -133,6 +133,8 @@ export default function SettingsScreen() {
               title="Scheduled Notifications"
               description={`${scheduledCount} upcoming`}
               left={(props) => <List.Icon {...props} icon="calendar-clock" />}
+              onPress={() => router.push("./notifications")}
+              right={(props) => <List.Icon {...props} icon="chevron-right" />}
             />
             <List.Item
               title="Last Sync"

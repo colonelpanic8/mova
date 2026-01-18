@@ -1,4 +1,5 @@
 import { api, Todo, TodoStatesResponse, TodoUpdates } from "@/services/api";
+import { scheduleCustomNotification } from "@/services/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, {
   createContext,
@@ -12,6 +13,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import {
   Button,
+  List,
   Modal,
   Portal,
   RadioButton,
@@ -33,7 +35,13 @@ function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-type EditModalType = "schedule" | "deadline" | "priority" | "state" | null;
+type EditModalType =
+  | "schedule"
+  | "deadline"
+  | "priority"
+  | "state"
+  | "remind"
+  | null;
 
 export interface UseTodoEditingOptions {
   onTodoUpdated?: (todo: Todo, updates: Partial<Todo>) => void;
@@ -54,6 +62,7 @@ export interface UseTodoEditingResult {
   openScheduleModal: (todo: Todo) => void;
   openDeadlineModal: (todo: Todo) => void;
   openPriorityModal: (todo: Todo) => void;
+  openRemindModal: (todo: Todo) => void;
   dismissSnackbar: () => void;
 
   // Components
@@ -72,6 +81,10 @@ export function useTodoEditing(
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedPriority, setSelectedPriority] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
+  const [remindPickerMode, setRemindPickerMode] = useState<"date" | "time">(
+    "date",
+  );
+  const [remindDateTime, setRemindDateTime] = useState<Date>(new Date());
 
   // Loading states
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
@@ -122,6 +135,13 @@ export function useTodoEditing(
       setSelectedPriority(todo.priority || "");
     } else if (type === "state") {
       setSelectedState(todo.todo || "");
+    } else if (type === "remind") {
+      // Default to 1 hour from now
+      const defaultTime = new Date();
+      defaultTime.setHours(defaultTime.getHours() + 1);
+      defaultTime.setMinutes(0, 0, 0);
+      setRemindDateTime(defaultTime);
+      setRemindPickerMode("date");
     }
   }, []);
 
@@ -149,6 +169,13 @@ export function useTodoEditing(
   const openPriorityModal = useCallback(
     (todo: Todo) => {
       openEditModal(todo, "priority");
+    },
+    [openEditModal],
+  );
+
+  const openRemindModal = useCallback(
+    (todo: Todo) => {
+      openEditModal(todo, "remind");
     },
     [openEditModal],
   );
@@ -346,6 +373,79 @@ export function useTodoEditing(
     [handleUpdateTodo],
   );
 
+  const handleScheduleReminder = useCallback(async () => {
+    if (!editingTodo) return;
+
+    const now = new Date();
+    if (remindDateTime <= now) {
+      setSnackbar({
+        visible: true,
+        message: "Please select a future time",
+        isError: true,
+      });
+      return;
+    }
+
+    const result = await scheduleCustomNotification(
+      editingTodo,
+      remindDateTime,
+    );
+    if (result) {
+      setSnackbar({
+        visible: true,
+        message: `Reminder set for ${remindDateTime.toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}`,
+        isError: false,
+      });
+      closeEditModal();
+    } else {
+      setSnackbar({
+        visible: true,
+        message: "Failed to schedule reminder",
+        isError: true,
+      });
+    }
+  }, [editingTodo, remindDateTime, closeEditModal]);
+
+  const handleRemindDateChange = useCallback(
+    (event: any, date?: Date) => {
+      if (event.type === "dismissed") {
+        closeEditModal();
+        return;
+      }
+      if (date) {
+        if (remindPickerMode === "date") {
+          // Update the date portion, keep the time
+          const newDateTime = new Date(remindDateTime);
+          newDateTime.setFullYear(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate(),
+          );
+          setRemindDateTime(newDateTime);
+          // On Android, switch to time picker after date selection
+          if (Platform.OS === "android") {
+            setRemindPickerMode("time");
+          }
+        } else {
+          // Update the time portion, keep the date
+          const newDateTime = new Date(remindDateTime);
+          newDateTime.setHours(date.getHours(), date.getMinutes(), 0, 0);
+          setRemindDateTime(newDateTime);
+          // On Android, schedule after time selection
+          if (Platform.OS === "android") {
+            // Schedule will happen when user confirms in modal
+          }
+        }
+      }
+    },
+    [remindPickerMode, remindDateTime, closeEditModal],
+  );
+
   const dismissSnackbar = useCallback(() => {
     setSnackbar((prev) => ({ ...prev, visible: false }));
   }, []);
@@ -537,7 +637,89 @@ export function useTodoEditing(
               </Button>
             </View>
           </Modal>
+
+          {/* Remind Modal */}
+          <Modal
+            visible={editModalType === "remind"}
+            onDismiss={closeEditModal}
+            contentContainerStyle={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.surface },
+            ]}
+          >
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              Set Reminder
+            </Text>
+            <Text
+              variant="bodyMedium"
+              style={styles.modalSubtitle}
+              numberOfLines={1}
+            >
+              {editingTodo?.title}
+            </Text>
+
+            {Platform.OS !== "web" && (
+              <View style={styles.remindPickerContainer}>
+                <List.Item
+                  title="Date"
+                  description={remindDateTime.toLocaleDateString()}
+                  left={(props) => <List.Icon {...props} icon="calendar" />}
+                  onPress={() => setRemindPickerMode("date")}
+                />
+                <List.Item
+                  title="Time"
+                  description={remindDateTime.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                  left={(props) => (
+                    <List.Icon {...props} icon="clock-outline" />
+                  )}
+                  onPress={() => setRemindPickerMode("time")}
+                />
+              </View>
+            )}
+
+            {Platform.OS === "web" && (
+              <input
+                type="datetime-local"
+                value={`${remindDateTime.getFullYear()}-${String(remindDateTime.getMonth() + 1).padStart(2, "0")}-${String(remindDateTime.getDate()).padStart(2, "0")}T${String(remindDateTime.getHours()).padStart(2, "0")}:${String(remindDateTime.getMinutes()).padStart(2, "0")}`}
+                onChange={(e) => {
+                  const parsed = new Date(e.target.value);
+                  if (!isNaN(parsed.getTime())) {
+                    setRemindDateTime(parsed);
+                  }
+                }}
+                style={{
+                  padding: 12,
+                  fontSize: 16,
+                  borderRadius: 8,
+                  border: `1px solid ${theme.colors.outline}`,
+                  marginBottom: 16,
+                }}
+              />
+            )}
+
+            <View style={styles.modalButtons}>
+              <Button mode="outlined" onPress={closeEditModal}>
+                Cancel
+              </Button>
+              <Button mode="contained" onPress={handleScheduleReminder}>
+                Set Reminder
+              </Button>
+            </View>
+          </Modal>
         </Portal>
+
+        {/* Native DateTime Picker for Remind modal */}
+        {editModalType === "remind" && Platform.OS !== "web" && (
+          <DateTimePicker
+            value={remindDateTime}
+            mode={remindPickerMode}
+            display="default"
+            onChange={handleRemindDateChange}
+          />
+        )}
 
         <Snackbar
           visible={snackbar.visible}
@@ -560,12 +742,16 @@ export function useTodoEditing(
     selectedDate,
     selectedPriority,
     selectedState,
+    remindDateTime,
+    remindPickerMode,
     todoStates,
     snackbar,
     theme,
     closeEditModal,
     handleDatePickerChange,
+    handleRemindDateChange,
     handleSavePriority,
+    handleScheduleReminder,
     handleStateChange,
     handleUpdateTodo,
     dismissSnackbar,
@@ -582,6 +768,7 @@ export function useTodoEditing(
     openScheduleModal,
     openDeadlineModal,
     openPriorityModal,
+    openRemindModal,
     dismissSnackbar,
     EditModals,
   };
@@ -639,6 +826,9 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     gap: 8,
     marginTop: 16,
+  },
+  remindPickerContainer: {
+    marginBottom: 8,
   },
 });
 

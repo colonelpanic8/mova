@@ -162,3 +162,94 @@ export async function getScheduledNotificationCount(): Promise<number> {
   const notifications = await Notifications.getAllScheduledNotificationsAsync();
   return notifications.length;
 }
+
+export interface ScheduledNotificationInfo {
+  identifier: string;
+  title: string;
+  body: string;
+  scheduledTime: Date;
+  todoId?: string;
+}
+
+export async function getAllScheduledNotifications(): Promise<
+  ScheduledNotificationInfo[]
+> {
+  if (Platform.OS === "web") return [];
+  const notifications = await Notifications.getAllScheduledNotificationsAsync();
+
+  const result: ScheduledNotificationInfo[] = [];
+
+  for (const notification of notifications) {
+    const trigger = notification.trigger as { value?: number; date?: Date };
+    // Handle different trigger formats
+    let scheduledTime: Date;
+    if (trigger.date) {
+      scheduledTime = new Date(trigger.date);
+    } else if (trigger.value) {
+      scheduledTime = new Date(trigger.value);
+    } else {
+      continue;
+    }
+
+    result.push({
+      identifier: notification.identifier,
+      title: (notification.content.title as string) || "Notification",
+      body: (notification.content.body as string) || "",
+      scheduledTime,
+      todoId: (notification.content.data as { todoId?: string })?.todoId,
+    });
+  }
+
+  return result.sort(
+    (a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime(),
+  );
+}
+
+export async function cancelNotification(identifier: string): Promise<void> {
+  if (Platform.OS === "web") return;
+  await Notifications.cancelScheduledNotificationAsync(identifier);
+}
+
+export async function scheduleCustomNotification(
+  todo: {
+    id?: string | null;
+    file?: string | null;
+    pos?: number | null;
+    title: string;
+  },
+  notificationTime: Date,
+): Promise<string | null> {
+  if (Platform.OS === "web") return null;
+
+  const hasPermission = await requestNotificationPermissions();
+  if (!hasPermission) return null;
+
+  const todoId = todo.id || `${todo.file}:${todo.pos}`;
+  const identifier = `${todoId}:custom:${notificationTime.getTime()}`;
+
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: todo.title,
+        body: `Reminder: ${formatTime(notificationTime)}`,
+        data: {
+          todoId,
+          file: todo.file,
+          pos: todo.pos,
+        },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: notificationTime,
+      },
+      identifier,
+    });
+    return identifier;
+  } catch (err) {
+    console.error(
+      `Failed to schedule custom notification for ${todo.title}:`,
+      err,
+    );
+    return null;
+  }
+}
