@@ -258,6 +258,10 @@ class OrgAgendaApi {
     });
   }
 
+  async createTodo(title: string): Promise<CaptureResponse> {
+    return this.capture("default", { Title: title });
+  }
+
   async getCustomViews(): Promise<CustomViewsResponse> {
     return this.request<CustomViewsResponse>("/custom-views");
   }
