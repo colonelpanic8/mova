@@ -740,13 +740,11 @@ export default function CaptureScreen() {
           colorKey="schedule"
         />
 
-        {optionalFields.scheduled && (
-          <RepeaterPicker
-            value={optionalFields.scheduledRepeater || null}
-            onChange={(v) => handleOptionalFieldChange("scheduledRepeater", v)}
-            label="Schedule Repeater"
-          />
-        )}
+        <RepeaterPicker
+          value={optionalFields.scheduledRepeater || null}
+          onChange={(v) => handleOptionalFieldChange("scheduledRepeater", v)}
+          label="Schedule Repeater"
+        />
 
         <DateFieldWithQuickActions
           label="Deadline"
@@ -755,13 +753,11 @@ export default function CaptureScreen() {
           colorKey="deadline"
         />
 
-        {optionalFields.deadline && (
-          <RepeaterPicker
-            value={optionalFields.deadlineRepeater || null}
-            onChange={(v) => handleOptionalFieldChange("deadlineRepeater", v)}
-            label="Deadline Repeater"
-          />
-        )}
+        <RepeaterPicker
+          value={optionalFields.deadlineRepeater || null}
+          onChange={(v) => handleOptionalFieldChange("deadlineRepeater", v)}
+          label="Deadline Repeater"
+        />
 
         <PromptField
           prompt={{ name: "Tags", type: "tags", required: false }}
