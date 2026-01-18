@@ -145,6 +145,8 @@ jobs:
           docker logs mova-test-api
 
       - name: Build Android app for testing
+        env:
+          NODE_ENV: production
         run: |
           cd android
           ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -DtestBuildType=debug
