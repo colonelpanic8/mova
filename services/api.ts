@@ -104,17 +104,46 @@ export interface VersionResponse {
 class OrgAgendaApi {
   private baseUrl: string = "";
   private authHeader: string = "";
+  private onUnauthorized: (() => void) | null = null;
+
+  setOnUnauthorized(callback: () => void) {
+    this.onUnauthorized = callback;
+  }
 
   configure(baseUrl: string, username: string, password: string) {
+    const wasConfigured = !!this.baseUrl;
     this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
     this.authHeader = `Basic ${base64Encode(`${username}:${password}`)}`;
+    console.log("[API] Configured", {
+      wasConfigured,
+      baseUrl: this.baseUrl,
+      hasAuth: !!this.authHeader,
+    });
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
   ): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const url = `${this.baseUrl}${endpoint}`;
+    console.log("[API] Request starting", {
+      url,
+      method: options.method || "GET",
+      hasAuth: !!this.authHeader,
+      baseUrl: this.baseUrl,
+    });
+
+    if (!this.baseUrl) {
+      console.error("[API] ERROR: baseUrl is empty!");
+      throw new Error("API not configured: baseUrl is empty");
+    }
+
+    if (!this.authHeader) {
+      console.error("[API] ERROR: authHeader is empty!");
+      throw new Error("API not configured: authHeader is empty");
+    }
+
+    const response = await fetch(url, {
       ...options,
       headers: {
         Authorization: this.authHeader,
@@ -123,7 +152,17 @@ class OrgAgendaApi {
       },
     });
 
+    console.log("[API] Response received", {
+      url,
+      status: response.status,
+      ok: response.ok,
+    });
+
     if (!response.ok) {
+      if (response.status === 401 && this.onUnauthorized) {
+        console.log("[API] 401 Unauthorized - triggering logout");
+        this.onUnauthorized();
+      }
       throw new Error(`API error: ${response.status}`);
     }
 

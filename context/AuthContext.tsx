@@ -1,3 +1,4 @@
+import { api } from "@/services/api";
 import { base64Encode } from "@/utils/base64";
 import {
   clearWidgetCredentials,
@@ -79,6 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadStoredCredentials();
   }, []);
 
+  // Register logout callback with API to handle 401 responses
+  useEffect(() => {
+    api.setOnUnauthorized(() => {
+      console.log("[AuthContext] Received unauthorized callback, logging out");
+      logout();
+    });
+  }, []);
+
   async function loadStoredCredentials() {
     try {
       // Check for test launch args first (for Detox auto-login)
@@ -132,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.ok) {
+        console.log("[AuthContext] Login successful, saving credentials...");
         await Promise.all([
           AsyncStorage.setItem(STORAGE_KEYS.API_URL, apiUrl),
           AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username),
@@ -141,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Also save to SharedPreferences for widget access
         await saveCredentialsToWidget(apiUrl, username, password);
 
+        console.log("[AuthContext] Credentials saved, updating state...");
         setState({
           apiUrl,
           username,
@@ -148,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isAuthenticated: true,
           isLoading: false,
         });
+        console.log("[AuthContext] State updated, isAuthenticated=true");
 
         return true;
       }
