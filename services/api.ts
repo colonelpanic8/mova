@@ -109,6 +109,17 @@ export interface CustomViewResponse {
   entries: AgendaEntry[];
 }
 
+export interface AgendaFile {
+  path: string;
+  exists: boolean;
+  readable: boolean;
+}
+
+export interface AgendaFilesResponse {
+  count: number;
+  files: AgendaFile[];
+}
+
 class OrgAgendaApi {
   private baseUrl: string = "";
   private authHeader: string = "";
@@ -241,6 +252,10 @@ class OrgAgendaApi {
     return this.request<CustomViewResponse>(
       `/custom-view?key=${encodeURIComponent(key)}`,
     );
+  }
+
+  async getAgendaFiles(): Promise<AgendaFilesResponse> {
+    return this.request<AgendaFilesResponse>("/agenda-files");
   }
 }
 
