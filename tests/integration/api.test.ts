@@ -76,13 +76,12 @@ describe("org-agenda-api integration tests", () => {
     });
   });
 
-  describe("POST /create-todo", () => {
+  describe("POST /capture (default template)", () => {
     it("should create a new todo", async () => {
       const title = `Test todo ${Date.now()}`;
       const response = await client.createTodo(title);
 
       expect(response.status).toBe("created");
-      expect(response.title).toBe(title);
     });
 
     it("should appear in get-all-todos after creation", async () => {

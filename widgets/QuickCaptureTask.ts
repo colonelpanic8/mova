@@ -23,29 +23,32 @@ export interface WidgetTaskResult {
 const BACKOFF_BASE_MS = 2000;
 const RESTART_WAIT_MS = 10000;
 
-interface CreateTodoResult {
+interface CaptureResult {
   success: boolean;
   error?: string;
   shouldRestart?: boolean;
 }
 
 /**
- * Create a todo via the API
+ * Capture a todo via the API using the default template
  */
-async function createTodo(
+async function captureTodo(
   apiUrl: string,
   username: string,
   password: string,
   title: string,
-): Promise<CreateTodoResult> {
+): Promise<CaptureResult> {
   try {
-    const response = await fetch(`${apiUrl}/create`, {
+    const response = await fetch(`${apiUrl}/capture`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
       },
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({
+        template: "default",
+        values: { Title: title },
+      }),
     });
 
     if (response.ok) {
@@ -111,7 +114,7 @@ async function submitTodoWithRetry(
   let hasTriedRestart = false;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const result = await createTodo(apiUrl, username, password, title);
+    const result = await captureTodo(apiUrl, username, password, title);
 
     if (result.success) {
       return { success: true };
