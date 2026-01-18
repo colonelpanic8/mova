@@ -1,10 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
+import { NativeModules } from "react-native";
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import { FlexWidget, TextWidget } from "react-native-android-widget";
 import { widgetTaskHandler } from "./widgets/QuickCaptureTask";
 import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
 import { getWidgetTemplate } from "./widgets/WidgetConfigurationScreen";
+
+const { SharedStorage } = NativeModules;
 
 const QUICK_CAPTURE_KEY = "__quick_capture__";
 const AUTH_STORAGE_KEY = "mova_auth";
@@ -35,6 +38,16 @@ function ErrorWidget({ message }: { message: string }) {
 
 async function getTemplateName(widgetId: number): Promise<string> {
   try {
+    // First try to read template name directly from SharedPreferences
+    // (saved by native TemplateConfigActivity)
+    if (SharedStorage) {
+      const templateName = await SharedStorage.getItem(`widget_${widgetId}_template_name`);
+      if (templateName) {
+        return templateName;
+      }
+    }
+
+    // Fall back to getting template key and looking up name
     const templateKey = await getWidgetTemplate(widgetId);
 
     if (templateKey === QUICK_CAPTURE_KEY) {
