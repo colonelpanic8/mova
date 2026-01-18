@@ -159,7 +159,7 @@ class OrgAgendaApi {
 
   async createTodo(
     title: string,
-    options?: CreateTodoOptions
+    options?: CreateTodoOptions,
   ): Promise<CreateTodoResponse> {
     return this.request<CreateTodoResponse>("/create-todo", {
       method: "POST",

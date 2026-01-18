@@ -1,8 +1,5 @@
+import { PriorityPicker, StatePicker } from "@/components/capture";
 import { useAuth } from "@/context/AuthContext";
-import {
-  PriorityPicker,
-  StatePicker,
-} from "@/components/capture";
 import { api, TemplatePrompt, TemplatesResponse } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
@@ -84,11 +81,7 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
               }}
             />
             {dateValue && (
-              <IconButton
-                icon="close"
-                size={20}
-                onPress={() => onChange("")}
-              />
+              <IconButton icon="close" size={20} onPress={() => onChange("")} />
             )}
           </View>
         </View>
@@ -259,15 +252,13 @@ export default function CaptureScreen() {
 
   const handleOptionalFieldChange = <K extends keyof typeof optionalFields>(
     field: K,
-    value: (typeof optionalFields)[K]
+    value: (typeof optionalFields)[K],
   ) => {
     setOptionalFields((prev) => ({ ...prev, [field]: value }));
   };
 
   const selectedTemplate =
-    selectedTemplateKey && templates
-      ? templates[selectedTemplateKey]
-      : null;
+    selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;
 
   const handleTemplateSelect = async (key: string) => {
     setSelectedTemplateKey(key);
@@ -306,13 +297,20 @@ export default function CaptureScreen() {
 
       // Merge template values with optional fields
       const captureValues: Record<string, string | string[]> = { ...values };
-      if (optionalFields.scheduled) captureValues.scheduled = optionalFields.scheduled;
-      if (optionalFields.deadline) captureValues.deadline = optionalFields.deadline;
-      if (optionalFields.priority) captureValues.priority = optionalFields.priority;
+      if (optionalFields.scheduled)
+        captureValues.scheduled = optionalFields.scheduled;
+      if (optionalFields.deadline)
+        captureValues.deadline = optionalFields.deadline;
+      if (optionalFields.priority)
+        captureValues.priority = optionalFields.priority;
       if (optionalFields.tags?.length) captureValues.tags = optionalFields.tags;
-      if (optionalFields.todo && optionalFields.todo !== "TODO") captureValues.todo = optionalFields.todo;
+      if (optionalFields.todo && optionalFields.todo !== "TODO")
+        captureValues.todo = optionalFields.todo;
 
-      console.log("Capture request:", { template: selectedTemplateKey, values: captureValues });
+      console.log("Capture request:", {
+        template: selectedTemplateKey,
+        values: captureValues,
+      });
       const result = await api.capture(selectedTemplateKey, captureValues);
       console.log("Capture response:", result);
       if (result.status === "created") {
@@ -411,25 +409,19 @@ export default function CaptureScreen() {
         <PromptField
           prompt={{ name: "Schedule", type: "date", required: false }}
           value={optionalFields.scheduled || ""}
-          onChange={(v) =>
-            handleOptionalFieldChange("scheduled", v as string)
-          }
+          onChange={(v) => handleOptionalFieldChange("scheduled", v as string)}
         />
 
         <PromptField
           prompt={{ name: "Deadline", type: "date", required: false }}
           value={optionalFields.deadline || ""}
-          onChange={(v) =>
-            handleOptionalFieldChange("deadline", v as string)
-          }
+          onChange={(v) => handleOptionalFieldChange("deadline", v as string)}
         />
 
         <PromptField
           prompt={{ name: "Tags", type: "tags", required: false }}
           value={optionalFields.tags || []}
-          onChange={(v) =>
-            handleOptionalFieldChange("tags", v as string[])
-          }
+          onChange={(v) => handleOptionalFieldChange("tags", v as string[])}
         />
 
         <Button
