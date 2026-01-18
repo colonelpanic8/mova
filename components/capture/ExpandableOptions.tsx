@@ -1,10 +1,19 @@
 // components/capture/ExpandableOptions.tsx
 import React, { useState } from "react";
-import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from "react-native";
+import {
+  LayoutAnimation,
+  Platform,
+  StyleSheet,
+  UIManager,
+  View,
+} from "react-native";
 import { Button, Divider } from "react-native-paper";
 
 // Enable LayoutAnimation on Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -13,7 +22,10 @@ interface ExpandableOptionsProps {
   defaultExpanded?: boolean;
 }
 
-export function ExpandableOptions({ children, defaultExpanded = false }: ExpandableOptionsProps) {
+export function ExpandableOptions({
+  children,
+  defaultExpanded = false,
+}: ExpandableOptionsProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   const toggle = () => {

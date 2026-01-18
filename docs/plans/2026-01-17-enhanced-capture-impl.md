@@ -17,6 +17,7 @@
 ### Task 1.1: Extend create-todo endpoint to accept optional fields
 
 **Files:**
+
 - Modify: `/home/imalison/Projects/org-agenda-api/org-agenda-api.el` (lines 907-925)
 
 **Step 1: Update the create-todo servlet to parse additional fields**
@@ -144,6 +145,7 @@ EOF
 ### Task 2.1: Extend createTodo type and method
 
 **Files:**
+
 - Modify: `services/api.ts`
 - Test: `tests/unit/api.test.ts`
 
@@ -185,7 +187,7 @@ describe("createTodo", () => {
           tags: ["work", "urgent"],
           todo: "NEXT",
         }),
-      })
+      }),
     );
   });
 });
@@ -258,6 +260,7 @@ EOF
 ### Task 3.1: Create StatePicker component
 
 **Files:**
+
 - Create: `components/capture/StatePicker.tsx`
 - Test: (visual testing for now)
 
@@ -345,6 +348,7 @@ EOF
 ### Task 3.2: Create PriorityPicker component
 
 **Files:**
+
 - Create: `components/capture/PriorityPicker.tsx`
 
 **Step 1: Create the PriorityPicker component**
@@ -426,6 +430,7 @@ EOF
 ### Task 3.3: Create ExpandableOptions component
 
 **Files:**
+
 - Create: `components/capture/ExpandableOptions.tsx`
 
 **Step 1: Create the ExpandableOptions component**
@@ -511,6 +516,7 @@ EOF
 ### Task 3.4: Create index export for capture components
 
 **Files:**
+
 - Create: `components/capture/index.ts`
 
 **Step 1: Create the index file**
@@ -541,6 +547,7 @@ EOF
 ### Task 4.1: Update Quick Capture to use new components
 
 **Files:**
+
 - Modify: `app/(tabs)/capture.tsx`
 
 **Step 1: Add imports for new components**
@@ -576,7 +583,7 @@ Add this helper function:
 ```typescript
 const handleOptionalFieldChange = <K extends keyof typeof optionalFields>(
   field: K,
-  value: (typeof optionalFields)[K]
+  value: (typeof optionalFields)[K],
 ) => {
   setOptionalFields((prev) => ({ ...prev, [field]: value }));
 };
@@ -606,7 +613,7 @@ if (isQuickCapture) {
 
   const result = await api.createTodo(
     title,
-    Object.keys(options).length > 0 ? options : undefined
+    Object.keys(options).length > 0 ? options : undefined,
   );
   if (result.status === "created") {
     setMessage({ text: "Captured!", isError: false });
@@ -696,6 +703,7 @@ npm start
 ```
 
 Test:
+
 1. Open Capture tab
 2. Enter a title
 3. Tap "More options"
