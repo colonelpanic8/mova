@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/services/api";
+import Constants from "expo-constants";
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -229,6 +230,10 @@ export default function LoginScreen() {
         >
           Connect
         </Button>
+
+        <Text variant="bodySmall" style={styles.versionText}>
+          Mova v{Constants.expoConfig?.version}
+        </Text>
       </View>
 
       <Snackbar
@@ -304,5 +309,10 @@ const styles = StyleSheet.create({
   },
   editButton: {
     marginLeft: 8,
+  },
+  versionText: {
+    textAlign: "center",
+    marginTop: 24,
+    opacity: 0.5,
   },
 });
