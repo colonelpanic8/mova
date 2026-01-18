@@ -46,6 +46,7 @@ export function TodoItem({ todo }: TodoItemProps) {
     openScheduleModal,
     openDeadlineModal,
     openPriorityModal,
+    openRemindModal,
   } = useTodoEditingContext();
 
   const internalRef = useRef<Swipeable>(null);
@@ -121,16 +122,28 @@ export function TodoItem({ todo }: TodoItemProps) {
         >
           <Text style={styles.swipeActionText}>Today</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          testID={`remindActionButton_${testIdSuffix}`}
+          style={[
+            styles.swipeAction,
+            { backgroundColor: theme.colors.tertiary },
+          ]}
+          onPress={() => openRemindModal(todo)}
+        >
+          <Text style={styles.swipeActionText}>Remind</Text>
+        </TouchableOpacity>
       </View>
     );
   }, [
     testIdSuffix,
     getActionColor,
+    theme.colors.tertiary,
     todo,
     scheduleToday,
     scheduleTomorrow,
     openScheduleModal,
     openDeadlineModal,
+    openRemindModal,
   ]);
 
   return (
