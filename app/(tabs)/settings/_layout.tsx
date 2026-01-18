@@ -15,6 +15,10 @@ export default function SettingsLayout() {
     >
       <Stack.Screen name="index" options={{ title: "Settings" }} />
       <Stack.Screen name="colors" options={{ title: "Colors" }} />
+      <Stack.Screen
+        name="notifications"
+        options={{ title: "Scheduled Notifications" }}
+      />
     </Stack>
   );
 }
