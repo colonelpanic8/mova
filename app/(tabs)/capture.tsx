@@ -1,7 +1,13 @@
 import { PriorityPicker, StatePicker } from "@/components/capture";
+import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { useAuth } from "@/context/AuthContext";
 import { useColorPalette } from "@/context/ColorPaletteContext";
-import { api, TemplatePrompt, TemplatesResponse } from "@/services/api";
+import {
+  api,
+  Repeater,
+  TemplatePrompt,
+  TemplatesResponse,
+} from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -516,6 +522,8 @@ export default function CaptureScreen() {
   const [optionalFields, setOptionalFields] = useState<{
     scheduled?: string;
     deadline?: string;
+    scheduledRepeater?: Repeater | null;
+    deadlineRepeater?: Repeater | null;
     priority?: string | null;
     tags?: string[];
     todo?: string;
@@ -609,11 +617,17 @@ export default function CaptureScreen() {
       }
 
       // Merge template values with optional fields
-      const captureValues: Record<string, string | string[]> = { ...values };
+      const captureValues: Record<string, string | string[] | Repeater> = {
+        ...values,
+      };
       if (optionalFields.scheduled)
         captureValues.scheduled = optionalFields.scheduled;
       if (optionalFields.deadline)
         captureValues.deadline = optionalFields.deadline;
+      if (optionalFields.scheduledRepeater)
+        captureValues.scheduledRepeater = optionalFields.scheduledRepeater;
+      if (optionalFields.deadlineRepeater)
+        captureValues.deadlineRepeater = optionalFields.deadlineRepeater;
       if (optionalFields.priority)
         captureValues.priority = optionalFields.priority;
       if (optionalFields.tags?.length) captureValues.tags = optionalFields.tags;
@@ -726,12 +740,28 @@ export default function CaptureScreen() {
           colorKey="schedule"
         />
 
+        {optionalFields.scheduled && (
+          <RepeaterPicker
+            value={optionalFields.scheduledRepeater || null}
+            onChange={(v) => handleOptionalFieldChange("scheduledRepeater", v)}
+            label="Schedule Repeater"
+          />
+        )}
+
         <DateFieldWithQuickActions
           label="Deadline"
           value={optionalFields.deadline || ""}
           onChange={(v) => handleOptionalFieldChange("deadline", v)}
           colorKey="deadline"
         />
+
+        {optionalFields.deadline && (
+          <RepeaterPicker
+            value={optionalFields.deadlineRepeater || null}
+            onChange={(v) => handleOptionalFieldChange("deadlineRepeater", v)}
+            label="Deadline Repeater"
+          />
+        )}
 
         <PromptField
           prompt={{ name: "Tags", type: "tags", required: false }}
