@@ -260,10 +260,14 @@ export default function CaptureScreen() {
   const selectedTemplate =
     selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;
 
-  const handleTemplateSelect = async (key: string) => {
-    setSelectedTemplateKey(key);
+  const handleTemplateSelect = (key: string) => {
+    // Close menu first, then update state after menu animation completes
+    // This fixes Android issue where menu won't reopen after selection
     setMenuVisible(false);
-    await AsyncStorage.setItem(LAST_TEMPLATE_KEY, key);
+    setTimeout(() => {
+      setSelectedTemplateKey(key);
+      AsyncStorage.setItem(LAST_TEMPLATE_KEY, key);
+    }, 0);
   };
 
   const handleValueChange = (promptName: string, value: string | string[]) => {
