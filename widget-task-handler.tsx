@@ -28,10 +28,7 @@ function ErrorWidget({ message }: { message: string }) {
         padding: 8,
       }}
     >
-      <TextWidget
-        text={message}
-        style={{ fontSize: 10, color: "#FFFFFF" }}
-      />
+      <TextWidget text={message} style={{ fontSize: 10, color: "#FFFFFF" }} />
     </FlexWidget>
   );
 }
@@ -41,7 +38,9 @@ async function getTemplateName(widgetId: number): Promise<string> {
     // First try to read template name directly from SharedPreferences
     // (saved by native TemplateConfigActivity)
     if (SharedStorage) {
-      const templateName = await SharedStorage.getItem(`widget_${widgetId}_template_name`);
+      const templateName = await SharedStorage.getItem(
+        `widget_${widgetId}_template_name`,
+      );
       if (templateName) {
         return templateName;
       }
@@ -92,7 +91,9 @@ export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
 
     if (!Widget) {
       console.log("[Widget] Unknown widget:", widgetInfo.widgetName);
-      renderWidget(<ErrorWidget message={`Unknown: ${widgetInfo.widgetName}`} />);
+      renderWidget(
+        <ErrorWidget message={`Unknown: ${widgetInfo.widgetName}`} />,
+      );
       return;
     }
 
@@ -113,17 +114,25 @@ export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
               ? "error"
               : "idle";
 
-      renderWidget(<Widget status={status} widgetId={widgetInfo.widgetId} templateName={templateName} />);
+      renderWidget(
+        <Widget
+          status={status}
+          widgetId={widgetInfo.widgetId}
+          templateName={templateName}
+        />,
+      );
       return;
     }
 
     // Default render
-    renderWidget(<Widget widgetId={widgetInfo.widgetId} templateName={templateName} />);
+    renderWidget(
+      <Widget widgetId={widgetInfo.widgetId} templateName={templateName} />,
+    );
   } catch (error) {
     console.error("[Widget] Error:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     renderWidget(
-      <ErrorWidget message={`Error: ${errorMessage.substring(0, 50)}`} />
+      <ErrorWidget message={`Error: ${errorMessage.substring(0, 50)}`} />,
     );
   }
 }

@@ -27,6 +27,7 @@ jest.mock("../../context/ColorPaletteContext", () => ({
   useColorPalette: () => ({
     getTodoStateColor: (keyword: string) => "#888888",
     getActionColor: (action: string) => "#666666",
+    getPriorityColor: (priority: string) => "#444444",
   }),
 }));
 
