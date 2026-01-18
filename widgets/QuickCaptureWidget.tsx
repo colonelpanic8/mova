@@ -54,7 +54,9 @@ export function QuickCaptureWidget({
         paddingBottom: 4,
       }}
       clickAction="OPEN_URI"
-      clickActionData={{ uri: `mova://capture${widgetId ? `?widgetId=${widgetId}` : ""}` }}
+      clickActionData={{
+        uri: `mova://capture${widgetId ? `?widgetId=${widgetId}` : ""}`,
+      }}
     >
       {/* Input area - styled like the app's TextInput */}
       <FlexWidget
@@ -69,7 +71,11 @@ export function QuickCaptureWidget({
         }}
       >
         <TextWidget
-          text={status === "idle" ? `Tap to add (${templateName})...` : getStatusText()}
+          text={
+            status === "idle"
+              ? `Tap to add (${templateName})...`
+              : getStatusText()
+          }
           style={{
             fontSize: 14,
             color: "#1C1B1F",
