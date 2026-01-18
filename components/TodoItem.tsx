@@ -1,11 +1,22 @@
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
-import { Todo } from "@/services/api";
+import { Repeater, Todo } from "@/services/api";
 import { PriorityLevel } from "@/types/colors";
 import React, { useCallback, useEffect, useRef } from "react";
 import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import { Chip, Text, useTheme } from "react-native-paper";
+import { Chip, Icon, Text, useTheme } from "react-native-paper";
+
+function formatRepeater(repeater: Repeater): string {
+  const unitLabels: Record<string, string> = {
+    d: "day",
+    w: "week",
+    m: "month",
+    y: "year",
+  };
+  const plural = repeater.value !== 1 ? "s" : "";
+  return `${repeater.value} ${unitLabels[repeater.unit] || repeater.unit}${plural}`;
+}
 
 export interface TodoItemProps {
   todo: Todo;
@@ -219,14 +230,54 @@ export function TodoItem({ todo }: TodoItemProps) {
           </View>
           <View style={styles.metaRow}>
             {todo.scheduled && (
-              <Text style={[styles.metaText, { color: theme.colors.primary }]}>
-                S: {formatDate(todo.scheduled)}
-              </Text>
+              <View style={styles.metaItem}>
+                <Text
+                  style={[styles.metaText, { color: theme.colors.primary }]}
+                >
+                  S: {formatDate(todo.scheduled)}
+                </Text>
+                {todo.scheduledRepeater && (
+                  <View style={styles.repeaterBadge}>
+                    <Icon
+                      source="repeat"
+                      size={12}
+                      color={theme.colors.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.repeaterText,
+                        { color: theme.colors.primary },
+                      ]}
+                    >
+                      {formatRepeater(todo.scheduledRepeater)}
+                    </Text>
+                  </View>
+                )}
+              </View>
             )}
             {todo.deadline && (
-              <Text style={[styles.metaText, { color: theme.colors.error }]}>
-                D: {formatDate(todo.deadline)}
-              </Text>
+              <View style={styles.metaItem}>
+                <Text style={[styles.metaText, { color: theme.colors.error }]}>
+                  D: {formatDate(todo.deadline)}
+                </Text>
+                {todo.deadlineRepeater && (
+                  <View style={styles.repeaterBadge}>
+                    <Icon
+                      source="repeat"
+                      size={12}
+                      color={theme.colors.error}
+                    />
+                    <Text
+                      style={[
+                        styles.repeaterText,
+                        { color: theme.colors.error },
+                      ]}
+                    >
+                      {formatRepeater(todo.deadlineRepeater)}
+                    </Text>
+                  </View>
+                )}
+              </View>
             )}
           </View>
           {todo.tags && todo.tags.length > 0 && (
@@ -276,8 +327,21 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 4,
   },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   metaText: {
     fontSize: 11,
+  },
+  repeaterBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  repeaterText: {
+    fontSize: 10,
   },
   tagsContainer: {
     flexDirection: "row",

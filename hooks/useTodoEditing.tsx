@@ -1,4 +1,11 @@
-import { api, Todo, TodoStatesResponse, TodoUpdates } from "@/services/api";
+import { RepeaterPicker } from "@/components/RepeaterPicker";
+import {
+  api,
+  Repeater,
+  Todo,
+  TodoStatesResponse,
+  TodoUpdates,
+} from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, {
@@ -38,6 +45,8 @@ function formatLocalDate(date: Date): string {
 type EditModalType =
   | "schedule"
   | "deadline"
+  | "schedule-confirm"
+  | "deadline-confirm"
   | "priority"
   | "state"
   | "remind"
@@ -80,6 +89,9 @@ export function useTodoEditing(
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [editModalType, setEditModalType] = useState<EditModalType>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedRepeater, setSelectedRepeater] = useState<Repeater | null>(
+    null,
+  );
   const [selectedPriority, setSelectedPriority] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
   const [remindPickerMode, setRemindPickerMode] = useState<"date" | "time">(
@@ -120,6 +132,8 @@ export function useTodoEditing(
 
     if (type === "schedule" || type === "deadline") {
       const existingDate = type === "schedule" ? todo.scheduled : todo.deadline;
+      const existingRepeater =
+        type === "schedule" ? todo.scheduledRepeater : todo.deadlineRepeater;
       if (existingDate) {
         // Parse date-only strings as local time to avoid timezone shift
         const hasTime =
@@ -132,6 +146,7 @@ export function useTodoEditing(
       } else {
         setSelectedDate(new Date());
       }
+      setSelectedRepeater(existingRepeater || null);
     } else if (type === "priority") {
       setSelectedPriority(todo.priority || "");
     } else if (type === "state") {
@@ -462,7 +477,7 @@ export function useTodoEditing(
     setSnackbar((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  // Handle native date picker result
+  // Handle native date picker result - transition to confirm modal
   const handleDatePickerChange = useCallback(
     (event: any, date?: Date) => {
       console.log(
@@ -481,17 +496,13 @@ export function useTodoEditing(
         date &&
         (editModalType === "schedule" || editModalType === "deadline")
       ) {
-        const dateString = formatLocalDate(date);
-        // API expects "scheduled" not "schedule"
-        const fieldName =
-          editModalType === "schedule" ? "scheduled" : editModalType;
-        console.log(
-          "[DatePicker] Updating with dateString:",
-          dateString,
-          "fieldName:",
-          fieldName,
+        setSelectedDate(date);
+        // Transition to confirm modal where user can optionally add repeater
+        setEditModalType(
+          editModalType === "schedule"
+            ? "schedule-confirm"
+            : "deadline-confirm",
         );
-        handleUpdateTodo({ [fieldName]: dateString });
       } else {
         console.log(
           "[DatePicker] Not updating - date:",
@@ -501,7 +512,25 @@ export function useTodoEditing(
         );
       }
     },
-    [editModalType, handleUpdateTodo, closeEditModal],
+    [editModalType, closeEditModal],
+  );
+
+  // Save schedule/deadline with optional repeater
+  const handleSaveDateTime = useCallback(
+    (type: "schedule" | "deadline") => {
+      const dateString = formatLocalDate(selectedDate);
+      const fieldName = type === "schedule" ? "scheduled" : "deadline";
+      const repeaterField =
+        type === "schedule" ? "scheduledRepeater" : "deadlineRepeater";
+
+      const updates: TodoUpdates = {
+        [fieldName]: dateString,
+        [repeaterField]: selectedRepeater,
+      };
+
+      handleUpdateTodo(updates);
+    },
+    [selectedDate, selectedRepeater, handleUpdateTodo],
   );
 
   const EditModals = useCallback(() => {
@@ -533,14 +562,24 @@ export function useTodoEditing(
               onChange={(e) => {
                 const parsed = new Date(e.target.value + "T00:00:00");
                 if (!isNaN(parsed.getTime())) {
-                  // Auto-save on selection
-                  const dateString = formatLocalDate(parsed);
-                  const fieldName =
-                    editModalType === "schedule" ? "scheduled" : "deadline";
-                  handleUpdateTodo({ [fieldName]: dateString });
+                  setSelectedDate(parsed);
+                  // Transition to confirm modal
+                  setEditModalType(
+                    editModalType === "schedule"
+                      ? "schedule-confirm"
+                      : "deadline-confirm",
+                  );
                 }
               }}
-              onBlur={closeEditModal}
+              onBlur={() => {
+                // Only close if we haven't transitioned to confirm modal
+                if (
+                  editModalType === "schedule" ||
+                  editModalType === "deadline"
+                ) {
+                  closeEditModal();
+                }
+              }}
               ref={(el) => {
                 // Auto-open the picker when mounted
                 if (el) {
@@ -559,6 +598,86 @@ export function useTodoEditing(
               }}
             />
           )}
+
+          {/* Schedule Confirm Modal */}
+          <Modal
+            visible={editModalType === "schedule-confirm"}
+            onDismiss={closeEditModal}
+            contentContainerStyle={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.surface },
+            ]}
+          >
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              Schedule
+            </Text>
+            <Text variant="bodyMedium" style={styles.modalSubtitle}>
+              {selectedDate.toLocaleDateString(undefined, {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </Text>
+
+            <RepeaterPicker
+              value={selectedRepeater}
+              onChange={setSelectedRepeater}
+              label="Repeat"
+            />
+
+            <View style={styles.modalButtons}>
+              <Button mode="outlined" onPress={closeEditModal}>
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={() => handleSaveDateTime("schedule")}
+              >
+                Save
+              </Button>
+            </View>
+          </Modal>
+
+          {/* Deadline Confirm Modal */}
+          <Modal
+            visible={editModalType === "deadline-confirm"}
+            onDismiss={closeEditModal}
+            contentContainerStyle={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.surface },
+            ]}
+          >
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              Deadline
+            </Text>
+            <Text variant="bodyMedium" style={styles.modalSubtitle}>
+              {selectedDate.toLocaleDateString(undefined, {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </Text>
+
+            <RepeaterPicker
+              value={selectedRepeater}
+              onChange={setSelectedRepeater}
+              label="Repeat"
+            />
+
+            <View style={styles.modalButtons}>
+              <Button mode="outlined" onPress={closeEditModal}>
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={() => handleSaveDateTime("deadline")}
+              >
+                Save
+              </Button>
+            </View>
+          </Modal>
 
           {/* Priority Modal */}
           <Modal
@@ -752,6 +871,7 @@ export function useTodoEditing(
     editModalType,
     editingTodo,
     selectedDate,
+    selectedRepeater,
     selectedPriority,
     selectedState,
     remindDateTime,
@@ -763,6 +883,7 @@ export function useTodoEditing(
     handleDatePickerChange,
     handleRemindDateChange,
     handleSavePriority,
+    handleSaveDateTime,
     handleScheduleReminder,
     handleStateChange,
     handleUpdateTodo,

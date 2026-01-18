@@ -74,19 +74,22 @@ export default function LoginScreen() {
   }, []);
 
   // Save URL to history after successful login
-  const saveUrlToHistory = useCallback(async (url: string) => {
-    try {
-      const normalized = normalizeUrl(url);
-      const newHistory = [
-        normalized,
-        ...urlHistory.filter((u) => u !== normalized),
-      ].slice(0, MAX_URL_HISTORY);
-      setUrlHistory(newHistory);
-      await AsyncStorage.setItem(URL_HISTORY_KEY, JSON.stringify(newHistory));
-    } catch (e) {
-      console.warn("Failed to save URL history:", e);
-    }
-  }, [urlHistory]);
+  const saveUrlToHistory = useCallback(
+    async (url: string) => {
+      try {
+        const normalized = normalizeUrl(url);
+        const newHistory = [
+          normalized,
+          ...urlHistory.filter((u) => u !== normalized),
+        ].slice(0, MAX_URL_HISTORY);
+        setUrlHistory(newHistory);
+        await AsyncStorage.setItem(URL_HISTORY_KEY, JSON.stringify(newHistory));
+      } catch (e) {
+        console.warn("Failed to save URL history:", e);
+      }
+    },
+    [urlHistory],
+  );
 
   // Combine defaults and history, filter by current input
   const allUrls = [...new Set([...urlHistory, ...DEFAULT_URLS])];
