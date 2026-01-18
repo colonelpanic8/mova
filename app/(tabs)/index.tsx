@@ -88,9 +88,20 @@ export default function AgendaScreen() {
 
   const fetchAgenda = useCallback(
     async (date: Date) => {
-      if (!apiUrl || !username || !password) return;
+      console.log("[AgendaScreen] fetchAgenda called", {
+        hasApiUrl: !!apiUrl,
+        hasUsername: !!username,
+        hasPassword: !!password,
+        apiUrl: apiUrl ? `${apiUrl.substring(0, 30)}...` : null,
+      });
+
+      if (!apiUrl || !username || !password) {
+        console.log("[AgendaScreen] Missing credentials, returning early");
+        return;
+      }
 
       try {
+        console.log("[AgendaScreen] Configuring API and fetching...");
         api.configure(apiUrl, username, password);
         const dateString = formatDateForApi(date);
         const todayString = formatDateForApi(new Date());
@@ -99,14 +110,22 @@ export default function AgendaScreen() {
           api.getAgenda("day", dateString, includeOverdue),
           api.getTodoStates().catch(() => null),
         ]);
+        console.log("[AgendaScreen] Fetch successful", {
+          entriesCount: agendaData?.entries?.length,
+        });
         setAgenda(agendaData);
         if (statesData) {
           setTodoStates(statesData);
         }
         setError(null);
       } catch (err) {
+        console.error("[AgendaScreen] Fetch failed:", err);
+        console.error("[AgendaScreen] Error details:", {
+          name: err instanceof Error ? err.name : "unknown",
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        });
         setError("Failed to load agenda");
-        console.error(err);
       }
     },
     [apiUrl, username, password],
