@@ -54,7 +54,7 @@ export async function ensureFreshState(): Promise<void> {
     newInstance: true,
     delete: true, // Clears all app data including AsyncStorage
     launchArgs: {
-      detoxDisableSynchronization: 1,
+      detoxEnableSynchronization: 0,
     },
   });
   // Give the app a moment to initialize before re-enabling sync
@@ -70,7 +70,7 @@ export async function launchAppWithAutoLogin(): Promise<void> {
     delete: true,
     launchArgs: {
       ...TEST_LAUNCH_ARGS,
-      detoxDisableSynchronization: 1,
+      detoxEnableSynchronization: 0,
     },
   });
   // Give the app a moment to initialize before re-enabling sync
@@ -84,7 +84,7 @@ export async function launchAppPreserveState(): Promise<void> {
   await device.launchApp({
     newInstance: false,
     launchArgs: {
-      detoxDisableSynchronization: 1,
+      detoxEnableSynchronization: 0,
     },
   });
   // Give the app a moment to initialize
@@ -221,7 +221,7 @@ export async function setupTestPreserveLogin(): Promise<void> {
     newInstance: false,
     launchArgs: {
       ...TEST_LAUNCH_ARGS,
-      detoxDisableSynchronization: 1,
+      detoxEnableSynchronization: 0,
     },
   });
   // Give the app a moment to initialize
