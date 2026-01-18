@@ -388,7 +388,7 @@ export default function CaptureScreen() {
         contentContainerStyle={styles.formContent}
       >
         {/* Template prompts */}
-        {selectedTemplate?.prompts.map((prompt) => (
+        {(selectedTemplate?.prompts ?? []).map((prompt) => (
           <PromptField
             key={prompt.name}
             prompt={prompt}
