@@ -117,6 +117,22 @@
         "type": "github"
       }
     },
+    "mova": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1768689560,
+        "narHash": "sha256-02vUB/5CI53W+TZDFU8fzXKg8bLOd7ZF+VmrLwEuaAc=",
+        "owner": "colonelpanic8",
+        "repo": "mova",
+        "rev": "1caf5a4620b85ddd549420d721547469f8958571",
+        "type": "github"
+      },
+      "original": {
+        "owner": "colonelpanic8",
+        "repo": "mova",
+        "type": "github"
+      }
+    },
     "nixgl": {
       "inputs": {
         "flake-utils": "flake-utils_2",
@@ -220,14 +236,15 @@
         "emacs-overlay": "emacs-overlay",
         "flake-utils": "flake-utils_3",
         "git-sync-rs": "git-sync-rs",
+        "mova": "mova",
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1768554730,
-        "narHash": "sha256-lW2K6bhFpMGgPjqa6h3d/PSGF2FpqJ6pYAtWjFEhJ9Q=",
+        "lastModified": 1768694963,
+        "narHash": "sha256-Kf9AB6mXPHRObBGp/6K46dc9/k4bvl28nsZ/QbRpSAc=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "da9269e48d463201c92e9222ac4902da15df0bc7",
+        "rev": "f80870da832be6ae6d1b663dee1cc96315c7a36e",
         "type": "github"
       },
       "original": {
