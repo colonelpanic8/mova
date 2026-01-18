@@ -15,16 +15,18 @@ module.exports = {
       binaryPath: "android/app/build/outputs/apk/debug/app-debug.apk",
       testBinaryPath:
         "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      // Use E2E entry file (skips widget registration for Detox compatibility)
       build:
-        "cd android && ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -DtestBuildType=debug",
+        "cd android && ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -DtestBuildType=debug -Pexpo.e2e=true",
     },
     "android.release": {
       type: "android.apk",
       binaryPath: "android/app/build/outputs/apk/release/app-release.apk",
       testBinaryPath:
         "android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk",
+      // Use E2E entry file (skips widget registration for Detox compatibility)
       build:
-        "cd android && ./gradlew :app:assembleRelease :app:assembleReleaseAndroidTest -DtestBuildType=release",
+        "cd android && ./gradlew :app:assembleRelease :app:assembleReleaseAndroidTest -DtestBuildType=release -Pexpo.e2e=true",
     },
   },
   devices: {
