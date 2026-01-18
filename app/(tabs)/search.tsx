@@ -3,7 +3,13 @@ import { useAuth } from "@/context/AuthContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { api, Todo, TodoStatesResponse } from "@/services/api";
 import React, { useCallback, useEffect, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import {
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   ActivityIndicator,
   IconButton,
@@ -120,7 +126,13 @@ export default function SearchScreen() {
         </View>
 
         {error ? (
-          <View testID="searchErrorView" style={styles.centered}>
+          <ScrollView
+            testID="searchErrorView"
+            contentContainerStyle={[styles.centered, { flexGrow: 1 }]}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
             <Text
               testID="searchErrorText"
               variant="bodyLarge"
@@ -128,7 +140,7 @@ export default function SearchScreen() {
             >
               {error}
             </Text>
-          </View>
+          </ScrollView>
         ) : filteredTodos.length === 0 ? (
           <View testID="searchEmptyView" style={styles.centered}>
             <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
