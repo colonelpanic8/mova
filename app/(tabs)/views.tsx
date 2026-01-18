@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -130,9 +131,16 @@ export default function ViewsScreen() {
 
   if (error) {
     return (
-      <View
+      <ScrollView
         testID="viewsErrorView"
-        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+        contentContainerStyle={[
+          styles.centered,
+          { backgroundColor: theme.colors.background, flexGrow: 1 },
+        ]}
+        style={{ backgroundColor: theme.colors.background }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Text
           testID="viewsErrorText"
@@ -141,7 +149,7 @@ export default function ViewsScreen() {
         >
           {error}
         </Text>
-      </View>
+      </ScrollView>
     );
   }
 

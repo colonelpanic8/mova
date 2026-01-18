@@ -10,6 +10,7 @@ import {
   FlatList,
   Platform,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -160,9 +161,16 @@ export default function AgendaScreen() {
 
   if (error) {
     return (
-      <View
+      <ScrollView
         testID="agendaErrorView"
-        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+        contentContainerStyle={[
+          styles.centered,
+          { backgroundColor: theme.colors.background, flexGrow: 1 },
+        ]}
+        style={{ backgroundColor: theme.colors.background }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Text
           testID="agendaErrorText"
@@ -171,7 +179,7 @@ export default function AgendaScreen() {
         >
           {error}
         </Text>
-      </View>
+      </ScrollView>
     );
   }
 
