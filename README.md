@@ -1,50 +1,193 @@
-# Welcome to your Expo app 👋
+# Mova
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile client for [org-agenda-api](../README.md) - access and manage your Emacs org-mode tasks from Android and iOS.
 
-## Get started
+## Overview
 
-1. Install dependencies
+Mova is a React Native/Expo application that connects to an org-agenda-api server, providing a native mobile interface for:
 
-   ```bash
-   npm install
-   ```
+- Viewing your daily agenda with scheduled items and deadlines
+- Capturing new tasks using org-mode capture templates
+- Searching across all your TODO items
+- Running custom agenda views
+- Receiving notifications for upcoming tasks
 
-2. Start the app
+## Relationship to org-agenda-api
 
-   ```bash
-    npx expo start
-   ```
+Mova is the mobile frontend for [org-agenda-api](../README.md), a JSON HTTP API that exposes org-mode data from GNU Emacs. The architecture:
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
++--------+         +----------------+         +-------+
+|  Mova  |  <--->  | org-agenda-api |  <--->  | Emacs |
+| (this) |  HTTP   |    (server)    |  elisp  |       |
++--------+         +----------------+         +-------+
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- **org-agenda-api** runs as a Docker container or server, exposing your org files via REST endpoints
+- **Mova** connects to that server using HTTP Basic Auth to provide a native mobile experience
 
-## Learn more
+You need a running org-agenda-api instance for Mova to connect to. See the [org-agenda-api README](../README.md) for setup instructions.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Features
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Agenda View
+- Daily agenda with date navigation
+- Shows scheduled items, deadlines, and overdue tasks
+- Pull-to-refresh synchronization
+- Inline task completion and editing
 
-## Join the community
+### Capture
+- Template-based task capture using your org-mode capture templates
+- Dynamic form fields (text, dates, tags) defined by templates
+- Priority and TODO state selection
+- Scheduled/deadline date pickers
+- Remembers your last-used template
 
-Join our community of developers creating universal apps.
+### Search
+- Full-text search across all TODO items
+- Searches title, tags, and TODO state
+- Real-time filtering
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Custom Views
+- Access your custom org-agenda commands
+- Dynamic view rendering from server-defined views
+
+### Android Widget
+- Quick Capture widget for home screen
+- Capture tasks without opening the app
+- Configurable template per widget instance
+
+### Notifications
+- Background sync for upcoming tasks
+- Configurable notification intervals
+- Scheduled and deadline reminders
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- Yarn or npm
+- A running [org-agenda-api](../README.md) server
+- For development: Android Studio (Android) or Xcode (iOS)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repo-url>
+cd mova
+
+# Install dependencies
+yarn install
+
+# Start the development server
+yarn start
+```
+
+### Running the App
+
+```bash
+# Android
+yarn android
+
+# iOS
+yarn ios
+
+# Or use Expo Go for quick testing
+npx expo start
+```
+
+### Connecting to org-agenda-api
+
+1. Launch Mova
+2. Enter your org-agenda-api server URL (e.g., `https://your-server.com`)
+3. Enter your username and password
+4. Tap Login
+
+## Development
+
+### Project Structure
+
+```
+mova/
+├── app/                    # Expo Router screens
+│   ├── (tabs)/             # Main tab navigation
+│   │   ├── index.tsx       # Agenda screen
+│   │   ├── capture.tsx     # Capture screen
+│   │   ├── search.tsx      # Search screen
+│   │   ├── views.tsx       # Custom views
+│   │   └── settings/       # Settings screens
+│   └── login.tsx           # Login screen
+├── services/               # API client and background tasks
+│   ├── api.ts              # org-agenda-api client
+│   ├── backgroundSync.ts   # Background task registration
+│   └── notifications.ts    # Push notifications
+├── components/             # Reusable UI components
+├── context/                # React context providers
+├── hooks/                  # Custom React hooks
+├── widgets/                # Android widget implementation
+└── tests/                  # Jest unit/integration tests
+```
+
+### Commands
+
+```bash
+yarn start          # Start Expo dev server
+yarn android        # Run on Android
+yarn ios            # Run on iOS
+yarn test           # Run Jest tests
+yarn typecheck      # TypeScript validation
+yarn lint           # ESLint check
+yarn e2e:android    # Run Detox E2E tests
+```
+
+### Testing
+
+```bash
+# Unit tests
+yarn test
+
+# E2E tests (requires Android emulator)
+yarn e2e:build:android
+yarn e2e:android
+```
+
+## Tech Stack
+
+- **React Native** + **Expo** - Cross-platform mobile framework
+- **Expo Router** - File-based navigation
+- **React Native Paper** - Material Design 3 components
+- **TypeScript** - Type safety
+- **Jest** + **Detox** - Testing
+
+## Configuration
+
+### Capture Templates
+
+Capture templates are defined in your Emacs org-mode configuration and exposed via the org-agenda-api `/templates` endpoint. Mova automatically fetches and renders forms based on your template definitions.
+
+Example template structure from org-agenda-api:
+```json
+{
+  "todo": {
+    "name": "Todo",
+    "prompts": [
+      {"name": "title", "type": "string", "required": true},
+      {"name": "scheduled", "type": "date", "required": false},
+      {"name": "tags", "type": "tags", "required": false}
+    ]
+  }
+}
+```
+
+### Notifications
+
+Configure notification preferences in Settings:
+- Enable/disable notifications
+- Set reminder intervals (e.g., 15 minutes before)
+- Background sync frequency (default: 15 minutes)
+
+## License
+
+GPL v3
