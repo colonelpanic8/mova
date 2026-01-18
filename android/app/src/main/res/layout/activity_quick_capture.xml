@@ -25,7 +25,9 @@
         android:imeOptions="actionDone"
         android:background="@drawable/edit_text_background"
         android:padding="12dp"
-        android:textSize="16sp" />
+        android:textSize="16sp"
+        android:textColor="#1C1B1F"
+        android:textColorHint="#49454F" />
 
     <FrameLayout
         android:layout_width="match_parent"
