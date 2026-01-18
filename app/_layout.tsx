@@ -14,6 +14,9 @@ import "@/services/backgroundSync";
 
 SplashScreen.preventAutoHideAsync();
 
+// Hide splash screen early for E2E tests to prevent idle detection issues
+SplashScreen.hideAsync().catch(() => {});
+
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
@@ -42,11 +45,14 @@ function RootLayoutNav() {
     }
   }, [isLoading]);
 
+  // Use a static loading indicator instead of animated ActivityIndicator
+  // to allow the main thread to become idle for Detox tests
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
+      <View
+        testID="loadingScreen"
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      />
     );
   }
 
