@@ -271,7 +271,7 @@ class OrgAgendaApi {
 
   async capture(
     template: string,
-    values: Record<string, string | string[]>,
+    values: Record<string, string | string[] | Repeater>,
   ): Promise<CaptureResponse> {
     return this.request<CaptureResponse>("/capture", {
       method: "POST",
