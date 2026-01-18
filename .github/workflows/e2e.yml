@@ -183,7 +183,7 @@ jobs:
             adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 
             # Run Detox tests
-            yarn detox test --configuration android.emu.debug --headless --record-logs all || true
+            yarn detox test --configuration android.emu.debug --headless --record-logs all
 
             # Stop logcat and save
             kill $LOGCAT_PID 2>/dev/null || true
