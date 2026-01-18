@@ -101,6 +101,10 @@ export interface VersionResponse {
   gitCommit: string;
 }
 
+export interface AgendaFilesResponse {
+  files: string[];
+}
+
 class OrgAgendaApi {
   private baseUrl: string = "";
   private authHeader: string = "";
@@ -266,6 +270,10 @@ class OrgAgendaApi {
 
   async getVersion(): Promise<VersionResponse> {
     return this.request<VersionResponse>("/version");
+  }
+
+  async getAgendaFiles(): Promise<AgendaFilesResponse> {
+    return this.request<AgendaFilesResponse>("/agenda-files");
   }
 }
 
