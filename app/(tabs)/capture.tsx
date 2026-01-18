@@ -60,6 +60,41 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
 
   if (prompt.type === "date") {
     const dateValue = typeof value === "string" ? value : "";
+
+    // Use native HTML date input on web
+    if (Platform.OS === "web") {
+      return (
+        <View style={styles.fieldContainer}>
+          <Text variant="bodySmall" style={styles.fieldLabel}>
+            {prompt.name}
+            {prompt.required ? " *" : ""}
+          </Text>
+          <View style={styles.dateInputRow}>
+            <input
+              type="date"
+              value={dateValue}
+              onChange={(e) => onChange(e.target.value)}
+              style={{
+                flex: 1,
+                padding: 12,
+                fontSize: 16,
+                borderRadius: 4,
+                border: "1px solid #79747E",
+                backgroundColor: "transparent",
+              }}
+            />
+            {dateValue && (
+              <IconButton
+                icon="close"
+                size={20}
+                onPress={() => onChange("")}
+              />
+            )}
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.fieldContainer}>
         <Button
@@ -277,7 +312,9 @@ export default function CaptureScreen() {
       if (optionalFields.tags?.length) captureValues.tags = optionalFields.tags;
       if (optionalFields.todo && optionalFields.todo !== "TODO") captureValues.todo = optionalFields.todo;
 
+      console.log("Capture request:", { template: selectedTemplateKey, values: captureValues });
       const result = await api.capture(selectedTemplateKey, captureValues);
+      console.log("Capture response:", result);
       if (result.status === "created") {
         setMessage({ text: "Captured!", isError: false });
         setValues({});
@@ -478,6 +515,10 @@ const styles = StyleSheet.create({
   },
   tagInput: {
     flex: 1,
+  },
+  dateInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   captureButton: {
     marginTop: 8,
