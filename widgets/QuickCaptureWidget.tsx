@@ -72,7 +72,7 @@ export function QuickCaptureWidget({
           text={status === "idle" ? `Tap to add (${templateName})...` : getStatusText()}
           style={{
             fontSize: 14,
-            color: status === "idle" ? "#49454F" : "#1C1B1F",
+            color: "#1C1B1F",
           }}
         />
       </FlexWidget>
