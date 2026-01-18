@@ -190,7 +190,7 @@ export function WidgetConfigurationScreen({
           <List.Item
             key={key}
             title={templates![key].name}
-            description={`${templates![key].prompts.length} field(s)`}
+            description={`${(templates![key].prompts ?? []).length} field(s)`}
             left={(props) => (
               <List.Icon {...props} icon="file-document-outline" />
             )}

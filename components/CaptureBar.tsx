@@ -45,7 +45,7 @@ export function CaptureBar() {
       if (lastTemplate && templateKeys.includes(lastTemplate)) {
         // Only use saved template if it's a single-field template
         const template = data[lastTemplate];
-        const requiredPrompts = template.prompts.filter((p) => p.required);
+        const requiredPrompts = (template.prompts ?? []).filter((p) => p.required);
         if (requiredPrompts.length <= 1) {
           setSelectedTemplateKey(lastTemplate);
         } else {
@@ -71,7 +71,7 @@ export function CaptureBar() {
   // Get single-field templates (templates with at most 1 required field)
   const singleFieldTemplates = templates
     ? Object.entries(templates).filter(([, template]) => {
-        const requiredPrompts = template.prompts.filter((p) => p.required);
+        const requiredPrompts = (template.prompts ?? []).filter((p) => p.required);
         return requiredPrompts.length <= 1;
       })
     : [];
@@ -95,7 +95,7 @@ export function CaptureBar() {
 
     try {
       // Find the first required string field or use "Title"
-      const titlePrompt = selectedTemplate.prompts.find(
+      const titlePrompt = (selectedTemplate.prompts ?? []).find(
         (p) => p.type === "string" && p.required,
       );
       const fieldName = titlePrompt?.name || "Title";
