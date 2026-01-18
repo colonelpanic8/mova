@@ -28,7 +28,9 @@ export async function getWidgetTemplate(widgetId: number): Promise<string> {
   // First check SharedPreferences (used by native TemplateConfigActivity)
   if (SharedStorage) {
     try {
-      const template = await SharedStorage.getItem(`widget_${widgetId}_template_key`);
+      const template = await SharedStorage.getItem(
+        `widget_${widgetId}_template_key`,
+      );
       if (template) {
         return template;
       }
@@ -101,8 +103,14 @@ export function WidgetConfigurationScreen({
         : templates?.[selectedTemplate]?.name || "Capture";
 
     if (SharedStorage) {
-      await SharedStorage.setItem(`widget_${widgetInfo.widgetId}_template_key`, selectedTemplate);
-      await SharedStorage.setItem(`widget_${widgetInfo.widgetId}_template_name`, templateName);
+      await SharedStorage.setItem(
+        `widget_${widgetInfo.widgetId}_template_key`,
+        selectedTemplate,
+      );
+      await SharedStorage.setItem(
+        `widget_${widgetInfo.widgetId}_template_name`,
+        templateName,
+      );
     }
 
     // Render the widget
