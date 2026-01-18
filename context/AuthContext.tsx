@@ -1,5 +1,6 @@
 import { api } from "@/services/api";
 import { base64Encode } from "@/utils/base64";
+import { normalizeUrl } from "@/utils/url";
 import {
   clearWidgetCredentials,
   saveCredentialsToWidget,
@@ -133,8 +134,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
   ): Promise<boolean> {
     try {
+      const normalizedUrl = normalizeUrl(apiUrl);
       // Test the credentials by hitting the /templates endpoint
-      const response = await fetch(`${apiUrl}/templates`, {
+      const response = await fetch(`${normalizedUrl}/templates`, {
         headers: {
           Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
         },
@@ -143,17 +145,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         console.log("[AuthContext] Login successful, saving credentials...");
         await Promise.all([
-          AsyncStorage.setItem(STORAGE_KEYS.API_URL, apiUrl),
+          AsyncStorage.setItem(STORAGE_KEYS.API_URL, normalizedUrl),
           AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username),
           AsyncStorage.setItem(STORAGE_KEYS.PASSWORD, password),
         ]);
 
         // Also save to SharedPreferences for widget access
-        await saveCredentialsToWidget(apiUrl, username, password);
+        await saveCredentialsToWidget(normalizedUrl, username, password);
 
         console.log("[AuthContext] Credentials saved, updating state...");
         setState({
-          apiUrl,
+          apiUrl: normalizedUrl,
           username,
           password,
           isAuthenticated: true,
