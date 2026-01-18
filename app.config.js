@@ -1,8 +1,25 @@
+const { execSync } = require("child_process");
+const packageJson = require("./package.json");
+
+function getGitInfo() {
+  try {
+    const hash = execSync("git rev-parse --short HEAD", {
+      encoding: "utf8",
+    }).trim();
+    const isDirty =
+      execSync("git status --porcelain", { encoding: "utf8" }).trim().length >
+      0;
+    return isDirty ? `${hash}-dirty` : hash;
+  } catch {
+    return "unknown";
+  }
+}
+
 export default {
   expo: {
     name: "mova",
     slug: "mova",
-    version: "1.0.0",
+    version: packageJson.version,
     orientation: "portrait",
     icon: "./assets/images/mova.png",
     scheme: "mova",
@@ -79,7 +96,7 @@ export default {
       typedRoutes: true,
     },
     extra: {
-      gitCommit: process.env.MOVA_GIT_COMMIT || "dev",
+      gitCommit: process.env.MOVA_GIT_COMMIT || getGitInfo(),
     },
   },
 };

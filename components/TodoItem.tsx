@@ -55,11 +55,12 @@ export function TodoItem({ todo }: TodoItemProps) {
 
   // Register ref with the context's ref map
   useEffect(() => {
+    const refs = swipeableRefs.current;
     if (internalRef.current) {
-      swipeableRefs.current.set(key, internalRef.current);
+      refs.set(key, internalRef.current);
     }
     return () => {
-      swipeableRefs.current.delete(key);
+      refs.delete(key);
     };
   }, [key, swipeableRefs]);
 

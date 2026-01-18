@@ -232,7 +232,8 @@ export default function LoginScreen() {
         </Button>
 
         <Text variant="bodySmall" style={styles.versionText}>
-          Mova v{Constants.expoConfig?.version}
+          Mova v{Constants.expoConfig?.version} (
+          {Constants.expoConfig?.extra?.gitCommit})
         </Text>
       </View>
 
