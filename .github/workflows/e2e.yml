@@ -66,8 +66,11 @@ jobs:
 
       - name: Build and load org-agenda-api container
         run: |
-          echo "Building org-agenda-api container from GitHub..."
-          nix build "github:colonelpanic8/org-agenda-api#container" -o result-container
+          echo "Building org-agenda-api container using locked revision from flake.lock..."
+          # Use the locked org-agenda-api revision from our flake.lock to ensure compatibility
+          ORG_API_REV=$(nix flake metadata --json . | jq -r '.locks.nodes."org-agenda-api".locked.rev')
+          echo "Using org-agenda-api revision: $ORG_API_REV"
+          nix build "github:colonelpanic8/org-agenda-api/$ORG_API_REV#container" -o result-container
 
           # Load and capture the image name from docker load output
           LOAD_OUTPUT=$(docker load < result-container)
