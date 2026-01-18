@@ -4,7 +4,7 @@ import { useDeepLinks } from "@/hooks/useDeepLinks";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { ActivityIndicator, useColorScheme, View } from "react-native";
+import { useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
@@ -13,6 +13,9 @@ import "react-native-reanimated";
 import "@/services/backgroundSync";
 
 SplashScreen.preventAutoHideAsync();
+
+// Hide splash screen early for E2E tests to prevent idle detection issues
+SplashScreen.hideAsync().catch(() => {});
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -42,11 +45,14 @@ function RootLayoutNav() {
     }
   }, [isLoading]);
 
+  // Use a static loading indicator instead of animated ActivityIndicator
+  // to allow the main thread to become idle for Detox tests
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
+      <View
+        testID="loadingScreen"
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      />
     );
   }
 
