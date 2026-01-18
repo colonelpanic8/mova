@@ -172,12 +172,25 @@ jobs:
             adb wait-for-device
             adb shell input keyevent 82
 
+            # Start logcat in background to capture crash logs
+            mkdir -p artifacts
+            adb logcat -c  # Clear previous logs
+            adb logcat *:E ReactNative:V ReactNativeJS:V > artifacts/logcat.txt 2>&1 &
+            LOGCAT_PID=$!
+
             # Install the test APKs
             adb install android/app/build/outputs/apk/debug/app-debug.apk
             adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 
             # Run Detox tests
-            yarn detox test --configuration android.emu.debug --headless --record-logs all
+            yarn detox test --configuration android.emu.debug --headless --record-logs all || true
+
+            # Stop logcat and save
+            kill $LOGCAT_PID 2>/dev/null || true
+
+            # Show last 200 lines of logcat for immediate debugging
+            echo "=== Last 200 lines of logcat ==="
+            tail -200 artifacts/logcat.txt || true
 
       - name: Upload test artifacts
         if: always()
