@@ -281,7 +281,7 @@ export default function CaptureScreen() {
 
     try {
       // Validate required fields
-      const missingRequired = selectedTemplate.prompts
+      const missingRequired = (selectedTemplate.prompts ?? [])
         .filter((p) => p.required)
         .filter((p) => {
           const val = values[p.name];
