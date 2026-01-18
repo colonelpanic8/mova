@@ -54,57 +54,28 @@ describe("OrgAgendaApi", () => {
     });
   });
 
-  describe("createTodo", () => {
-    it("should make POST request to /create-todo with title", async () => {
-      const mockResponse = { status: "created", title: "New Todo" };
+  describe("capture", () => {
+    it("should make POST request to /capture with template and values", async () => {
+      const mockResponse = { status: "created", template: "default" };
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await api.createTodo("New Todo");
+      const result = await api.capture("default", { Title: "New Todo" });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://test-api.local/create-todo",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({ title: "New Todo" }),
-        }),
-      );
-      expect(result.status).toBe("created");
-    });
-
-    it("should make POST request with optional fields", async () => {
-      const mockFetch = jest.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ status: "created", title: "Test" }),
-      });
-      global.fetch = mockFetch;
-
-      api.configure("http://test.com", "user", "pass");
-      await api.createTodo("Test todo", {
-        scheduled: "2026-01-20",
-        deadline: "2026-01-25",
-        priority: "A",
-        tags: ["work", "urgent"],
-        todo: "NEXT",
-      });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://test.com/create-todo",
+        "http://test-api.local/capture",
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
-            title: "Test todo",
-            scheduled: "2026-01-20",
-            deadline: "2026-01-25",
-            priority: "A",
-            tags: ["work", "urgent"],
-            todo: "NEXT",
+            template: "default",
+            values: { Title: "New Todo" },
           }),
         }),
       );
+      expect(result.status).toBe("created");
     });
   });
 

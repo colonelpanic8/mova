@@ -89,11 +89,13 @@ class QuickCaptureActivity : AppCompatActivity() {
         progressBar.visibility = android.view.View.VISIBLE
 
         CoroutineScope(Dispatchers.IO).launch {
-            val result = if (templateKey == "__quick_capture__") {
-                createTodo(text)
+            // Use "default" template if no template is selected or if it was the old quick capture
+            val effectiveTemplateKey = if (templateKey == "__quick_capture__" || templateKey.isNullOrEmpty()) {
+                "default"
             } else {
-                captureWithTemplate(text)
+                templateKey!!
             }
+            val result = captureWithTemplate(text, effectiveTemplateKey)
 
             withContext(Dispatchers.Main) {
                 progressBar.visibility = android.view.View.GONE
@@ -123,63 +125,7 @@ class QuickCaptureActivity : AppCompatActivity() {
         }
     }
 
-    private fun createTodo(title: String): CaptureResult {
-        try {
-            val credentials = getCredentials()
-            if (credentials == null) {
-                Log.e(TAG, "createTodo: No credentials")
-                return CaptureResult(false, "Please log in to the Mova app first")
-            }
-
-            val (apiUrl, username, password) = credentials
-            Log.d(TAG, "createTodo: URL=$apiUrl/create-todo, user=$username")
-
-            val url = URL("$apiUrl/create-todo")
-            val connection = url.openConnection() as HttpURLConnection
-
-            try {
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json")
-
-                val basicAuth = "Basic " + Base64.encodeToString("$username:$password".toByteArray(), Base64.NO_WRAP)
-                connection.setRequestProperty("Authorization", basicAuth)
-
-                connection.doOutput = true
-                val jsonBody = JSONObject().apply {
-                    put("title", title)
-                }.toString()
-                Log.d(TAG, "createTodo: Sending body: $jsonBody")
-
-                connection.outputStream.use { os ->
-                    os.write(jsonBody.toByteArray())
-                }
-
-                val responseCode = connection.responseCode
-                val responseBody = try {
-                    if (responseCode in 200..299) {
-                        connection.inputStream.bufferedReader().readText()
-                    } else {
-                        connection.errorStream?.bufferedReader()?.readText() ?: "no body"
-                    }
-                } catch (e: Exception) { "error reading: ${e.message}" }
-
-                Log.d(TAG, "createTodo: Response code=$responseCode, body=$responseBody")
-
-                return when {
-                    responseCode in 200..299 -> CaptureResult(true)
-                    responseCode == 401 -> CaptureResult(false, "Authentication failed")
-                    else -> CaptureResult(false, "Server error: $responseCode - $responseBody")
-                }
-            } finally {
-                connection.disconnect()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "createTodo: Exception", e)
-            return CaptureResult(false, "Network error: ${e.message}")
-        }
-    }
-
-    private fun captureWithTemplate(text: String): CaptureResult {
+    private fun captureWithTemplate(text: String, templateKeyToUse: String): CaptureResult {
         try {
             val credentials = getCredentials()
                 ?: return CaptureResult(false, "Please log in to the Mova app first")
@@ -187,7 +133,7 @@ class QuickCaptureActivity : AppCompatActivity() {
             val (apiUrl, username, password) = credentials
 
             // First fetch the template to find the field name
-            val fieldName = getTemplateFieldName(apiUrl, username, password)
+            val fieldName = getTemplateFieldName(apiUrl, username, password, templateKeyToUse)
                 ?: return CaptureResult(false, "Failed to load template")
 
             val url = URL("$apiUrl/capture")
@@ -206,7 +152,7 @@ class QuickCaptureActivity : AppCompatActivity() {
                         put(fieldName, text)
                     }
                     val jsonBody = JSONObject().apply {
-                        put("template", templateKey)
+                        put("template", templateKeyToUse)
                         put("values", values)
                     }.toString()
                     os.write(jsonBody.toByteArray())
@@ -232,7 +178,7 @@ class QuickCaptureActivity : AppCompatActivity() {
         }
     }
 
-    private fun getTemplateFieldName(apiUrl: String, username: String, password: String): String? {
+    private fun getTemplateFieldName(apiUrl: String, username: String, password: String, templateKeyToUse: String): String? {
         try {
             val url = URL("$apiUrl/templates")
             val connection = url.openConnection() as HttpURLConnection
@@ -246,8 +192,8 @@ class QuickCaptureActivity : AppCompatActivity() {
                     val response = connection.inputStream.bufferedReader().readText()
                     val json = JSONObject(response)
 
-                    if (json.has(templateKey)) {
-                        val template = json.getJSONObject(templateKey)
+                    if (json.has(templateKeyToUse)) {
+                        val template = json.getJSONObject(templateKeyToUse)
                         val prompts = template.getJSONArray("prompts")
 
                         // Find the first required string field, or default to "title"

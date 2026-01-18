@@ -283,8 +283,9 @@ export class TestApiClient {
   }
 
   async createTodo(title: string) {
-    return this.post<{ status: string; title?: string }>("/create-todo", {
-      title,
+    return this.post<{ status: string; template?: string }>("/capture", {
+      template: "default",
+      values: { Title: title },
     });
   }
 

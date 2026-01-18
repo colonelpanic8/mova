@@ -14,12 +14,11 @@ import {
 } from "react-native-paper";
 
 const LAST_TEMPLATE_KEY = "mova_last_template";
-const QUICK_CAPTURE_KEY = "__quick_capture__";
 
 export function CaptureBar() {
   const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
   const [selectedTemplateKey, setSelectedTemplateKey] =
-    useState<string>(QUICK_CAPTURE_KEY);
+    useState<string>("default");
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -39,21 +38,21 @@ export function CaptureBar() {
       const data = await api.getTemplates();
       setTemplates(data);
 
-      // Load last used template
+      // Load last used template, default to "default" if not set or invalid
       const lastTemplate = await AsyncStorage.getItem(LAST_TEMPLATE_KEY);
       const templateKeys = Object.keys(data);
 
-      if (lastTemplate === QUICK_CAPTURE_KEY) {
-        setSelectedTemplateKey(QUICK_CAPTURE_KEY);
-      } else if (lastTemplate && templateKeys.includes(lastTemplate)) {
+      if (lastTemplate && templateKeys.includes(lastTemplate)) {
         // Only use saved template if it's a single-field template
         const template = data[lastTemplate];
         const requiredPrompts = template.prompts.filter((p) => p.required);
         if (requiredPrompts.length <= 1) {
           setSelectedTemplateKey(lastTemplate);
         } else {
-          setSelectedTemplateKey(QUICK_CAPTURE_KEY);
+          setSelectedTemplateKey("default");
         }
+      } else {
+        setSelectedTemplateKey("default");
       }
     } catch (err) {
       console.error("Failed to load templates:", err);
@@ -66,11 +65,8 @@ export function CaptureBar() {
     }
   }, [loadTemplates, isAuthenticated]);
 
-  const isQuickCapture = selectedTemplateKey === QUICK_CAPTURE_KEY;
   const selectedTemplate =
-    selectedTemplateKey && templates && !isQuickCapture
-      ? templates[selectedTemplateKey]
-      : null;
+    selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;
 
   // Get single-field templates (templates with at most 1 required field)
   const singleFieldTemplates = templates
@@ -88,39 +84,29 @@ export function CaptureBar() {
 
   const handleCapture = async () => {
     const trimmedTitle = title.trim();
-    if (!trimmedTitle) return;
+    if (!trimmedTitle || !selectedTemplate) return;
 
     setSubmitting(true);
     Keyboard.dismiss();
 
     try {
-      if (isQuickCapture) {
-        const result = await api.createTodo(trimmedTitle);
-        if (result.status === "created") {
-          setMessage({ text: "Captured!", isError: false });
-          setTitle("");
-        } else {
-          setMessage({ text: "Capture failed", isError: true });
-        }
-      } else if (selectedTemplate) {
-        // For template capture, find the first required string field or use "title"
-        const titlePrompt = selectedTemplate.prompts.find(
-          (p) => p.type === "string" && p.required,
-        );
-        const fieldName = titlePrompt?.name || "title";
+      // Find the first required string field or use "Title"
+      const titlePrompt = selectedTemplate.prompts.find(
+        (p) => p.type === "string" && p.required,
+      );
+      const fieldName = titlePrompt?.name || "Title";
 
-        const result = await api.capture(selectedTemplateKey, {
-          [fieldName]: trimmedTitle,
+      const result = await api.capture(selectedTemplateKey, {
+        [fieldName]: trimmedTitle,
+      });
+      if (result.status === "created") {
+        setMessage({ text: "Captured!", isError: false });
+        setTitle("");
+      } else {
+        setMessage({
+          text: result.message || "Capture failed",
+          isError: true,
         });
-        if (result.status === "created") {
-          setMessage({ text: "Captured!", isError: false });
-          setTitle("");
-        } else {
-          setMessage({
-            text: result.message || "Capture failed",
-            isError: true,
-          });
-        }
       }
     } catch (err) {
       console.error("Capture failed:", err);
@@ -135,13 +121,12 @@ export function CaptureBar() {
   }
 
   const getDisplayName = () => {
-    if (isQuickCapture) return "Quick";
     if (selectedTemplate) {
       // Abbreviate long names
       const name = selectedTemplate.name;
       return name.length > 8 ? name.substring(0, 7) + "…" : name;
     }
-    return "Quick";
+    return "Todo";
   };
 
   return (
@@ -168,26 +153,14 @@ export function CaptureBar() {
           }
           anchorPosition="top"
         >
-          <Menu.Item
-            key={QUICK_CAPTURE_KEY}
-            onPress={() => handleTemplateSelect(QUICK_CAPTURE_KEY)}
-            title="Quick Capture"
-            leadingIcon={isQuickCapture ? "check" : "lightning-bolt"}
-          />
-          {singleFieldTemplates.length > 0 && (
-            <>
-              {singleFieldTemplates.map(([key, template]) => (
-                <Menu.Item
-                  key={key}
-                  onPress={() => handleTemplateSelect(key)}
-                  title={template.name}
-                  leadingIcon={
-                    key === selectedTemplateKey ? "check" : undefined
-                  }
-                />
-              ))}
-            </>
-          )}
+          {singleFieldTemplates.map(([key, template]) => (
+            <Menu.Item
+              key={key}
+              onPress={() => handleTemplateSelect(key)}
+              title={template.name}
+              leadingIcon={key === selectedTemplateKey ? "check" : undefined}
+            />
+          ))}
         </Menu>
 
         <Text variant="labelSmall" style={styles.templateLabel}>

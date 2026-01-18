@@ -68,7 +68,7 @@ export function useDeepLinks() {
       case "create":
         if (params.title) {
           try {
-            await api.createTodo(params.title);
+            await api.capture("default", { Title: params.title });
             Alert.alert("Todo created", params.title);
           } catch (err) {
             Alert.alert("Error", "Failed to create todo");
