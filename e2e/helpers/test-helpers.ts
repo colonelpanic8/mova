@@ -46,12 +46,19 @@ const TEST_LAUNCH_ARGS = {
 /**
  * Ensure a completely fresh app state
  * This should be called before login in every test
+ * Note: Uses launchArgs to disable synchronization during launch to avoid
+ * Detox getting stuck waiting for the app to become idle (widget module issue)
  */
 export async function ensureFreshState(): Promise<void> {
   await device.launchApp({
     newInstance: true,
     delete: true, // Clears all app data including AsyncStorage
+    launchArgs: {
+      detoxDisableSynchronization: 1,
+    },
   });
+  // Give the app a moment to initialize before re-enabling sync
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 }
 
 /**
@@ -61,8 +68,13 @@ export async function launchAppWithAutoLogin(): Promise<void> {
   await device.launchApp({
     newInstance: true,
     delete: true,
-    launchArgs: TEST_LAUNCH_ARGS,
+    launchArgs: {
+      ...TEST_LAUNCH_ARGS,
+      detoxDisableSynchronization: 1,
+    },
   });
+  // Give the app a moment to initialize before re-enabling sync
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 }
 
 /**
@@ -71,7 +83,12 @@ export async function launchAppWithAutoLogin(): Promise<void> {
 export async function launchAppPreserveState(): Promise<void> {
   await device.launchApp({
     newInstance: false,
+    launchArgs: {
+      detoxDisableSynchronization: 1,
+    },
   });
+  // Give the app a moment to initialize
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 }
 
 /**
@@ -202,8 +219,13 @@ export async function setupTestWithLoginOnce(): Promise<void> {
 export async function setupTestPreserveLogin(): Promise<void> {
   await device.launchApp({
     newInstance: false,
-    launchArgs: TEST_LAUNCH_ARGS,
+    launchArgs: {
+      ...TEST_LAUNCH_ARGS,
+      detoxDisableSynchronization: 1,
+    },
   });
+  // Give the app a moment to initialize
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   await device.disableSynchronization();
   try {
