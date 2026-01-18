@@ -147,9 +147,11 @@ jobs:
       - name: Build Android app for testing
         env:
           NODE_ENV: production
+          EXPO_E2E: "true"
         run: |
           cd android
-          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -DtestBuildType=debug
+          # Build with E2E entry file (skips widget registration for Detox compatibility)
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -DtestBuildType=debug -Pexpo.e2e=true
 
       - name: Enable KVM
         run: |
