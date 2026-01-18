@@ -35,6 +35,19 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Transpiled JavaScript (source is TypeScript)
+app/**/*.js
+components/**/*.js
+context/**/*.js
+e2e/**/*.test.js
+hooks/**/*.js
+services/**/*.js
+tests/**/*.js
+types/**/*.js
+utils/**/*.js
+widgets/**/*.js
+widget-task-handler.js
+
 app-example
 
 # Worktrees
