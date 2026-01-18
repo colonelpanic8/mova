@@ -61,9 +61,12 @@ class QuickCaptureActivity : AppCompatActivity() {
         // Update title
         titleText.text = templateName
 
-        // Focus the edit text and show keyboard
+        // Focus the edit text and show keyboard, adjusting window to stay above keyboard
         editText.requestFocus()
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+        window.setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or
+            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+        )
 
         submitButton.setOnClickListener {
             val text = editText.text.toString().trim()
