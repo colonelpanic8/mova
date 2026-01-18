@@ -34,11 +34,6 @@ export interface AgendaResponse {
   entries: AgendaEntry[];
 }
 
-export interface CreateTodoResponse {
-  status: string;
-  title: string;
-}
-
 export interface CompleteTodoResponse {
   status: string;
   title?: string;
@@ -51,14 +46,6 @@ export interface TodoUpdates {
   scheduled?: string | null;
   deadline?: string | null;
   priority?: string | null;
-}
-
-export interface CreateTodoOptions {
-  scheduled?: string;
-  deadline?: string;
-  priority?: string;
-  tags?: string[];
-  todo?: string;
 }
 
 export interface UpdateTodoResponse {
@@ -109,6 +96,11 @@ export interface CustomViewResponse {
   entries: AgendaEntry[];
 }
 
+export interface VersionResponse {
+  version: string;
+  gitCommit: string;
+}
+
 class OrgAgendaApi {
   private baseUrl: string = "";
   private authHeader: string = "";
@@ -155,16 +147,6 @@ class OrgAgendaApi {
 
   async getAllTodos(): Promise<GetAllTodosResponse> {
     return this.request<GetAllTodosResponse>("/get-all-todos");
-  }
-
-  async createTodo(
-    title: string,
-    options?: CreateTodoOptions,
-  ): Promise<CreateTodoResponse> {
-    return this.request<CreateTodoResponse>("/create-todo", {
-      method: "POST",
-      body: JSON.stringify({ title, ...options }),
-    });
   }
 
   async completeTodo(
@@ -241,6 +223,10 @@ class OrgAgendaApi {
     return this.request<CustomViewResponse>(
       `/custom-view?key=${encodeURIComponent(key)}`,
     );
+  }
+
+  async getVersion(): Promise<VersionResponse> {
+    return this.request<VersionResponse>("/version");
   }
 }
 

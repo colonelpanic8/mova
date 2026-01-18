@@ -1,10 +1,12 @@
 import { useAuth } from "@/context/AuthContext";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
+import { api, VersionResponse } from "@/services/api";
 import {
   getNotificationsEnabled,
   requestNotificationPermissions,
   setNotificationsEnabled,
 } from "@/services/notifications";
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -17,14 +19,27 @@ import {
   useTheme,
 } from "react-native-paper";
 
+// Shorten git commit hash for display
+const shortCommit = (commit: string): string => {
+  if (!commit || commit === "dev" || commit === "unknown") return commit;
+  return commit.substring(0, 7);
+};
+
 export default function SettingsScreen() {
   const { apiUrl, username, logout } = useAuth();
   const theme = useTheme();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [backendVersion, setBackendVersion] = useState<VersionResponse | null>(
+    null,
+  );
   const { lastSync, scheduledCount, isSyncing, syncNotifications } =
     useNotificationSync();
+
+  // Mova version info from Expo Constants
+  const movaVersion = Constants.expoConfig?.version || "unknown";
+  const movaGitCommit = Constants.expoConfig?.extra?.gitCommit || "dev";
 
   useEffect(() => {
     getNotificationsEnabled().then((enabled) => {
@@ -32,6 +47,19 @@ export default function SettingsScreen() {
       setLoadingNotifications(false);
     });
   }, []);
+
+  // Fetch backend version when connected
+  useEffect(() => {
+    if (apiUrl) {
+      api
+        .getVersion()
+        .then(setBackendVersion)
+        .catch((error) => {
+          console.error("Failed to fetch backend version:", error);
+          setBackendVersion(null);
+        });
+    }
+  }, [apiUrl]);
 
   const handleNotificationToggle = useCallback(
     async (value: boolean) => {
@@ -155,8 +183,17 @@ export default function SettingsScreen() {
         <List.Subheader>About</List.Subheader>
         <List.Item
           title="Mova"
-          description="Mobile client for org-agenda-api"
-          left={(props) => <List.Icon {...props} icon="information" />}
+          description={`${movaVersion} (${shortCommit(movaGitCommit)})`}
+          left={(props) => <List.Icon {...props} icon="cellphone" />}
+        />
+        <List.Item
+          title="Server"
+          description={
+            backendVersion
+              ? `${backendVersion.version} (${shortCommit(backendVersion.gitCommit)})`
+              : "Not connected"
+          }
+          left={(props) => <List.Icon {...props} icon="server" />}
         />
       </List.Section>
     </ScrollView>
