@@ -1,6 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
-import { api, VersionResponse } from "@/services/api";
+import { AgendaFilesResponse, api, VersionResponse } from "@/services/api";
 import {
   getNotificationsEnabled,
   requestNotificationPermissions,
@@ -34,6 +34,9 @@ export default function SettingsScreen() {
   const [backendVersion, setBackendVersion] = useState<VersionResponse | null>(
     null,
   );
+  const [agendaFiles, setAgendaFiles] = useState<AgendaFilesResponse | null>(
+    null,
+  );
   const { lastSync, scheduledCount, isSyncing, syncNotifications } =
     useNotificationSync();
 
@@ -48,7 +51,7 @@ export default function SettingsScreen() {
     });
   }, []);
 
-  // Fetch backend version when connected
+  // Fetch backend version and agenda files when connected
   useEffect(() => {
     if (apiUrl) {
       api
@@ -57,6 +60,13 @@ export default function SettingsScreen() {
         .catch((error) => {
           console.error("Failed to fetch backend version:", error);
           setBackendVersion(null);
+        });
+      api
+        .getAgendaFiles()
+        .then(setAgendaFiles)
+        .catch((error) => {
+          console.error("Failed to fetch agenda files:", error);
+          setAgendaFiles(null);
         });
     }
   }, [apiUrl]);
@@ -168,6 +178,23 @@ export default function SettingsScreen() {
       </List.Section>
 
       <Divider />
+
+      {agendaFiles && agendaFiles.files.length > 0 && (
+        <>
+          <List.Section>
+            <List.Subheader>Org Agenda Files</List.Subheader>
+            {agendaFiles.files.map((file, index) => (
+              <List.Item
+                key={index}
+                title={file.split("/").pop() || file}
+                description={file}
+                left={(props) => <List.Icon {...props} icon="file-document" />}
+              />
+            ))}
+          </List.Section>
+          <Divider />
+        </>
+      )}
 
       <View style={styles.buttonContainer}>
         <Button
