@@ -1,13 +1,24 @@
 import { base64Encode } from "@/utils/base64";
 import { normalizeUrl } from "@/utils/url";
 
+export type RepeaterType = "+" | "++" | ".+";
+export type RepeaterUnit = "d" | "w" | "m" | "y";
+
+export interface Repeater {
+  type: RepeaterType;
+  value: number;
+  unit: RepeaterUnit;
+}
+
 export interface Todo {
   todo: string;
   title: string;
   tags: string[] | null;
   level: number;
   scheduled: string | null;
+  scheduledRepeater: Repeater | null;
   deadline: string | null;
+  deadlineRepeater: Repeater | null;
   priority: string | null;
   file: string | null;
   pos: number | null;
@@ -45,7 +56,9 @@ export interface CompleteTodoResponse {
 
 export interface TodoUpdates {
   scheduled?: string | null;
+  scheduledRepeater?: Repeater | null;
   deadline?: string | null;
+  deadlineRepeater?: Repeater | null;
   priority?: string | null;
 }
 
