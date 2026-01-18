@@ -10,10 +10,11 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 interface ExpandableOptionsProps {
   children: React.ReactNode;
+  defaultExpanded?: boolean;
 }
 
-export function ExpandableOptions({ children }: ExpandableOptionsProps) {
-  const [expanded, setExpanded] = useState(false);
+export function ExpandableOptions({ children, defaultExpanded = false }: ExpandableOptionsProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   const toggle = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
