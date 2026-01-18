@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
+import { api, AgendaFile } from "@/services/api";
 import {
   getNotificationsEnabled,
   requestNotificationPermissions,
@@ -23,6 +24,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [agendaFiles, setAgendaFiles] = useState<AgendaFile[]>([]);
+  const [loadingAgendaFiles, setLoadingAgendaFiles] = useState(true);
   const { lastSync, scheduledCount, isSyncing, syncNotifications } =
     useNotificationSync();
 
@@ -31,6 +34,20 @@ export default function SettingsScreen() {
       setNotificationsEnabledState(enabled);
       setLoadingNotifications(false);
     });
+  }, []);
+
+  useEffect(() => {
+    api
+      .getAgendaFiles()
+      .then((response) => {
+        setAgendaFiles(response.files);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch agenda files:", error);
+      })
+      .finally(() => {
+        setLoadingAgendaFiles(false);
+      });
   }, []);
 
   const handleNotificationToggle = useCallback(
@@ -78,6 +95,54 @@ export default function SettingsScreen() {
           description={username || "Not logged in"}
           left={(props) => <List.Icon {...props} icon="account" />}
         />
+      </List.Section>
+
+      <Divider />
+
+      <List.Section>
+        <List.Subheader>
+          Agenda Files {!loadingAgendaFiles && `(${agendaFiles.length})`}
+        </List.Subheader>
+        {loadingAgendaFiles ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" />
+          </View>
+        ) : agendaFiles.length === 0 ? (
+          <List.Item
+            title="No agenda files configured"
+            left={(props) => <List.Icon {...props} icon="alert-circle-outline" />}
+          />
+        ) : (
+          agendaFiles.map((file, index) => {
+            const icon = file.exists
+              ? file.readable
+                ? "check-circle"
+                : "alert"
+              : "close-circle";
+            const color = file.exists
+              ? file.readable
+                ? theme.colors.primary
+                : theme.colors.error
+              : theme.colors.error;
+            const status = file.exists
+              ? file.readable
+                ? "OK"
+                : "Not readable"
+              : "File not found";
+            return (
+              <List.Item
+                key={index}
+                title={file.path}
+                titleNumberOfLines={2}
+                titleStyle={styles.filePath}
+                description={status}
+                left={(props) => (
+                  <List.Icon {...props} icon={icon} color={color} />
+                )}
+              />
+            );
+          })
+        )}
       </List.Section>
 
       <Divider />
@@ -172,5 +237,12 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     borderColor: "transparent",
+  },
+  loadingContainer: {
+    padding: 16,
+    alignItems: "center",
+  },
+  filePath: {
+    fontSize: 13,
   },
 });
