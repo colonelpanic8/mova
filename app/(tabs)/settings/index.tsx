@@ -132,7 +132,7 @@ export default function SettingsScreen() {
           title="Colors"
           description="Customize TODO state and action button colors"
           left={(props) => <List.Icon {...props} icon="palette" />}
-          onPress={() => router.push("/settings/colors")}
+          onPress={() => router.push("./colors")}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
         />
       </List.Section>
