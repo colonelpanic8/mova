@@ -335,21 +335,8 @@ describe("org-agenda-api integration tests", () => {
       });
       const result = await response.json();
 
-      // API returns success but with no updates applied
-      expect(result.status).toBe("updated");
-
-      // Wait for any potential file system sync
-      await new Promise((r) => setTimeout(r, 2000));
-
-      // Fetch todos again - the scheduled date should NOT have changed
-      const updatedTodos = await client.getAllTodos();
-      const updatedTodo = updatedTodos.todos.find(
-        (t: any) => t.title === title,
-      );
-
-      expect(updatedTodo).toBeTruthy();
-      // CRITICAL: The scheduled date should still be null because we sent wrong field
-      expect(updatedTodo.scheduled).toBeNull();
+      // API correctly returns error for invalid field names
+      expect(result.status).toBe("error");
     }, 30000); // 30 second timeout for cache operations
 
     it("should update when sending correct 'scheduled' field name", async () => {
