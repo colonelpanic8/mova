@@ -1,6 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { api, TemplatesResponse } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { Keyboard, StyleSheet, View } from "react-native";
 import {
@@ -28,6 +29,7 @@ export function CaptureBar() {
   } | null>(null);
   const { apiUrl, username, password, isAuthenticated } = useAuth();
   const theme = useTheme();
+  const router = useRouter();
 
   const loadTemplates = useCallback(async () => {
     if (!apiUrl || !username || !password) return;
@@ -213,6 +215,13 @@ export function CaptureBar() {
           loading={submitting}
           style={styles.sendButton}
         />
+
+        <IconButton
+          icon="arrow-expand"
+          size={20}
+          onPress={() => router.push("/capture")}
+          style={styles.expandButton}
+        />
       </View>
 
       <Snackbar
@@ -258,6 +267,9 @@ const styles = StyleSheet.create({
     display: "none",
   },
   sendButton: {
+    margin: 0,
+  },
+  expandButton: {
     margin: 0,
   },
   snackbar: {
