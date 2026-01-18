@@ -1,25 +1,30 @@
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 import {
   Button,
   Chip,
-  Menu,
   Snackbar,
+  Surface,
   Text,
   TextInput,
   useTheme,
 } from "react-native-paper";
 
 const DEFAULT_URLS = ["https://colonelpanic-org-agenda.fly.dev"];
+const URL_HISTORY_KEY = "mova_url_history";
+const MAX_URL_HISTORY = 5;
 
 // Detect the current origin on web platform
 function getWebOrigin(): string | null {
@@ -37,8 +42,26 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
   const [showUrlSuggestions, setShowUrlSuggestions] = useState(false);
   const [serverLocked, setServerLocked] = useState(false);
+  const [urlHistory, setUrlHistory] = useState<string[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
+  const justSelectedRef = useRef(false);
   const { login } = useAuth();
   const theme = useTheme();
+
+  // Load URL history from storage
+  useEffect(() => {
+    async function loadUrlHistory() {
+      try {
+        const stored = await AsyncStorage.getItem(URL_HISTORY_KEY);
+        if (stored) {
+          setUrlHistory(JSON.parse(stored));
+        }
+      } catch (e) {
+        console.warn("Failed to load URL history:", e);
+      }
+    }
+    loadUrlHistory();
+  }, []);
 
   // On web, auto-detect origin and lock the server field
   useEffect(() => {
@@ -49,25 +72,69 @@ export default function LoginScreen() {
     }
   }, []);
 
-  const filteredUrls = DEFAULT_URLS.filter((url) =>
-    url.toLowerCase().includes(apiUrl.toLowerCase()),
+  // Save URL to history after successful login
+  const saveUrlToHistory = useCallback(async (url: string) => {
+    try {
+      const normalizedUrl = url.replace(/\/$/, ""); // Remove trailing slash
+      const newHistory = [
+        normalizedUrl,
+        ...urlHistory.filter((u) => u !== normalizedUrl),
+      ].slice(0, MAX_URL_HISTORY);
+      setUrlHistory(newHistory);
+      await AsyncStorage.setItem(URL_HISTORY_KEY, JSON.stringify(newHistory));
+    } catch (e) {
+      console.warn("Failed to save URL history:", e);
+    }
+  }, [urlHistory]);
+
+  // Combine defaults and history, filter by current input
+  const allUrls = [...new Set([...urlHistory, ...DEFAULT_URLS])];
+  const filteredUrls = allUrls.filter(
+    (url) =>
+      url.toLowerCase().includes(apiUrl.toLowerCase()) &&
+      url.toLowerCase() !== apiUrl.toLowerCase(),
   );
 
-  const handleUrlSelect = (url: string) => {
+  // Show suggestions when focused, has matches, and didn't just select
+  const shouldShowSuggestions =
+    isFocused && filteredUrls.length > 0 && !justSelectedRef.current;
+
+  const handleUrlSelect = useCallback((url: string) => {
+    justSelectedRef.current = true;
     setApiUrl(url);
     setShowUrlSuggestions(false);
-  };
+    setServerLocked(true);
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      justSelectedRef.current = false;
+    }, 100);
+  }, []);
 
-  const handleUnlockServer = () => {
+  const handleUnlockServer = useCallback(() => {
     setServerLocked(false);
-  };
+  }, []);
 
-  const handleLockServer = () => {
+  const handleLockServer = useCallback(() => {
     if (apiUrl) {
       setServerLocked(true);
       setShowUrlSuggestions(false);
     }
-  };
+  }, [apiUrl]);
+
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+    if (!justSelectedRef.current) {
+      setShowUrlSuggestions(true);
+    }
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+    // Small delay to allow tap on suggestion to register
+    setTimeout(() => {
+      setShowUrlSuggestions(false);
+    }, 200);
+  }, []);
 
   async function handleLogin() {
     if (!apiUrl || !username || !password) {
@@ -86,6 +153,8 @@ export default function LoginScreen() {
         // Configure the API service
         console.log("[LoginScreen] Configuring API service...");
         api.configure(apiUrl, username, password);
+        // Save URL to history on successful login
+        await saveUrlToHistory(apiUrl);
         console.log(
           "[LoginScreen] API configured, navigation should happen via context update",
         );
@@ -129,55 +198,59 @@ export default function LoginScreen() {
       );
     }
 
-    // Unlocked state - show editable text input with suggestions
+    // Unlocked state - show editable text input with inline suggestions
     return (
       <View style={styles.urlInputContainer}>
-        <Menu
-          visible={showUrlSuggestions && filteredUrls.length > 0}
-          onDismiss={() => setShowUrlSuggestions(false)}
-          anchor={
-            <TextInput
-              testID="serverUrlInput"
-              label="Server URL"
-              value={apiUrl}
-              onChangeText={(text) => {
-                setApiUrl(text);
-                setShowUrlSuggestions(true);
-              }}
-              onFocus={() => setShowUrlSuggestions(true)}
-              onBlur={() => {
-                // Delay to allow menu item click to register
-                setTimeout(() => setShowUrlSuggestions(false), 150);
-              }}
-              onSubmitEditing={handleLockServer}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              placeholder="https://your-server.fly.dev"
-              style={styles.input}
-              mode="outlined"
-              right={
-                apiUrl ? (
-                  <TextInput.Icon icon="check" onPress={handleLockServer} />
-                ) : undefined
-              }
-            />
+        <TextInput
+          testID="serverUrlInput"
+          label="Server URL"
+          value={apiUrl}
+          onChangeText={(text) => {
+            setApiUrl(text);
+            if (!justSelectedRef.current) {
+              setShowUrlSuggestions(true);
+            }
+          }}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onSubmitEditing={handleLockServer}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          placeholder="https://your-server.fly.dev"
+          style={styles.input}
+          mode="outlined"
+          right={
+            apiUrl ? (
+              <TextInput.Icon icon="check" onPress={handleLockServer} />
+            ) : undefined
           }
-          anchorPosition="bottom"
-          style={styles.menu}
-        >
-          {filteredUrls.map((url, index) => (
-            <Menu.Item
-              key={url}
-              onPress={() => {
-                handleUrlSelect(url);
-                setServerLocked(true);
-              }}
-              title={url}
-              testID={`urlSuggestion-${index}`}
-            />
-          ))}
-        </Menu>
+        />
+        {showUrlSuggestions && shouldShowSuggestions && (
+          <Surface style={styles.suggestionsContainer} elevation={2}>
+            <ScrollView
+              style={styles.suggestionsList}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
+              {filteredUrls.map((url, index) => (
+                <Pressable
+                  key={url}
+                  testID={`urlSuggestion-${index}`}
+                  onPress={() => handleUrlSelect(url)}
+                  style={({ pressed }) => [
+                    styles.suggestionItem,
+                    pressed && { backgroundColor: theme.colors.surfaceVariant },
+                  ]}
+                >
+                  <Text variant="bodyMedium" numberOfLines={1}>
+                    {url}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Surface>
+        )}
       </View>
     );
   };
@@ -274,7 +347,7 @@ const styles = StyleSheet.create({
   },
   urlInputContainer: {
     marginBottom: 16,
-    zIndex: 1,
+    zIndex: 10,
   },
   input: {
     marginBottom: 0,
@@ -282,8 +355,23 @@ const styles = StyleSheet.create({
   otherInput: {
     marginBottom: 16,
   },
-  menu: {
-    width: "100%",
+  suggestionsContainer: {
+    position: "absolute",
+    top: 56,
+    left: 0,
+    right: 0,
+    borderRadius: 4,
+    maxHeight: 200,
+    zIndex: 100,
+  },
+  suggestionsList: {
+    maxHeight: 200,
+  },
+  suggestionItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(0,0,0,0.1)",
   },
   button: {
     marginTop: 8,
