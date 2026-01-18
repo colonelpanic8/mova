@@ -63,6 +63,7 @@ export interface UseTodoEditingResult {
   openDeadlineModal: (todo: Todo) => void;
   openPriorityModal: (todo: Todo) => void;
   openRemindModal: (todo: Todo) => void;
+  openSwipeable: (key: string) => void;
   dismissSnackbar: () => void;
 
   // Components
@@ -179,6 +180,17 @@ export function useTodoEditing(
     },
     [openEditModal],
   );
+
+  const openSwipeable = useCallback((key: string) => {
+    // Close all other swipeables first
+    swipeableRefs.current.forEach((swipeable, refKey) => {
+      if (refKey !== key) {
+        swipeable.close();
+      }
+    });
+    // Open the requested one
+    swipeableRefs.current.get(key)?.openRight();
+  }, []);
 
   const scheduleToday = useCallback(
     async (todo: Todo) => {
@@ -769,6 +781,7 @@ export function useTodoEditing(
     openDeadlineModal,
     openPriorityModal,
     openRemindModal,
+    openSwipeable,
     dismissSnackbar,
     EditModals,
   };

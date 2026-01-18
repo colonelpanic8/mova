@@ -47,6 +47,7 @@ export function TodoItem({ todo }: TodoItemProps) {
     openDeadlineModal,
     openPriorityModal,
     openRemindModal,
+    openSwipeable,
   } = useTodoEditingContext();
 
   const internalRef = useRef<Swipeable>(null);
@@ -70,9 +71,9 @@ export function TodoItem({ todo }: TodoItemProps) {
   }, [handleTodoPress, todo]);
 
   const handleBodyPress = useCallback(() => {
-    // Toggle the swipeable open/close
-    internalRef.current?.openRight();
-  }, []);
+    // Open this swipeable (closes any others)
+    openSwipeable(key);
+  }, [openSwipeable, key]);
 
   // Create a unique suffix for testIDs based on todo title (sanitized for testID)
   const testIdSuffix = todo.title
