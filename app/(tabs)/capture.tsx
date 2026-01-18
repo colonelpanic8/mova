@@ -1,6 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
 import {
-  ExpandableOptions,
   PriorityPicker,
   StatePicker,
 } from "@/components/capture";
@@ -25,7 +24,6 @@ import {
 } from "react-native-paper";
 
 const LAST_TEMPLATE_KEY = "mova_last_template";
-const QUICK_CAPTURE_KEY = "__quick_capture__";
 
 function formatDateForApi(date: Date): string {
   return date.toISOString().split("T")[0];
@@ -196,23 +194,19 @@ export default function CaptureScreen() {
       const data = await api.getTemplates();
       setTemplates(data);
 
-      // Load last used template
+      // Load last used template or default to first template
       const lastTemplate = await AsyncStorage.getItem(LAST_TEMPLATE_KEY);
       const templateKeys = Object.keys(data);
 
-      if (lastTemplate === QUICK_CAPTURE_KEY) {
-        setSelectedTemplateKey(QUICK_CAPTURE_KEY);
-      } else if (lastTemplate && templateKeys.includes(lastTemplate)) {
+      if (lastTemplate && templateKeys.includes(lastTemplate)) {
         setSelectedTemplateKey(lastTemplate);
-      } else {
-        // Default to Quick Capture
-        setSelectedTemplateKey(QUICK_CAPTURE_KEY);
+      } else if (templateKeys.length > 0) {
+        // Default to first template
+        setSelectedTemplateKey(templateKeys[0]);
       }
     } catch (err) {
       console.error("Failed to load templates:", err);
       setMessage({ text: "Failed to load capture templates", isError: true });
-      // Even if templates fail to load, we can still use Quick Capture
-      setSelectedTemplateKey(QUICK_CAPTURE_KEY);
     } finally {
       setLoading(false);
     }
@@ -235,9 +229,8 @@ export default function CaptureScreen() {
     setOptionalFields((prev) => ({ ...prev, [field]: value }));
   };
 
-  const isQuickCapture = selectedTemplateKey === QUICK_CAPTURE_KEY;
   const selectedTemplate =
-    selectedTemplateKey && templates && !isQuickCapture
+    selectedTemplateKey && templates
       ? templates[selectedTemplateKey]
       : null;
 
@@ -252,72 +245,48 @@ export default function CaptureScreen() {
   };
 
   const handleCapture = async () => {
-    if (!selectedTemplateKey) return;
+    if (!selectedTemplateKey || !selectedTemplate) return;
 
     setSubmitting(true);
 
     try {
-      if (isQuickCapture) {
-        const title =
-          typeof values["title"] === "string" ? values["title"].trim() : "";
-        if (!title) {
-          setMessage({ text: "Please enter a title", isError: true });
-          setSubmitting(false);
-          return;
-        }
+      // Validate required fields
+      const missingRequired = selectedTemplate.prompts
+        .filter((p) => p.required)
+        .filter((p) => {
+          const val = values[p.name];
+          if (Array.isArray(val)) return val.length === 0;
+          return !val || (typeof val === "string" && !val.trim());
+        })
+        .map((p) => p.name);
 
-        // Build options from optional fields, filtering out empty values
-        const options: Record<string, string | string[] | undefined> = {};
-        if (optionalFields.scheduled) options.scheduled = optionalFields.scheduled;
-        if (optionalFields.deadline) options.deadline = optionalFields.deadline;
-        if (optionalFields.priority) options.priority = optionalFields.priority;
-        if (optionalFields.tags?.length) options.tags = optionalFields.tags;
-        if (optionalFields.todo && optionalFields.todo !== "TODO") options.todo = optionalFields.todo;
+      if (missingRequired.length > 0) {
+        setMessage({
+          text: `Missing required fields: ${missingRequired.join(", ")}`,
+          isError: true,
+        });
+        setSubmitting(false);
+        return;
+      }
 
-        const result = await api.createTodo(
-          title,
-          Object.keys(options).length > 0 ? options : undefined
-        );
-        if (result.status === "created") {
-          setMessage({ text: "Captured!", isError: false });
-          setValues({});
-          setOptionalFields({});
-        } else {
-          setMessage({ text: "Capture failed", isError: true });
-        }
+      // Merge template values with optional fields
+      const captureValues: Record<string, string | string[]> = { ...values };
+      if (optionalFields.scheduled) captureValues.scheduled = optionalFields.scheduled;
+      if (optionalFields.deadline) captureValues.deadline = optionalFields.deadline;
+      if (optionalFields.priority) captureValues.priority = optionalFields.priority;
+      if (optionalFields.tags?.length) captureValues.tags = optionalFields.tags;
+      if (optionalFields.todo && optionalFields.todo !== "TODO") captureValues.todo = optionalFields.todo;
+
+      const result = await api.capture(selectedTemplateKey, captureValues);
+      if (result.status === "created") {
+        setMessage({ text: "Captured!", isError: false });
+        setValues({});
+        setOptionalFields({});
       } else {
-        // Template-based capture
-        if (!selectedTemplate) return;
-
-        // Validate required fields
-        const missingRequired = selectedTemplate.prompts
-          .filter((p) => p.required)
-          .filter((p) => {
-            const val = values[p.name];
-            if (Array.isArray(val)) return val.length === 0;
-            return !val || !val.trim();
-          })
-          .map((p) => p.name);
-
-        if (missingRequired.length > 0) {
-          setMessage({
-            text: `Missing required fields: ${missingRequired.join(", ")}`,
-            isError: true,
-          });
-          setSubmitting(false);
-          return;
-        }
-
-        const result = await api.capture(selectedTemplateKey, values);
-        if (result.status === "created") {
-          setMessage({ text: "Captured!", isError: false });
-          setValues({});
-        } else {
-          setMessage({
-            text: result.message || "Capture failed",
-            isError: true,
-          });
-        }
+        setMessage({
+          text: result.message || "Capture failed",
+          isError: true,
+        });
       }
     } catch (err) {
       console.error("Capture failed:", err);
@@ -339,7 +308,6 @@ export default function CaptureScreen() {
   }
 
   const templateKeys = templates ? Object.keys(templates) : [];
-  const hasTemplates = templateKeys.length > 0;
 
   return (
     <View
@@ -358,20 +326,10 @@ export default function CaptureScreen() {
               contentStyle={styles.templateButtonContent}
               testID="templateSelector"
             >
-              {isQuickCapture
-                ? "Quick Capture"
-                : selectedTemplate?.name || "Select Template"}
+              {selectedTemplate?.name || "Select Template"}
             </Button>
           }
         >
-          <Menu.Item
-            key={QUICK_CAPTURE_KEY}
-            onPress={() => handleTemplateSelect(QUICK_CAPTURE_KEY)}
-            title="Quick Capture"
-            leadingIcon={isQuickCapture ? "check" : "lightning-bolt"}
-            testID="menuItem-quick-capture"
-          />
-          {hasTemplates && <Divider />}
           {templateKeys.map((key) => (
             <Menu.Item
               key={key}
@@ -390,65 +348,52 @@ export default function CaptureScreen() {
         style={styles.formContainer}
         contentContainerStyle={styles.formContent}
       >
-        {isQuickCapture ? (
-          <>
-            <TextInput
-              label="Title *"
-              value={typeof values["title"] === "string" ? values["title"] : ""}
-              onChangeText={(text) => handleValueChange("title", text)}
-              mode="outlined"
-              style={styles.input}
-              multiline
-              numberOfLines={2}
-              autoFocus
-            />
+        {/* Template prompts */}
+        {selectedTemplate?.prompts.map((prompt) => (
+          <PromptField
+            key={prompt.name}
+            prompt={prompt}
+            value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
+            onChange={(value) => handleValueChange(prompt.name, value)}
+          />
+        ))}
 
-            <ExpandableOptions>
-              <StatePicker
-                value={optionalFields.todo || "TODO"}
-                onChange={(v) => handleOptionalFieldChange("todo", v)}
-              />
+        {/* Universal org-mode fields */}
+        <Divider style={styles.optionsDivider} />
 
-              <PriorityPicker
-                value={optionalFields.priority || null}
-                onChange={(v) => handleOptionalFieldChange("priority", v)}
-              />
+        <StatePicker
+          value={optionalFields.todo || "TODO"}
+          onChange={(v) => handleOptionalFieldChange("todo", v)}
+        />
 
-              <PromptField
-                prompt={{ name: "Schedule", type: "date", required: false }}
-                value={optionalFields.scheduled || ""}
-                onChange={(v) =>
-                  handleOptionalFieldChange("scheduled", v as string)
-                }
-              />
+        <PriorityPicker
+          value={optionalFields.priority || null}
+          onChange={(v) => handleOptionalFieldChange("priority", v)}
+        />
 
-              <PromptField
-                prompt={{ name: "Deadline", type: "date", required: false }}
-                value={optionalFields.deadline || ""}
-                onChange={(v) =>
-                  handleOptionalFieldChange("deadline", v as string)
-                }
-              />
+        <PromptField
+          prompt={{ name: "Schedule", type: "date", required: false }}
+          value={optionalFields.scheduled || ""}
+          onChange={(v) =>
+            handleOptionalFieldChange("scheduled", v as string)
+          }
+        />
 
-              <PromptField
-                prompt={{ name: "Tags", type: "tags", required: false }}
-                value={optionalFields.tags || []}
-                onChange={(v) =>
-                  handleOptionalFieldChange("tags", v as string[])
-                }
-              />
-            </ExpandableOptions>
-          </>
-        ) : (
-          selectedTemplate?.prompts.map((prompt) => (
-            <PromptField
-              key={prompt.name}
-              prompt={prompt}
-              value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
-              onChange={(value) => handleValueChange(prompt.name, value)}
-            />
-          ))
-        )}
+        <PromptField
+          prompt={{ name: "Deadline", type: "date", required: false }}
+          value={optionalFields.deadline || ""}
+          onChange={(v) =>
+            handleOptionalFieldChange("deadline", v as string)
+          }
+        />
+
+        <PromptField
+          prompt={{ name: "Tags", type: "tags", required: false }}
+          value={optionalFields.tags || []}
+          onChange={(v) =>
+            handleOptionalFieldChange("tags", v as string[])
+          }
+        />
 
         <Button
           testID="captureButton"
@@ -536,5 +481,8 @@ const styles = StyleSheet.create({
   },
   captureButton: {
     marginTop: 8,
+  },
+  optionsDivider: {
+    marginVertical: 16,
   },
 });
