@@ -186,8 +186,8 @@ export default function SettingsScreen() {
             {agendaFiles.files.map((file, index) => (
               <List.Item
                 key={index}
-                title={file.split("/").pop() || file}
-                description={file}
+                title={file.path.split("/").pop() || file.path}
+                description={file.path}
                 left={(props) => <List.Icon {...props} icon="file-document" />}
               />
             ))}

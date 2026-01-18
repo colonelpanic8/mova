@@ -1,4 +1,5 @@
 import { base64Encode } from "@/utils/base64";
+import { normalizeUrl } from "@/utils/url";
 
 export interface Todo {
   todo: string;
@@ -101,8 +102,15 @@ export interface VersionResponse {
   gitCommit: string;
 }
 
+export interface AgendaFileInfo {
+  path: string;
+  exists: boolean;
+  readable: boolean;
+}
+
 export interface AgendaFilesResponse {
-  files: string[];
+  count: number;
+  files: AgendaFileInfo[];
 }
 
 class OrgAgendaApi {
@@ -116,7 +124,7 @@ class OrgAgendaApi {
 
   configure(baseUrl: string, username: string, password: string) {
     const wasConfigured = !!this.baseUrl;
-    this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
+    this.baseUrl = normalizeUrl(baseUrl);
     this.authHeader = `Basic ${base64Encode(`${username}:${password}`)}`;
     console.log("[API] Configured", {
       wasConfigured,

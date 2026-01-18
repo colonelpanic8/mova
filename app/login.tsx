@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/services/api";
+import { normalizeUrl } from "@/utils/url";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -75,10 +76,10 @@ export default function LoginScreen() {
   // Save URL to history after successful login
   const saveUrlToHistory = useCallback(async (url: string) => {
     try {
-      const normalizedUrl = url.replace(/\/$/, ""); // Remove trailing slash
+      const normalized = normalizeUrl(url);
       const newHistory = [
-        normalizedUrl,
-        ...urlHistory.filter((u) => u !== normalizedUrl),
+        normalized,
+        ...urlHistory.filter((u) => u !== normalized),
       ].slice(0, MAX_URL_HISTORY);
       setUrlHistory(newHistory);
       await AsyncStorage.setItem(URL_HISTORY_KEY, JSON.stringify(newHistory));
@@ -129,9 +130,9 @@ export default function LoginScreen() {
   }, []);
 
   const handleBlur = useCallback(() => {
-    setIsFocused(false);
-    // Small delay to allow tap on suggestion to register
+    // Delay both state changes to allow tap on suggestion to register
     setTimeout(() => {
+      setIsFocused(false);
       setShowUrlSuggestions(false);
     }, 200);
   }, []);
@@ -237,7 +238,7 @@ export default function LoginScreen() {
                 <Pressable
                   key={url}
                   testID={`urlSuggestion-${index}`}
-                  onPress={() => handleUrlSelect(url)}
+                  onPressIn={() => handleUrlSelect(url)}
                   style={({ pressed }) => [
                     styles.suggestionItem,
                     pressed && { backgroundColor: theme.colors.surfaceVariant },
