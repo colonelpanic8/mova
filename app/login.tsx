@@ -1,5 +1,7 @@
+import { PasswordInput } from "@/components/PasswordInput";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/services/api";
+import { SavedServer } from "@/types/server";
 import { normalizeUrl } from "@/utils/url";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
@@ -14,8 +16,11 @@ import {
   View,
 } from "react-native";
 import {
+  ActivityIndicator,
   Button,
   Chip,
+  Divider,
+  List,
   Snackbar,
   Surface,
   Text,
@@ -45,8 +50,11 @@ export default function LoginScreen() {
   const [serverLocked, setServerLocked] = useState(false);
   const [urlHistory, setUrlHistory] = useState<string[]>([]);
   const [isFocused, setIsFocused] = useState(false);
+  const [switchingServerId, setSwitchingServerId] = useState<string | null>(
+    null,
+  );
   const justSelectedRef = useRef(false);
-  const { login } = useAuth();
+  const { login, savedServers, switchServer, activeServerId } = useAuth();
   const theme = useTheme();
 
   // Load URL history from storage
@@ -172,6 +180,74 @@ export default function LoginScreen() {
     }
   }
 
+  async function handleServerSelect(server: SavedServer) {
+    setSwitchingServerId(server.id);
+    setError("");
+
+    try {
+      const success = await switchServer(server.id);
+      if (success) {
+        api.configure(server.apiUrl, server.username, server.password);
+      } else {
+        setError("Failed to connect to saved server");
+      }
+    } catch {
+      setError("Connection failed");
+    } finally {
+      setSwitchingServerId(null);
+    }
+  }
+
+  const renderSavedServers = () => {
+    if (savedServers.length === 0) return null;
+
+    return (
+      <>
+        <Text variant="titleMedium" style={styles.sectionTitle}>
+          Saved Servers
+        </Text>
+        <Surface style={styles.serverList} elevation={1}>
+          {savedServers.map((server) => (
+            <Pressable
+              key={server.id}
+              testID={`savedServer-${server.id}`}
+              onPress={() => handleServerSelect(server)}
+              disabled={switchingServerId !== null}
+              style={({ pressed }) => [
+                styles.serverItem,
+                pressed && { backgroundColor: theme.colors.surfaceVariant },
+                server.id === activeServerId && styles.activeServer,
+              ]}
+            >
+              <View style={styles.serverItemContent}>
+                <Text variant="titleSmall" numberOfLines={1}>
+                  {server.nickname || server.apiUrl}
+                </Text>
+                <Text variant="bodySmall" style={styles.serverUsername}>
+                  {server.username}
+                  {server.nickname && ` - ${server.apiUrl}`}
+                </Text>
+              </View>
+              {switchingServerId === server.id ? (
+                <ActivityIndicator size="small" />
+              ) : server.id === activeServerId ? (
+                <List.Icon icon="check" color={theme.colors.primary} />
+              ) : null}
+            </Pressable>
+          ))}
+        </Surface>
+
+        <View style={styles.dividerContainer}>
+          <Divider style={styles.divider} />
+          <Text variant="bodySmall" style={styles.dividerText}>
+            or connect to a new server
+          </Text>
+          <Divider style={styles.divider} />
+        </View>
+      </>
+    );
+  };
+
   const renderServerField = () => {
     if (serverLocked) {
       // Locked state - show as a chip/badge with edit button
@@ -264,55 +340,61 @@ export default function LoginScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.content}>
-        <Image
-          source={require("@/assets/images/mova.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Connect to your org-agenda-api server
-        </Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.content}>
+          <Image
+            source={require("@/assets/images/mova.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Connect to your org-agenda-api server
+          </Text>
 
-        {renderServerField()}
+          {renderSavedServers()}
 
-        <TextInput
-          testID="usernameInput"
-          label="Username"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={styles.otherInput}
-          mode="outlined"
-        />
+          {renderServerField()}
 
-        <TextInput
-          testID="passwordInput"
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={styles.otherInput}
-          mode="outlined"
-        />
+          <TextInput
+            testID="usernameInput"
+            label="Username"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.otherInput}
+            mode="outlined"
+          />
 
-        <Button
-          testID="connectButton"
-          mode="contained"
-          onPress={handleLogin}
-          loading={loading}
-          disabled={loading}
-          style={styles.button}
-        >
-          Connect
-        </Button>
+          <PasswordInput
+            testID="passwordInput"
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            style={styles.otherInput}
+            mode="outlined"
+          />
 
-        <Text variant="bodySmall" style={styles.versionText}>
-          Mova v{Constants.expoConfig?.version} (
-          {Constants.expoConfig?.extra?.gitCommit})
-        </Text>
-      </View>
+          <Button
+            testID="connectButton"
+            mode="contained"
+            onPress={handleLogin}
+            loading={loading}
+            disabled={loading || switchingServerId !== null}
+            style={styles.button}
+          >
+            Connect
+          </Button>
+
+          <Text variant="bodySmall" style={styles.versionText}>
+            Mova v{Constants.expoConfig?.version} (
+            {Constants.expoConfig?.extra?.gitCommit})
+          </Text>
+        </View>
+      </ScrollView>
 
       <Snackbar
         visible={!!error}
@@ -333,6 +415,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
     flex: 1,
     padding: 24,
@@ -346,8 +431,45 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     textAlign: "center",
-    marginBottom: 32,
+    marginBottom: 24,
     opacity: 0.7,
+  },
+  sectionTitle: {
+    marginBottom: 8,
+  },
+  serverList: {
+    borderRadius: 8,
+    overflow: "hidden",
+    marginBottom: 16,
+  },
+  serverItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  activeServer: {
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  serverItemContent: {
+    flex: 1,
+  },
+  serverUsername: {
+    opacity: 0.7,
+    marginTop: 2,
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  divider: {
+    flex: 1,
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    opacity: 0.5,
   },
   urlInputContainer: {
     marginBottom: 16,
