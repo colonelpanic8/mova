@@ -9,7 +9,7 @@ import {
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -20,11 +20,12 @@ import {
 } from "react-native-paper";
 
 export default function SettingsScreen() {
-  const { apiUrl, username, logout } = useAuth();
+  const { apiUrl, username, password, logout } = useAuth();
   const theme = useTheme();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [backendVersion, setBackendVersion] = useState<VersionResponse | null>(
     null,
   );
@@ -109,6 +110,26 @@ export default function SettingsScreen() {
           title="Username"
           description={username || "Not logged in"}
           left={(props) => <List.Icon {...props} icon="account" />}
+        />
+        <List.Item
+          title="Password"
+          description={showPassword ? password : "••••••••"}
+          left={(props) => <List.Icon {...props} icon="lock" />}
+          right={(props) => (
+            <Pressable onPress={() => setShowPassword(!showPassword)}>
+              <List.Icon
+                {...props}
+                icon={showPassword ? "eye-off" : "eye"}
+              />
+            </Pressable>
+          )}
+        />
+        <List.Item
+          title="Manage Servers"
+          description="Switch, edit, or delete saved servers"
+          left={(props) => <List.Icon {...props} icon="server-network" />}
+          onPress={() => router.push("./servers")}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
         />
       </List.Section>
 
