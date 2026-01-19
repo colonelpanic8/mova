@@ -31,33 +31,38 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
 
   const reloadTemplates = useCallback(async () => {
     if (!apiUrl || !username || !password) {
-      console.log("[TemplatesContext] Not loading - missing credentials");
       return;
     }
 
-    console.log("[TemplatesContext] Loading templates...");
     setIsLoading(true);
     setError(null);
 
-    try {
-      api.configure(apiUrl, username, password);
-      const [templatesData, optionsData] = await Promise.all([
-        api.getTemplates(),
-        api.getFilterOptions(),
-      ]);
-      console.log("[TemplatesContext] Loaded successfully", {
-        templateCount: Object.keys(templatesData).length,
-      });
-      setTemplates(templatesData);
-      setFilterOptions(optionsData);
-    } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Failed to load templates";
-      console.error("[TemplatesContext] Failed to load templates:", err);
-      setError(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
+    api.configure(apiUrl, username, password);
+
+    // Fetch templates and filter options independently so one failure doesn't block the other
+    const templatesPromise = api.getTemplates().then(
+      (data) => {
+        setTemplates(data);
+        return true;
+      },
+      (err) => {
+        console.error("Failed to load templates:", err);
+        setError(err instanceof Error ? err.message : "Failed to load templates");
+        return false;
+      }
+    );
+
+    const filterOptionsPromise = api.getFilterOptions().then(
+      (data) => {
+        setFilterOptions(data);
+      },
+      () => {
+        // Filter options are optional - silently ignore failures
+      }
+    );
+
+    await Promise.all([templatesPromise, filterOptionsPromise]);
+    setIsLoading(false);
   }, [apiUrl, username, password]);
 
   useEffect(() => {

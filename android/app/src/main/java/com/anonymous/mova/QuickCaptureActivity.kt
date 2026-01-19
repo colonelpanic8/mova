@@ -183,7 +183,7 @@ class QuickCaptureActivity : AppCompatActivity() {
 
     private fun getTemplateFieldName(apiUrl: String, username: String, password: String, templateKeyToUse: String): String? {
         try {
-            val url = URL("$apiUrl/templates")
+            val url = URL("$apiUrl/capture-templates")
             val connection = url.openConnection() as HttpURLConnection
 
             try {

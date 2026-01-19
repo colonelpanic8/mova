@@ -613,12 +613,7 @@ export default function CaptureScreen() {
       if (optionalFields.todo && optionalFields.todo !== "TODO")
         captureValues.todo = optionalFields.todo;
 
-      console.log("Capture request:", {
-        template: selectedTemplateKey,
-        values: captureValues,
-      });
       const result = await api.capture(selectedTemplateKey, captureValues);
-      console.log("Capture response:", result);
       if (result.status === "created") {
         setMessage({ text: "Captured!", isError: false });
         setValues({});
@@ -672,6 +667,9 @@ export default function CaptureScreen() {
             </Button>
           }
         >
+          {templateKeys.length === 0 && (
+            <Menu.Item title="No templates available" disabled />
+          )}
           {templateKeys.map((key) => (
             <Menu.Item
               key={key}
