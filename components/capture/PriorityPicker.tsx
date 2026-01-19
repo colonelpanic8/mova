@@ -6,23 +6,27 @@ import { Chip, Text } from "react-native-paper";
 interface PriorityPickerProps {
   value: string | null;
   onChange: (value: string | null) => void;
+  priorities?: string[];
 }
 
-const PRIORITIES = [
-  { value: null, label: "None" },
-  { value: "A", label: "A" },
-  { value: "B", label: "B" },
-  { value: "C", label: "C" },
-];
+const DEFAULT_PRIORITIES = ["A", "B", "C"];
 
-export function PriorityPicker({ value, onChange }: PriorityPickerProps) {
+export function PriorityPicker({
+  value,
+  onChange,
+  priorities = DEFAULT_PRIORITIES,
+}: PriorityPickerProps) {
+  const priorityOptions = [
+    { value: null, label: "None" },
+    ...priorities.map((p) => ({ value: p, label: p })),
+  ];
   return (
     <View style={styles.container}>
       <Text variant="bodySmall" style={styles.label}>
         Priority
       </Text>
       <View style={styles.chips}>
-        {PRIORITIES.map((p) => (
+        {priorityOptions.map((p) => (
           <Chip
             key={p.label}
             selected={value === p.value}
