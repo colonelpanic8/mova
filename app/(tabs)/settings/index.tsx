@@ -128,7 +128,7 @@ export default function SettingsScreen() {
           title="Manage Servers"
           description="Switch, edit, or delete saved servers"
           left={(props) => <List.Icon {...props} icon="server-network" />}
-          onPress={() => router.push("./servers")}
+          onPress={() => router.push("/(tabs)/settings/servers")}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
         />
       </List.Section>
