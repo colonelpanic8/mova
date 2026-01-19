@@ -1,5 +1,6 @@
 import { PasswordInput } from "@/components/PasswordInput";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/services/api";
 import { SavedServer, SavedServerInput } from "@/types/server";
 import React, { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -7,6 +8,7 @@ import {
   ActivityIndicator,
   Button,
   Dialog,
+  FAB,
   List,
   Portal,
   Surface,
@@ -15,7 +17,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
-type EditingServer = SavedServer | ({ id: null } & SavedServerInput);
+type EditingServer = (SavedServer | { id: null }) & Partial<SavedServerInput>;
 
 export default function ServersScreen() {
   const theme = useTheme();
@@ -25,10 +27,12 @@ export default function ServersScreen() {
     switchServer,
     updateServer,
     deleteServer,
+    login,
   } = useAuth();
 
   const [switchingId, setSwitchingId] = useState<string | null>(null);
-  const [editDialogVisible, setEditDialogVisible] = useState(false);
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"add" | "edit">("edit");
   const [editingServer, setEditingServer] = useState<EditingServer | null>(
     null,
   );
@@ -55,7 +59,20 @@ export default function ServersScreen() {
 
   const handleEdit = (server: SavedServer) => {
     setEditingServer({ ...server });
-    setEditDialogVisible(true);
+    setDialogMode("edit");
+    setDialogVisible(true);
+  };
+
+  const handleAddNew = () => {
+    setEditingServer({
+      id: null,
+      nickname: "",
+      apiUrl: "",
+      username: "",
+      password: "",
+    });
+    setDialogMode("add");
+    setDialogVisible(true);
   };
 
   const handleDelete = (server: SavedServer) => {
@@ -75,26 +92,63 @@ export default function ServersScreen() {
     );
   };
 
-  const handleSaveEdit = async () => {
+  const handleSave = async () => {
     if (!editingServer) return;
+
+    if (
+      !editingServer.apiUrl ||
+      !editingServer.username ||
+      !editingServer.password
+    ) {
+      Alert.alert("Error", "Server URL, username, and password are required");
+      return;
+    }
 
     setSaving(true);
     try {
-      if (editingServer.id) {
+      if (dialogMode === "add") {
+        // For new servers, we need to validate credentials by connecting
+        const success = await login(
+          editingServer.apiUrl,
+          editingServer.username,
+          editingServer.password,
+          true, // save to server list
+        );
+        if (success) {
+          api.configure(
+            editingServer.apiUrl,
+            editingServer.username,
+            editingServer.password,
+          );
+          setDialogVisible(false);
+          setEditingServer(null);
+        } else {
+          Alert.alert(
+            "Connection Failed",
+            "Could not connect to the server. Check your credentials.",
+          );
+        }
+      } else if (editingServer.id) {
+        // Editing existing server
         await updateServer(editingServer.id, {
           nickname: editingServer.nickname,
           apiUrl: editingServer.apiUrl,
           username: editingServer.username,
           password: editingServer.password,
         });
+        setDialogVisible(false);
+        setEditingServer(null);
       }
-      setEditDialogVisible(false);
-      setEditingServer(null);
     } catch {
-      Alert.alert("Error", "Failed to save changes");
+      Alert.alert("Error", "Failed to save server");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDismissDialog = () => {
+    setDialogVisible(false);
+    setEditingServer(null);
   };
 
   const renderServerItem = (server: SavedServer) => {
@@ -175,7 +229,7 @@ export default function ServersScreen() {
               No saved servers
             </Text>
             <Text variant="bodySmall" style={styles.emptySubtext}>
-              Servers you connect to will appear here
+              Tap + to add a server
             </Text>
           </View>
         ) : (
@@ -183,12 +237,18 @@ export default function ServersScreen() {
         )}
       </ScrollView>
 
+      <FAB
+        icon="plus"
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        onPress={handleAddNew}
+        color={theme.colors.onPrimary}
+      />
+
       <Portal>
-        <Dialog
-          visible={editDialogVisible}
-          onDismiss={() => setEditDialogVisible(false)}
-        >
-          <Dialog.Title>Edit Server</Dialog.Title>
+        <Dialog visible={dialogVisible} onDismiss={handleDismissDialog}>
+          <Dialog.Title>
+            {dialogMode === "add" ? "Add Server" : "Edit Server"}
+          </Dialog.Title>
           <Dialog.ScrollArea style={styles.dialogScrollArea}>
             <ScrollView>
               <TextInput
@@ -212,6 +272,7 @@ export default function ServersScreen() {
                 mode="outlined"
                 autoCapitalize="none"
                 keyboardType="url"
+                placeholder="https://your-server.example.com"
               />
               <TextInput
                 label="Username"
@@ -239,9 +300,9 @@ export default function ServersScreen() {
             </ScrollView>
           </Dialog.ScrollArea>
           <Dialog.Actions>
-            <Button onPress={() => setEditDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleSaveEdit} loading={saving} disabled={saving}>
-              Save
+            <Button onPress={handleDismissDialog}>Cancel</Button>
+            <Button onPress={handleSave} loading={saving} disabled={saving}>
+              {dialogMode === "add" ? "Connect" : "Save"}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -307,6 +368,12 @@ const styles = StyleSheet.create({
   emptySubtext: {
     marginTop: 4,
     opacity: 0.5,
+  },
+  fab: {
+    position: "absolute",
+    margin: 16,
+    right: 0,
+    bottom: 0,
   },
   dialogScrollArea: {
     paddingHorizontal: 24,
