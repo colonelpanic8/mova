@@ -20,21 +20,21 @@ Add a global "include time" toggle to todo list screens that modifies swipe acti
 
 ### Toggle OFF (current behavior)
 
-| Action | Result |
-|--------|--------|
-| Today | Immediately sets `YYYY-MM-DD` (today) |
-| Tomorrow | Immediately sets `YYYY-MM-DD` (tomorrow) |
+| Action   | Result                                     |
+| -------- | ------------------------------------------ |
+| Today    | Immediately sets `YYYY-MM-DD` (today)      |
+| Tomorrow | Immediately sets `YYYY-MM-DD` (tomorrow)   |
 | Schedule | Opens date picker modal, sets `YYYY-MM-DD` |
 | Deadline | Opens date picker modal, sets `YYYY-MM-DD` |
 
 ### Toggle ON
 
-| Action | Result |
-|--------|--------|
-| Today | Swipe area expands with inline time picker, sets `YYYY-MM-DD HH:MM` |
+| Action   | Result                                                              |
+| -------- | ------------------------------------------------------------------- |
+| Today    | Swipe area expands with inline time picker, sets `YYYY-MM-DD HH:MM` |
 | Tomorrow | Swipe area expands with inline time picker, sets `YYYY-MM-DD HH:MM` |
-| Schedule | Date picker modal includes time picker, sets `YYYY-MM-DD HH:MM` |
-| Deadline | Date picker modal includes time picker, sets `YYYY-MM-DD HH:MM` |
+| Schedule | Date picker modal includes time picker, sets `YYYY-MM-DD HH:MM`     |
+| Deadline | Date picker modal includes time picker, sets `YYYY-MM-DD HH:MM`     |
 
 ### Inline Time Picker Behavior
 
