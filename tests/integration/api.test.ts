@@ -504,6 +504,62 @@ describe("org-agenda-api integration tests", () => {
       expect(entry).toHaveProperty("priority");
     });
   });
+
+  describe("GET /metadata", () => {
+    it("should return all metadata in one request", async () => {
+      const response = await client.getMetadata();
+
+      expect(response).toHaveProperty("templates");
+      expect(response).toHaveProperty("filterOptions");
+      expect(response).toHaveProperty("todoStates");
+      expect(response).toHaveProperty("customViews");
+      expect(response).toHaveProperty("errors");
+      expect(Array.isArray(response.errors)).toBe(true);
+    });
+
+    it("should return templates matching /capture-templates", async () => {
+      const metadata = await client.getMetadata();
+
+      expect(metadata.templates).toBeTruthy();
+      expect(metadata.templates).toHaveProperty("default");
+    });
+
+    it("should return todoStates matching /todo-states", async () => {
+      const metadata = await client.getMetadata();
+
+      expect(metadata.todoStates).toBeTruthy();
+      expect(metadata.todoStates).toHaveProperty("active");
+      expect(metadata.todoStates).toHaveProperty("done");
+      expect(metadata.todoStates.active).toContain("TODO");
+      expect(metadata.todoStates.active).toContain("NEXT");
+      expect(metadata.todoStates.done).toContain("DONE");
+    });
+
+    it("should return filterOptions matching /filter-options", async () => {
+      const metadata = await client.getMetadata();
+
+      expect(metadata.filterOptions).toBeTruthy();
+      expect(metadata.filterOptions).toHaveProperty("todoStates");
+      expect(metadata.filterOptions).toHaveProperty("priorities");
+      expect(metadata.filterOptions).toHaveProperty("tags");
+      expect(metadata.filterOptions).toHaveProperty("categories");
+    });
+
+    it("should return customViews matching /custom-views", async () => {
+      const metadata = await client.getMetadata();
+
+      expect(metadata.customViews).toBeTruthy();
+      expect(metadata.customViews).toHaveProperty("views");
+      expect(Array.isArray(metadata.customViews.views)).toBe(true);
+      expect(metadata.customViews.views.length).toBeGreaterThan(0);
+    });
+
+    it("should have empty errors array on success", async () => {
+      const metadata = await client.getMetadata();
+
+      expect(metadata.errors).toEqual([]);
+    });
+  });
 });
 
 describe("mova API client", () => {
