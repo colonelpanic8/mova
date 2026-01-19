@@ -1,6 +1,7 @@
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
 import { MutationProvider } from "@/context/MutationContext";
+import { TemplatesProvider } from "@/context/TemplatesContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -77,7 +78,9 @@ export default function RootLayout() {
         <ColorPaletteProvider>
           <MutationProvider>
             <AuthProvider>
-              <RootLayoutNav />
+              <TemplatesProvider>
+                <RootLayoutNav />
+              </TemplatesProvider>
             </AuthProvider>
           </MutationProvider>
         </ColorPaletteProvider>
