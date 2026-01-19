@@ -2,7 +2,12 @@ import { PriorityPicker, StatePicker } from "@/components/capture";
 import { useAuth } from "@/context/AuthContext";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useMutation } from "@/context/MutationContext";
-import { api, TemplatePrompt, TemplatesResponse } from "@/services/api";
+import {
+  api,
+  FilterOptionsResponse,
+  TemplatePrompt,
+  TemplatesResponse,
+} from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -503,6 +508,8 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
 
 export default function CaptureScreen() {
   const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
+  const [filterOptions, setFilterOptions] =
+    useState<FilterOptionsResponse | null>(null);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string | null>(
     null,
   );
@@ -530,8 +537,12 @@ export default function CaptureScreen() {
 
     try {
       api.configure(apiUrl, username, password);
-      const data = await api.getTemplates();
+      const [data, options] = await Promise.all([
+        api.getTemplates(),
+        api.getFilterOptions(),
+      ]);
       setTemplates(data);
+      setFilterOptions(options);
 
       // Load last used template or default to first template
       const lastTemplate = await AsyncStorage.getItem(LAST_TEMPLATE_KEY);
@@ -720,6 +731,7 @@ export default function CaptureScreen() {
         <PriorityPicker
           value={optionalFields.priority || null}
           onChange={(v) => handleOptionalFieldChange("priority", v)}
+          priorities={filterOptions?.priorities}
         />
 
         <DateFieldWithQuickActions

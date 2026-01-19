@@ -113,6 +113,13 @@ export interface AgendaFilesResponse {
   files: AgendaFileInfo[];
 }
 
+export interface FilterOptionsResponse {
+  todoStates: string[];
+  priorities: string[];
+  tags: string[];
+  categories: string[];
+}
+
 class OrgAgendaApi {
   private baseUrl: string = "";
   private authHeader: string = "";
@@ -286,6 +293,10 @@ class OrgAgendaApi {
 
   async getAgendaFiles(): Promise<AgendaFilesResponse> {
     return this.request<AgendaFilesResponse>("/agenda-files");
+  }
+
+  async getFilterOptions(): Promise<FilterOptionsResponse> {
+    return this.request<FilterOptionsResponse>("/filter-options");
   }
 }
 
