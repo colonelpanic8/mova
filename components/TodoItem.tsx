@@ -217,28 +217,32 @@ export function TodoItem({ todo }: TodoItemProps) {
               {todo.title}
             </Text>
           </View>
-          <View style={styles.metaRow}>
-            {todo.scheduled && (
-              <Text style={[styles.metaText, { color: theme.colors.primary }]}>
-                S: {formatDate(todo.scheduled)}
-              </Text>
-            )}
-            {todo.deadline && (
-              <Text style={[styles.metaText, { color: theme.colors.error }]}>
-                D: {formatDate(todo.deadline)}
-              </Text>
-            )}
-          </View>
-          {todo.tags && todo.tags.length > 0 && (
-            <View style={styles.tagsContainer}>
-              {todo.tags.map((tag, i) => (
-                <Text
-                  key={i}
-                  style={[styles.tag, { color: theme.colors.primary }]}
-                >
-                  :{tag}:
-                </Text>
-              ))}
+          {(todo.scheduled || todo.deadline || (todo.tags && todo.tags.length > 0)) && (
+            <View style={styles.metaRow}>
+              <View style={styles.metaLeft}>
+                {todo.scheduled && (
+                  <Text style={[styles.metaText, { color: theme.colors.primary }]}>
+                    S: {formatDate(todo.scheduled)}
+                  </Text>
+                )}
+                {todo.deadline && (
+                  <Text style={[styles.metaText, { color: theme.colors.error }]}>
+                    D: {formatDate(todo.deadline)}
+                  </Text>
+                )}
+              </View>
+              {todo.tags && todo.tags.length > 0 && (
+                <View style={styles.tagsContainer}>
+                  {todo.tags.map((tag, i) => (
+                    <Text
+                      key={i}
+                      style={[styles.tag, { color: theme.colors.primary }]}
+                    >
+                      :{tag}:
+                    </Text>
+                  ))}
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -273,17 +277,24 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: "row",
-    gap: 12,
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 4,
+  },
+  metaLeft: {
+    flexDirection: "row",
+    gap: 12,
+    flexShrink: 1,
   },
   metaText: {
     fontSize: 11,
   },
   tagsContainer: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 4,
+    flexWrap: "nowrap",
     gap: 4,
+    marginLeft: 8,
+    flexShrink: 0,
   },
   tag: {
     fontSize: 12,
