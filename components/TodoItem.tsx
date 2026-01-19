@@ -47,6 +47,7 @@ export function TodoItem({ todo }: TodoItemProps) {
     openDeadlineModal,
     openPriorityModal,
     openRemindModal,
+    openBodyEditor,
     openSwipeable,
   } = useTodoEditingContext();
 
@@ -83,6 +84,16 @@ export function TodoItem({ todo }: TodoItemProps) {
   const renderRightActions = useCallback(() => {
     return (
       <View style={styles.swipeActions}>
+        <TouchableOpacity
+          testID={`bodyActionButton_${testIdSuffix}`}
+          style={[
+            styles.swipeAction,
+            { backgroundColor: theme.colors.secondary },
+          ]}
+          onPress={() => openBodyEditor(todo)}
+        >
+          <Text style={styles.swipeActionText}>Body</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           testID={`tomorrowActionButton_${testIdSuffix}`}
           style={[
@@ -139,12 +150,14 @@ export function TodoItem({ todo }: TodoItemProps) {
     testIdSuffix,
     getActionColor,
     theme.colors.tertiary,
+    theme.colors.secondary,
     todo,
     scheduleToday,
     scheduleTomorrow,
     openScheduleModal,
     openDeadlineModal,
     openRemindModal,
+    openBodyEditor,
   ]);
 
   return (
