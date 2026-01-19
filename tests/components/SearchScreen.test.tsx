@@ -39,6 +39,20 @@ jest.mock("react-native-paper", () => {
     Portal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   };
 });
+jest.mock("@react-native-community/datetimepicker", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: () => null,
+  };
+});
+jest.mock("../../context/MutationContext", () => ({
+  MutationProvider: ({ children }: { children: React.ReactNode }) => children,
+  useMutation: () => ({
+    mutationVersion: 0,
+    triggerRefresh: jest.fn(),
+  }),
+}));
 
 // Import after mocks are set up
 import { useAuth } from "../../context/AuthContext";
