@@ -174,8 +174,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<boolean> {
     try {
       const normalizedUrl = normalizeUrl(apiUrl);
-      // Test the credentials by hitting the /templates endpoint
-      const response = await fetch(`${normalizedUrl}/templates`, {
+      // Test the credentials by hitting the /capture-templates endpoint
+      const response = await fetch(`${normalizedUrl}/capture-templates`, {
         headers: {
           Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
         },
