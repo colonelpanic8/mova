@@ -170,7 +170,7 @@ class TemplateConfigActivity : AppCompatActivity() {
                 return TemplatesResult(false, error = "Please log in to the Mova app first")
             }
 
-            val url = URL("$apiUrl/templates")
+            val url = URL("$apiUrl/capture-templates")
             val connection = url.openConnection() as HttpURLConnection
 
             try {

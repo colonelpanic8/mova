@@ -110,7 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Register logout callback with API to handle 401 responses
   useEffect(() => {
     api.setOnUnauthorized(() => {
-      console.log("[AuthContext] Received unauthorized callback, logging out");
       logout();
     });
   }, []);
@@ -132,7 +131,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check for test launch args first (for Detox auto-login)
       const testArgs = await getTestLaunchArgs();
       if (testArgs?.apiUrl && testArgs?.username && testArgs?.password) {
-        console.log("Auto-login with test launch args");
         setState({
           apiUrl: testArgs.apiUrl,
           username: testArgs.username,
@@ -182,7 +180,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.ok) {
-        console.log("[AuthContext] Login successful, saving credentials...");
         await Promise.all([
           AsyncStorage.setItem(STORAGE_KEYS.API_URL, normalizedUrl),
           AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username),
@@ -219,7 +216,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        console.log("[AuthContext] Credentials saved, updating state...");
         setState({
           apiUrl: normalizedUrl,
           username,
@@ -227,7 +223,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isAuthenticated: true,
           isLoading: false,
         });
-        console.log("[AuthContext] State updated, isAuthenticated=true");
 
         return true;
       }

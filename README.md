@@ -171,7 +171,7 @@ yarn e2e:android
 
 ### Capture Templates
 
-Capture templates are defined in your Emacs org-mode configuration and exposed via the org-agenda-api `/templates` endpoint. Mova automatically fetches and renders forms based on your template definitions.
+Capture templates are defined in your Emacs org-mode configuration and exposed via the org-agenda-api `/capture-templates` endpoint. Mova automatically fetches and renders forms based on your template definitions.
 
 Example template structure from org-agenda-api:
 

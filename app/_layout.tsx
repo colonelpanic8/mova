@@ -25,23 +25,15 @@ function RootLayoutNav() {
   useDeepLinks();
 
   useEffect(() => {
-    console.log("[RootLayoutNav] useEffect running", {
-      isLoading,
-      isAuthenticated,
-      segments,
-    });
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "(tabs)";
 
     if (isAuthenticated && !inAuthGroup) {
-      console.log("[RootLayoutNav] Navigating to (tabs)...");
       router.replace("/(tabs)");
     } else if (!isAuthenticated && inAuthGroup) {
-      console.log("[RootLayoutNav] Navigating to login (from tabs)...");
       router.replace("/login");
     } else if (!isAuthenticated && !segments[0]) {
-      console.log("[RootLayoutNav] Navigating to login (no segment)...");
       router.replace("/login");
     }
   }, [isAuthenticated, isLoading, segments, router]);

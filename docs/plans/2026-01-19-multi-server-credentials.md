@@ -428,7 +428,7 @@ async function login(
 ): Promise<boolean> {
   try {
     const normalizedUrl = normalizeUrl(apiUrl);
-    const response = await fetch(`${normalizedUrl}/templates`, {
+    const response = await fetch(`${normalizedUrl}/capture-templates`, {
       headers: {
         Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
       },

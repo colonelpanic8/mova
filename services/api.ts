@@ -130,14 +130,8 @@ class OrgAgendaApi {
   }
 
   configure(baseUrl: string, username: string, password: string) {
-    const wasConfigured = !!this.baseUrl;
     this.baseUrl = normalizeUrl(baseUrl);
     this.authHeader = `Basic ${base64Encode(`${username}:${password}`)}`;
-    console.log("[API] Configured", {
-      wasConfigured,
-      baseUrl: this.baseUrl,
-      hasAuth: !!this.authHeader,
-    });
   }
 
   private async request<T>(
@@ -145,20 +139,12 @@ class OrgAgendaApi {
     options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    console.log("[API] Request starting", {
-      url,
-      method: options.method || "GET",
-      hasAuth: !!this.authHeader,
-      baseUrl: this.baseUrl,
-    });
 
     if (!this.baseUrl) {
-      console.error("[API] ERROR: baseUrl is empty!");
       throw new Error("API not configured: baseUrl is empty");
     }
 
     if (!this.authHeader) {
-      console.error("[API] ERROR: authHeader is empty!");
       throw new Error("API not configured: authHeader is empty");
     }
 
@@ -171,36 +157,19 @@ class OrgAgendaApi {
       },
     });
 
-    console.log("[API] Response received", {
-      url,
-      status: response.status,
-      ok: response.ok,
-      contentType: response.headers.get("content-type"),
-    });
-
     if (!response.ok) {
       if (response.status === 401 && this.onUnauthorized) {
-        console.log("[API] 401 Unauthorized - triggering logout");
         this.onUnauthorized();
       }
       throw new Error(`API error: ${response.status}`);
     }
 
     const text = await response.text();
-    console.log("[API] Response body preview", {
-      url,
-      length: text.length,
-      preview: text.substring(0, 200),
-    });
 
     try {
       return JSON.parse(text);
     } catch (parseError) {
-      console.error("[API] JSON parse error", {
-        url,
-        error: parseError,
-        fullBody: text.substring(0, 1000),
-      });
+      console.error("[API] JSON parse error", { url, body: text.substring(0, 500) });
       throw parseError;
     }
   }
