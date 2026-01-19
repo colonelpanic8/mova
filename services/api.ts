@@ -14,6 +14,7 @@ export interface Todo {
   id: string | null;
   olpath: string[] | null;
   notifyBefore: number[] | null;
+  body?: string | null;
 }
 
 export interface AgendaEntry extends Todo {
@@ -47,6 +48,7 @@ export interface TodoUpdates {
   scheduled?: string | null;
   deadline?: string | null;
   priority?: string | null;
+  body?: string | null;
 }
 
 export interface UpdateTodoResponse {
