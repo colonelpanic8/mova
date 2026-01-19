@@ -2,6 +2,7 @@ import { useMutation } from "@/context/MutationContext";
 import { api, Todo, TodoStatesResponse, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
 import React, {
   createContext,
   ReactNode,
@@ -64,6 +65,7 @@ export interface UseTodoEditingResult {
   openDeadlineModal: (todo: Todo) => void;
   openPriorityModal: (todo: Todo) => void;
   openRemindModal: (todo: Todo) => void;
+  openBodyEditor: (todo: Todo) => void;
   openSwipeable: (key: string) => void;
   dismissSnackbar: () => void;
 
@@ -77,6 +79,7 @@ export function useTodoEditing(
   const { onTodoUpdated, todoStates } = options;
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
+  const router = useRouter();
 
   // Edit modal state
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -181,6 +184,24 @@ export function useTodoEditing(
       openEditModal(todo, "remind");
     },
     [openEditModal],
+  );
+
+  const openBodyEditor = useCallback(
+    (todo: Todo) => {
+      const key = getTodoKey(todo);
+      swipeableRefs.current.get(key)?.close();
+      router.push({
+        pathname: "/body-editor",
+        params: {
+          id: todo.id || "",
+          file: todo.file || "",
+          pos: todo.pos?.toString() || "",
+          title: todo.title || "",
+          body: todo.body || "",
+        },
+      });
+    },
+    [router],
   );
 
   const openSwipeable = useCallback((key: string) => {
@@ -787,6 +808,7 @@ export function useTodoEditing(
     openDeadlineModal,
     openPriorityModal,
     openRemindModal,
+    openBodyEditor,
     openSwipeable,
     dismissSnackbar,
     EditModals,
