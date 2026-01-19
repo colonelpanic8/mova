@@ -31,6 +31,13 @@ jest.mock("@react-native-community/datetimepicker", () => {
     default: () => null,
   };
 });
+jest.mock("../../context/MutationContext", () => ({
+  MutationProvider: ({ children }: { children: React.ReactNode }) => children,
+  useMutation: () => ({
+    mutationVersion: 0,
+    triggerRefresh: jest.fn(),
+  }),
+}));
 
 // Import after mocks are set up
 import { useAuth } from "../../context/AuthContext";
