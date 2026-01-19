@@ -329,4 +329,14 @@ export class TestApiClient {
       },
     );
   }
+
+  async getMetadata() {
+    return this.get<{
+      templates: any;
+      filterOptions: any;
+      todoStates: any;
+      customViews: any;
+      errors: string[];
+    }>("/metadata");
+  }
 }
