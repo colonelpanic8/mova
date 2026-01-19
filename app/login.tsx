@@ -73,11 +73,15 @@ export default function LoginScreen() {
   }, []);
 
   // On web, auto-detect origin and lock the server field
+  // But don't lock on localhost (dev server) - user needs to specify production URL
   useEffect(() => {
     const origin = getWebOrigin();
     if (origin) {
-      setApiUrl(origin);
-      setServerLocked(true);
+      const isLocalhost = origin.includes("localhost") || origin.includes("127.0.0.1");
+      if (!isLocalhost) {
+        setApiUrl(origin);
+        setServerLocked(true);
+      }
     }
   }, []);
 
