@@ -53,6 +53,15 @@ jest.mock("../../context/MutationContext", () => ({
     triggerRefresh: jest.fn(),
   }),
 }));
+jest.mock("expo-router", () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    back: jest.fn(),
+    replace: jest.fn(),
+  }),
+  useLocalSearchParams: () => ({}),
+  useSegments: () => [],
+}));
 
 // Import after mocks are set up
 import { useAuth } from "../../context/AuthContext";
