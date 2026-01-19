@@ -277,7 +277,7 @@ class OrgAgendaApi {
   }
 
   async getTemplates(): Promise<TemplatesResponse> {
-    return this.request<TemplatesResponse>("/templates");
+    return this.request<TemplatesResponse>("/capture-templates");
   }
 
   async capture(

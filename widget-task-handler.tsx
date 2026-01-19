@@ -57,7 +57,7 @@ async function getTemplateName(widgetId: number): Promise<string> {
     const authData = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
     if (authData) {
       const { apiUrl, username, password } = JSON.parse(authData);
-      const response = await fetch(`${apiUrl}/templates`, {
+      const response = await fetch(`${apiUrl}/capture-templates`, {
         headers: {
           Authorization: `Basic ${btoa(`${username}:${password}`)}`,
         },
