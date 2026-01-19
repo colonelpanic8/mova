@@ -702,6 +702,12 @@ export default function CaptureScreen() {
             />
           ))}
         </Menu>
+        <IconButton
+          icon="refresh"
+          size={20}
+          onPress={loadTemplates}
+          testID="reloadTemplatesButton"
+        />
       </View>
 
       <Divider />
@@ -791,6 +797,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     paddingBottom: 12,
   },
