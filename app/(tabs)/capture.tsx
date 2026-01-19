@@ -1,6 +1,7 @@
 import { PriorityPicker, StatePicker } from "@/components/capture";
 import { useAuth } from "@/context/AuthContext";
 import { useColorPalette } from "@/context/ColorPaletteContext";
+import { useMutation } from "@/context/MutationContext";
 import { api, TemplatePrompt, TemplatesResponse } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
@@ -522,6 +523,7 @@ export default function CaptureScreen() {
   }>({});
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
+  const { triggerRefresh } = useMutation();
 
   const loadTemplates = useCallback(async () => {
     if (!apiUrl || !username || !password) return;
@@ -630,6 +632,7 @@ export default function CaptureScreen() {
         setMessage({ text: "Captured!", isError: false });
         setValues({});
         setOptionalFields({});
+        triggerRefresh();
       } else {
         setMessage({
           text: result.message || "Capture failed",

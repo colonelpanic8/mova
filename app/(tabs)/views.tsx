@@ -1,5 +1,6 @@
 import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
+import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
   api,
@@ -8,7 +9,7 @@ import {
   Todo,
   TodoStatesResponse,
 } from "@/services/api";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -35,6 +36,8 @@ export default function ViewsScreen() {
   const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
+  const { mutationVersion } = useMutation();
+  const isInitialMount = useRef(true);
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
@@ -96,6 +99,20 @@ export default function ViewsScreen() {
   useEffect(() => {
     fetchViews().finally(() => setLoading(false));
   }, [fetchViews]);
+
+  // Refetch when mutations happen elsewhere
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (selectedView) {
+      fetchViewEntries(selectedView.key);
+    } else {
+      fetchViews();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutationVersion]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
