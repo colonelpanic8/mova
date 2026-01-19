@@ -19,12 +19,6 @@ import {
   useTheme,
 } from "react-native-paper";
 
-// Shorten git commit hash for display
-const shortCommit = (commit: string): string => {
-  if (!commit || commit === "dev" || commit === "unknown") return commit;
-  return commit.substring(0, 7);
-};
-
 export default function SettingsScreen() {
   const { apiUrl, username, logout } = useAuth();
   const theme = useTheme();
@@ -212,14 +206,14 @@ export default function SettingsScreen() {
         <List.Subheader>About</List.Subheader>
         <List.Item
           title="Mova"
-          description={`${movaVersion} (${shortCommit(movaGitCommit)})`}
+          description={`${movaVersion} (${movaGitCommit})`}
           left={(props) => <List.Icon {...props} icon="cellphone" />}
         />
         <List.Item
           title="Server"
           description={
             backendVersion
-              ? `${backendVersion.version} (${shortCommit(backendVersion.gitCommit)})`
+              ? `${backendVersion.version} (${backendVersion.gitCommit})`
               : "Not connected"
           }
           left={(props) => <List.Icon {...props} icon="server" />}
