@@ -1,8 +1,9 @@
 import { useAuth } from "@/context/AuthContext";
-import { api, TemplatesResponse } from "@/services/api";
+import { useTemplates } from "@/context/TemplatesContext";
+import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Keyboard, StyleSheet, View } from "react-native";
 import {
   IconButton,
@@ -16,7 +17,7 @@ import {
 const LAST_TEMPLATE_KEY = "mova_last_template";
 
 export function CaptureBar() {
-  const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
+  const { templates } = useTemplates();
   const [selectedTemplateKey, setSelectedTemplateKey] =
     useState<string>("default");
   const [title, setTitle] = useState("");
@@ -26,25 +27,21 @@ export function CaptureBar() {
     text: string;
     isError: boolean;
   } | null>(null);
-  const { apiUrl, username, password, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const theme = useTheme();
   const router = useRouter();
 
-  const loadTemplates = useCallback(async () => {
-    if (!apiUrl || !username || !password) return;
+  // Load last used template when templates become available
+  useEffect(() => {
+    if (!templates) return;
 
-    try {
-      api.configure(apiUrl, username, password);
-      const data = await api.getTemplates();
-      setTemplates(data);
-
-      // Load last used template, default to "default" if not set or invalid
+    const loadLastTemplate = async () => {
       const lastTemplate = await AsyncStorage.getItem(LAST_TEMPLATE_KEY);
-      const templateKeys = Object.keys(data);
+      const templateKeys = Object.keys(templates);
 
       if (lastTemplate && templateKeys.includes(lastTemplate)) {
         // Only use saved template if it's a single-field template
-        const template = data[lastTemplate];
+        const template = templates[lastTemplate];
         const requiredPrompts = (template.prompts ?? []).filter(
           (p) => p.required,
         );
@@ -56,16 +53,10 @@ export function CaptureBar() {
       } else {
         setSelectedTemplateKey("default");
       }
-    } catch (err) {
-      console.error("Failed to load templates:", err);
-    }
-  }, [apiUrl, username, password]);
+    };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadTemplates();
-    }
-  }, [loadTemplates, isAuthenticated]);
+    loadLastTemplate();
+  }, [templates]);
 
   const selectedTemplate =
     selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;

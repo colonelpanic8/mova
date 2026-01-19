@@ -1,13 +1,8 @@
 import { PriorityPicker, StatePicker } from "@/components/capture";
-import { useAuth } from "@/context/AuthContext";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useMutation } from "@/context/MutationContext";
-import {
-  api,
-  FilterOptionsResponse,
-  TemplatePrompt,
-  TemplatesResponse,
-} from "@/services/api";
+import { useTemplates } from "@/context/TemplatesContext";
+import { api, TemplatePrompt } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -507,14 +502,16 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
 }
 
 export default function CaptureScreen() {
-  const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
-  const [filterOptions, setFilterOptions] =
-    useState<FilterOptionsResponse | null>(null);
+  const {
+    templates,
+    filterOptions,
+    isLoading: loading,
+    reloadTemplates,
+  } = useTemplates();
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string | null>(
     null,
   );
   const [values, setValues] = useState<Record<string, string | string[]>>({});
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{
     text: string;
@@ -528,43 +525,26 @@ export default function CaptureScreen() {
     tags?: string[];
     todo?: string;
   }>({});
-  const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
 
-  const loadTemplates = useCallback(async () => {
-    if (!apiUrl || !username || !password) return;
+  // Load last used template when templates become available
+  useEffect(() => {
+    if (!templates) return;
 
-    try {
-      api.configure(apiUrl, username, password);
-      const [data, options] = await Promise.all([
-        api.getTemplates(),
-        api.getFilterOptions(),
-      ]);
-      setTemplates(data);
-      setFilterOptions(options);
-
-      // Load last used template or default to first template
+    const loadLastTemplate = async () => {
       const lastTemplate = await AsyncStorage.getItem(LAST_TEMPLATE_KEY);
-      const templateKeys = Object.keys(data);
+      const templateKeys = Object.keys(templates);
 
       if (lastTemplate && templateKeys.includes(lastTemplate)) {
         setSelectedTemplateKey(lastTemplate);
       } else if (templateKeys.length > 0) {
-        // Default to first template
         setSelectedTemplateKey(templateKeys[0]);
       }
-    } catch (err) {
-      console.error("Failed to load templates:", err);
-      setMessage({ text: "Failed to load capture templates", isError: true });
-    } finally {
-      setLoading(false);
-    }
-  }, [apiUrl, username, password]);
+    };
 
-  useEffect(() => {
-    loadTemplates();
-  }, [loadTemplates]);
+    loadLastTemplate();
+  }, [templates]);
 
   // Reset form values when template changes
   useEffect(() => {
@@ -705,7 +685,7 @@ export default function CaptureScreen() {
         <IconButton
           icon="refresh"
           size={20}
-          onPress={loadTemplates}
+          onPress={reloadTemplates}
           testID="reloadTemplatesButton"
         />
       </View>
