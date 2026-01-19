@@ -1,5 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
-import { api, FilterOptionsResponse, TemplatesResponse } from "@/services/api";
+import { api, CustomViewsResponse, FilterOptionsResponse, MetadataResponse, TemplatesResponse, TodoStatesResponse } from "@/services/api";
 import React, {
   createContext,
   ReactNode,
@@ -12,6 +12,8 @@ import React, {
 interface TemplatesContextType {
   templates: TemplatesResponse | null;
   filterOptions: FilterOptionsResponse | null;
+  todoStates: TodoStatesResponse | null;
+  customViews: CustomViewsResponse | null;
   isLoading: boolean;
   error: string | null;
   reloadTemplates: () => Promise<void>;
@@ -25,6 +27,8 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
   const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
   const [filterOptions, setFilterOptions] =
     useState<FilterOptionsResponse | null>(null);
+  const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
+  const [customViews, setCustomViews] = useState<CustomViewsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { apiUrl, username, password, isAuthenticated } = useAuth();
@@ -39,29 +43,28 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
 
     api.configure(apiUrl, username, password);
 
-    // Fetch templates and filter options independently so one failure doesn't block the other
-    const templatesPromise = api.getTemplates().then(
-      (data) => {
-        setTemplates(data);
-        return true;
-      },
-      (err) => {
-        console.error("Failed to load templates:", err);
-        setError(err instanceof Error ? err.message : "Failed to load templates");
-        return false;
-      }
-    );
+    try {
+      const metadata = await api.getMetadata();
 
-    const filterOptionsPromise = api.getFilterOptions().then(
-      (data) => {
-        setFilterOptions(data);
-      },
-      () => {
-        // Filter options are optional - silently ignore failures
+      // Log any errors from the backend
+      if (metadata.errors && metadata.errors.length > 0) {
+        console.warn("Metadata fetch had errors:", metadata.errors);
       }
-    );
 
-    await Promise.all([templatesPromise, filterOptionsPromise]);
+      setTemplates(metadata.templates);
+      setFilterOptions(metadata.filterOptions);
+      setTodoStates(metadata.todoStates);
+      setCustomViews(metadata.customViews);
+
+      // Set error if templates failed (critical)
+      if (!metadata.templates) {
+        setError("Failed to load templates");
+      }
+    } catch (err) {
+      console.error("Failed to load metadata:", err);
+      setError(err instanceof Error ? err.message : "Failed to load metadata");
+    }
+
     setIsLoading(false);
   }, [apiUrl, username, password]);
 
@@ -69,15 +72,17 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     if (isAuthenticated) {
       reloadTemplates();
     } else {
-      // Clear templates when logged out
+      // Clear all state when logged out
       setTemplates(null);
       setFilterOptions(null);
+      setTodoStates(null);
+      setCustomViews(null);
     }
   }, [isAuthenticated, reloadTemplates]);
 
   return (
     <TemplatesContext.Provider
-      value={{ templates, filterOptions, isLoading, error, reloadTemplates }}
+      value={{ templates, filterOptions, todoStates, customViews, isLoading, error, reloadTemplates }}
     >
       {children}
     </TemplatesContext.Provider>
