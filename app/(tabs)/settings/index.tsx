@@ -19,11 +19,6 @@ import {
   useTheme,
 } from "react-native-paper";
 
-// Shorten git commit hash for display
-const shortCommit = (commit: string): string => {
-  if (!commit || commit === "dev" || commit === "unknown") return commit;
-  return commit.substring(0, 7);
-};
 
 export default function SettingsScreen() {
   const { apiUrl, username, logout } = useAuth();
@@ -211,18 +206,28 @@ export default function SettingsScreen() {
       <List.Section>
         <List.Subheader>About</List.Subheader>
         <List.Item
-          title="Mova"
-          description={`${movaVersion} (${shortCommit(movaGitCommit)})`}
+          title="Mova Version"
+          description={movaVersion}
           left={(props) => <List.Icon {...props} icon="cellphone" />}
         />
         <List.Item
-          title="Server"
-          description={
-            backendVersion
-              ? `${backendVersion.version} (${shortCommit(backendVersion.gitCommit)})`
-              : "Not connected"
-          }
+          title="Mova Commit"
+          description={movaGitCommit}
+          descriptionNumberOfLines={1}
+          descriptionStyle={styles.commitHash}
+          left={(props) => <List.Icon {...props} icon="source-commit" />}
+        />
+        <List.Item
+          title="Server Version"
+          description={backendVersion?.version || "Not connected"}
           left={(props) => <List.Icon {...props} icon="server" />}
+        />
+        <List.Item
+          title="Server Commit"
+          description={backendVersion?.gitCommit || "Not connected"}
+          descriptionNumberOfLines={1}
+          descriptionStyle={styles.commitHash}
+          left={(props) => <List.Icon {...props} icon="source-commit" />}
         />
       </List.Section>
     </ScrollView>
@@ -238,5 +243,9 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     borderColor: "transparent",
+  },
+  commitHash: {
+    fontFamily: "monospace",
+    fontSize: 12,
   },
 });
