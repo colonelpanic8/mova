@@ -1,6 +1,6 @@
 // components/capture/StatePicker.tsx
-import { api, TodoStatesResponse } from "@/services/api";
-import React, { useEffect, useState } from "react";
+import { useTemplates } from "@/context/TemplatesContext";
+import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Chip, Text } from "react-native-paper";
 
@@ -10,14 +10,10 @@ interface StatePickerProps {
 }
 
 export function StatePicker({ value, onChange }: StatePickerProps) {
-  const [states, setStates] = useState<TodoStatesResponse | null>(null);
+  const { todoStates } = useTemplates();
 
-  useEffect(() => {
-    api.getTodoStates().then(setStates).catch(console.error);
-  }, []);
-
-  const allStates = states
-    ? [...states.active, ...states.done]
+  const allStates = todoStates
+    ? [...todoStates.active, ...todoStates.done]
     : ["TODO", "NEXT", "WAITING", "DONE"];
 
   return (
