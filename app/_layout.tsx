@@ -1,5 +1,6 @@
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
+import { FilterProvider } from "@/context/FilterContext";
 import { MutationProvider } from "@/context/MutationContext";
 import { TemplatesProvider } from "@/context/TemplatesContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
@@ -71,7 +72,9 @@ export default function RootLayout() {
           <MutationProvider>
             <AuthProvider>
               <TemplatesProvider>
-                <RootLayoutNav />
+                <FilterProvider>
+                  <RootLayoutNav />
+                </FilterProvider>
               </TemplatesProvider>
             </AuthProvider>
           </MutationProvider>
