@@ -175,6 +175,7 @@ class OrgAgendaApi {
       url,
       status: response.status,
       ok: response.ok,
+      contentType: response.headers.get("content-type"),
     });
 
     if (!response.ok) {
@@ -185,7 +186,23 @@ class OrgAgendaApi {
       throw new Error(`API error: ${response.status}`);
     }
 
-    return response.json();
+    const text = await response.text();
+    console.log("[API] Response body preview", {
+      url,
+      length: text.length,
+      preview: text.substring(0, 200),
+    });
+
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      console.error("[API] JSON parse error", {
+        url,
+        error: parseError,
+        fullBody: text.substring(0, 1000),
+      });
+      throw parseError;
+    }
   }
 
   async getAgenda(
