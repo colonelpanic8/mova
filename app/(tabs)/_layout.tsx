@@ -13,7 +13,7 @@ import {
 import { useTheme } from "react-native-paper";
 
 // Hidden routes that shouldn't appear in tab bar
-const HIDDEN_ROUTES = new Set(["capture"]);
+const HIDDEN_ROUTES = new Set<string>([]);
 
 // Custom tab bar that includes CaptureBar above the tabs
 function CustomTabBar(props: BottomTabBarProps) {
@@ -172,7 +172,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="capture"
         options={{
-          href: null, // Hide from tab bar
+          title: "Capture",
+          tabBarButtonTestID: "tabCapture",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="plus-circle-outline"
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
