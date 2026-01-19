@@ -1,5 +1,15 @@
 import { api } from "@/services/api";
+import { SavedServer, SavedServerInput } from "@/types/server";
 import { base64Encode } from "@/utils/base64";
+import {
+  deleteServer as deleteServerFromStorage,
+  findServerById,
+  getActiveServerId,
+  getSavedServers,
+  saveServer as saveServerToStorage,
+  setActiveServerId,
+  updateServer as updateServerInStorage,
+} from "@/utils/serverStorage";
 import { normalizeUrl } from "@/utils/url";
 import {
   clearWidgetCredentials,
@@ -55,9 +65,21 @@ interface AuthContextType extends AuthState {
     apiUrl: string,
     username: string,
     password: string,
+    save?: boolean,
   ) => Promise<boolean>;
   logout: () => Promise<void>;
   getAuthHeader: () => string | null;
+  // Multi-server methods
+  savedServers: SavedServer[];
+  activeServerId: string | null;
+  switchServer: (serverId: string) => Promise<boolean>;
+  saveCurrentServer: (nickname?: string) => Promise<SavedServer | null>;
+  updateServer: (
+    id: string,
+    updates: Partial<SavedServerInput>,
+  ) => Promise<void>;
+  deleteServer: (id: string) => Promise<void>;
+  refreshSavedServers: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,6 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
     isLoading: true,
   });
+  const [savedServers, setSavedServers] = useState<SavedServer[]>([]);
+  const [activeServerId, setActiveServerIdState] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     loadStoredCredentials();
@@ -89,8 +115,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  async function refreshSavedServers() {
+    const servers = await getSavedServers();
+    setSavedServers(servers);
+  }
+
   async function loadStoredCredentials() {
     try {
+      // Load saved servers
+      const servers = await getSavedServers();
+      setSavedServers(servers);
+
+      const storedActiveId = await getActiveServerId();
+      setActiveServerIdState(storedActiveId);
+
       // Check for test launch args first (for Detox auto-login)
       const testArgs = await getTestLaunchArgs();
       if (testArgs?.apiUrl && testArgs?.username && testArgs?.password) {
@@ -132,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     apiUrl: string,
     username: string,
     password: string,
+    save: boolean = true,
   ): Promise<boolean> {
     try {
       const normalizedUrl = normalizeUrl(apiUrl);
@@ -152,6 +191,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Also save to SharedPreferences for widget access
         await saveCredentialsToWidget(normalizedUrl, username, password);
+
+        // Save to server list if requested
+        if (save) {
+          // Check if server already exists
+          const currentServers = await getSavedServers();
+          const existing = currentServers.find(
+            (s) => s.apiUrl === normalizedUrl && s.username === username,
+          );
+          if (!existing) {
+            const newServer = await saveServerToStorage({
+              apiUrl: normalizedUrl,
+              username,
+              password,
+            });
+            await setActiveServerId(newServer.id);
+            setActiveServerIdState(newServer.id);
+            await refreshSavedServers();
+          } else {
+            // Update password if changed
+            if (existing.password !== password) {
+              await updateServerInStorage(existing.id, { password });
+              await refreshSavedServers();
+            }
+            await setActiveServerId(existing.id);
+            setActiveServerIdState(existing.id);
+          }
+        }
 
         console.log("[AuthContext] Credentials saved, updating state...");
         setState({
@@ -183,6 +249,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Also clear widget credentials
     await clearWidgetCredentials();
 
+    // Clear active server id but keep saved servers
+    await setActiveServerId(null);
+    setActiveServerIdState(null);
+
     setState({
       apiUrl: null,
       username: null,
@@ -190,6 +260,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: false,
       isLoading: false,
     });
+  }
+
+  async function switchServer(serverId: string): Promise<boolean> {
+    const server = await findServerById(serverId);
+    if (!server) return false;
+
+    const success = await login(
+      server.apiUrl,
+      server.username,
+      server.password,
+      false,
+    );
+    if (success) {
+      await setActiveServerId(serverId);
+      setActiveServerIdState(serverId);
+    }
+    return success;
+  }
+
+  async function saveCurrentServer(
+    nickname?: string,
+  ): Promise<SavedServer | null> {
+    if (!state.apiUrl || !state.username || !state.password) return null;
+
+    const newServer = await saveServerToStorage({
+      nickname,
+      apiUrl: state.apiUrl,
+      username: state.username,
+      password: state.password,
+    });
+
+    await setActiveServerId(newServer.id);
+    setActiveServerIdState(newServer.id);
+    await refreshSavedServers();
+    return newServer;
+  }
+
+  async function handleUpdateServer(
+    id: string,
+    updates: Partial<SavedServerInput>,
+  ): Promise<void> {
+    await updateServerInStorage(id, updates);
+    await refreshSavedServers();
+
+    // If updating the active server, update current credentials too
+    if (id === activeServerId && state.isAuthenticated) {
+      const updated = await findServerById(id);
+      if (updated) {
+        setState((prev) => ({
+          ...prev,
+          apiUrl: updated.apiUrl,
+          username: updated.username,
+          password: updated.password,
+        }));
+      }
+    }
+  }
+
+  async function handleDeleteServer(id: string): Promise<void> {
+    await deleteServerFromStorage(id);
+    await refreshSavedServers();
+
+    // If deleting the active server, clear active server id
+    if (id === activeServerId) {
+      await setActiveServerId(null);
+      setActiveServerIdState(null);
+    }
   }
 
   function getAuthHeader(): string | null {
@@ -200,7 +337,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, getAuthHeader }}>
+    <AuthContext.Provider
+      value={{
+        ...state,
+        login,
+        logout,
+        getAuthHeader,
+        savedServers,
+        activeServerId,
+        switchServer,
+        saveCurrentServer,
+        updateServer: handleUpdateServer,
+        deleteServer: handleDeleteServer,
+        refreshSavedServers,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

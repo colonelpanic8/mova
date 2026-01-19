@@ -19,6 +19,7 @@ export default function SettingsLayout() {
         name="notifications"
         options={{ title: "Scheduled Notifications" }}
       />
+      <Stack.Screen name="servers" options={{ title: "Manage Servers" }} />
     </Stack>
   );
 }
