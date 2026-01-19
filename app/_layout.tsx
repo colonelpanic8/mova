@@ -1,5 +1,6 @@
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
+import { MutationProvider } from "@/context/MutationContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -74,9 +75,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
         <ColorPaletteProvider>
-          <AuthProvider>
-            <RootLayoutNav />
-          </AuthProvider>
+          <MutationProvider>
+            <AuthProvider>
+              <RootLayoutNav />
+            </AuthProvider>
+          </MutationProvider>
         </ColorPaletteProvider>
       </PaperProvider>
     </GestureHandlerRootView>

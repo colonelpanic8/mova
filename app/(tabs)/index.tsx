@@ -1,11 +1,12 @@
 import { TodoItem, getTodoKey } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
+import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { AgendaResponse, Todo, TodoStatesResponse, api } from "@/services/api";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -50,6 +51,8 @@ export default function AgendaScreen() {
   const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
+  const { mutationVersion } = useMutation();
+  const isInitialMount = useRef(true);
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
@@ -134,6 +137,16 @@ export default function AgendaScreen() {
   useEffect(() => {
     fetchAgenda(selectedDate).finally(() => setLoading(false));
   }, [fetchAgenda, selectedDate]);
+
+  // Refetch when mutations happen elsewhere
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    fetchAgenda(selectedDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutationVersion]);
 
   const goToPreviousDay = useCallback(() => {
     const newDate = new Date(selectedDate);

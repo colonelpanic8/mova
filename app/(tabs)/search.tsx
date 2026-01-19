@@ -1,8 +1,9 @@
 import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
+import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { api, Todo, TodoStatesResponse } from "@/services/api";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -29,6 +30,8 @@ export default function SearchScreen() {
 
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
+  const { mutationVersion } = useMutation();
+  const isInitialMount = useRef(true);
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
@@ -64,6 +67,16 @@ export default function SearchScreen() {
   useEffect(() => {
     fetchTodos().finally(() => setLoading(false));
   }, [fetchTodos]);
+
+  // Refetch when mutations happen elsewhere
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    fetchTodos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutationVersion]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {

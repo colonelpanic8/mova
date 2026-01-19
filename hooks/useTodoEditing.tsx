@@ -1,3 +1,4 @@
+import { useMutation } from "@/context/MutationContext";
 import { api, Todo, TodoStatesResponse, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -75,6 +76,7 @@ export function useTodoEditing(
 ): UseTodoEditingResult {
   const { onTodoUpdated, todoStates } = options;
   const theme = useTheme();
+  const { triggerRefresh } = useMutation();
 
   // Edit modal state
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -211,6 +213,7 @@ export function useTodoEditing(
             isError: false,
           });
           onTodoUpdated?.(todo, { scheduled: dateString });
+          triggerRefresh();
         } else {
           setSnackbar({
             visible: true,
@@ -233,7 +236,7 @@ export function useTodoEditing(
         });
       }
     },
-    [onTodoUpdated],
+    [onTodoUpdated, triggerRefresh],
   );
 
   const scheduleTomorrow = useCallback(
@@ -256,6 +259,7 @@ export function useTodoEditing(
             isError: false,
           });
           onTodoUpdated?.(todo, { scheduled: dateString });
+          triggerRefresh();
         } else {
           setSnackbar({
             visible: true,
@@ -278,7 +282,7 @@ export function useTodoEditing(
         });
       }
     },
-    [onTodoUpdated],
+    [onTodoUpdated, triggerRefresh],
   );
 
   const handleUpdateTodo = useCallback(
@@ -309,6 +313,7 @@ export function useTodoEditing(
             isError: false,
           });
           onTodoUpdated?.(editingTodo, updates);
+          triggerRefresh();
           closeEditModal();
         } else {
           setSnackbar({
@@ -332,7 +337,7 @@ export function useTodoEditing(
         });
       }
     },
-    [editingTodo, onTodoUpdated, closeEditModal],
+    [editingTodo, onTodoUpdated, closeEditModal, triggerRefresh],
   );
 
   const handleStateChange = useCallback(
@@ -353,6 +358,7 @@ export function useTodoEditing(
             isError: false,
           });
           onTodoUpdated?.(editingTodo, { todo: result.newState || newState });
+          triggerRefresh();
         } else {
           setSnackbar({
             visible: true,
@@ -375,7 +381,7 @@ export function useTodoEditing(
         });
       }
     },
-    [editingTodo, onTodoUpdated, closeEditModal],
+    [editingTodo, onTodoUpdated, closeEditModal, triggerRefresh],
   );
 
   const handleSavePriority = useCallback(
