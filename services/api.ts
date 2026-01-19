@@ -120,6 +120,14 @@ export interface FilterOptionsResponse {
   categories: string[];
 }
 
+export interface MetadataResponse {
+  templates: TemplatesResponse | null;
+  filterOptions: FilterOptionsResponse | null;
+  todoStates: TodoStatesResponse | null;
+  customViews: CustomViewsResponse | null;
+  errors: string[];
+}
+
 class OrgAgendaApi {
   private baseUrl: string = "";
   private authHeader: string = "";
@@ -283,6 +291,10 @@ class OrgAgendaApi {
 
   async getFilterOptions(): Promise<FilterOptionsResponse> {
     return this.request<FilterOptionsResponse>("/filter-options");
+  }
+
+  async getMetadata(): Promise<MetadataResponse> {
+    return this.request<MetadataResponse>("/metadata");
   }
 }
 
