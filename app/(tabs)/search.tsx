@@ -1,6 +1,9 @@
+import { FilterBar } from "@/components/FilterBar";
 import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
+import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
+import { filterTodos } from "@/utils/filterTodos";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { api, Todo, TodoStatesResponse } from "@/services/api";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -31,6 +34,7 @@ export default function SearchScreen() {
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
+  const { filters } = useFilters();
   const isInitialMount = useRef(true);
 
   const handleTodoUpdated = useCallback(
@@ -79,22 +83,24 @@ export default function SearchScreen() {
   }, [mutationVersion]);
 
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredTodos(todos);
-      return;
+    // First apply context filters
+    let result = filterTodos(todos, filters);
+
+    // Then apply text search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((todo) => {
+        const titleMatch = todo.title?.toLowerCase().includes(query);
+        const tagMatch = todo.tags?.some((tag) =>
+          tag.toLowerCase().includes(query),
+        );
+        const todoMatch = todo.todo?.toLowerCase().includes(query);
+        return titleMatch || tagMatch || todoMatch;
+      });
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = todos.filter((todo) => {
-      const titleMatch = todo.title?.toLowerCase().includes(query);
-      const tagMatch = todo.tags?.some((tag) =>
-        tag.toLowerCase().includes(query),
-      );
-      const todoMatch = todo.todo?.toLowerCase().includes(query);
-      return titleMatch || tagMatch || todoMatch;
-    });
-    setFilteredTodos(filtered);
-  }, [searchQuery, todos]);
+    setFilteredTodos(result);
+  }, [searchQuery, todos, filters]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -137,6 +143,8 @@ export default function SearchScreen() {
             testID="searchRefreshButton"
           />
         </View>
+
+        <FilterBar testID="searchFilterBar" />
 
         {error ? (
           <ScrollView

@@ -1,6 +1,9 @@
+import { FilterBar } from "@/components/FilterBar";
 import { TodoItem, getTodoKey } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
+import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
+import { filterTodos } from "@/utils/filterTodos";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { AgendaResponse, Todo, TodoStatesResponse, api } from "@/services/api";
 import DateTimePicker, {
@@ -52,7 +55,11 @@ export default function AgendaScreen() {
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
+  const { filters } = useFilters();
   const isInitialMount = useRef(true);
+
+  // Apply filters to agenda entries
+  const filteredEntries = agenda ? filterTodos(agenda.entries, filters) : [];
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
@@ -263,7 +270,9 @@ export default function AgendaScreen() {
           />
         )}
 
-        {agenda?.entries.length === 0 ? (
+        <FilterBar testID="agendaFilterBar" />
+
+        {filteredEntries.length === 0 ? (
           <View testID="agendaEmptyView" style={styles.centered}>
             <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
               No items for today
@@ -272,7 +281,7 @@ export default function AgendaScreen() {
         ) : (
           <FlatList
             testID="agendaList"
-            data={agenda?.entries}
+            data={filteredEntries}
             keyExtractor={(item) => getTodoKey(item)}
             renderItem={({ item }) => <TodoItem todo={item} />}
             refreshControl={
