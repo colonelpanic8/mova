@@ -1,5 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
-import { api, CustomViewsResponse, FilterOptionsResponse, MetadataResponse, TemplatesResponse, TodoStatesResponse } from "@/services/api";
+import { api, CategoryType, CustomViewsResponse, FilterOptionsResponse, MetadataResponse, TemplatesResponse, TodoStatesResponse } from "@/services/api";
 import React, {
   createContext,
   ReactNode,
@@ -11,6 +11,7 @@ import React, {
 
 interface TemplatesContextType {
   templates: TemplatesResponse | null;
+  categoryTypes: CategoryType[] | null;
   filterOptions: FilterOptionsResponse | null;
   todoStates: TodoStatesResponse | null;
   customViews: CustomViewsResponse | null;
@@ -25,6 +26,7 @@ const TemplatesContext = createContext<TemplatesContextType | undefined>(
 
 export function TemplatesProvider({ children }: { children: ReactNode }) {
   const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
+  const [categoryTypes, setCategoryTypes] = useState<CategoryType[] | null>(null);
   const [filterOptions, setFilterOptions] =
     useState<FilterOptionsResponse | null>(null);
   const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
@@ -56,6 +58,15 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       setFilterOptions(metadata.filterOptions);
       setTodoStates(metadata.todoStates);
       setCustomViews(metadata.customViews);
+
+      // Fetch category types separately (not part of /metadata)
+      try {
+        const categoryTypesResponse = await api.getCategoryTypes();
+        setCategoryTypes(categoryTypesResponse.types);
+      } catch (categoryErr) {
+        console.warn("Failed to fetch category types:", categoryErr);
+        setCategoryTypes([]);
+      }
 
       // Set error if templates failed (critical)
       if (!metadata.templates) {
@@ -92,6 +103,15 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       if (customViewsResult.status === "fulfilled") {
         setCustomViews(customViewsResult.value);
       }
+
+      // Fetch category types separately (not part of /metadata)
+      try {
+        const categoryTypesResponse = await api.getCategoryTypes();
+        setCategoryTypes(categoryTypesResponse.types);
+      } catch (categoryErr) {
+        console.warn("Failed to fetch category types:", categoryErr);
+        setCategoryTypes([]);
+      }
     }
 
     setIsLoading(false);
@@ -103,6 +123,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     } else {
       // Clear all state when logged out
       setTemplates(null);
+      setCategoryTypes(null);
       setFilterOptions(null);
       setTodoStates(null);
       setCustomViews(null);
@@ -111,7 +132,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
 
   return (
     <TemplatesContext.Provider
-      value={{ templates, filterOptions, todoStates, customViews, isLoading, error, reloadTemplates }}
+      value={{ templates, categoryTypes, filterOptions, todoStates, customViews, isLoading, error, reloadTemplates }}
     >
       {children}
     </TemplatesContext.Provider>
