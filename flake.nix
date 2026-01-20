@@ -46,21 +46,24 @@
       android-sdk = androidComposition.androidsdk;
       android-home = "${androidComposition.androidsdk}/libexec/android-sdk";
       aapt2Binary = "${android-home}/build-tools/${buildToolsVersion}/aapt2";
+      sharedDeps = with pkgs; [
+        nodejs
+        yarn
+        watchman
+        alejandra
+        just
+      ];
     in {
       devShells = {
-        default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            nodejs
-            yarn
-            watchman
-            alejandra
-            jdk17
-            just
-          ] ++ (
-            if system == "x86_64-linux"
-            then [pkgs.nixgl.auto.nixGLDefault pkgs.nixgl.nixGLIntel]
-            else []
-          );
+        android = pkgs.mkShell {
+          buildInputs =
+            sharedDeps
+            ++ [pkgs.jdk17]
+            ++ (
+              if system == "x86_64-linux"
+              then [pkgs.nixgl.auto.nixGLDefault pkgs.nixgl.nixGLIntel]
+              else []
+            );
           LC_ALL = "en_US.UTF-8";
           LANG = "en_US.UTF-8";
           ANDROID_HOME = android-home;
@@ -70,7 +73,7 @@
             export JAVA_HOME=${pkgs.jdk17.home}
             export PATH=${android-home}/emulator:${android-home}/cmdline-tools/${cmdLineToolsVersion}/bin:$(pwd)/node_modules/.bin:$PATH
             export ORG_AGENDA_API_DIR="${org-agenda-api}"
-            echo "Mova dev shell"
+            echo "Mova Android dev shell"
             echo "  node: $(node --version)"
             echo "  yarn: $(yarn --version)"
             echo ""
@@ -80,6 +83,38 @@
             echo "  yarn web         - Run in browser"
             echo "  just emulator    - Start Android emulator"
             echo "  just --list      - Show all just commands"
+          '';
+        };
+        ios = (pkgs.mkShell.override {stdenv = pkgs.stdenvNoCC;}) {
+          disallowedRequisites = [pkgs.xcbuild pkgs.xcbuild.xcrun];
+          buildInputs = sharedDeps ++ [pkgs.cocoapods];
+          LC_ALL = "en_US.UTF-8";
+          LANG = "en_US.UTF-8";
+          shellHook = ''
+            unset DEVELOPER_DIR
+            export PATH="$PWD/node_modules/.bin:$PATH"
+            export ORG_AGENDA_API_DIR="${org-agenda-api}"
+            echo "Mova iOS dev shell"
+            echo "  node: $(node --version)"
+            echo "  yarn: $(yarn --version)"
+            echo ""
+            echo "Commands:"
+            echo "  yarn start       - Start Expo dev server"
+            echo "  yarn ios         - Run on iOS"
+            echo "  yarn web         - Run in browser"
+            echo "  just --list      - Show all just commands"
+          '';
+        };
+        default = pkgs.mkShell {
+          buildInputs = sharedDeps;
+          LC_ALL = "en_US.UTF-8";
+          LANG = "en_US.UTF-8";
+          shellHook = ''
+            export PATH="$PWD/node_modules/.bin:$PATH"
+            export ORG_AGENDA_API_DIR="${org-agenda-api}"
+            echo "Mova dev shell (use 'nix develop .#ios' or 'nix develop .#android' for platform-specific shells)"
+            echo "  node: $(node --version)"
+            echo "  yarn: $(yarn --version)"
           '';
         };
       };
