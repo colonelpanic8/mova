@@ -317,15 +317,17 @@ export default function EditScreen() {
           </Button>
         )}
 
-        {/* Remind button */}
-        <Button
-          mode="outlined"
-          onPress={handleRemind}
-          style={styles.remindButton}
-          icon="bell"
-        >
-          Set Reminder
-        </Button>
+        {/* Remind button - only on native (notifications don't work on web) */}
+        {Platform.OS !== "web" && (
+          <Button
+            mode="outlined"
+            onPress={handleRemind}
+            style={styles.remindButton}
+            icon="bell"
+          >
+            Set Reminder
+          </Button>
+        )}
 
         {/* Save button */}
         <Button
