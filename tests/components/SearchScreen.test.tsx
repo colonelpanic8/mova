@@ -70,6 +70,13 @@ jest.mock("../../context/TemplatesContext", () => ({
     reloadTemplates: jest.fn(),
   }),
 }));
+jest.mock("../../context/SettingsContext", () => ({
+  useSettings: () => ({
+    quickScheduleIncludeTime: false,
+    setQuickScheduleIncludeTime: jest.fn(),
+    isLoading: false,
+  }),
+}));
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: jest.fn(),

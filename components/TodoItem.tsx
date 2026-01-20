@@ -76,6 +76,15 @@ export function TodoItem({ todo }: TodoItemProps) {
     openSwipeable(key);
   }, [openSwipeable, key]);
 
+  // Close all other swipeables when this one starts to open (from swiping)
+  const handleSwipeableWillOpen = useCallback(() => {
+    swipeableRefs.current.forEach((swipeable, refKey) => {
+      if (refKey !== key) {
+        swipeable.close();
+      }
+    });
+  }, [key, swipeableRefs]);
+
   // Create a unique suffix for testIDs based on todo title (sanitized for testID)
   const testIdSuffix = todo.title
     .replace(/[^a-zA-Z0-9]/g, "_")
@@ -165,6 +174,7 @@ export function TodoItem({ todo }: TodoItemProps) {
       ref={internalRef}
       renderRightActions={renderRightActions}
       overshootRight={false}
+      onSwipeableWillOpen={handleSwipeableWillOpen}
     >
       <Pressable onPress={handleBodyPress}>
         <View
