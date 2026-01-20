@@ -7,7 +7,13 @@ import { api, Repeater, Todo, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   Appbar,
   Button,
@@ -259,10 +265,15 @@ export default function EditScreen() {
         />
       </Appbar.Header>
 
-      <ScrollView
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Read-only category display */}
         {originalTodo.file && (
           <View style={styles.categoryContainer}>
@@ -370,7 +381,8 @@ export default function EditScreen() {
         >
           Save
         </Button>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Delete confirmation dialog */}
       <Portal>

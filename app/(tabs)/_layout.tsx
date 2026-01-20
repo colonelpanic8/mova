@@ -4,8 +4,9 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Animated,
   Keyboard,
-  KeyboardAvoidingView,
+  KeyboardEvent,
   Platform,
   Pressable,
   View,
@@ -20,27 +21,44 @@ function CustomTabBar(props: BottomTabBarProps) {
   const { state, descriptors, navigation, insets } = props;
   const theme = useTheme();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      () => setKeyboardVisible(true),
+      (event: KeyboardEvent) => {
+        setKeyboardVisible(true);
+        Animated.timing(keyboardHeight, {
+          toValue: event.endCoordinates.height,
+          duration: Platform.OS === "ios" ? event.duration || 250 : 250,
+          useNativeDriver: false,
+        }).start();
+      },
     );
     const hideSubscription = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setKeyboardVisible(false),
+      (event: KeyboardEvent) => {
+        setKeyboardVisible(false);
+        Animated.timing(keyboardHeight, {
+          toValue: 0,
+          duration: Platform.OS === "ios" ? event.duration || 250 : 250,
+          useNativeDriver: false,
+        }).start();
+      },
     );
 
     return () => {
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, []);
+  }, [keyboardHeight]);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ backgroundColor: theme.colors.surface }}
+    <Animated.View
+      style={{
+        backgroundColor: theme.colors.surface,
+        paddingBottom: keyboardVisible ? keyboardHeight : 0,
+      }}
     >
       <CaptureBar />
       {!keyboardVisible && (
@@ -112,7 +130,7 @@ function CustomTabBar(props: BottomTabBarProps) {
           })}
         </View>
       )}
-    </KeyboardAvoidingView>
+    </Animated.View>
   );
 }
 

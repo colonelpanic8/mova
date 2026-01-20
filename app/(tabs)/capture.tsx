@@ -14,7 +14,13 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -519,10 +525,15 @@ export default function CaptureScreen() {
 
       <Divider />
 
-      <ScrollView
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.formContainer}
-        contentContainerStyle={styles.formContent}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
+        <ScrollView
+          contentContainerStyle={styles.formContent}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Category field for category type captures */}
         {selection?.type === "category" && (
           <CategoryField
@@ -602,7 +613,8 @@ export default function CaptureScreen() {
         >
           Capture
         </Button>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <Snackbar
         visible={!!message}
