@@ -72,6 +72,12 @@ export interface UpdateTodoResponse {
   message?: string;
 }
 
+export interface DeleteTodoResponse {
+  status: string;
+  title?: string;
+  message?: string;
+}
+
 export interface TodoStatesResponse {
   active: string[];
   done: string[];
@@ -275,6 +281,18 @@ class OrgAgendaApi {
         pos: todo.pos,
         title: todo.title,
         ...updates,
+      }),
+    });
+  }
+
+  async deleteTodo(todo: Todo): Promise<DeleteTodoResponse> {
+    return this.request<DeleteTodoResponse>("/delete", {
+      method: "POST",
+      body: JSON.stringify({
+        id: todo.id,
+        file: todo.file,
+        pos: todo.pos,
+        title: todo.title,
       }),
     });
   }
