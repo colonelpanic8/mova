@@ -23,6 +23,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import {
   Button,
+  Dialog,
   List,
   Modal,
   Portal,
@@ -75,6 +76,7 @@ export interface UseTodoEditingResult {
   // State
   completingIds: Set<string>;
   updatingIds: Set<string>;
+  deletingIds: Set<string>;
   snackbar: { visible: boolean; message: string; isError: boolean };
   swipeableRefs: React.MutableRefObject<Map<string, Swipeable>>;
 
@@ -88,6 +90,7 @@ export interface UseTodoEditingResult {
   openRemindModal: (todo: Todo) => void;
   openBodyEditor: (todo: Todo) => void;
   openSwipeable: (key: string) => void;
+  openDeleteConfirm: (todo: Todo) => void;
   dismissSnackbar: () => void;
 
   // Components
@@ -121,6 +124,8 @@ export function useTodoEditing(
   // Loading states
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [deleteConfirmTodo, setDeleteConfirmTodo] = useState<Todo | null>(null);
 
   // Snackbar
   const [snackbar, setSnackbar] = useState<{
@@ -414,6 +419,56 @@ export function useTodoEditing(
     },
     [editingTodo, onTodoUpdated, closeEditModal, triggerRefresh],
   );
+
+  const handleDeleteTodo = useCallback(
+    async (todo: Todo) => {
+      const key = getTodoKey(todo);
+      setDeletingIds((prev) => new Set(prev).add(key));
+      setDeleteConfirmTodo(null);
+
+      try {
+        const result = await api.deleteTodo(todo);
+        if (result.status === "deleted") {
+          setSnackbar({
+            visible: true,
+            message: `Deleted: ${todo.title}`,
+            isError: false,
+          });
+          triggerRefresh();
+        } else {
+          setSnackbar({
+            visible: true,
+            message: result.message || "Failed to delete",
+            isError: true,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to delete todo:", err);
+        setSnackbar({
+          visible: true,
+          message: "Failed to delete todo",
+          isError: true,
+        });
+      } finally {
+        setDeletingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [triggerRefresh],
+  );
+
+  const openDeleteConfirm = useCallback((todo: Todo) => {
+    const key = getTodoKey(todo);
+    swipeableRefs.current.get(key)?.close();
+    setDeleteConfirmTodo(todo);
+  }, []);
+
+  const closeDeleteConfirm = useCallback(() => {
+    setDeleteConfirmTodo(null);
+  }, []);
 
   const handleSavePriority = useCallback(
     (priority: string | null) => {
@@ -910,6 +965,23 @@ export function useTodoEditing(
               </Button>
             </View>
           </Modal>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog visible={!!deleteConfirmTodo} onDismiss={closeDeleteConfirm}>
+            <Dialog.Title>Delete Todo?</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">{deleteConfirmTodo?.title}</Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={closeDeleteConfirm}>Cancel</Button>
+              <Button
+                onPress={() => deleteConfirmTodo && handleDeleteTodo(deleteConfirmTodo)}
+                textColor={theme.colors.error}
+              >
+                Delete
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
         </Portal>
 
         {/* Native DateTime Picker for Remind modal */}
@@ -962,11 +1034,15 @@ export function useTodoEditing(
     handleUpdateTodo,
     applyQuickSchedule,
     dismissSnackbar,
+    deleteConfirmTodo,
+    handleDeleteTodo,
+    closeDeleteConfirm,
   ]);
 
   return {
     completingIds,
     updatingIds,
+    deletingIds,
     snackbar,
     swipeableRefs,
     handleTodoPress,
@@ -978,6 +1054,7 @@ export function useTodoEditing(
     openRemindModal,
     openBodyEditor,
     openSwipeable,
+    openDeleteConfirm,
     dismissSnackbar,
     EditModals,
   };
