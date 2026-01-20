@@ -1,6 +1,7 @@
 import { PriorityPicker, StatePicker } from "@/components/capture";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useMutation } from "@/context/MutationContext";
+import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { api, TemplatePrompt } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -71,6 +72,7 @@ interface DateFieldWithQuickActionsProps {
   value: string;
   onChange: (value: string) => void;
   colorKey: "schedule" | "deadline";
+  includeTime: boolean;
 }
 
 function DateFieldWithQuickActions({
@@ -78,52 +80,63 @@ function DateFieldWithQuickActions({
   value,
   onChange,
   colorKey,
+  includeTime,
 }: DateFieldWithQuickActionsProps) {
-  const theme = useTheme();
   const { getActionColor } = useColorPalette();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [includeTime, setIncludeTime] = useState(
-    value.includes("T") || value.includes(" "),
-  );
   const [tempDate, setTempDate] = useState<Date>(new Date());
 
   const handleToday = useCallback(() => {
     const today = new Date();
     if (includeTime) {
-      today.setHours(9, 0, 0, 0); // Default to 9 AM
+      // Set to next rounded 15-minute interval
+      const minutes = Math.ceil(today.getMinutes() / 15) * 15;
+      today.setMinutes(minutes, 0, 0);
+      if (Platform.OS === "web") {
+        // On web, set value directly (user can adjust in datetime-local input)
+        onChange(formatDateTimeForApi(today, true));
+      } else {
+        // On native, show time picker
+        setTempDate(today);
+        setShowTimePicker(true);
+      }
+    } else {
+      onChange(formatDateTimeForApi(today, false));
     }
-    onChange(formatDateTimeForApi(today, includeTime));
   }, [includeTime, onChange]);
 
   const handleTomorrow = useCallback(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     if (includeTime) {
-      tomorrow.setHours(9, 0, 0, 0); // Default to 9 AM
+      // Default to 9 AM for tomorrow
+      tomorrow.setHours(9, 0, 0, 0);
+      if (Platform.OS === "web") {
+        // On web, set value directly (user can adjust in datetime-local input)
+        onChange(formatDateTimeForApi(tomorrow, true));
+      } else {
+        // On native, show time picker
+        setTempDate(tomorrow);
+        setShowTimePicker(true);
+      }
+    } else {
+      onChange(formatDateTimeForApi(tomorrow, false));
     }
-    onChange(formatDateTimeForApi(tomorrow, includeTime));
   }, [includeTime, onChange]);
 
   const handleDateChange = useCallback(
     (event: DateTimePickerEvent, date?: Date) => {
-      if (Platform.OS !== "ios") {
-        setShowDatePicker(false);
-      }
+      setShowDatePicker(false);
       if (event.type === "dismissed") {
         return;
       }
       if (date) {
         if (includeTime) {
           setTempDate(date);
-          if (Platform.OS !== "ios") {
-            setShowTimePicker(true);
-          }
+          setShowTimePicker(true);
         } else {
           onChange(formatDateTimeForApi(date, false));
-          if (Platform.OS === "ios") {
-            setShowDatePicker(false);
-          }
         }
       }
     },
@@ -144,30 +157,6 @@ function DateFieldWithQuickActions({
     },
     [tempDate, onChange],
   );
-
-  const handleTimeToggle = useCallback(() => {
-    const newIncludeTime = !includeTime;
-    setIncludeTime(newIncludeTime);
-
-    // If we have a value, update it to include/exclude time
-    if (value) {
-      const currentDate =
-        value.includes("T") || value.includes(" ")
-          ? new Date(value.replace(" ", "T"))
-          : new Date(value + "T09:00:00");
-
-      if (newIncludeTime) {
-        // Adding time - default to 9 AM if switching from date-only
-        if (!value.includes("T") && !value.includes(" ")) {
-          currentDate.setHours(9, 0, 0, 0);
-        }
-        onChange(formatDateTimeForApi(currentDate, true));
-      } else {
-        // Removing time
-        onChange(formatDateForApi(currentDate));
-      }
-    }
-  }, [includeTime, value, onChange]);
 
   const handleClear = useCallback(() => {
     onChange("");
@@ -212,28 +201,6 @@ function DateFieldWithQuickActions({
             onPress={handleTomorrow}
           >
             <Text style={styles.quickActionText}>Tomorrow</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.quickActionButton,
-              {
-                backgroundColor: includeTime
-                  ? theme.colors.primary
-                  : theme.colors.surfaceVariant,
-              },
-            ]}
-            onPress={handleTimeToggle}
-          >
-            <Text
-              style={[
-                styles.quickActionText,
-                {
-                  color: includeTime ? "white" : theme.colors.onSurfaceVariant,
-                },
-              ]}
-            >
-              Time
-            </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.dateInputRow}>
@@ -285,26 +252,6 @@ function DateFieldWithQuickActions({
           onPress={handleTomorrow}
         >
           <Text style={styles.quickActionText}>Tomorrow</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.quickActionButton,
-            {
-              backgroundColor: includeTime
-                ? theme.colors.primary
-                : theme.colors.surfaceVariant,
-            },
-          ]}
-          onPress={handleTimeToggle}
-        >
-          <Text
-            style={[
-              styles.quickActionText,
-              { color: includeTime ? "white" : theme.colors.onSurfaceVariant },
-            ]}
-          >
-            Time
-          </Text>
         </TouchableOpacity>
       </View>
       <View style={styles.dateButtonRow}>
@@ -508,6 +455,7 @@ export default function CaptureScreen() {
     isLoading: loading,
     reloadTemplates,
   } = useTemplates();
+  const { quickScheduleIncludeTime } = useSettings();
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string | null>(
     null,
   );
@@ -723,6 +671,7 @@ export default function CaptureScreen() {
           value={optionalFields.scheduled || ""}
           onChange={(v) => handleOptionalFieldChange("scheduled", v)}
           colorKey="schedule"
+          includeTime={quickScheduleIncludeTime}
         />
 
         <DateFieldWithQuickActions
@@ -730,6 +679,7 @@ export default function CaptureScreen() {
           value={optionalFields.deadline || ""}
           onChange={(v) => handleOptionalFieldChange("deadline", v)}
           colorKey="deadline"
+          includeTime={quickScheduleIncludeTime}
         />
 
         <PromptField
