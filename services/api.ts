@@ -26,11 +26,81 @@ export interface Todo {
   olpath: string[] | null;
   notifyBefore: number[] | null;
   body?: string | null;
+  // Habit fields (present when isWindowHabit is true)
+  isWindowHabit?: boolean;
+  habitSummary?: HabitSummary;
 }
 
 export interface AgendaEntry extends Todo {
   agendaLine: string;
   completedAt?: string | null;
+}
+
+// Habit types
+export interface MiniGraphEntry {
+  date: string;
+  conformingRatio: number;
+  completed: boolean;
+  completionNeededToday?: boolean;
+}
+
+export interface HabitSummary {
+  conformingRatio: number;
+  completionNeededToday: boolean;
+  nextRequiredInterval: string;
+  completionsInWindow: number;
+  targetRepetitions: number;
+  miniGraph: MiniGraphEntry[];
+}
+
+export interface HabitConfig {
+  status: string;
+  enabled: boolean;
+  colors?: {
+    conforming: string;
+    notConforming: string;
+    requiredCompletionForeground: string;
+    nonRequiredCompletionForeground: string;
+    requiredCompletionTodayForeground: string;
+  };
+  display?: {
+    precedingIntervals: number;
+    followingDays: number;
+    completionNeededTodayGlyph: string;
+    completedGlyph: string;
+  };
+}
+
+export interface HabitStatusGraphEntry {
+  date: string;
+  assessmentStart: string;
+  assessmentEnd: string;
+  conformingRatioWithout: number;
+  conformingRatioWith: number;
+  completionCount: number;
+  status: "past" | "present" | "future";
+  completionExpectedToday: boolean;
+}
+
+export interface HabitStatus {
+  status: string;
+  id: string;
+  title: string;
+  habit: {
+    assessmentInterval: Record<string, number>;
+    rescheduleInterval: Record<string, number>;
+    rescheduleThreshold: number;
+    maxRepetitionsPerInterval: number;
+    startTime: string;
+    windowSpecs: Array<{
+      duration: Record<string, number>;
+      targetRepetitions: number;
+      conformingValue: number;
+    }>;
+  };
+  currentState: HabitSummary;
+  doneTimes: string[];
+  graph: HabitStatusGraphEntry[];
 }
 
 export interface NotificationDefaults {
