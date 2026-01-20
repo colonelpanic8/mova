@@ -1,14 +1,15 @@
 import { CategoryField, PriorityPicker, StatePicker } from "@/components/capture";
+import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { api, CategoryType, TemplatePrompt } from "@/services/api";
+import { api, CategoryType, Repeater, TemplatePrompt } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -475,6 +476,8 @@ export default function CaptureScreen() {
   const [optionalFields, setOptionalFields] = useState<{
     scheduled?: string;
     deadline?: string;
+    scheduledRepeater?: Repeater | null;
+    deadlineRepeater?: Repeater | null;
     priority?: string | null;
     tags?: string[];
     todo?: string;
@@ -543,14 +546,41 @@ export default function CaptureScreen() {
     selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;
 
   const handleTemplateSelect = (key: string) => {
-    // Close menu first, then update state after menu animation completes
-    // This fixes Android issue where menu won't reopen after selection
     setMenuVisible(false);
     setTimeout(() => {
       setSelection({ type: "template", key });
       AsyncStorage.setItem(LAST_TEMPLATE_KEY, key);
     }, 0);
   };
+
+  const handleCategoryTypeSelect = (categoryType: CategoryType) => {
+    setMenuVisible(false);
+    setTimeout(() => {
+      setSelection({ type: "category", categoryType });
+    }, 0);
+  };
+
+  const selectedDisplayName = useMemo(() => {
+    if (!selection) return "Select Template";
+    if (selection.type === "template" && templates) {
+      return templates[selection.key]?.name || "Select Template";
+    }
+    if (selection.type === "category") {
+      return selection.categoryType.name;
+    }
+    return "Select Template";
+  }, [selection, templates]);
+
+  const selectedPrompts: TemplatePrompt[] = useMemo(() => {
+    if (!selection) return [];
+    if (selection.type === "template" && templates) {
+      return templates[selection.key]?.prompts ?? [];
+    }
+    if (selection.type === "category") {
+      return selection.categoryType.prompts;
+    }
+    return [];
+  }, [selection, templates]);
 
   const handleValueChange = (promptName: string, value: string | string[]) => {
     setValues((prev) => ({ ...prev, [promptName]: value }));
@@ -582,11 +612,17 @@ export default function CaptureScreen() {
       }
 
       // Merge template values with optional fields
-      const captureValues: Record<string, string | string[]> = { ...values };
+      const captureValues: Record<string, string | string[] | Repeater> = {
+        ...values,
+      };
       if (optionalFields.scheduled)
         captureValues.scheduled = optionalFields.scheduled;
       if (optionalFields.deadline)
         captureValues.deadline = optionalFields.deadline;
+      if (optionalFields.scheduledRepeater)
+        captureValues.scheduledRepeater = optionalFields.scheduledRepeater;
+      if (optionalFields.deadlineRepeater)
+        captureValues.deadlineRepeater = optionalFields.deadlineRepeater;
       if (optionalFields.priority)
         captureValues.priority = optionalFields.priority;
       if (optionalFields.tags?.length) captureValues.tags = optionalFields.tags;
@@ -643,11 +679,11 @@ export default function CaptureScreen() {
               contentStyle={styles.templateButtonContent}
               testID="templateSelector"
             >
-              {selectedTemplate?.name || "Select Template"}
+              {selectedDisplayName}
             </Button>
           }
         >
-          {templateKeys.length === 0 && (
+          {templateKeys.length === 0 && (!categoryTypes || categoryTypes.length === 0) && (
             <Menu.Item title="No templates available" disabled />
           )}
           {templateKeys.map((key) => (
@@ -655,10 +691,33 @@ export default function CaptureScreen() {
               key={key}
               onPress={() => handleTemplateSelect(key)}
               title={templates![key].name}
-              leadingIcon={key === selectedTemplateKey ? "check" : undefined}
+              leadingIcon={
+                selection?.type === "template" && selection.key === key
+                  ? "check"
+                  : undefined
+              }
               testID={`menuItem-${key}`}
             />
           ))}
+          {categoryTypes && categoryTypes.length > 0 && (
+            <>
+              <Divider />
+              {categoryTypes.map((ct) => (
+                <Menu.Item
+                  key={`category-${ct.name}`}
+                  onPress={() => handleCategoryTypeSelect(ct)}
+                  title={ct.name}
+                  leadingIcon={
+                    selection?.type === "category" &&
+                    selection.categoryType.name === ct.name
+                      ? "check"
+                      : "folder"
+                  }
+                  testID={`menuItem-category-${ct.name}`}
+                />
+              ))}
+            </>
+          )}
         </Menu>
         <IconButton
           icon="refresh"
@@ -706,12 +765,24 @@ export default function CaptureScreen() {
           includeTime={quickScheduleIncludeTime}
         />
 
+        <RepeaterPicker
+          value={optionalFields.scheduledRepeater || null}
+          onChange={(v) => handleOptionalFieldChange("scheduledRepeater", v)}
+          label="Schedule Repeater"
+        />
+
         <DateFieldWithQuickActions
           label="Deadline"
           value={optionalFields.deadline || ""}
           onChange={(v) => handleOptionalFieldChange("deadline", v)}
           colorKey="deadline"
           includeTime={quickScheduleIncludeTime}
+        />
+
+        <RepeaterPicker
+          value={optionalFields.deadlineRepeater || null}
+          onChange={(v) => handleOptionalFieldChange("deadlineRepeater", v)}
+          label="Deadline Repeater"
         />
 
         <PromptField
