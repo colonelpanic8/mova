@@ -19,7 +19,8 @@ function formatRepeater(repeater: Repeater): string {
 }
 
 export interface TodoItemProps {
-  todo: Todo;
+  todo: Todo & { completedAt?: string | null };
+  opacity?: number;
 }
 
 function formatDate(dateString: string): string {
@@ -39,11 +40,19 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+function formatCompletedAt(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function getTodoKey(todo: Todo): string {
   return todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
 }
 
-export function TodoItem({ todo }: TodoItemProps) {
+export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
   const theme = useTheme();
   const { getTodoStateColor, getActionColor, getPriorityColor } =
     useColorPalette();
@@ -194,7 +203,7 @@ export function TodoItem({ todo }: TodoItemProps) {
             {
               borderBottomColor: theme.colors.outlineVariant,
               backgroundColor: theme.colors.background,
-              opacity: isUpdating ? 0.6 : 1,
+              opacity: isUpdating ? 0.6 : opacity,
             },
           ]}
         >
@@ -251,7 +260,7 @@ export function TodoItem({ todo }: TodoItemProps) {
               {todo.title}
             </Text>
           </View>
-          {(todo.scheduled || todo.deadline || (todo.tags && todo.tags.length > 0)) && (
+          {(todo.scheduled || todo.deadline || todo.completedAt || (todo.tags && todo.tags.length > 0)) && (
             <View style={styles.metaRow}>
               <View style={styles.metaLeft}>
                 {todo.scheduled && (
@@ -300,6 +309,13 @@ export function TodoItem({ todo }: TodoItemProps) {
                         </Text>
                       </View>
                     )}
+                  </View>
+                )}
+                {todo.completedAt && (
+                  <View style={styles.metaItem}>
+                    <Text style={[styles.metaText, { color: theme.colors.outline }]}>
+                      Completed at {formatCompletedAt(todo.completedAt)}
+                    </Text>
                   </View>
                 )}
               </View>
