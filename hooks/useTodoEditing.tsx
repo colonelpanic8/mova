@@ -49,9 +49,12 @@ function formatLocalDateTime(date: Date): string {
 type EditModalType =
   | "schedule"
   | "deadline"
+  | "scheduleTime"
+  | "deadlineTime"
   | "priority"
   | "state"
   | "remind"
+  | "quickScheduleTime"
   | null;
 
 export interface UseTodoEditingOptions {
@@ -101,6 +104,7 @@ export function useTodoEditing(
     "date",
   );
   const [remindDateTime, setRemindDateTime] = useState<Date>(new Date());
+  const [quickScheduleDate, setQuickScheduleDate] = useState<Date>(new Date());
 
   // Loading states
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
@@ -225,16 +229,10 @@ export function useTodoEditing(
     swipeableRefs.current.get(key)?.openRight();
   }, []);
 
-  const scheduleToday = useCallback(
-    async (todo: Todo) => {
+  const applyQuickSchedule = useCallback(
+    async (todo: Todo, dateString: string) => {
       const key = getTodoKey(todo);
-      swipeableRefs.current.get(key)?.close();
       setUpdatingIds((prev) => new Set(prev).add(key));
-
-      const today = new Date();
-      const dateString = quickScheduleIncludeTime
-        ? formatLocalDateTime(today)
-        : formatLocalDate(today);
 
       try {
         const result = await api.updateTodo(todo, { scheduled: dateString });
@@ -242,7 +240,7 @@ export function useTodoEditing(
         if (result.status === "updated") {
           setSnackbar({
             visible: true,
-            message: `Scheduled for today: ${todo.title}`,
+            message: `Scheduled: ${todo.title}`,
             isError: false,
           });
           onTodoUpdated?.(todo, { scheduled: dateString });
@@ -269,55 +267,47 @@ export function useTodoEditing(
         });
       }
     },
-    [onTodoUpdated, triggerRefresh, quickScheduleIncludeTime],
+    [onTodoUpdated, triggerRefresh],
+  );
+
+  const scheduleToday = useCallback(
+    (todo: Todo) => {
+      const key = getTodoKey(todo);
+      swipeableRefs.current.get(key)?.close();
+
+      const today = new Date();
+      if (quickScheduleIncludeTime) {
+        // Round to next 15-minute interval
+        const minutes = Math.ceil(today.getMinutes() / 15) * 15;
+        today.setMinutes(minutes, 0, 0);
+        setQuickScheduleDate(today);
+        setEditingTodo(todo);
+        setEditModalType("quickScheduleTime");
+      } else {
+        applyQuickSchedule(todo, formatLocalDate(today));
+      }
+    },
+    [quickScheduleIncludeTime, applyQuickSchedule],
   );
 
   const scheduleTomorrow = useCallback(
-    async (todo: Todo) => {
+    (todo: Todo) => {
       const key = getTodoKey(todo);
       swipeableRefs.current.get(key)?.close();
-      setUpdatingIds((prev) => new Set(prev).add(key));
 
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateString = quickScheduleIncludeTime
-        ? formatLocalDateTime(tomorrow)
-        : formatLocalDate(tomorrow);
-
-      try {
-        const result = await api.updateTodo(todo, { scheduled: dateString });
-
-        if (result.status === "updated") {
-          setSnackbar({
-            visible: true,
-            message: `Scheduled for tomorrow: ${todo.title}`,
-            isError: false,
-          });
-          onTodoUpdated?.(todo, { scheduled: dateString });
-          triggerRefresh();
-        } else {
-          setSnackbar({
-            visible: true,
-            message: result.message || "Failed to schedule",
-            isError: true,
-          });
-        }
-      } catch (err) {
-        console.error("Failed to schedule todo:", err);
-        setSnackbar({
-          visible: true,
-          message: "Failed to schedule todo",
-          isError: true,
-        });
-      } finally {
-        setUpdatingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
+      if (quickScheduleIncludeTime) {
+        // Default to 9 AM for tomorrow
+        tomorrow.setHours(9, 0, 0, 0);
+        setQuickScheduleDate(tomorrow);
+        setEditingTodo(todo);
+        setEditModalType("quickScheduleTime");
+      } else {
+        applyQuickSchedule(todo, formatLocalDate(tomorrow));
       }
     },
-    [onTodoUpdated, triggerRefresh, quickScheduleIncludeTime],
+    [quickScheduleIncludeTime, applyQuickSchedule],
   );
 
   const handleUpdateTodo = useCallback(
@@ -505,14 +495,56 @@ export function useTodoEditing(
         date &&
         (editModalType === "schedule" || editModalType === "deadline")
       ) {
-        const dateString = formatLocalDate(date);
-        // API expects "scheduled" not "schedule"
-        const fieldName =
-          editModalType === "schedule" ? "scheduled" : editModalType;
+        if (quickScheduleIncludeTime) {
+          // Save date and show time picker
+          setSelectedDate(date);
+          setEditModalType(editModalType === "schedule" ? "scheduleTime" : "deadlineTime");
+        } else {
+          const dateString = formatLocalDate(date);
+          // API expects "scheduled" not "schedule"
+          const fieldName =
+            editModalType === "schedule" ? "scheduled" : editModalType;
+          handleUpdateTodo({ [fieldName]: dateString });
+        }
+      }
+    },
+    [editModalType, handleUpdateTodo, closeEditModal, quickScheduleIncludeTime],
+  );
+
+  // Handle schedule/deadline time picker result
+  const handleScheduleDeadlineTimeChange = useCallback(
+    (event: any, date?: Date) => {
+      if (event.type === "dismissed") {
+        closeEditModal();
+        return;
+      }
+      if (date) {
+        const combined = new Date(selectedDate);
+        combined.setHours(date.getHours(), date.getMinutes(), 0, 0);
+        const dateString = formatLocalDateTime(combined);
+        const fieldName = editModalType === "scheduleTime" ? "scheduled" : "deadline";
         handleUpdateTodo({ [fieldName]: dateString });
       }
     },
-    [editModalType, handleUpdateTodo, closeEditModal],
+    [selectedDate, editModalType, handleUpdateTodo, closeEditModal],
+  );
+
+  // Handle quick schedule time picker result
+  const handleQuickScheduleTimeChange = useCallback(
+    (event: any, date?: Date) => {
+      if (event.type === "dismissed") {
+        closeEditModal();
+        return;
+      }
+      if (date && editingTodo) {
+        const combined = new Date(quickScheduleDate);
+        combined.setHours(date.getHours(), date.getMinutes(), 0, 0);
+        const dateString = formatLocalDateTime(combined);
+        closeEditModal();
+        applyQuickSchedule(editingTodo, dateString);
+      }
+    },
+    [quickScheduleDate, editingTodo, closeEditModal, applyQuickSchedule],
   );
 
   const EditModals = useCallback(() => {
@@ -535,6 +567,26 @@ export function useTodoEditing(
           />
         )}
 
+        {/* Quick Schedule Time Picker (Today/Tomorrow with time) */}
+        {editModalType === "quickScheduleTime" && Platform.OS !== "web" && (
+          <DateTimePicker
+            value={quickScheduleDate}
+            mode="time"
+            display="default"
+            onChange={handleQuickScheduleTimeChange}
+          />
+        )}
+
+        {/* Schedule/Deadline Time Picker (after date selection) */}
+        {(editModalType === "scheduleTime" || editModalType === "deadlineTime") && Platform.OS !== "web" && (
+          <DateTimePicker
+            value={selectedDate}
+            mode="time"
+            display="default"
+            onChange={handleScheduleDeadlineTimeChange}
+          />
+        )}
+
         <Portal>
           {/* Web Date Picker - hidden input that auto-opens picker */}
           {Platform.OS === "web" && isDateModal && (
@@ -544,14 +596,24 @@ export function useTodoEditing(
               onChange={(e) => {
                 const parsed = new Date(e.target.value + "T00:00:00");
                 if (!isNaN(parsed.getTime())) {
-                  // Auto-save on selection
-                  const dateString = formatLocalDate(parsed);
-                  const fieldName =
-                    editModalType === "schedule" ? "scheduled" : "deadline";
-                  handleUpdateTodo({ [fieldName]: dateString });
+                  if (quickScheduleIncludeTime) {
+                    // Save date and show time picker
+                    setSelectedDate(parsed);
+                    setEditModalType(editModalType === "schedule" ? "scheduleTime" : "deadlineTime");
+                  } else {
+                    // Auto-save on selection
+                    const dateString = formatLocalDate(parsed);
+                    const fieldName =
+                      editModalType === "schedule" ? "scheduled" : "deadline";
+                    handleUpdateTodo({ [fieldName]: dateString });
+                  }
                 }
               }}
-              onBlur={closeEditModal}
+              onBlur={() => {
+                if (!quickScheduleIncludeTime) {
+                  closeEditModal();
+                }
+              }}
               ref={(el) => {
                 // Auto-open the picker when mounted
                 if (el) {
@@ -559,6 +621,72 @@ export function useTodoEditing(
                     el.showPicker();
                   } catch {
                     // Fallback: just focus if showPicker not supported
+                    el.focus();
+                  }
+                }
+              }}
+              style={{
+                position: "absolute",
+                opacity: 0,
+                pointerEvents: "none",
+              }}
+            />
+          )}
+
+          {/* Web Schedule/Deadline Time Picker */}
+          {Platform.OS === "web" && (editModalType === "scheduleTime" || editModalType === "deadlineTime") && (
+            <input
+              type="time"
+              value={`${String(selectedDate.getHours()).padStart(2, "0")}:${String(selectedDate.getMinutes()).padStart(2, "0")}`}
+              onChange={(e) => {
+                if (e.target.value) {
+                  const [hours, minutes] = e.target.value.split(":").map(Number);
+                  const combined = new Date(selectedDate);
+                  combined.setHours(hours, minutes, 0, 0);
+                  const dateString = formatLocalDateTime(combined);
+                  const fieldName = editModalType === "scheduleTime" ? "scheduled" : "deadline";
+                  handleUpdateTodo({ [fieldName]: dateString });
+                }
+              }}
+              onBlur={closeEditModal}
+              ref={(el) => {
+                if (el) {
+                  try {
+                    el.showPicker();
+                  } catch {
+                    el.focus();
+                  }
+                }
+              }}
+              style={{
+                position: "absolute",
+                opacity: 0,
+                pointerEvents: "none",
+              }}
+            />
+          )}
+
+          {/* Web Quick Schedule Time Picker */}
+          {Platform.OS === "web" && editModalType === "quickScheduleTime" && (
+            <input
+              type="time"
+              value={`${String(quickScheduleDate.getHours()).padStart(2, "0")}:${String(quickScheduleDate.getMinutes()).padStart(2, "0")}`}
+              onChange={(e) => {
+                if (e.target.value && editingTodo) {
+                  const [hours, minutes] = e.target.value.split(":").map(Number);
+                  const combined = new Date(quickScheduleDate);
+                  combined.setHours(hours, minutes, 0, 0);
+                  const dateString = formatLocalDateTime(combined);
+                  closeEditModal();
+                  applyQuickSchedule(editingTodo, dateString);
+                }
+              }}
+              onBlur={closeEditModal}
+              ref={(el) => {
+                if (el) {
+                  try {
+                    el.showPicker();
+                  } catch {
                     el.focus();
                   }
                 }
@@ -767,16 +895,21 @@ export function useTodoEditing(
     selectedState,
     remindDateTime,
     remindPickerMode,
+    quickScheduleDate,
+    quickScheduleIncludeTime,
     todoStates,
     snackbar,
     theme,
     closeEditModal,
     handleDatePickerChange,
+    handleScheduleDeadlineTimeChange,
+    handleQuickScheduleTimeChange,
     handleRemindDateChange,
     handleSavePriority,
     handleScheduleReminder,
     handleStateChange,
     handleUpdateTodo,
+    applyQuickSchedule,
     dismissSnackbar,
   ]);
 

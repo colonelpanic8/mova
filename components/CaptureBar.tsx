@@ -1,8 +1,8 @@
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Keyboard, StyleSheet, View } from "react-native";
 import {
@@ -18,6 +18,8 @@ const LAST_TEMPLATE_KEY = "mova_last_template";
 
 export function CaptureBar() {
   const { templates } = useTemplates();
+  const { quickScheduleIncludeTime, setQuickScheduleIncludeTime } =
+    useSettings();
   const [selectedTemplateKey, setSelectedTemplateKey] =
     useState<string>("default");
   const [title, setTitle] = useState("");
@@ -29,7 +31,6 @@ export function CaptureBar() {
   } | null>(null);
   const { isAuthenticated } = useAuth();
   const theme = useTheme();
-  const router = useRouter();
 
   // Load last used template when templates become available
   useEffect(() => {
@@ -189,10 +190,15 @@ export function CaptureBar() {
         />
 
         <IconButton
-          icon="arrow-expand"
+          icon={quickScheduleIncludeTime ? "clock" : "clock-outline"}
           size={20}
-          onPress={() => router.push("/capture")}
-          style={styles.expandButton}
+          onPress={() => setQuickScheduleIncludeTime(!quickScheduleIncludeTime)}
+          style={[
+            styles.timeToggleButton,
+            quickScheduleIncludeTime && {
+              backgroundColor: theme.colors.primaryContainer,
+            },
+          ]}
         />
       </View>
 
@@ -241,8 +247,9 @@ const styles = StyleSheet.create({
   sendButton: {
     margin: 0,
   },
-  expandButton: {
+  timeToggleButton: {
     margin: 0,
+    borderRadius: 20,
   },
   snackbar: {
     marginBottom: 60,
