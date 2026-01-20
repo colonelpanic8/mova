@@ -61,6 +61,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
   const {
     completingIds,
     updatingIds,
+    deletingIds,
     swipeableRefs,
     handleTodoPress,
     scheduleToday,
@@ -75,6 +76,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
   const key = getTodoKey(todo);
   const isCompleting = completingIds.has(key);
   const isUpdating = updatingIds.has(key);
+  const isDeleting = deletingIds.has(key);
 
   // Register ref with the context's ref map
   useEffect(() => {
@@ -195,7 +197,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
             {
               borderBottomColor: theme.colors.outlineVariant,
               backgroundColor: theme.colors.background,
-              opacity: isUpdating ? 0.6 : opacity,
+              opacity: isUpdating || isDeleting ? 0.6 : opacity,
             },
           ]}
         >
