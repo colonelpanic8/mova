@@ -57,6 +57,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="body-editor" options={{ headerShown: false }} />
     </Stack>
   );
 }
