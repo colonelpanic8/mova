@@ -30,6 +30,7 @@ export interface Todo {
 
 export interface AgendaEntry extends Todo {
   agendaLine: string;
+  completedAt?: string | null;
 }
 
 export interface NotificationDefaults {
@@ -227,6 +228,7 @@ class OrgAgendaApi {
     span: "day" | "week" = "day",
     date?: string,
     includeOverdue?: boolean,
+    includeCompleted?: boolean,
   ): Promise<AgendaResponse> {
     const params = new URLSearchParams({ span });
     if (date) {
@@ -234,6 +236,9 @@ class OrgAgendaApi {
     }
     if (includeOverdue !== undefined) {
       params.append("include_overdue", includeOverdue ? "true" : "false");
+    }
+    if (includeCompleted) {
+      params.append("include_completed", "true");
     }
     return this.request<AgendaResponse>(`/agenda?${params.toString()}`);
   }

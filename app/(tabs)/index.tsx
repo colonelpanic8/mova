@@ -11,10 +11,10 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  FlatList,
   Platform,
   RefreshControl,
   ScrollView,
+  SectionList,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -44,6 +44,14 @@ function formatDateForDisplay(dateString: string): string {
   });
 }
 
+function isPastDay(date: Date): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const compareDate = new Date(date);
+  compareDate.setHours(0, 0, 0, 0);
+  return compareDate < today;
+}
+
 export default function AgendaScreen() {
   const [agenda, setAgenda] = useState<AgendaResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,14 +60,17 @@ export default function AgendaScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
+  const [showCompleted, setShowCompleted] = useState<boolean>(() => isPastDay(new Date()));
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
   const isInitialMount = useRef(true);
 
-  // Apply filters to agenda entries
+  // Apply filters to agenda entries and split into active/completed
   const filteredEntries = agenda ? filterTodos(agenda.entries, filters) : [];
+  const activeEntries = filteredEntries.filter((entry) => !entry.completedAt);
+  const completedEntries = filteredEntries.filter((entry) => entry.completedAt);
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
@@ -97,7 +108,7 @@ export default function AgendaScreen() {
   );
 
   const fetchAgenda = useCallback(
-    async (date: Date) => {
+    async (date: Date, includeCompleted: boolean) => {
       if (!apiUrl || !username || !password) {
         return;
       }
@@ -108,7 +119,7 @@ export default function AgendaScreen() {
         const todayString = formatDateForApi(new Date());
         const includeOverdue = dateString <= todayString;
         const [agendaData, statesData] = await Promise.all([
-          api.getAgenda("day", dateString, includeOverdue),
+          api.getAgenda("day", dateString, includeOverdue, includeCompleted),
           api.getTodoStates().catch(() => null),
         ]);
         setAgenda(agendaData);
@@ -124,9 +135,14 @@ export default function AgendaScreen() {
     [apiUrl, username, password],
   );
 
+  // Reset showCompleted when date changes
   useEffect(() => {
-    fetchAgenda(selectedDate).finally(() => setLoading(false));
-  }, [fetchAgenda, selectedDate]);
+    setShowCompleted(isPastDay(selectedDate));
+  }, [selectedDate]);
+
+  useEffect(() => {
+    fetchAgenda(selectedDate, showCompleted).finally(() => setLoading(false));
+  }, [fetchAgenda, selectedDate, showCompleted]);
 
   // Refetch when mutations happen elsewhere
   useEffect(() => {
@@ -134,7 +150,7 @@ export default function AgendaScreen() {
       isInitialMount.current = false;
       return;
     }
-    fetchAgenda(selectedDate);
+    fetchAgenda(selectedDate, showCompleted);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutationVersion]);
 
@@ -166,9 +182,9 @@ export default function AgendaScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchAgenda(selectedDate);
+    await fetchAgenda(selectedDate, showCompleted);
     setRefreshing(false);
-  }, [fetchAgenda, selectedDate]);
+  }, [fetchAgenda, selectedDate, showCompleted]);
 
   if (loading) {
     return (
@@ -243,6 +259,11 @@ export default function AgendaScreen() {
               testID="agendaNextDay"
             />
             <IconButton
+              icon={showCompleted ? "check-circle" : "check-circle-outline"}
+              onPress={() => setShowCompleted(!showCompleted)}
+              testID="agendaShowCompletedToggle"
+            />
+            <IconButton
               icon="refresh"
               onPress={onRefresh}
               disabled={refreshing}
@@ -279,14 +300,36 @@ export default function AgendaScreen() {
             </Text>
           </View>
         ) : (
-          <FlatList
+          <SectionList
             testID="agendaList"
-            data={filteredEntries}
+            sections={[
+              ...(activeEntries.length > 0
+                ? [{ key: "active", data: activeEntries }]
+                : []),
+              ...(completedEntries.length > 0
+                ? [{ key: "completed", title: "Completed", data: completedEntries }]
+                : []),
+            ]}
             keyExtractor={(item) => getTodoKey(item)}
-            renderItem={({ item }) => <TodoItem todo={item} />}
+            renderItem={({ item, section }) => (
+              <TodoItem
+                todo={item}
+                opacity={section.key === "completed" ? 0.6 : 1}
+              />
+            )}
+            renderSectionHeader={({ section }) =>
+              section.title ? (
+                <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background }]}>
+                  <Text variant="labelMedium" style={{ color: theme.colors.outline }}>
+                    {section.title}
+                  </Text>
+                </View>
+              ) : null
+            }
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
+            stickySectionHeadersEnabled={false}
           />
         )}
       </View>
@@ -325,5 +368,11 @@ const styles = StyleSheet.create({
   todayButton: {
     alignItems: "center",
     paddingVertical: 8,
+  },
+  sectionHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#e0e0e0",
   },
 });
