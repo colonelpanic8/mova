@@ -27,7 +27,7 @@ describe("OrgAgendaApi", () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockResponse),
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
       const result = await api.getAllTodos();
@@ -60,7 +60,7 @@ describe("OrgAgendaApi", () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockResponse),
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
       const result = await api.capture("default", { Title: "New Todo" });
@@ -100,7 +100,7 @@ describe("OrgAgendaApi", () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockResponse),
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
       const result = await api.completeTodo(todo);
@@ -127,7 +127,7 @@ describe("OrgAgendaApi", () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockResponse),
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
       const result = await api.getAgenda("day");
@@ -144,7 +144,7 @@ describe("OrgAgendaApi", () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockResponse),
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
       await api.getAgenda("week");
@@ -182,7 +182,7 @@ describe("OrgAgendaApi", () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockResponse),
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
       const result = await api.updateTodo(todo, updates);
