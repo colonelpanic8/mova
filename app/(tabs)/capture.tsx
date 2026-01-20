@@ -526,7 +526,7 @@ export default function CaptureScreen() {
       <Divider />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.formContainer}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
