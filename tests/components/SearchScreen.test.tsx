@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
+import { FilterProvider } from "../../context/FilterContext";
 
 // Mock the modules before importing the component
 jest.mock("../../services/api");
@@ -51,6 +52,22 @@ jest.mock("../../context/MutationContext", () => ({
   useMutation: () => ({
     mutationVersion: 0,
     triggerRefresh: jest.fn(),
+  }),
+}));
+jest.mock("../../context/TemplatesContext", () => ({
+  useTemplates: () => ({
+    templates: null,
+    filterOptions: {
+      tags: ["work", "home"],
+      todoStates: ["TODO", "NEXT", "DONE"],
+      priorities: ["A", "B", "C"],
+      categories: ["inbox", "projects"],
+    },
+    todoStates: { active: ["TODO", "NEXT"], done: ["DONE"] },
+    customViews: null,
+    isLoading: false,
+    error: null,
+    reloadTemplates: jest.fn(),
   }),
 }));
 
@@ -425,7 +442,9 @@ import SearchScreen from "../../app/(tabs)/search";
 const renderScreen = (component: React.ReactElement) => {
   return render(
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={MD3LightTheme}>{component}</PaperProvider>
+      <PaperProvider theme={MD3LightTheme}>
+        <FilterProvider>{component}</FilterProvider>
+      </PaperProvider>
     </GestureHandlerRootView>,
   );
 };
