@@ -2,6 +2,7 @@ import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Repeater, Todo } from "@/services/api";
 import { PriorityLevel } from "@/types/colors";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
 import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
@@ -53,6 +54,7 @@ export function getTodoKey(todo: Todo): string {
 }
 
 export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
+  const router = useRouter();
   const theme = useTheme();
   const { getTodoStateColor, getActionColor, getPriorityColor } =
     useColorPalette();
@@ -91,10 +93,14 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
     handleTodoPress(todo);
   }, [handleTodoPress, todo]);
 
-  const handleBodyPress = useCallback(() => {
-    // Open this swipeable (closes any others)
-    openSwipeable(key);
-  }, [openSwipeable, key]);
+  const handlePress = useCallback(() => {
+    router.push({
+      pathname: "/edit",
+      params: {
+        todo: JSON.stringify(todo),
+      },
+    });
+  }, [router, todo]);
 
   // Close all other swipeables when this one starts to open (from swiping)
   const handleSwipeableWillOpen = useCallback(() => {
@@ -196,7 +202,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
       overshootRight={false}
       onSwipeableWillOpen={handleSwipeableWillOpen}
     >
-      <Pressable onPress={handleBodyPress}>
+      <Pressable onPress={handlePress}>
         <View
           style={[
             styles.todoItem,
