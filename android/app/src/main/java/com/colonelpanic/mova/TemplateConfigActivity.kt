@@ -1,4 +1,4 @@
-package com.anonymous.mova
+package com.colonelpanic.mova
 
 import android.appwidget.AppWidgetManager
 import android.content.Intent
@@ -143,7 +143,7 @@ class TemplateConfigActivity : AppCompatActivity() {
         val updateIntent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
             component = android.content.ComponentName(this@TemplateConfigActivity,
-                com.anonymous.mova.widget.QuickCaptureWidget::class.java)
+                com.colonelpanic.mova.widget.QuickCaptureWidget::class.java)
         }
         sendBroadcast(updateIntent)
 

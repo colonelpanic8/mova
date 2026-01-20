@@ -27,14 +27,14 @@ export default {
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.anonymous.mova",
+      bundleIdentifier: "com.colonelpanic.mova",
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/mova.png",
         backgroundColor: "#c9a227",
       },
-      package: "com.anonymous.mova",
+      package: "com.colonelpanic.mova",
       intentFilters: [
         {
           action: "VIEW",

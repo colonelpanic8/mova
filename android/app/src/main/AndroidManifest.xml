@@ -67,7 +67,7 @@
     <receiver android:name=".widget.QuickCaptureWidget" android:exported="true" android:label="Mova Quick Capture">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-        <action android:name="com.anonymous.mova.WIDGET_CLICK"/>
+        <action android:name="com.colonelpanic.mova.WIDGET_CLICK"/>
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_quickcapturewidget"/>
     </receiver>

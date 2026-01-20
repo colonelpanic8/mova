@@ -1,4 +1,4 @@
-package com.anonymous.mova.widget;
+package com.colonelpanic.mova.widget;
 
 import com.reactnativeandroidwidget.RNWidgetProvider;
 

@@ -1,4 +1,4 @@
-package com.anonymous.mova
+package com.colonelpanic.mova
 
 import android.app.Application
 import android.content.res.Configuration

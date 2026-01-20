@@ -1,4 +1,4 @@
-package com.anonymous.mova
+package com.colonelpanic.mova
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
