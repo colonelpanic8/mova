@@ -68,6 +68,13 @@ class QuickCaptureActivity : AppCompatActivity() {
             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
         )
 
+        // Handle text from App Actions (Google Assistant)
+        val assistantText = intent?.getStringExtra("text")
+        if (!assistantText.isNullOrBlank()) {
+            editText.setText(assistantText)
+            editText.setSelection(assistantText.length)
+        }
+
         submitButton.setOnClickListener {
             val text = editText.text.toString().trim()
             if (text.isNotEmpty()) {
