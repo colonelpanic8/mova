@@ -22,7 +22,8 @@ import {
 
 export default function SettingsScreen() {
   const { apiUrl, username, password, logout } = useAuth();
-  const { quickScheduleIncludeTime, setQuickScheduleIncludeTime } = useSettings();
+  const { quickScheduleIncludeTime, setQuickScheduleIncludeTime } =
+    useSettings();
   const theme = useTheme();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
@@ -119,10 +120,7 @@ export default function SettingsScreen() {
           left={(props) => <List.Icon {...props} icon="lock" />}
           right={(props) => (
             <Pressable onPress={() => setShowPassword(!showPassword)}>
-              <List.Icon
-                {...props}
-                icon={showPassword ? "eye-off" : "eye"}
-              />
+              <List.Icon {...props} icon={showPassword ? "eye-off" : "eye"} />
             </Pressable>
           )}
         />

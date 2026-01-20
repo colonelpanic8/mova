@@ -9,11 +9,11 @@
         "nixpkgs-stable": "nixpkgs-stable"
       },
       "locked": {
-        "lastModified": 1768873474,
-        "narHash": "sha256-ZHDhd3pUzBsn154m+iZeRMeBHu9vl6zcv2lP1c3d9AA=",
+        "lastModified": 1768900749,
+        "narHash": "sha256-RBrsBq1Fgc/LJIIlJkncUyg6yYCuw9IGs4Tkkw3FS5U=",
         "owner": "nix-community",
         "repo": "emacs-overlay",
-        "rev": "8160e7b3e25ac9dc167ec8db35f27f328b03b5e4",
+        "rev": "69d6a64a61da885405881a448061269d100d34eb",
         "type": "github"
       },
       "original": {
@@ -120,11 +120,11 @@
     "mova": {
       "flake": false,
       "locked": {
-        "lastModified": 1768889073,
-        "narHash": "sha256-12IMM2BGvZbz9gJmT2gZ1dBcRXlva7IFPtpIn2vKWyU=",
+        "lastModified": 1768914368,
+        "narHash": "sha256-Uv+vmtiUC+8IEDjcO0r5Bw4ZUomyP4a7U6Ulc/YRxp8=",
         "ref": "refs/heads/master",
-        "rev": "9dc23dba87e861dcb25b678632a4c3a06ef74a76",
-        "revCount": 180,
+        "rev": "86f0e6ccab9eca36c9319e4d19a13d4517a85ebd",
+        "revCount": 228,
         "type": "git",
         "url": "ssh://git@github.com/colonelpanic8/mova"
       },
@@ -237,19 +237,36 @@
         "flake-utils": "flake-utils_3",
         "git-sync-rs": "git-sync-rs",
         "mova": "mova",
-        "nixpkgs": "nixpkgs_4"
+        "nixpkgs": "nixpkgs_4",
+        "org-window-habit": "org-window-habit"
       },
       "locked": {
-        "lastModified": 1768889629,
-        "narHash": "sha256-JvTstv2yd2DLLXZMs2K+OJx1JiBdOLdeqdHMOA9O2G4=",
+        "lastModified": 1768915588,
+        "narHash": "sha256-6QnbonkMXYdxdJeKKw/DWgslQiHnhVjbwfGT617cSxI=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "135f3c47f6663da73f34ee5f36af2cbdae2f4a5d",
+        "rev": "591198d2073e88e5f209bf4fb97fd246f4a75eba",
         "type": "github"
       },
       "original": {
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
+        "type": "github"
+      }
+    },
+    "org-window-habit": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1768912024,
+        "narHash": "sha256-n7BGUiSGCaferK6xJtkxki6C4/pbokitfddb3STYuio=",
+        "owner": "colonelpanic8",
+        "repo": "org-window-habit",
+        "rev": "b36ba47d8fe5a8f0a40ea0eb06f7fd4397563768",
+        "type": "github"
+      },
+      "original": {
+        "owner": "colonelpanic8",
+        "repo": "org-window-habit",
         "type": "github"
       }
     },

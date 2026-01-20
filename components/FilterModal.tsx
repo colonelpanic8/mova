@@ -26,7 +26,14 @@ interface FilterOptionProps {
   testID?: string;
 }
 
-function FilterOption({ label, selected, excluded, onPress, onLongPress, testID }: FilterOptionProps) {
+function FilterOption({
+  label,
+  selected,
+  excluded,
+  onPress,
+  onLongPress,
+  testID,
+}: FilterOptionProps) {
   const theme = useTheme();
 
   let backgroundColor = "transparent";
@@ -48,10 +55,7 @@ function FilterOption({ label, selected, excluded, onPress, onLongPress, testID 
   return (
     <TouchableOpacity
       testID={testID}
-      style={[
-        styles.option,
-        { backgroundColor, borderColor },
-      ]}
+      style={[styles.option, { backgroundColor, borderColor }]}
       onPress={onPress}
       onLongPress={onLongPress}
     >
@@ -71,12 +75,13 @@ function Section({ title, children }: SectionProps) {
   const theme = useTheme();
   return (
     <View style={styles.section}>
-      <Text variant="labelLarge" style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>
+      <Text
+        variant="labelLarge"
+        style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}
+      >
         {title}
       </Text>
-      <View style={styles.optionsGrid}>
-        {children}
-      </View>
+      <View style={styles.optionsGrid}>{children}</View>
     </View>
   );
 }
@@ -97,58 +102,76 @@ export function FilterModal({ visible, onDismiss }: FilterModalProps) {
     removeCategoryFilter,
   } = useFilters();
 
-  const handleTagPress = useCallback((tag: string) => {
-    if (filters.tags.include.includes(tag)) {
-      removeTagFilter(tag);
-    } else if (filters.tags.exclude.includes(tag)) {
-      removeTagFilter(tag);
-    } else {
-      addTagFilter(tag, false);
-    }
-  }, [filters.tags, addTagFilter, removeTagFilter]);
+  const handleTagPress = useCallback(
+    (tag: string) => {
+      if (filters.tags.include.includes(tag)) {
+        removeTagFilter(tag);
+      } else if (filters.tags.exclude.includes(tag)) {
+        removeTagFilter(tag);
+      } else {
+        addTagFilter(tag, false);
+      }
+    },
+    [filters.tags, addTagFilter, removeTagFilter],
+  );
 
-  const handleTagLongPress = useCallback((tag: string) => {
-    if (filters.tags.exclude.includes(tag)) {
-      removeTagFilter(tag);
-    } else {
-      addTagFilter(tag, true);
-    }
-  }, [filters.tags.exclude, addTagFilter, removeTagFilter]);
+  const handleTagLongPress = useCallback(
+    (tag: string) => {
+      if (filters.tags.exclude.includes(tag)) {
+        removeTagFilter(tag);
+      } else {
+        addTagFilter(tag, true);
+      }
+    },
+    [filters.tags.exclude, addTagFilter, removeTagFilter],
+  );
 
-  const handleStatePress = useCallback((state: string) => {
-    if (filters.states.includes(state)) {
-      removeStateFilter(state);
-    } else {
-      addStateFilter(state);
-    }
-  }, [filters.states, addStateFilter, removeStateFilter]);
+  const handleStatePress = useCallback(
+    (state: string) => {
+      if (filters.states.includes(state)) {
+        removeStateFilter(state);
+      } else {
+        addStateFilter(state);
+      }
+    },
+    [filters.states, addStateFilter, removeStateFilter],
+  );
 
-  const handlePriorityPress = useCallback((priority: string) => {
-    if (filters.priorities.includes(priority)) {
-      removePriorityFilter(priority);
-    } else {
-      addPriorityFilter(priority);
-    }
-  }, [filters.priorities, addPriorityFilter, removePriorityFilter]);
+  const handlePriorityPress = useCallback(
+    (priority: string) => {
+      if (filters.priorities.includes(priority)) {
+        removePriorityFilter(priority);
+      } else {
+        addPriorityFilter(priority);
+      }
+    },
+    [filters.priorities, addPriorityFilter, removePriorityFilter],
+  );
 
-  const handleDateRangePress = useCallback((range: DateRange) => {
-    const currentRange = filters.dateRange;
-    if (typeof currentRange === "string" && currentRange === range) {
-      setDateRangeFilter(null);
-    } else if (range === currentRange) {
-      setDateRangeFilter(null);
-    } else {
-      setDateRangeFilter(range);
-    }
-  }, [filters.dateRange, setDateRangeFilter]);
+  const handleDateRangePress = useCallback(
+    (range: DateRange) => {
+      const currentRange = filters.dateRange;
+      if (typeof currentRange === "string" && currentRange === range) {
+        setDateRangeFilter(null);
+      } else if (range === currentRange) {
+        setDateRangeFilter(null);
+      } else {
+        setDateRangeFilter(range);
+      }
+    },
+    [filters.dateRange, setDateRangeFilter],
+  );
 
-  const handleCategoryPress = useCallback((category: string) => {
-    if (filters.categories.includes(category)) {
-      removeCategoryFilter(category);
-    } else {
-      addCategoryFilter(category);
-    }
-  }, [filters.categories, addCategoryFilter, removeCategoryFilter]);
+  const handleCategoryPress = useCallback(
+    (category: string) => {
+      if (filters.categories.includes(category)) {
+        removeCategoryFilter(category);
+      } else {
+        addCategoryFilter(category);
+      }
+    },
+    [filters.categories, addCategoryFilter, removeCategoryFilter],
+  );
 
   const isTagSelected = (tag: string) =>
     filters.tags.include.includes(tag) || filters.tags.exclude.includes(tag);
@@ -203,34 +226,36 @@ export function FilterModal({ visible, onDismiss }: FilterModalProps) {
             )}
 
             {/* TODO States Section */}
-            {filterOptions?.todoStates && filterOptions.todoStates.length > 0 && (
-              <Section title="TODO State">
-                {filterOptions.todoStates.map((state) => (
-                  <FilterOption
-                    key={state}
-                    label={state}
-                    selected={filters.states.includes(state)}
-                    onPress={() => handleStatePress(state)}
-                    testID={`filterState-${state}`}
-                  />
-                ))}
-              </Section>
-            )}
+            {filterOptions?.todoStates &&
+              filterOptions.todoStates.length > 0 && (
+                <Section title="TODO State">
+                  {filterOptions.todoStates.map((state) => (
+                    <FilterOption
+                      key={state}
+                      label={state}
+                      selected={filters.states.includes(state)}
+                      onPress={() => handleStatePress(state)}
+                      testID={`filterState-${state}`}
+                    />
+                  ))}
+                </Section>
+              )}
 
             {/* Priority Section */}
-            {filterOptions?.priorities && filterOptions.priorities.length > 0 && (
-              <Section title="Priority">
-                {filterOptions.priorities.map((priority) => (
-                  <FilterOption
-                    key={priority}
-                    label={`[#${priority}]`}
-                    selected={filters.priorities.includes(priority)}
-                    onPress={() => handlePriorityPress(priority)}
-                    testID={`filterPriority-${priority}`}
-                  />
-                ))}
-              </Section>
-            )}
+            {filterOptions?.priorities &&
+              filterOptions.priorities.length > 0 && (
+                <Section title="Priority">
+                  {filterOptions.priorities.map((priority) => (
+                    <FilterOption
+                      key={priority}
+                      label={`[#${priority}]`}
+                      selected={filters.priorities.includes(priority)}
+                      onPress={() => handlePriorityPress(priority)}
+                      testID={`filterPriority-${priority}`}
+                    />
+                  ))}
+                </Section>
+              )}
 
             {/* Date Range Section */}
             <Section title="Date Range">
@@ -255,19 +280,20 @@ export function FilterModal({ visible, onDismiss }: FilterModalProps) {
             </Section>
 
             {/* Category Section */}
-            {filterOptions?.categories && filterOptions.categories.length > 0 && (
-              <Section title="Category">
-                {filterOptions.categories.map((category) => (
-                  <FilterOption
-                    key={category}
-                    label={category}
-                    selected={filters.categories.includes(category)}
-                    onPress={() => handleCategoryPress(category)}
-                    testID={`filterCategory-${category}`}
-                  />
-                ))}
-              </Section>
-            )}
+            {filterOptions?.categories &&
+              filterOptions.categories.length > 0 && (
+                <Section title="Category">
+                  {filterOptions.categories.map((category) => (
+                    <FilterOption
+                      key={category}
+                      label={category}
+                      selected={filters.categories.includes(category)}
+                      onPress={() => handleCategoryPress(category)}
+                      testID={`filterCategory-${category}`}
+                    />
+                  ))}
+                </Section>
+              )}
           </ScrollView>
         )}
       </Modal>

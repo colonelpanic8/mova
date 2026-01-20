@@ -1,11 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  getSavedServers,
-  saveServer,
-  updateServer,
   deleteServer,
   getActiveServerId,
+  getSavedServers,
+  saveServer,
   setActiveServerId,
+  updateServer,
 } from "../../utils/serverStorage";
 
 jest.mock("@react-native-async-storage/async-storage", () => ({

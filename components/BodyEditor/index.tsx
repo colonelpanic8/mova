@@ -49,30 +49,28 @@ export function BodyEditor({
   const updateBlock = useCallback(
     (id: string, updates: Partial<Block>) => {
       setBlocks((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
+        prev.map((b) => (b.id === id ? { ...b, ...updates } : b)),
       );
       onDirtyChange?.(true);
     },
-    [onDirtyChange]
+    [onDirtyChange],
   );
 
   const toggleChecklist = useCallback(
     (id: string) => {
       setBlocks((prev) =>
-        prev.map((b) =>
-          b.id === id ? { ...b, checked: !b.checked } : b
-        )
+        prev.map((b) => (b.id === id ? { ...b, checked: !b.checked } : b)),
       );
       onDirtyChange?.(true);
     },
-    [onDirtyChange]
+    [onDirtyChange],
   );
 
   const handleChangeContent = useCallback(
     (id: string, content: string) => {
       updateBlock(id, { content });
     },
-    [updateBlock]
+    [updateBlock],
   );
 
   const addBlockAfter = useCallback(
@@ -102,25 +100,30 @@ export function BodyEditor({
       setFocusedId(newBlock.id);
       onDirtyChange?.(true);
     },
-    [onDirtyChange]
+    [onDirtyChange],
   );
 
   const handleSubmit = useCallback(
     (id: string) => {
       const block = blocks.find((b) => b.id === id);
-      if (block && (block.type === "checklist" || block.type === "bullet" || block.type === "numbered")) {
+      if (
+        block &&
+        (block.type === "checklist" ||
+          block.type === "bullet" ||
+          block.type === "numbered")
+      ) {
         addBlockAfter(id, block.type);
       }
     },
-    [blocks, addBlockAfter]
+    [blocks, addBlockAfter],
   );
 
   const handleIndent = useCallback(() => {
     if (focusedId) {
       setBlocks((prev) =>
         prev.map((b) =>
-          b.id === focusedId ? { ...b, indent: b.indent + 1 } : b
-        )
+          b.id === focusedId ? { ...b, indent: b.indent + 1 } : b,
+        ),
       );
       onDirtyChange?.(true);
     }
@@ -130,8 +133,8 @@ export function BodyEditor({
     if (focusedId) {
       setBlocks((prev) =>
         prev.map((b) =>
-          b.id === focusedId ? { ...b, indent: Math.max(0, b.indent - 1) } : b
-        )
+          b.id === focusedId ? { ...b, indent: Math.max(0, b.indent - 1) } : b,
+        ),
       );
       onDirtyChange?.(true);
     }
@@ -159,7 +162,10 @@ export function BodyEditor({
       keyboardVerticalOffset={100}
     >
       <ScrollView
-        style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
+        style={[
+          styles.scrollView,
+          { backgroundColor: theme.colors.background },
+        ]}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
@@ -205,9 +211,7 @@ export function BodyEditor({
             />
           );
         })}
-        {blocks.length === 0 && (
-          <View style={styles.emptyState} />
-        )}
+        {blocks.length === 0 && <View style={styles.emptyState} />}
       </ScrollView>
       <Toolbar
         onAddChecklist={handleAddChecklist}

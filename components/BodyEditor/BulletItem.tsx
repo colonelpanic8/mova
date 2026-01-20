@@ -19,8 +19,7 @@ export function BulletItem({
   const theme = useTheme();
   const indentPadding = block.indent * 24;
 
-  const prefix =
-    block.type === "numbered" ? `${(index ?? 0) + 1}.` : "\u2022";
+  const prefix = block.type === "numbered" ? `${(index ?? 0) + 1}.` : "\u2022";
 
   return (
     <View style={[styles.row, { paddingLeft: indentPadding }]}>

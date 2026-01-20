@@ -24,7 +24,13 @@ export interface FilterState {
   categories: string[];
 }
 
-export type FilterType = "tag" | "state" | "priority" | "dateRange" | "file" | "category";
+export type FilterType =
+  | "tag"
+  | "state"
+  | "priority"
+  | "dateRange"
+  | "file"
+  | "category";
 
 export interface ActiveFilter {
   type: FilterType;
@@ -152,28 +158,38 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const removeFilter = useCallback((filter: ActiveFilter) => {
-    switch (filter.type) {
-      case "tag":
-        removeTagFilter(filter.value);
-        break;
-      case "state":
-        removeStateFilter(filter.value);
-        break;
-      case "priority":
-        removePriorityFilter(filter.value);
-        break;
-      case "dateRange":
-        setDateRangeFilter(null);
-        break;
-      case "file":
-        removeFileFilter(filter.value);
-        break;
-      case "category":
-        removeCategoryFilter(filter.value);
-        break;
-    }
-  }, [removeTagFilter, removeStateFilter, removePriorityFilter, setDateRangeFilter, removeFileFilter, removeCategoryFilter]);
+  const removeFilter = useCallback(
+    (filter: ActiveFilter) => {
+      switch (filter.type) {
+        case "tag":
+          removeTagFilter(filter.value);
+          break;
+        case "state":
+          removeStateFilter(filter.value);
+          break;
+        case "priority":
+          removePriorityFilter(filter.value);
+          break;
+        case "dateRange":
+          setDateRangeFilter(null);
+          break;
+        case "file":
+          removeFileFilter(filter.value);
+          break;
+        case "category":
+          removeCategoryFilter(filter.value);
+          break;
+      }
+    },
+    [
+      removeTagFilter,
+      removeStateFilter,
+      removePriorityFilter,
+      setDateRangeFilter,
+      removeFileFilter,
+      removeCategoryFilter,
+    ],
+  );
 
   const clearAllFilters = useCallback(() => {
     setFilters(initialFilterState);
@@ -181,13 +197,39 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
   // Compute active filters as a flat list for display
   const activeFilters: ActiveFilter[] = [
-    ...filters.tags.include.map((tag) => ({ type: "tag" as const, value: tag })),
-    ...filters.tags.exclude.map((tag) => ({ type: "tag" as const, value: tag, exclude: true })),
-    ...filters.states.map((state) => ({ type: "state" as const, value: state })),
-    ...filters.priorities.map((priority) => ({ type: "priority" as const, value: priority })),
-    ...(filters.dateRange ? [{ type: "dateRange" as const, value: typeof filters.dateRange === "string" ? filters.dateRange : "custom" }] : []),
+    ...filters.tags.include.map((tag) => ({
+      type: "tag" as const,
+      value: tag,
+    })),
+    ...filters.tags.exclude.map((tag) => ({
+      type: "tag" as const,
+      value: tag,
+      exclude: true,
+    })),
+    ...filters.states.map((state) => ({
+      type: "state" as const,
+      value: state,
+    })),
+    ...filters.priorities.map((priority) => ({
+      type: "priority" as const,
+      value: priority,
+    })),
+    ...(filters.dateRange
+      ? [
+          {
+            type: "dateRange" as const,
+            value:
+              typeof filters.dateRange === "string"
+                ? filters.dateRange
+                : "custom",
+          },
+        ]
+      : []),
     ...filters.files.map((file) => ({ type: "file" as const, value: file })),
-    ...filters.categories.map((category) => ({ type: "category" as const, value: category })),
+    ...filters.categories.map((category) => ({
+      type: "category" as const,
+      value: category,
+    })),
   ];
 
   const hasActiveFilters = activeFilters.length > 0;

@@ -1,4 +1,8 @@
-import { CategoryField, PriorityPicker, StatePicker } from "@/components/capture";
+import {
+  CategoryField,
+  PriorityPicker,
+  StatePicker,
+} from "@/components/capture";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useMutation } from "@/context/MutationContext";
@@ -10,12 +14,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -303,7 +302,8 @@ export default function CaptureScreen() {
     setOptionalFields((prev) => ({ ...prev, [field]: value }));
   };
 
-  const selectedTemplateKey = selection?.type === "template" ? selection.key : null;
+  const selectedTemplateKey =
+    selection?.type === "template" ? selection.key : null;
   const selectedTemplate =
     selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;
 
@@ -393,11 +393,16 @@ export default function CaptureScreen() {
       let result;
       if (selection.type === "template") {
         // For template captures, include repeaters
-        const templateCaptureValues: Record<string, string | string[] | Repeater> = { ...captureValues };
+        const templateCaptureValues: Record<
+          string,
+          string | string[] | Repeater
+        > = { ...captureValues };
         if (optionalFields.scheduledRepeater)
-          templateCaptureValues.scheduledRepeater = optionalFields.scheduledRepeater;
+          templateCaptureValues.scheduledRepeater =
+            optionalFields.scheduledRepeater;
         if (optionalFields.deadlineRepeater)
-          templateCaptureValues.deadlineRepeater = optionalFields.deadlineRepeater;
+          templateCaptureValues.deadlineRepeater =
+            optionalFields.deadlineRepeater;
         result = await api.capture(selection.key, templateCaptureValues);
       } else {
         // Category capture
@@ -467,9 +472,10 @@ export default function CaptureScreen() {
             </Button>
           }
         >
-          {templateKeys.length === 0 && (!categoryTypes || categoryTypes.length === 0) && (
-            <Menu.Item title="No templates available" disabled />
-          )}
+          {templateKeys.length === 0 &&
+            (!categoryTypes || categoryTypes.length === 0) && (
+              <Menu.Item title="No templates available" disabled />
+            )}
           {templateKeys.map((key) => (
             <Menu.Item
               key={key}

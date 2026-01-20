@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { TextInput, TextInputProps } from "react-native-paper";
 
-interface PasswordInputProps
-  extends Omit<TextInputProps, "secureTextEntry" | "right"> {
+interface PasswordInputProps extends Omit<
+  TextInputProps,
+  "secureTextEntry" | "right"
+> {
   testID?: string;
 }
 

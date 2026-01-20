@@ -21,10 +21,7 @@ export function Toolbar({
 
   return (
     <View
-      style={[
-        styles.toolbar,
-        { backgroundColor: theme.colors.surfaceVariant },
-      ]}
+      style={[styles.toolbar, { backgroundColor: theme.colors.surfaceVariant }]}
     >
       <IconButton
         icon="checkbox-marked-outline"

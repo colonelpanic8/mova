@@ -21,16 +21,12 @@ export function CategoryField({
   const filteredCategories = useMemo(() => {
     if (!value.trim()) return categories;
     const lowerValue = value.toLowerCase();
-    return categories.filter((cat) =>
-      cat.toLowerCase().includes(lowerValue)
-    );
+    return categories.filter((cat) => cat.toLowerCase().includes(lowerValue));
   }, [categories, value]);
 
   const isNewCategory = useMemo(() => {
     if (!value.trim()) return false;
-    return !categories.some(
-      (cat) => cat.toLowerCase() === value.toLowerCase()
-    );
+    return !categories.some((cat) => cat.toLowerCase() === value.toLowerCase());
   }, [categories, value]);
 
   const handleSelectCategory = useCallback(
@@ -38,7 +34,7 @@ export function CategoryField({
       onChange(category);
       setMenuVisible(false);
     },
-    [onChange]
+    [onChange],
   );
 
   const handleInputFocus = useCallback(() => {
@@ -56,7 +52,8 @@ export function CategoryField({
     }, 200);
   }, [inputFocused]);
 
-  const showMenu = menuVisible && (filteredCategories.length > 0 || isNewCategory);
+  const showMenu =
+    menuVisible && (filteredCategories.length > 0 || isNewCategory);
 
   return (
     <View style={styles.container}>
@@ -69,7 +66,9 @@ export function CategoryField({
         anchor={
           <TextInput
             mode="outlined"
-            placeholder={loading ? "Loading categories..." : "Select or type category"}
+            placeholder={
+              loading ? "Loading categories..." : "Select or type category"
+            }
             value={value}
             onChangeText={onChange}
             onFocus={handleInputFocus}
