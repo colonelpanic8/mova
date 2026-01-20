@@ -8,6 +8,7 @@ import {
   IconButton,
   Modal,
   Portal,
+  Switch,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -100,6 +101,7 @@ export function FilterModal({ visible, onDismiss }: FilterModalProps) {
     setDateRangeFilter,
     addCategoryFilter,
     removeCategoryFilter,
+    setShowHabits,
   } = useFilters();
 
   const handleTagPress = useCallback(
@@ -208,6 +210,19 @@ export function FilterModal({ visible, onDismiss }: FilterModalProps) {
           </View>
         ) : (
           <ScrollView style={styles.scrollView}>
+            {/* Habits Toggle */}
+            <View style={styles.toggleSection}>
+              <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                Show Habits
+              </Text>
+              <Switch
+                value={filters.showHabits}
+                onValueChange={setShowHabits}
+                testID="filterShowHabits"
+              />
+            </View>
+            <Divider style={{ marginBottom: 16 }} />
+
             {/* Tags Section */}
             {filterOptions?.tags && filterOptions.tags.length > 0 && (
               <Section title="Tags (long press to exclude)">
@@ -338,5 +353,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
+  },
+  toggleSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
 });
