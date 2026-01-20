@@ -120,11 +120,11 @@
     "mova": {
       "flake": false,
       "locked": {
-        "lastModified": 1768866645,
-        "narHash": "sha256-XVTnYL9bHIUzn+hzvU/EaUMW6r/btsyfRvEyIoMlcCA=",
+        "lastModified": 1768889073,
+        "narHash": "sha256-12IMM2BGvZbz9gJmT2gZ1dBcRXlva7IFPtpIn2vKWyU=",
         "ref": "refs/heads/master",
-        "rev": "5dcd0169ccd61cd18113fc121460bfab58d3140f",
-        "revCount": 175,
+        "rev": "9dc23dba87e861dcb25b678632a4c3a06ef74a76",
+        "revCount": 180,
         "type": "git",
         "url": "ssh://git@github.com/colonelpanic8/mova"
       },
@@ -185,11 +185,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1768305791,
-        "narHash": "sha256-AIdl6WAn9aymeaH/NvBj0H9qM+XuAuYbGMZaP0zcXAQ=",
+        "lastModified": 1768564909,
+        "narHash": "sha256-Kell/SpJYVkHWMvnhqJz/8DqQg2b6PguxVWOuadbHCc=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "1412caf7bf9e660f2f962917c14b1ea1c3bc695e",
+        "rev": "e4bae1bd10c9c57b2cf517953ab70060a828ee6f",
         "type": "github"
       },
       "original": {
@@ -240,11 +240,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1768879193,
-        "narHash": "sha256-KTvGypPzrEIUy/XZqoDIiqebMPM94JXq6Xwslmdpj6s=",
+        "lastModified": 1768889629,
+        "narHash": "sha256-JvTstv2yd2DLLXZMs2K+OJx1JiBdOLdeqdHMOA9O2G4=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "7e1d833997d0b87ddcca06227769c3183a2288eb",
+        "rev": "135f3c47f6663da73f34ee5f36af2cbdae2f4a5d",
         "type": "github"
       },
       "original": {
