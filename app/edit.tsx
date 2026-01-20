@@ -1,0 +1,396 @@
+import { PriorityPicker, StatePicker } from "@/components/capture";
+import { RepeaterPicker } from "@/components/RepeaterPicker";
+import { DateFieldWithQuickActions } from "@/components/todoForm";
+import { useMutation } from "@/context/MutationContext";
+import { useSettings } from "@/context/SettingsContext";
+import { api, Repeater, Todo, TodoUpdates } from "@/services/api";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import {
+  Appbar,
+  Button,
+  Dialog,
+  Portal,
+  Snackbar,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
+
+export default function EditScreen() {
+  const theme = useTheme();
+  const router = useRouter();
+  const { triggerRefresh } = useMutation();
+  const { quickScheduleIncludeTime } = useSettings();
+
+  const params = useLocalSearchParams<{
+    todo: string;
+  }>();
+
+  // Parse todo from params
+  const originalTodo: Todo = useMemo(() => {
+    if (params.todo) {
+      try {
+        return JSON.parse(params.todo);
+      } catch {
+        console.error("Failed to parse todo from params");
+      }
+    }
+    return {
+      id: null,
+      file: null,
+      pos: null,
+      title: "",
+      todo: "TODO",
+      tags: null,
+      level: 1,
+      scheduled: null,
+      scheduledRepeater: null,
+      deadline: null,
+      deadlineRepeater: null,
+      priority: null,
+      olpath: null,
+      notifyBefore: null,
+      body: null,
+    };
+  }, [params.todo]);
+
+  // Form state
+  const [title, setTitle] = useState(originalTodo.title);
+  const [todoState, setTodoState] = useState(originalTodo.todo || "TODO");
+  const [priority, setPriority] = useState<string | null>(originalTodo.priority);
+  const [scheduled, setScheduled] = useState(originalTodo.scheduled || "");
+  const [scheduledRepeater, setScheduledRepeater] = useState<Repeater | null>(
+    originalTodo.scheduledRepeater
+  );
+  const [deadline, setDeadline] = useState(originalTodo.deadline || "");
+  const [deadlineRepeater, setDeadlineRepeater] = useState<Repeater | null>(
+    originalTodo.deadlineRepeater
+  );
+  const [tags, setTags] = useState(originalTodo.tags?.join(", ") || "");
+  const [body, setBody] = useState(originalTodo.body || "");
+  const [bodyExpanded, setBodyExpanded] = useState(!!originalTodo.body);
+
+  // UI state
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [snackbar, setSnackbar] = useState({ visible: false, message: "", isError: false });
+
+  const handleSave = useCallback(async () => {
+    if (!title.trim()) {
+      setSnackbar({ visible: true, message: "Title is required", isError: true });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Check if state changed
+      const stateChanged = todoState !== originalTodo.todo;
+
+      // Build updates object
+      const updates: TodoUpdates = {};
+
+      if (scheduled !== (originalTodo.scheduled || "")) {
+        updates.scheduled = scheduled || null;
+      }
+      if (JSON.stringify(scheduledRepeater) !== JSON.stringify(originalTodo.scheduledRepeater)) {
+        updates.scheduledRepeater = scheduledRepeater;
+      }
+      if (deadline !== (originalTodo.deadline || "")) {
+        updates.deadline = deadline || null;
+      }
+      if (JSON.stringify(deadlineRepeater) !== JSON.stringify(originalTodo.deadlineRepeater)) {
+        updates.deadlineRepeater = deadlineRepeater;
+      }
+      if (priority !== originalTodo.priority) {
+        updates.priority = priority;
+      }
+      if (body !== (originalTodo.body || "")) {
+        updates.body = body || null;
+      }
+
+      // Apply updates if any
+      if (Object.keys(updates).length > 0) {
+        const result = await api.updateTodo(originalTodo, updates);
+        if (result.status !== "updated") {
+          setSnackbar({
+            visible: true,
+            message: result.message || "Failed to update",
+            isError: true,
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      // Handle state change separately
+      if (stateChanged) {
+        const stateResult = await api.setTodoState(originalTodo, todoState);
+        if (stateResult.status !== "completed") {
+          setSnackbar({
+            visible: true,
+            message: stateResult.message || "Failed to change state",
+            isError: true,
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      triggerRefresh();
+      setSnackbar({ visible: true, message: "Saved", isError: false });
+
+      // Navigate back after brief delay to show success
+      setTimeout(() => router.back(), 500);
+    } catch (err) {
+      console.error("Failed to save:", err);
+      setSnackbar({ visible: true, message: "Failed to save", isError: true });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    title,
+    todoState,
+    priority,
+    scheduled,
+    scheduledRepeater,
+    deadline,
+    deadlineRepeater,
+    body,
+    originalTodo,
+    triggerRefresh,
+    router,
+  ]);
+
+  const handleDelete = useCallback(async () => {
+    setDeleteDialogVisible(false);
+    setIsDeleting(true);
+    try {
+      const result = await api.deleteTodo(originalTodo);
+      if (result.status === "deleted") {
+        triggerRefresh();
+        router.back();
+      } else {
+        setSnackbar({
+          visible: true,
+          message: result.message || "Failed to delete",
+          isError: true,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to delete:", err);
+      setSnackbar({ visible: true, message: "Failed to delete", isError: true });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [originalTodo, triggerRefresh, router]);
+
+  const handleRemind = useCallback(() => {
+    // Placeholder - will be implemented in Task 6
+    setSnackbar({ visible: true, message: "Reminder feature coming soon", isError: false });
+  }, []);
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Appbar.Header>
+        <Appbar.BackAction onPress={() => router.back()} testID="back-button" />
+        <Appbar.Content title="Edit Todo" />
+        <Appbar.Action
+          icon="delete"
+          onPress={() => setDeleteDialogVisible(true)}
+          disabled={isDeleting}
+          iconColor={theme.colors.error}
+          testID="delete-button"
+        />
+      </Appbar.Header>
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        {/* Read-only category display */}
+        {originalTodo.file && (
+          <View style={styles.categoryContainer}>
+            <Text variant="bodySmall" style={[styles.categoryLabel, { color: theme.colors.outline }]}>
+              {originalTodo.file}
+            </Text>
+          </View>
+        )}
+
+        {/* Title */}
+        <TextInput
+          label="Title *"
+          value={title}
+          onChangeText={setTitle}
+          mode="outlined"
+          style={styles.input}
+          multiline
+          numberOfLines={2}
+        />
+
+        {/* State */}
+        <StatePicker
+          value={todoState}
+          onChange={setTodoState}
+        />
+
+        {/* Priority */}
+        <PriorityPicker
+          value={priority}
+          onChange={setPriority}
+        />
+
+        {/* Scheduled */}
+        <DateFieldWithQuickActions
+          label="Schedule"
+          value={scheduled}
+          onChange={setScheduled}
+          colorKey="schedule"
+          includeTime={quickScheduleIncludeTime}
+        />
+
+        <RepeaterPicker
+          value={scheduledRepeater}
+          onChange={setScheduledRepeater}
+          label="Schedule Repeater"
+        />
+
+        {/* Deadline */}
+        <DateFieldWithQuickActions
+          label="Deadline"
+          value={deadline}
+          onChange={setDeadline}
+          colorKey="deadline"
+          includeTime={quickScheduleIncludeTime}
+        />
+
+        <RepeaterPicker
+          value={deadlineRepeater}
+          onChange={setDeadlineRepeater}
+          label="Deadline Repeater"
+        />
+
+        {/* Tags */}
+        <TextInput
+          label="Tags (comma-separated)"
+          value={tags}
+          onChangeText={setTags}
+          mode="outlined"
+          style={styles.input}
+        />
+
+        {/* Body - Collapsible */}
+        {bodyExpanded ? (
+          <View style={styles.bodyContainer}>
+            <Text variant="bodySmall" style={styles.fieldLabel}>Body</Text>
+            <TextInput
+              value={body}
+              onChangeText={setBody}
+              mode="outlined"
+              multiline
+              numberOfLines={6}
+              style={styles.bodyInput}
+            />
+          </View>
+        ) : (
+          <Button
+            mode="outlined"
+            onPress={() => setBodyExpanded(true)}
+            style={styles.addBodyButton}
+            icon="text"
+          >
+            Add Body
+          </Button>
+        )}
+
+        {/* Remind button */}
+        <Button
+          mode="outlined"
+          onPress={handleRemind}
+          style={styles.remindButton}
+          icon="bell"
+        >
+          Set Reminder
+        </Button>
+
+        {/* Save button */}
+        <Button
+          mode="contained"
+          onPress={handleSave}
+          loading={isSaving}
+          disabled={isSaving || isDeleting}
+          style={styles.saveButton}
+          icon="content-save"
+        >
+          Save
+        </Button>
+      </ScrollView>
+
+      {/* Delete confirmation dialog */}
+      <Portal>
+        <Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
+          <Dialog.Title>Delete Todo?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">{originalTodo.title}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteDialogVisible(false)}>Cancel</Button>
+            <Button onPress={handleDelete} textColor={theme.colors.error}>Delete</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <Snackbar
+        visible={snackbar.visible}
+        onDismiss={() => setSnackbar((s) => ({ ...s, visible: false }))}
+        duration={2000}
+        style={snackbar.isError ? { backgroundColor: theme.colors.error } : undefined}
+      >
+        {snackbar.message}
+      </Snackbar>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+  },
+  categoryContainer: {
+    marginBottom: 16,
+  },
+  categoryLabel: {
+    fontFamily: "monospace",
+  },
+  input: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    marginBottom: 8,
+    opacity: 0.7,
+  },
+  bodyContainer: {
+    marginBottom: 16,
+  },
+  bodyInput: {
+    minHeight: 120,
+  },
+  addBodyButton: {
+    marginBottom: 16,
+  },
+  remindButton: {
+    marginBottom: 16,
+  },
+  saveButton: {
+    marginTop: 8,
+  },
+});
