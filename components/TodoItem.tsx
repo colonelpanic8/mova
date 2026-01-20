@@ -68,9 +68,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
     openScheduleModal,
     openDeadlineModal,
     openPriorityModal,
-    openRemindModal,
-    openBodyEditor,
-    openSwipeable,
+    openDeleteConfirm,
   } = useTodoEditingContext();
 
   const internalRef = useRef<Swipeable>(null);
@@ -120,16 +118,6 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
     return (
       <View style={styles.swipeActions}>
         <TouchableOpacity
-          testID={`bodyActionButton_${testIdSuffix}`}
-          style={[
-            styles.swipeAction,
-            { backgroundColor: theme.colors.secondary },
-          ]}
-          onPress={() => openBodyEditor(todo)}
-        >
-          <Text style={styles.swipeActionText}>Body</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
           testID={`tomorrowActionButton_${testIdSuffix}`}
           style={[
             styles.swipeAction,
@@ -170,29 +158,27 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
           <Text style={styles.swipeActionText}>Today</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          testID={`remindActionButton_${testIdSuffix}`}
+          testID={`deleteActionButton_${testIdSuffix}`}
           style={[
             styles.swipeAction,
-            { backgroundColor: theme.colors.tertiary },
+            { backgroundColor: theme.colors.error },
           ]}
-          onPress={() => openRemindModal(todo)}
+          onPress={() => openDeleteConfirm(todo)}
         >
-          <Text style={styles.swipeActionText}>Remind</Text>
+          <Text style={styles.swipeActionText}>Delete</Text>
         </TouchableOpacity>
       </View>
     );
   }, [
     testIdSuffix,
     getActionColor,
-    theme.colors.tertiary,
-    theme.colors.secondary,
+    theme.colors.error,
     todo,
     scheduleToday,
     scheduleTomorrow,
     openScheduleModal,
     openDeadlineModal,
-    openRemindModal,
-    openBodyEditor,
+    openDeleteConfirm,
   ]);
 
   return (
