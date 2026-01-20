@@ -84,6 +84,32 @@ export interface CaptureResponse {
   message?: string;
 }
 
+export interface CategoryType {
+  name: string;
+  hasCategories: boolean;
+  captureTemplate: string;
+  prompts: TemplatePrompt[];
+}
+
+export interface CategoryTypesResponse {
+  types: CategoryType[];
+}
+
+export interface CategoriesResponse {
+  type: string;
+  categories: string[];
+  todoFiles: string[];
+}
+
+export interface CategoryCaptureResponse {
+  status: string;
+  category?: string;
+  title?: string;
+  file?: string;
+  pos?: number;
+  message?: string;
+}
+
 export interface CustomView {
   key: string;
   name: string;
