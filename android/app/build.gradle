@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.mova'
+    namespace 'com.colonelpanic.mova'
     defaultConfig {
-        applicationId 'com.anonymous.mova'
+        applicationId 'com.colonelpanic.mova'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

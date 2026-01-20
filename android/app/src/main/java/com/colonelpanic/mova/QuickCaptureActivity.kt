@@ -1,4 +1,4 @@
-package com.anonymous.mova
+package com.colonelpanic.mova
 
 import android.os.Bundle
 import android.util.Log

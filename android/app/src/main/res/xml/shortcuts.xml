@@ -3,8 +3,8 @@
     <capability android:name="actions.intent.CREATE_NOTE">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.anonymous.mova"
-            android:targetClass="com.anonymous.mova.QuickCaptureActivity">
+            android:targetPackage="com.colonelpanic.mova"
+            android:targetClass="com.colonelpanic.mova.QuickCaptureActivity">
             <parameter
                 android:name="note.text"
                 android:key="text" />
