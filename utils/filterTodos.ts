@@ -86,13 +86,19 @@ export function filterTodos<T extends Todo>(
     filters.priorities.length > 0 ||
     filters.dateRange !== null ||
     filters.files.length > 0 ||
-    filters.categories.length > 0;
+    filters.categories.length > 0 ||
+    !filters.showHabits;
 
   if (!hasActiveFilters) {
     return todos;
   }
 
   return todos.filter((todo) => {
+    // Filter out habits if showHabits is false
+    if (!filters.showHabits && todo.isWindowHabit) {
+      return false;
+    }
+
     // Tag include filter: todo must have at least one of the included tags
     if (filters.tags.include.length > 0) {
       const todoTags = todo.tags || [];

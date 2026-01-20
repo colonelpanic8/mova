@@ -22,6 +22,7 @@ export interface FilterState {
   dateRange: DateRange;
   files: string[];
   categories: string[];
+  showHabits: boolean;
 }
 
 export type FilterType =
@@ -55,6 +56,8 @@ interface FilterContextType {
   removeCategoryFilter: (category: string) => void;
   removeFilter: (filter: ActiveFilter) => void;
   clearAllFilters: () => void;
+  showHabits: boolean;
+  setShowHabits: (show: boolean) => void;
 }
 
 const initialFilterState: FilterState = {
@@ -64,6 +67,7 @@ const initialFilterState: FilterState = {
   dateRange: null,
   files: [],
   categories: [],
+  showHabits: true, // Default to showing habits
 };
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
@@ -158,6 +162,10 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const setShowHabits = useCallback((show: boolean) => {
+    setFilters((prev) => ({ ...prev, showHabits: show }));
+  }, []);
+
   const removeFilter = useCallback(
     (filter: ActiveFilter) => {
       switch (filter.type) {
@@ -232,7 +240,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     })),
   ];
 
-  const hasActiveFilters = activeFilters.length > 0;
+  const hasActiveFilters = activeFilters.length > 0 || !filters.showHabits;
 
   return (
     <FilterContext.Provider
@@ -253,6 +261,8 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         removeCategoryFilter,
         removeFilter,
         clearAllFilters,
+        showHabits: filters.showHabits,
+        setShowHabits,
       }}
     >
       {children}
