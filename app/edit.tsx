@@ -61,7 +61,6 @@ export default function EditScreen() {
   }, [params.todo]);
 
   // Form state
-  const [title, setTitle] = useState(originalTodo.title);
   const [todoState, setTodoState] = useState(originalTodo.todo || "TODO");
   const [priority, setPriority] = useState<string | null>(originalTodo.priority);
   const [scheduled, setScheduled] = useState(originalTodo.scheduled || "");
@@ -72,7 +71,6 @@ export default function EditScreen() {
   const [deadlineRepeater, setDeadlineRepeater] = useState<Repeater | null>(
     originalTodo.deadlineRepeater
   );
-  const [tags, setTags] = useState(originalTodo.tags?.join(", ") || "");
   const [body, setBody] = useState(originalTodo.body || "");
   const [bodyExpanded, setBodyExpanded] = useState(!!originalTodo.body);
 
@@ -83,11 +81,6 @@ export default function EditScreen() {
   const [snackbar, setSnackbar] = useState({ visible: false, message: "", isError: false });
 
   const handleSave = useCallback(async () => {
-    if (!title.trim()) {
-      setSnackbar({ visible: true, message: "Title is required", isError: true });
-      return;
-    }
-
     setIsSaving(true);
     try {
       // Check if state changed
@@ -155,7 +148,6 @@ export default function EditScreen() {
       setIsSaving(false);
     }
   }, [
-    title,
     todoState,
     priority,
     scheduled,
@@ -220,16 +212,11 @@ export default function EditScreen() {
           </View>
         )}
 
-        {/* Title */}
-        <TextInput
-          label="Title *"
-          value={title}
-          onChangeText={setTitle}
-          mode="outlined"
-          style={styles.input}
-          multiline
-          numberOfLines={2}
-        />
+        {/* Title - read only */}
+        <View style={styles.titleContainer}>
+          <Text variant="bodySmall" style={styles.fieldLabel}>Title</Text>
+          <Text variant="bodyLarge" style={styles.titleText}>{originalTodo.title}</Text>
+        </View>
 
         {/* State */}
         <StatePicker
@@ -271,15 +258,6 @@ export default function EditScreen() {
           value={deadlineRepeater}
           onChange={setDeadlineRepeater}
           label="Deadline Repeater"
-        />
-
-        {/* Tags */}
-        <TextInput
-          label="Tags (comma-separated)"
-          value={tags}
-          onChangeText={setTags}
-          mode="outlined"
-          style={styles.input}
         />
 
         {/* Body - Collapsible */}
@@ -370,6 +348,12 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontFamily: "monospace",
+  },
+  titleContainer: {
+    marginBottom: 16,
+  },
+  titleText: {
+    marginTop: 4,
   },
   input: {
     marginBottom: 16,
