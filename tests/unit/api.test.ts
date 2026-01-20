@@ -197,4 +197,94 @@ describe("OrgAgendaApi", () => {
       expect(result.status).toBe("updated");
     });
   });
+
+  describe("getCategoryTypes", () => {
+    it("should make GET request to /category-types", async () => {
+      const mockResponse = {
+        types: [
+          {
+            name: "projects",
+            hasCategories: true,
+            captureTemplate: "* TODO %?\n",
+            prompts: [{ name: "Title", type: "string", required: true }],
+          },
+        ],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
+      });
+
+      const result = await api.getCategoryTypes();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://test-api.local/category-types",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Basic"),
+          }),
+        }),
+      );
+      expect(result.types).toHaveLength(1);
+      expect(result.types[0].name).toBe("projects");
+    });
+  });
+
+  describe("getCategories", () => {
+    it("should make GET request to /categories with type parameter", async () => {
+      const mockResponse = {
+        type: "projects",
+        categories: ["alpha", "beta"],
+        todoFiles: ["/path/to/projects.org"],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
+      });
+
+      const result = await api.getCategories("projects");
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://test-api.local/categories?type=projects",
+        expect.any(Object),
+      );
+      expect(result.categories).toEqual(["alpha", "beta"]);
+    });
+  });
+
+  describe("categoryCapture", () => {
+    it("should make POST request to /category-capture", async () => {
+      const mockResponse = {
+        status: "created",
+        category: "alpha",
+        title: "New task",
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
+      });
+
+      const result = await api.categoryCapture("projects", "alpha", {
+        title: "New task",
+        todo: "TODO",
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://test-api.local/category-capture",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            type: "projects",
+            category: "alpha",
+            title: "New task",
+            todo: "TODO",
+          }),
+        }),
+      );
+      expect(result.status).toBe("created");
+    });
+  });
 });

@@ -324,6 +324,33 @@ class OrgAgendaApi {
   async getMetadata(): Promise<MetadataResponse> {
     return this.request<MetadataResponse>("/metadata");
   }
+
+  async getCategoryTypes(): Promise<CategoryTypesResponse> {
+    return this.request<CategoryTypesResponse>("/category-types");
+  }
+
+  async getCategories(type: string): Promise<CategoriesResponse> {
+    return this.request<CategoriesResponse>(
+      `/categories?type=${encodeURIComponent(type)}`,
+    );
+  }
+
+  async categoryCapture(
+    type: string,
+    category: string,
+    values: Record<string, string | string[]>,
+  ): Promise<CategoryCaptureResponse> {
+    const { title, ...rest } = values;
+    return this.request<CategoryCaptureResponse>("/category-capture", {
+      method: "POST",
+      body: JSON.stringify({
+        type,
+        category,
+        title,
+        ...rest,
+      }),
+    });
+  }
 }
 
 export const api = new OrgAgendaApi();
