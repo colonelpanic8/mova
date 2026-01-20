@@ -160,6 +160,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="habits"
+        options={{
+          title: "Habits",
+          tabBarButtonTestID: "tabHabits",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="chart-timeline-variant"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="search"
         options={{
           title: "Search",
