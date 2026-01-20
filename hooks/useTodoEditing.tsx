@@ -1,6 +1,13 @@
+import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
-import { api, Todo, TodoStatesResponse, TodoUpdates } from "@/services/api";
+import {
+  api,
+  Repeater,
+  Todo,
+  TodoStatesResponse,
+  TodoUpdates,
+} from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
@@ -51,6 +58,8 @@ type EditModalType =
   | "deadline"
   | "scheduleTime"
   | "deadlineTime"
+  | "schedule-confirm"
+  | "deadline-confirm"
   | "priority"
   | "state"
   | "remind"
@@ -98,6 +107,9 @@ export function useTodoEditing(
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [editModalType, setEditModalType] = useState<EditModalType>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedRepeater, setSelectedRepeater] = useState<Repeater | null>(
+    null,
+  );
   const [selectedPriority, setSelectedPriority] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
   const [remindPickerMode, setRemindPickerMode] = useState<"date" | "time">(
@@ -139,6 +151,8 @@ export function useTodoEditing(
 
     if (type === "schedule" || type === "deadline") {
       const existingDate = type === "schedule" ? todo.scheduled : todo.deadline;
+      const existingRepeater =
+        type === "schedule" ? todo.scheduledRepeater : todo.deadlineRepeater;
       if (existingDate) {
         // Parse date-only strings as local time to avoid timezone shift
         const hasTime =
@@ -151,6 +165,7 @@ export function useTodoEditing(
       } else {
         setSelectedDate(new Date());
       }
+      setSelectedRepeater(existingRepeater || null);
     } else if (type === "priority") {
       setSelectedPriority(todo.priority || "");
     } else if (type === "state") {
@@ -484,7 +499,7 @@ export function useTodoEditing(
     setSnackbar((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  // Handle native date picker result
+  // Handle native date picker result - transition to confirm modal
   const handleDatePickerChange = useCallback(
     (event: any, date?: Date) => {
       if (event.type === "dismissed") {
@@ -495,38 +510,16 @@ export function useTodoEditing(
         date &&
         (editModalType === "schedule" || editModalType === "deadline")
       ) {
-        if (quickScheduleIncludeTime) {
-          // Save date and show time picker
-          setSelectedDate(date);
-          setEditModalType(editModalType === "schedule" ? "scheduleTime" : "deadlineTime");
-        } else {
-          const dateString = formatLocalDate(date);
-          // API expects "scheduled" not "schedule"
-          const fieldName =
-            editModalType === "schedule" ? "scheduled" : editModalType;
-          handleUpdateTodo({ [fieldName]: dateString });
-        }
+        setSelectedDate(date);
+        // Transition to confirm modal where user can optionally add repeater and time
+        setEditModalType(
+          editModalType === "schedule"
+            ? "schedule-confirm"
+            : "deadline-confirm",
+        );
       }
     },
-    [editModalType, handleUpdateTodo, closeEditModal, quickScheduleIncludeTime],
-  );
-
-  // Handle schedule/deadline time picker result
-  const handleScheduleDeadlineTimeChange = useCallback(
-    (event: any, date?: Date) => {
-      if (event.type === "dismissed") {
-        closeEditModal();
-        return;
-      }
-      if (date) {
-        const combined = new Date(selectedDate);
-        combined.setHours(date.getHours(), date.getMinutes(), 0, 0);
-        const dateString = formatLocalDateTime(combined);
-        const fieldName = editModalType === "scheduleTime" ? "scheduled" : "deadline";
-        handleUpdateTodo({ [fieldName]: dateString });
-      }
-    },
-    [selectedDate, editModalType, handleUpdateTodo, closeEditModal],
+    [editModalType, closeEditModal],
   );
 
   // Handle quick schedule time picker result
@@ -545,6 +538,26 @@ export function useTodoEditing(
       }
     },
     [quickScheduleDate, editingTodo, closeEditModal, applyQuickSchedule],
+  );
+
+  // Save schedule/deadline with optional repeater
+  const handleSaveDateTime = useCallback(
+    (type: "schedule" | "deadline", includeTime: boolean = false) => {
+      const dateString = includeTime
+        ? formatLocalDateTime(selectedDate)
+        : formatLocalDate(selectedDate);
+      const fieldName = type === "schedule" ? "scheduled" : "deadline";
+      const repeaterField =
+        type === "schedule" ? "scheduledRepeater" : "deadlineRepeater";
+
+      const updates: TodoUpdates = {
+        [fieldName]: dateString,
+        [repeaterField]: selectedRepeater,
+      };
+
+      handleUpdateTodo(updates);
+    },
+    [selectedDate, selectedRepeater, handleUpdateTodo],
   );
 
   const EditModals = useCallback(() => {
@@ -577,16 +590,6 @@ export function useTodoEditing(
           />
         )}
 
-        {/* Schedule/Deadline Time Picker (after date selection) */}
-        {(editModalType === "scheduleTime" || editModalType === "deadlineTime") && Platform.OS !== "web" && (
-          <DateTimePicker
-            value={selectedDate}
-            mode="time"
-            display="default"
-            onChange={handleScheduleDeadlineTimeChange}
-          />
-        )}
-
         <Portal>
           {/* Web Date Picker - hidden input that auto-opens picker */}
           {Platform.OS === "web" && isDateModal && (
@@ -596,21 +599,21 @@ export function useTodoEditing(
               onChange={(e) => {
                 const parsed = new Date(e.target.value + "T00:00:00");
                 if (!isNaN(parsed.getTime())) {
-                  if (quickScheduleIncludeTime) {
-                    // Save date and show time picker
-                    setSelectedDate(parsed);
-                    setEditModalType(editModalType === "schedule" ? "scheduleTime" : "deadlineTime");
-                  } else {
-                    // Auto-save on selection
-                    const dateString = formatLocalDate(parsed);
-                    const fieldName =
-                      editModalType === "schedule" ? "scheduled" : "deadline";
-                    handleUpdateTodo({ [fieldName]: dateString });
-                  }
+                  setSelectedDate(parsed);
+                  // Transition to confirm modal where user can add repeater and time
+                  setEditModalType(
+                    editModalType === "schedule"
+                      ? "schedule-confirm"
+                      : "deadline-confirm",
+                  );
                 }
               }}
               onBlur={() => {
-                if (!quickScheduleIncludeTime) {
+                // Only close if we haven't transitioned to confirm modal
+                if (
+                  editModalType === "schedule" ||
+                  editModalType === "deadline"
+                ) {
                   closeEditModal();
                 }
               }}
@@ -621,39 +624,6 @@ export function useTodoEditing(
                     el.showPicker();
                   } catch {
                     // Fallback: just focus if showPicker not supported
-                    el.focus();
-                  }
-                }
-              }}
-              style={{
-                position: "absolute",
-                opacity: 0,
-                pointerEvents: "none",
-              }}
-            />
-          )}
-
-          {/* Web Schedule/Deadline Time Picker */}
-          {Platform.OS === "web" && (editModalType === "scheduleTime" || editModalType === "deadlineTime") && (
-            <input
-              type="time"
-              value={`${String(selectedDate.getHours()).padStart(2, "0")}:${String(selectedDate.getMinutes()).padStart(2, "0")}`}
-              onChange={(e) => {
-                if (e.target.value) {
-                  const [hours, minutes] = e.target.value.split(":").map(Number);
-                  const combined = new Date(selectedDate);
-                  combined.setHours(hours, minutes, 0, 0);
-                  const dateString = formatLocalDateTime(combined);
-                  const fieldName = editModalType === "scheduleTime" ? "scheduled" : "deadline";
-                  handleUpdateTodo({ [fieldName]: dateString });
-                }
-              }}
-              onBlur={closeEditModal}
-              ref={(el) => {
-                if (el) {
-                  try {
-                    el.showPicker();
-                  } catch {
                     el.focus();
                   }
                 }
@@ -698,6 +668,86 @@ export function useTodoEditing(
               }}
             />
           )}
+
+          {/* Schedule Confirm Modal */}
+          <Modal
+            visible={editModalType === "schedule-confirm"}
+            onDismiss={closeEditModal}
+            contentContainerStyle={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.surface },
+            ]}
+          >
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              Schedule
+            </Text>
+            <Text variant="bodyMedium" style={styles.modalSubtitle}>
+              {selectedDate.toLocaleDateString(undefined, {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </Text>
+
+            <RepeaterPicker
+              value={selectedRepeater}
+              onChange={setSelectedRepeater}
+              label="Repeat"
+            />
+
+            <View style={styles.modalButtons}>
+              <Button mode="outlined" onPress={closeEditModal}>
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={() => handleSaveDateTime("schedule")}
+              >
+                Save
+              </Button>
+            </View>
+          </Modal>
+
+          {/* Deadline Confirm Modal */}
+          <Modal
+            visible={editModalType === "deadline-confirm"}
+            onDismiss={closeEditModal}
+            contentContainerStyle={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.surface },
+            ]}
+          >
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              Deadline
+            </Text>
+            <Text variant="bodyMedium" style={styles.modalSubtitle}>
+              {selectedDate.toLocaleDateString(undefined, {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </Text>
+
+            <RepeaterPicker
+              value={selectedRepeater}
+              onChange={setSelectedRepeater}
+              label="Repeat"
+            />
+
+            <View style={styles.modalButtons}>
+              <Button mode="outlined" onPress={closeEditModal}>
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={() => handleSaveDateTime("deadline")}
+              >
+                Save
+              </Button>
+            </View>
+          </Modal>
 
           {/* Priority Modal */}
           <Modal
@@ -891,6 +941,7 @@ export function useTodoEditing(
     editModalType,
     editingTodo,
     selectedDate,
+    selectedRepeater,
     selectedPriority,
     selectedState,
     remindDateTime,
@@ -902,10 +953,10 @@ export function useTodoEditing(
     theme,
     closeEditModal,
     handleDatePickerChange,
-    handleScheduleDeadlineTimeChange,
     handleQuickScheduleTimeChange,
     handleRemindDateChange,
     handleSavePriority,
+    handleSaveDateTime,
     handleScheduleReminder,
     handleStateChange,
     handleUpdateTodo,

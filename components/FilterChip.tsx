@@ -1,7 +1,7 @@
 import { ActiveFilter, FilterType } from "@/context/FilterContext";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { Icon, Text, useTheme } from "react-native-paper";
+import { Icon, MD3Theme, Text, useTheme } from "react-native-paper";
 
 interface FilterChipProps {
   filter: ActiveFilter;
@@ -40,7 +40,7 @@ function getFilterLabel(filter: ActiveFilter): string {
   }
 }
 
-function getChipColor(type: FilterType, theme: ReturnType<typeof useTheme>): string {
+function getChipColor(type: FilterType, theme: MD3Theme): string {
   switch (type) {
     case "tag":
       return theme.colors.primaryContainer;
@@ -58,7 +58,7 @@ function getChipColor(type: FilterType, theme: ReturnType<typeof useTheme>): str
   }
 }
 
-function getChipTextColor(type: FilterType, theme: ReturnType<typeof useTheme>): string {
+function getChipTextColor(type: FilterType, theme: MD3Theme): string {
   switch (type) {
     case "tag":
       return theme.colors.onPrimaryContainer;
