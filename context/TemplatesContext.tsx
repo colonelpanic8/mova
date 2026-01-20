@@ -44,6 +44,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     api.configure(apiUrl, username, password);
 
     try {
+      // Try the unified /metadata endpoint first
       const metadata = await api.getMetadata();
 
       // Log any errors from the backend
@@ -61,8 +62,36 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         setError("Failed to load templates");
       }
     } catch (err) {
-      console.error("Failed to load metadata:", err);
-      setError(err instanceof Error ? err.message : "Failed to load metadata");
+      // Fallback to individual endpoints if /metadata is not available
+      console.warn("Metadata endpoint failed, falling back to individual endpoints:", err);
+
+      const results = await Promise.allSettled([
+        api.getTemplates(),
+        api.getFilterOptions(),
+        api.getTodoStates(),
+        api.getCustomViews(),
+      ]);
+
+      const [templatesResult, filterOptionsResult, todoStatesResult, customViewsResult] = results;
+
+      if (templatesResult.status === "fulfilled") {
+        setTemplates(templatesResult.value);
+      } else {
+        console.error("Failed to load templates:", templatesResult.reason);
+        setError("Failed to load templates");
+      }
+
+      if (filterOptionsResult.status === "fulfilled") {
+        setFilterOptions(filterOptionsResult.value);
+      }
+
+      if (todoStatesResult.status === "fulfilled") {
+        setTodoStates(todoStatesResult.value);
+      }
+
+      if (customViewsResult.status === "fulfilled") {
+        setCustomViews(customViewsResult.value);
+      }
     }
 
     setIsLoading(false);
