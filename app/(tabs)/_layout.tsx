@@ -187,6 +187,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Settings",
+          headerShown: false,
           tabBarButtonTestID: "tabSettings",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons

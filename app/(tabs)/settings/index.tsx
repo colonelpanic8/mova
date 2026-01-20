@@ -130,7 +130,7 @@ export default function SettingsScreen() {
           title="Manage Servers"
           description="Switch, edit, or delete saved servers"
           left={(props) => <List.Icon {...props} icon="server-network" />}
-          onPress={() => router.push("/(tabs)/settings/servers")}
+          onPress={() => router.navigate("/(tabs)/settings/servers")}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
         />
       </List.Section>
@@ -160,7 +160,7 @@ export default function SettingsScreen() {
               title="Scheduled Notifications"
               description={`${scheduledCount} upcoming`}
               left={(props) => <List.Icon {...props} icon="calendar-clock" />}
-              onPress={() => router.push("./notifications")}
+              onPress={() => router.navigate("/(tabs)/settings/notifications")}
               right={(props) => <List.Icon {...props} icon="chevron-right" />}
             />
             <List.Item
@@ -189,7 +189,7 @@ export default function SettingsScreen() {
           title="Colors"
           description="Customize TODO state and action button colors"
           left={(props) => <List.Icon {...props} icon="palette" />}
-          onPress={() => router.push("./colors")}
+          onPress={() => router.navigate("/(tabs)/settings/colors")}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
         />
       </List.Section>
