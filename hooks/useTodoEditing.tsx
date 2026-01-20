@@ -10,7 +10,6 @@ import {
 } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useRouter } from "expo-router";
 import React, {
   createContext,
   ReactNode,
@@ -88,8 +87,6 @@ export interface UseTodoEditingResult {
   openDeadlineModal: (todo: Todo) => void;
   openPriorityModal: (todo: Todo) => void;
   openRemindModal: (todo: Todo) => void;
-  openBodyEditor: (todo: Todo) => void;
-  openSwipeable: (key: string) => void;
   openDeleteConfirm: (todo: Todo) => void;
   dismissSnackbar: () => void;
 
@@ -103,7 +100,6 @@ export function useTodoEditing(
   const { onTodoUpdated, todoStates } = options;
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
-  const router = useRouter();
   const { quickScheduleIncludeTime } = useSettings();
 
   // Edit modal state
@@ -219,35 +215,6 @@ export function useTodoEditing(
     },
     [openEditModal],
   );
-
-  const openBodyEditor = useCallback(
-    (todo: Todo) => {
-      const key = getTodoKey(todo);
-      swipeableRefs.current.get(key)?.close();
-      router.push({
-        pathname: "/body-editor",
-        params: {
-          id: todo.id || "",
-          file: todo.file || "",
-          pos: todo.pos?.toString() || "",
-          title: todo.title || "",
-          body: todo.body || "",
-        },
-      });
-    },
-    [router],
-  );
-
-  const openSwipeable = useCallback((key: string) => {
-    // Close all other swipeables first
-    swipeableRefs.current.forEach((swipeable, refKey) => {
-      if (refKey !== key) {
-        swipeable.close();
-      }
-    });
-    // Open the requested one
-    swipeableRefs.current.get(key)?.openRight();
-  }, []);
 
   const applyQuickSchedule = useCallback(
     async (todo: Todo, dateString: string) => {
@@ -1052,8 +1019,6 @@ export function useTodoEditing(
     openDeadlineModal,
     openPriorityModal,
     openRemindModal,
-    openBodyEditor,
-    openSwipeable,
     openDeleteConfirm,
     dismissSnackbar,
     EditModals,
