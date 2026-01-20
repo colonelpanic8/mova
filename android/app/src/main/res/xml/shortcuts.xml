@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <capability android:name="actions.intent.CREATE_NOTE">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.anonymous.mova"
+            android:targetClass="com.anonymous.mova.QuickCaptureActivity">
+            <parameter
+                android:name="note.text"
+                android:key="text" />
+        </intent>
+    </capability>
+</shortcuts>
