@@ -266,7 +266,7 @@ export default function EditScreen() {
       </Appbar.Header>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.scrollView}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
