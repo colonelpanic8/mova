@@ -17,10 +17,13 @@ interface SettingsContextType {
   isLoading: boolean;
 }
 
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextType | undefined>(
+  undefined,
+);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [quickScheduleIncludeTime, setQuickScheduleIncludeTimeState] = useState(false);
+  const [quickScheduleIncludeTime, setQuickScheduleIncludeTimeState] =
+    useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

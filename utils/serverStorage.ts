@@ -1,5 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SavedServer, SavedServerInput } from "@/types/server";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEYS = {
   SAVED_SERVERS: "mova_saved_servers",

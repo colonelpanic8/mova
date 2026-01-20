@@ -77,7 +77,8 @@ export default function LoginScreen() {
   useEffect(() => {
     const origin = getWebOrigin();
     if (origin) {
-      const isLocalhost = origin.includes("localhost") || origin.includes("127.0.0.1");
+      const isLocalhost =
+        origin.includes("localhost") || origin.includes("127.0.0.1");
       if (!isLocalhost) {
         setApiUrl(origin);
         setServerLocked(true);

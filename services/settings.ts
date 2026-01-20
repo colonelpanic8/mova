@@ -7,7 +7,9 @@ export async function getQuickScheduleIncludeTime(): Promise<boolean> {
   return value === "true";
 }
 
-export async function setQuickScheduleIncludeTime(enabled: boolean): Promise<void> {
+export async function setQuickScheduleIncludeTime(
+  enabled: boolean,
+): Promise<void> {
   await AsyncStorage.setItem(
     QUICK_SCHEDULE_INCLUDE_TIME_KEY,
     enabled ? "true" : "false",

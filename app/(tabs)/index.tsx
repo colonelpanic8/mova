@@ -3,9 +3,9 @@ import { TodoItem, getTodoKey } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
-import { filterTodos } from "@/utils/filterTodos";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { AgendaResponse, Todo, TodoStatesResponse, api } from "@/services/api";
+import { filterTodos } from "@/utils/filterTodos";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -60,7 +60,9 @@ export default function AgendaScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
-  const [showCompleted, setShowCompleted] = useState<boolean>(() => isPastDay(new Date()));
+  const [showCompleted, setShowCompleted] = useState<boolean>(() =>
+    isPastDay(new Date()),
+  );
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
@@ -307,7 +309,13 @@ export default function AgendaScreen() {
                 ? [{ key: "active", data: activeEntries }]
                 : []),
               ...(completedEntries.length > 0
-                ? [{ key: "completed", title: "Completed", data: completedEntries }]
+                ? [
+                    {
+                      key: "completed",
+                      title: "Completed",
+                      data: completedEntries,
+                    },
+                  ]
                 : []),
             ]}
             keyExtractor={(item) => getTodoKey(item)}
@@ -319,8 +327,16 @@ export default function AgendaScreen() {
             )}
             renderSectionHeader={({ section }) =>
               section.title ? (
-                <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background }]}>
-                  <Text variant="labelMedium" style={{ color: theme.colors.outline }}>
+                <View
+                  style={[
+                    styles.sectionHeader,
+                    { backgroundColor: theme.colors.background },
+                  ]}
+                >
+                  <Text
+                    variant="labelMedium"
+                    style={{ color: theme.colors.outline }}
+                  >
                     {section.title}
                   </Text>
                 </View>

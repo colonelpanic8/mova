@@ -7,12 +7,7 @@ import { api, Repeater, Todo, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
@@ -64,14 +59,16 @@ export default function EditScreen() {
 
   // Form state
   const [todoState, setTodoState] = useState(originalTodo.todo || "TODO");
-  const [priority, setPriority] = useState<string | null>(originalTodo.priority);
+  const [priority, setPriority] = useState<string | null>(
+    originalTodo.priority,
+  );
   const [scheduled, setScheduled] = useState(originalTodo.scheduled || "");
   const [scheduledRepeater, setScheduledRepeater] = useState<Repeater | null>(
-    originalTodo.scheduledRepeater
+    originalTodo.scheduledRepeater,
   );
   const [deadline, setDeadline] = useState(originalTodo.deadline || "");
   const [deadlineRepeater, setDeadlineRepeater] = useState<Repeater | null>(
-    originalTodo.deadlineRepeater
+    originalTodo.deadlineRepeater,
   );
   const [body, setBody] = useState(originalTodo.body || "");
   const [bodyExpanded, setBodyExpanded] = useState(!!originalTodo.body);
@@ -80,7 +77,11 @@ export default function EditScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: "", isError: false });
+  const [snackbar, setSnackbar] = useState({
+    visible: false,
+    message: "",
+    isError: false,
+  });
   const [remindDialogVisible, setRemindDialogVisible] = useState(false);
   const [remindDateTime, setRemindDateTime] = useState<Date>(() => {
     const date = new Date();
@@ -101,13 +102,19 @@ export default function EditScreen() {
       if (scheduled !== (originalTodo.scheduled || "")) {
         updates.scheduled = scheduled || null;
       }
-      if (JSON.stringify(scheduledRepeater) !== JSON.stringify(originalTodo.scheduledRepeater)) {
+      if (
+        JSON.stringify(scheduledRepeater) !==
+        JSON.stringify(originalTodo.scheduledRepeater)
+      ) {
         updates.scheduledRepeater = scheduledRepeater;
       }
       if (deadline !== (originalTodo.deadline || "")) {
         updates.deadline = deadline || null;
       }
-      if (JSON.stringify(deadlineRepeater) !== JSON.stringify(originalTodo.deadlineRepeater)) {
+      if (
+        JSON.stringify(deadlineRepeater) !==
+        JSON.stringify(originalTodo.deadlineRepeater)
+      ) {
         updates.deadlineRepeater = deadlineRepeater;
       }
       if (priority !== originalTodo.priority) {
@@ -186,7 +193,11 @@ export default function EditScreen() {
       }
     } catch (err) {
       console.error("Failed to delete:", err);
-      setSnackbar({ visible: true, message: "Failed to delete", isError: true });
+      setSnackbar({
+        visible: true,
+        message: "Failed to delete",
+        isError: true,
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -199,11 +210,18 @@ export default function EditScreen() {
   const handleScheduleReminder = useCallback(async () => {
     const now = new Date();
     if (remindDateTime <= now) {
-      setSnackbar({ visible: true, message: "Please select a future time", isError: true });
+      setSnackbar({
+        visible: true,
+        message: "Please select a future time",
+        isError: true,
+      });
       return;
     }
 
-    const result = await scheduleCustomNotification(originalTodo, remindDateTime);
+    const result = await scheduleCustomNotification(
+      originalTodo,
+      remindDateTime,
+    );
     if (result) {
       setSnackbar({
         visible: true,
@@ -217,12 +235,18 @@ export default function EditScreen() {
       });
       setRemindDialogVisible(false);
     } else {
-      setSnackbar({ visible: true, message: "Failed to schedule reminder", isError: true });
+      setSnackbar({
+        visible: true,
+        message: "Failed to schedule reminder",
+        isError: true,
+      });
     }
   }, [originalTodo, remindDateTime]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <Appbar.Header>
         <Appbar.BackAction onPress={() => router.back()} testID="back-button" />
         <Appbar.Content title="Edit Todo" />
@@ -235,11 +259,17 @@ export default function EditScreen() {
         />
       </Appbar.Header>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+      >
         {/* Read-only category display */}
         {originalTodo.file && (
           <View style={styles.categoryContainer}>
-            <Text variant="bodySmall" style={[styles.categoryLabel, { color: theme.colors.outline }]}>
+            <Text
+              variant="bodySmall"
+              style={[styles.categoryLabel, { color: theme.colors.outline }]}
+            >
               {originalTodo.file}
             </Text>
           </View>
@@ -247,21 +277,19 @@ export default function EditScreen() {
 
         {/* Title - read only */}
         <View style={styles.titleContainer}>
-          <Text variant="bodySmall" style={styles.fieldLabel}>Title</Text>
-          <Text variant="bodyLarge" style={styles.titleText}>{originalTodo.title}</Text>
+          <Text variant="bodySmall" style={styles.fieldLabel}>
+            Title
+          </Text>
+          <Text variant="bodyLarge" style={styles.titleText}>
+            {originalTodo.title}
+          </Text>
         </View>
 
         {/* State */}
-        <StatePicker
-          value={todoState}
-          onChange={setTodoState}
-        />
+        <StatePicker value={todoState} onChange={setTodoState} />
 
         {/* Priority */}
-        <PriorityPicker
-          value={priority}
-          onChange={setPriority}
-        />
+        <PriorityPicker value={priority} onChange={setPriority} />
 
         {/* Scheduled */}
         <DateFieldWithQuickActions
@@ -296,7 +324,9 @@ export default function EditScreen() {
         {/* Body - Collapsible */}
         {bodyExpanded ? (
           <View style={styles.bodyContainer}>
-            <Text variant="bodySmall" style={styles.fieldLabel}>Body</Text>
+            <Text variant="bodySmall" style={styles.fieldLabel}>
+              Body
+            </Text>
             <TextInput
               value={body}
               onChangeText={setBody}
@@ -344,20 +374,32 @@ export default function EditScreen() {
 
       {/* Delete confirmation dialog */}
       <Portal>
-        <Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
+        <Dialog
+          visible={deleteDialogVisible}
+          onDismiss={() => setDeleteDialogVisible(false)}
+        >
           <Dialog.Title>Delete Todo?</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">{originalTodo.title}</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDeleteDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleDelete} textColor={theme.colors.error}>Delete</Button>
+            <Button onPress={() => setDeleteDialogVisible(false)}>
+              Cancel
+            </Button>
+            <Button onPress={handleDelete} textColor={theme.colors.error}>
+              Delete
+            </Button>
           </Dialog.Actions>
         </Dialog>
-        <Dialog visible={remindDialogVisible} onDismiss={() => setRemindDialogVisible(false)}>
+        <Dialog
+          visible={remindDialogVisible}
+          onDismiss={() => setRemindDialogVisible(false)}
+        >
           <Dialog.Title>Set Reminder</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>{originalTodo.title}</Text>
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              {originalTodo.title}
+            </Text>
             {Platform.OS === "web" ? (
               <input
                 type="datetime-local"
@@ -388,7 +430,9 @@ export default function EditScreen() {
             )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setRemindDialogVisible(false)}>Cancel</Button>
+            <Button onPress={() => setRemindDialogVisible(false)}>
+              Cancel
+            </Button>
             <Button onPress={handleScheduleReminder}>Set Reminder</Button>
           </Dialog.Actions>
         </Dialog>
@@ -398,7 +442,9 @@ export default function EditScreen() {
         visible={snackbar.visible}
         onDismiss={() => setSnackbar((s) => ({ ...s, visible: false }))}
         duration={2000}
-        style={snackbar.isError ? { backgroundColor: theme.colors.error } : undefined}
+        style={
+          snackbar.isError ? { backgroundColor: theme.colors.error } : undefined
+        }
       >
         {snackbar.message}
       </Snackbar>

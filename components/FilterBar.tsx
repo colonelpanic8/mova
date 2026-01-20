@@ -11,14 +11,18 @@ interface FilterBarProps {
 
 export function FilterBar({ testID }: FilterBarProps) {
   const theme = useTheme();
-  const { activeFilters, hasActiveFilters, removeFilter, clearAllFilters } = useFilters();
+  const { activeFilters, hasActiveFilters, removeFilter, clearAllFilters } =
+    useFilters();
   const [modalVisible, setModalVisible] = useState(false);
 
   return (
     <>
       <View
         testID={testID}
-        style={[styles.container, { borderBottomColor: theme.colors.outlineVariant }]}
+        style={[
+          styles.container,
+          { borderBottomColor: theme.colors.outlineVariant },
+        ]}
       >
         <ScrollView
           horizontal
@@ -27,11 +31,23 @@ export function FilterBar({ testID }: FilterBarProps) {
         >
           <TouchableOpacity
             testID="filterAddButton"
-            style={[styles.addButton, { backgroundColor: theme.colors.primaryContainer }]}
+            style={[
+              styles.addButton,
+              { backgroundColor: theme.colors.primaryContainer },
+            ]}
             onPress={() => setModalVisible(true)}
           >
-            <Icon source="plus" size={16} color={theme.colors.onPrimaryContainer} />
-            <Text style={[styles.addButtonText, { color: theme.colors.onPrimaryContainer }]}>
+            <Icon
+              source="plus"
+              size={16}
+              color={theme.colors.onPrimaryContainer}
+            />
+            <Text
+              style={[
+                styles.addButtonText,
+                { color: theme.colors.onPrimaryContainer },
+              ]}
+            >
               Filter
             </Text>
           </TouchableOpacity>

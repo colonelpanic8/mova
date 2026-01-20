@@ -3,7 +3,6 @@ import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
-import { filterTodos } from "@/utils/filterTodos";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
   api,
@@ -12,6 +11,7 @@ import {
   Todo,
   TodoStatesResponse,
 } from "@/services/api";
+import { filterTodos } from "@/utils/filterTodos";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,

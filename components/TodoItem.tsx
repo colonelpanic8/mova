@@ -161,10 +161,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
         </TouchableOpacity>
         <TouchableOpacity
           testID={`deleteActionButton_${testIdSuffix}`}
-          style={[
-            styles.swipeAction,
-            { backgroundColor: theme.colors.error },
-          ]}
+          style={[styles.swipeAction, { backgroundColor: theme.colors.error }]}
           onPress={() => openDeleteConfirm(todo)}
         >
           <Text style={styles.swipeActionText}>Delete</Text>
@@ -254,12 +251,17 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
               {todo.title}
             </Text>
           </View>
-          {(todo.scheduled || todo.deadline || todo.completedAt || (todo.tags && todo.tags.length > 0)) && (
+          {(todo.scheduled ||
+            todo.deadline ||
+            todo.completedAt ||
+            (todo.tags && todo.tags.length > 0)) && (
             <View style={styles.metaRow}>
               <View style={styles.metaLeft}>
                 {todo.scheduled && (
                   <View style={styles.metaItem}>
-                    <Text style={[styles.metaText, { color: theme.colors.primary }]}>
+                    <Text
+                      style={[styles.metaText, { color: theme.colors.primary }]}
+                    >
                       S: {formatDate(todo.scheduled)}
                     </Text>
                     {todo.scheduledRepeater && (
@@ -283,7 +285,9 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
                 )}
                 {todo.deadline && (
                   <View style={styles.metaItem}>
-                    <Text style={[styles.metaText, { color: theme.colors.error }]}>
+                    <Text
+                      style={[styles.metaText, { color: theme.colors.error }]}
+                    >
                       D: {formatDate(todo.deadline)}
                     </Text>
                     {todo.deadlineRepeater && (
@@ -307,7 +311,9 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
                 )}
                 {todo.completedAt && (
                   <View style={styles.metaItem}>
-                    <Text style={[styles.metaText, { color: theme.colors.outline }]}>
+                    <Text
+                      style={[styles.metaText, { color: theme.colors.outline }]}
+                    >
                       Completed at {formatCompletedAt(todo.completedAt)}
                     </Text>
                   </View>

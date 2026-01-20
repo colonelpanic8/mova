@@ -3,17 +3,8 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import React, { useCallback, useState } from "react";
-import {
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import {
-  Button,
-  IconButton,
-  Text,
-} from "react-native-paper";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Button, IconButton, Text } from "react-native-paper";
 
 function formatDateForApi(date: Date): string {
   return date.toISOString().split("T")[0];

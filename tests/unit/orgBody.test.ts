@@ -1,4 +1,4 @@
-import { parseOrgBody, serializeBlocks, Block } from "../../utils/orgBody";
+import { Block, parseOrgBody, serializeBlocks } from "../../utils/orgBody";
 
 describe("parseOrgBody", () => {
   it("should parse empty string to empty array", () => {
@@ -80,7 +80,13 @@ describe("serializeBlocks", () => {
 
   it("should serialize unchecked checklist", () => {
     const blocks: Block[] = [
-      { id: "1", type: "checklist", indent: 0, checked: false, content: "Task" },
+      {
+        id: "1",
+        type: "checklist",
+        indent: 0,
+        checked: false,
+        content: "Task",
+      },
     ];
     expect(serializeBlocks(blocks)).toBe("- [ ] Task");
   });
@@ -108,7 +114,13 @@ describe("serializeBlocks", () => {
 
   it("should serialize with indentation", () => {
     const blocks: Block[] = [
-      { id: "1", type: "checklist", indent: 2, checked: false, content: "Nested" },
+      {
+        id: "1",
+        type: "checklist",
+        indent: 2,
+        checked: false,
+        content: "Nested",
+      },
     ];
     expect(serializeBlocks(blocks)).toBe("    - [ ] Nested");
   });

@@ -74,7 +74,10 @@ function matchesDateRange(todo: Todo, dateRange: DateRange): boolean {
   return true;
 }
 
-export function filterTodos<T extends Todo>(todos: T[], filters: FilterState): T[] {
+export function filterTodos<T extends Todo>(
+  todos: T[],
+  filters: FilterState,
+): T[] {
   // If no filters active, return all todos
   const hasActiveFilters =
     filters.tags.include.length > 0 ||
@@ -94,7 +97,7 @@ export function filterTodos<T extends Todo>(todos: T[], filters: FilterState): T
     if (filters.tags.include.length > 0) {
       const todoTags = todo.tags || [];
       const hasIncludedTag = filters.tags.include.some((tag) =>
-        todoTags.includes(tag)
+        todoTags.includes(tag),
       );
       if (!hasIncludedTag) return false;
     }
@@ -103,7 +106,7 @@ export function filterTodos<T extends Todo>(todos: T[], filters: FilterState): T
     if (filters.tags.exclude.length > 0) {
       const todoTags = todo.tags || [];
       const hasExcludedTag = filters.tags.exclude.some((tag) =>
-        todoTags.includes(tag)
+        todoTags.includes(tag),
       );
       if (hasExcludedTag) return false;
     }
@@ -115,7 +118,8 @@ export function filterTodos<T extends Todo>(todos: T[], filters: FilterState): T
 
     // Priority filter: todo priority must be one of the selected priorities
     if (filters.priorities.length > 0) {
-      if (!todo.priority || !filters.priorities.includes(todo.priority)) return false;
+      if (!todo.priority || !filters.priorities.includes(todo.priority))
+        return false;
     }
 
     // Date range filter
@@ -125,7 +129,8 @@ export function filterTodos<T extends Todo>(todos: T[], filters: FilterState): T
 
     // File filter: todo file must match one of the selected files
     if (filters.files.length > 0) {
-      if (!todo.file || !filters.files.some((f) => todo.file?.includes(f))) return false;
+      if (!todo.file || !filters.files.some((f) => todo.file?.includes(f)))
+        return false;
     }
 
     // Category filter
@@ -135,7 +140,7 @@ export function filterTodos<T extends Todo>(todos: T[], filters: FilterState): T
       // Categories might be stored differently - for now, check if file path contains category
       const todoFile = todo.file || "";
       const matchesCategory = filters.categories.some((cat) =>
-        todoFile.toLowerCase().includes(cat.toLowerCase())
+        todoFile.toLowerCase().includes(cat.toLowerCase()),
       );
       if (!matchesCategory) return false;
     }

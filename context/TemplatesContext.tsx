@@ -1,5 +1,12 @@
 import { useAuth } from "@/context/AuthContext";
-import { api, CategoryType, CustomViewsResponse, FilterOptionsResponse, MetadataResponse, TemplatesResponse, TodoStatesResponse } from "@/services/api";
+import {
+  api,
+  CategoryType,
+  CustomViewsResponse,
+  FilterOptionsResponse,
+  TemplatesResponse,
+  TodoStatesResponse,
+} from "@/services/api";
 import React, {
   createContext,
   ReactNode,
@@ -26,11 +33,15 @@ const TemplatesContext = createContext<TemplatesContextType | undefined>(
 
 export function TemplatesProvider({ children }: { children: ReactNode }) {
   const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
-  const [categoryTypes, setCategoryTypes] = useState<CategoryType[] | null>(null);
+  const [categoryTypes, setCategoryTypes] = useState<CategoryType[] | null>(
+    null,
+  );
   const [filterOptions, setFilterOptions] =
     useState<FilterOptionsResponse | null>(null);
   const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
-  const [customViews, setCustomViews] = useState<CustomViewsResponse | null>(null);
+  const [customViews, setCustomViews] = useState<CustomViewsResponse | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { apiUrl, username, password, isAuthenticated } = useAuth();
@@ -74,7 +85,10 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       // Fallback to individual endpoints if /metadata is not available
-      console.warn("Metadata endpoint failed, falling back to individual endpoints:", err);
+      console.warn(
+        "Metadata endpoint failed, falling back to individual endpoints:",
+        err,
+      );
 
       const results = await Promise.allSettled([
         api.getTemplates(),
@@ -83,7 +97,12 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         api.getCustomViews(),
       ]);
 
-      const [templatesResult, filterOptionsResult, todoStatesResult, customViewsResult] = results;
+      const [
+        templatesResult,
+        filterOptionsResult,
+        todoStatesResult,
+        customViewsResult,
+      ] = results;
 
       if (templatesResult.status === "fulfilled") {
         setTemplates(templatesResult.value);
@@ -132,7 +151,16 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
 
   return (
     <TemplatesContext.Provider
-      value={{ templates, categoryTypes, filterOptions, todoStates, customViews, isLoading, error, reloadTemplates }}
+      value={{
+        templates,
+        categoryTypes,
+        filterOptions,
+        todoStates,
+        customViews,
+        isLoading,
+        error,
+        reloadTemplates,
+      }}
     >
       {children}
     </TemplatesContext.Provider>

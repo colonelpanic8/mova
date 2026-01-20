@@ -665,7 +665,9 @@ export function useTodoEditing(
               value={`${String(quickScheduleDate.getHours()).padStart(2, "0")}:${String(quickScheduleDate.getMinutes()).padStart(2, "0")}`}
               onChange={(e) => {
                 if (e.target.value && editingTodo) {
-                  const [hours, minutes] = e.target.value.split(":").map(Number);
+                  const [hours, minutes] = e.target.value
+                    .split(":")
+                    .map(Number);
                   const combined = new Date(quickScheduleDate);
                   combined.setHours(hours, minutes, 0, 0);
                   const dateString = formatLocalDateTime(combined);
@@ -942,7 +944,9 @@ export function useTodoEditing(
             <Dialog.Actions>
               <Button onPress={closeDeleteConfirm}>Cancel</Button>
               <Button
-                onPress={() => deleteConfirmTodo && handleDeleteTodo(deleteConfirmTodo)}
+                onPress={() =>
+                  deleteConfirmTodo && handleDeleteTodo(deleteConfirmTodo)
+                }
                 textColor={theme.colors.error}
               >
                 Delete

@@ -225,7 +225,10 @@ class OrgAgendaApi {
     try {
       return JSON.parse(text);
     } catch (parseError) {
-      console.error("[API] JSON parse error", { url, body: text.substring(0, 500) });
+      console.error("[API] JSON parse error", {
+        url,
+        body: text.substring(0, 500),
+      });
       throw parseError;
     }
   }

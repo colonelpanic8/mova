@@ -3,7 +3,7 @@ import { useMutation } from "@/context/MutationContext";
 import { api, Todo } from "@/services/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Appbar, Snackbar, useTheme } from "react-native-paper";
 
 export default function BodyEditorScreen() {
@@ -22,7 +22,11 @@ export default function BodyEditorScreen() {
   const [body, setBody] = useState(params.body || "");
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: "", isError: false });
+  const [snackbar, setSnackbar] = useState({
+    visible: false,
+    message: "",
+    isError: false,
+  });
 
   const bodyRef = useRef(body);
   bodyRef.current = body;
@@ -88,18 +92,26 @@ export default function BodyEditorScreen() {
     return () => {
       if (isDirty) {
         // Fire and forget - we're unmounting
-        api.updateTodo(todo, { body: bodyRef.current }).then(() => {
-          triggerRefresh();
-        }).catch(console.error);
+        api
+          .updateTodo(todo, { body: bodyRef.current })
+          .then(() => {
+            triggerRefresh();
+          })
+          .catch(console.error);
       }
     };
   }, [isDirty, todo, triggerRefresh]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <Appbar.Header>
         <Appbar.BackAction onPress={handleBack} testID="back-button" />
-        <Appbar.Content title={params.title || "Edit Body"} titleStyle={styles.title} />
+        <Appbar.Content
+          title={params.title || "Edit Body"}
+          titleStyle={styles.title}
+        />
         <Appbar.Action
           icon="content-save"
           onPress={save}
@@ -118,7 +130,9 @@ export default function BodyEditorScreen() {
         visible={snackbar.visible}
         onDismiss={() => setSnackbar((s) => ({ ...s, visible: false }))}
         duration={2000}
-        style={snackbar.isError ? { backgroundColor: theme.colors.error } : undefined}
+        style={
+          snackbar.isError ? { backgroundColor: theme.colors.error } : undefined
+        }
       >
         {snackbar.message}
       </Snackbar>
