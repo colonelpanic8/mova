@@ -9,11 +9,11 @@
         "nixpkgs-stable": "nixpkgs-stable"
       },
       "locked": {
-        "lastModified": 1768379502,
-        "narHash": "sha256-P1iX+CKgqR1vAeolUl7i6UlLX8SWFcF4mRK7Epe5v6U=",
+        "lastModified": 1768873474,
+        "narHash": "sha256-ZHDhd3pUzBsn154m+iZeRMeBHu9vl6zcv2lP1c3d9AA=",
         "owner": "nix-community",
         "repo": "emacs-overlay",
-        "rev": "c0b6ffb9edfb7ca5ccc36c3723690768ed8b8471",
+        "rev": "8160e7b3e25ac9dc167ec8db35f27f328b03b5e4",
         "type": "github"
       },
       "original": {
@@ -120,11 +120,11 @@
     "mova": {
       "flake": false,
       "locked": {
-        "lastModified": 1768721054,
-        "narHash": "sha256-1De+eLNQ2mvZX7MHSIPRMvKIqlaKkVDZDcvjeLCQjo0=",
+        "lastModified": 1768866645,
+        "narHash": "sha256-XVTnYL9bHIUzn+hzvU/EaUMW6r/btsyfRvEyIoMlcCA=",
         "ref": "refs/heads/master",
-        "rev": "fc53d1987b08009092c4dd5dcd6e0e0d6bd54d27",
-        "revCount": 112,
+        "rev": "5dcd0169ccd61cd18113fc121460bfab58d3140f",
+        "revCount": 175,
         "type": "git",
         "url": "ssh://git@github.com/colonelpanic8/mova"
       },
@@ -217,11 +217,11 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1768127708,
-        "narHash": "sha256-1Sm77VfZh3mU0F5OqKABNLWxOuDeHIlcFjsXeeiPazs=",
+        "lastModified": 1768564909,
+        "narHash": "sha256-Kell/SpJYVkHWMvnhqJz/8DqQg2b6PguxVWOuadbHCc=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+        "rev": "e4bae1bd10c9c57b2cf517953ab70060a828ee6f",
         "type": "github"
       },
       "original": {
@@ -240,11 +240,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1768724459,
-        "narHash": "sha256-sQNmqpbs7NhQFwiLNfFaj/NtHMEuJQEvGV0XkwFatfg=",
+        "lastModified": 1768879193,
+        "narHash": "sha256-KTvGypPzrEIUy/XZqoDIiqebMPM94JXq6Xwslmdpj6s=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "00f52386335e15e3318e4878b49faf52ad9109b2",
+        "rev": "7e1d833997d0b87ddcca06227769c3183a2288eb",
         "type": "github"
       },
       "original": {
