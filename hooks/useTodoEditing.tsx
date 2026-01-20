@@ -1,4 +1,5 @@
 import { useMutation } from "@/context/MutationContext";
+import { useSettings } from "@/context/SettingsContext";
 import { api, Todo, TodoStatesResponse, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -35,6 +36,14 @@ function formatLocalDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+// Format a Date to YYYY-MM-DD HH:MM using local time
+function formatLocalDateTime(date: Date): string {
+  const dateStr = formatLocalDate(date);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${dateStr} ${hours}:${minutes}`;
 }
 
 type EditModalType =
@@ -80,6 +89,7 @@ export function useTodoEditing(
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
   const router = useRouter();
+  const { quickScheduleIncludeTime } = useSettings();
 
   // Edit modal state
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -222,7 +232,9 @@ export function useTodoEditing(
       setUpdatingIds((prev) => new Set(prev).add(key));
 
       const today = new Date();
-      const dateString = formatLocalDate(today);
+      const dateString = quickScheduleIncludeTime
+        ? formatLocalDateTime(today)
+        : formatLocalDate(today);
 
       try {
         const result = await api.updateTodo(todo, { scheduled: dateString });
@@ -257,7 +269,7 @@ export function useTodoEditing(
         });
       }
     },
-    [onTodoUpdated, triggerRefresh],
+    [onTodoUpdated, triggerRefresh, quickScheduleIncludeTime],
   );
 
   const scheduleTomorrow = useCallback(
@@ -268,7 +280,9 @@ export function useTodoEditing(
 
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateString = formatLocalDate(tomorrow);
+      const dateString = quickScheduleIncludeTime
+        ? formatLocalDateTime(tomorrow)
+        : formatLocalDate(tomorrow);
 
       try {
         const result = await api.updateTodo(todo, { scheduled: dateString });
@@ -303,7 +317,7 @@ export function useTodoEditing(
         });
       }
     },
-    [onTodoUpdated, triggerRefresh],
+    [onTodoUpdated, triggerRefresh, quickScheduleIncludeTime],
   );
 
   const handleUpdateTodo = useCallback(

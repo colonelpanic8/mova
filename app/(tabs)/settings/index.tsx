@@ -1,4 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import { AgendaFilesResponse, api, VersionResponse } from "@/services/api";
 import {
@@ -21,6 +22,7 @@ import {
 
 export default function SettingsScreen() {
   const { apiUrl, username, password, logout } = useAuth();
+  const { quickScheduleIncludeTime, setQuickScheduleIncludeTime } = useSettings();
   const theme = useTheme();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
@@ -189,6 +191,23 @@ export default function SettingsScreen() {
           left={(props) => <List.Icon {...props} icon="palette" />}
           onPress={() => router.push("./colors")}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
+        />
+      </List.Section>
+
+      <Divider />
+
+      <List.Section>
+        <List.Subheader>Behavior</List.Subheader>
+        <List.Item
+          title="Include Time in Quick Schedule"
+          description="Today/Tomorrow actions include current time"
+          left={(props) => <List.Icon {...props} icon="clock-outline" />}
+          right={() => (
+            <Switch
+              value={quickScheduleIncludeTime}
+              onValueChange={setQuickScheduleIncludeTime}
+            />
+          )}
         />
       </List.Section>
 

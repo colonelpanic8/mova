@@ -2,6 +2,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
 import { FilterProvider } from "@/context/FilterContext";
 import { MutationProvider } from "@/context/MutationContext";
+import { SettingsProvider } from "@/context/SettingsContext";
 import { TemplatesProvider } from "@/context/TemplatesContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -70,15 +71,17 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
         <ColorPaletteProvider>
-          <MutationProvider>
-            <AuthProvider>
-              <TemplatesProvider>
-                <FilterProvider>
-                  <RootLayoutNav />
-                </FilterProvider>
-              </TemplatesProvider>
-            </AuthProvider>
-          </MutationProvider>
+          <SettingsProvider>
+            <MutationProvider>
+              <AuthProvider>
+                <TemplatesProvider>
+                  <FilterProvider>
+                    <RootLayoutNav />
+                  </FilterProvider>
+                </TemplatesProvider>
+              </AuthProvider>
+            </MutationProvider>
+          </SettingsProvider>
         </ColorPaletteProvider>
       </PaperProvider>
     </GestureHandlerRootView>
