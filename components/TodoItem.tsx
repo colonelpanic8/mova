@@ -1,6 +1,7 @@
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Repeater, Todo } from "@/services/api";
+import { HabitGraph } from "@/components/HabitGraph";
 import { PriorityLevel } from "@/types/colors";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
@@ -332,6 +333,10 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
                 </View>
               )}
             </View>
+          )}
+          {/* Habit Graph */}
+          {todo.isWindowHabit && todo.habitSummary?.miniGraph && (
+            <HabitGraph miniGraph={todo.habitSummary.miniGraph} />
           )}
         </View>
       </Pressable>
