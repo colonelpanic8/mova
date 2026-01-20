@@ -268,6 +268,7 @@ describe("AgendaScreen", () => {
       "day",
       expect.any(String),
       expect.any(Boolean),
+      expect.any(Boolean),
     );
   });
 
