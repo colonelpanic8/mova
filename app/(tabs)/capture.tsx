@@ -587,13 +587,13 @@ export default function CaptureScreen() {
   };
 
   const handleCapture = async () => {
-    if (!selectedTemplateKey || !selectedTemplate) return;
+    if (!selection) return;
 
     setSubmitting(true);
 
     try {
-      // Validate required fields
-      const missingRequired = (selectedTemplate.prompts ?? [])
+      // Validate required fields from prompts
+      const missingRequired = selectedPrompts
         .filter((p) => p.required)
         .filter((p) => {
           const val = values[p.name];
@@ -601,6 +601,11 @@ export default function CaptureScreen() {
           return !val || (typeof val === "string" && !val.trim());
         })
         .map((p) => p.name);
+
+      // For category captures, also require category
+      if (selection.type === "category" && !categoryValue.trim()) {
+        missingRequired.unshift("Category");
+      }
 
       if (missingRequired.length > 0) {
         setMessage({
@@ -611,29 +616,46 @@ export default function CaptureScreen() {
         return;
       }
 
-      // Merge template values with optional fields
-      const captureValues: Record<string, string | string[] | Repeater> = {
-        ...values,
-      };
+      // Build capture values
+      const captureValues: Record<string, string | string[]> = { ...values };
       if (optionalFields.scheduled)
         captureValues.scheduled = optionalFields.scheduled;
       if (optionalFields.deadline)
         captureValues.deadline = optionalFields.deadline;
-      if (optionalFields.scheduledRepeater)
-        captureValues.scheduledRepeater = optionalFields.scheduledRepeater;
-      if (optionalFields.deadlineRepeater)
-        captureValues.deadlineRepeater = optionalFields.deadlineRepeater;
       if (optionalFields.priority)
         captureValues.priority = optionalFields.priority;
       if (optionalFields.tags?.length) captureValues.tags = optionalFields.tags;
       if (optionalFields.todo && optionalFields.todo !== "TODO")
         captureValues.todo = optionalFields.todo;
 
-      const result = await api.capture(selectedTemplateKey, captureValues);
+      let result;
+      if (selection.type === "template") {
+        // For template captures, include repeaters
+        const templateCaptureValues: Record<string, string | string[] | Repeater> = { ...captureValues };
+        if (optionalFields.scheduledRepeater)
+          templateCaptureValues.scheduledRepeater = optionalFields.scheduledRepeater;
+        if (optionalFields.deadlineRepeater)
+          templateCaptureValues.deadlineRepeater = optionalFields.deadlineRepeater;
+        result = await api.capture(selection.key, templateCaptureValues);
+      } else {
+        // Category capture
+        // Map prompt names to API field names
+        const title = (captureValues.Title as string) || "";
+        delete captureValues.Title;
+        captureValues.title = title;
+
+        result = await api.categoryCapture(
+          selection.categoryType.name,
+          categoryValue.trim(),
+          captureValues,
+        );
+      }
+
       if (result.status === "created") {
         setMessage({ text: "Captured!", isError: false });
         setValues({});
         setOptionalFields({});
+        setCategoryValue("");
         triggerRefresh();
       } else {
         setMessage({
@@ -733,8 +755,18 @@ export default function CaptureScreen() {
         style={styles.formContainer}
         contentContainerStyle={styles.formContent}
       >
+        {/* Category field for category type captures */}
+        {selection?.type === "category" && (
+          <CategoryField
+            categories={availableCategories}
+            value={categoryValue}
+            onChange={setCategoryValue}
+            loading={categoriesLoading}
+          />
+        )}
+
         {/* Template prompts */}
-        {(selectedTemplate?.prompts ?? []).map((prompt) => (
+        {selectedPrompts.map((prompt) => (
           <PromptField
             key={prompt.name}
             prompt={prompt}
@@ -796,7 +828,7 @@ export default function CaptureScreen() {
           mode="contained"
           onPress={handleCapture}
           loading={submitting}
-          disabled={submitting}
+          disabled={submitting || !selection}
           style={styles.captureButton}
           icon="check"
         >
