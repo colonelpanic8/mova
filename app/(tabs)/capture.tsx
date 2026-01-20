@@ -531,6 +531,7 @@ export default function CaptureScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <ScrollView
+          style={styles.formContainer}
           contentContainerStyle={styles.formContent}
           keyboardShouldPersistTaps="handled"
         >
