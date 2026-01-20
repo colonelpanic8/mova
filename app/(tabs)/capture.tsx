@@ -1,9 +1,9 @@
-import { PriorityPicker, StatePicker } from "@/components/capture";
+import { CategoryField, PriorityPicker, StatePicker } from "@/components/capture";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { api, TemplatePrompt } from "@/services/api";
+import { api, CategoryType, TemplatePrompt } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -30,6 +30,10 @@ import {
 } from "react-native-paper";
 
 const LAST_TEMPLATE_KEY = "mova_last_template";
+
+type CaptureSelection =
+  | { type: "template"; key: string }
+  | { type: "category"; categoryType: CategoryType };
 
 function formatDateForApi(date: Date): string {
   return date.toISOString().split("T")[0];
@@ -451,14 +455,16 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
 export default function CaptureScreen() {
   const {
     templates,
+    categoryTypes,
     filterOptions,
     isLoading: loading,
     reloadTemplates,
   } = useTemplates();
   const { quickScheduleIncludeTime } = useSettings();
-  const [selectedTemplateKey, setSelectedTemplateKey] = useState<string | null>(
-    null,
-  );
+  const [selection, setSelection] = useState<CaptureSelection | null>(null);
+  const [categoryValue, setCategoryValue] = useState("");
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [values, setValues] = useState<Record<string, string | string[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{
@@ -485,20 +491,45 @@ export default function CaptureScreen() {
       const templateKeys = Object.keys(templates);
 
       if (lastTemplate && templateKeys.includes(lastTemplate)) {
-        setSelectedTemplateKey(lastTemplate);
+        setSelection({ type: "template", key: lastTemplate });
       } else if (templateKeys.length > 0) {
-        setSelectedTemplateKey(templateKeys[0]);
+        setSelection({ type: "template", key: templateKeys[0] });
       }
     };
 
     loadLastTemplate();
   }, [templates]);
 
-  // Reset form values when template changes
+  // Fetch categories when category type is selected
+  useEffect(() => {
+    if (selection?.type !== "category") {
+      setAvailableCategories([]);
+      setCategoryValue("");
+      return;
+    }
+
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const response = await api.getCategories(selection.categoryType.name);
+        setAvailableCategories(response.categories);
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+        setAvailableCategories([]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [selection]);
+
+  // Reset form values when selection changes
   useEffect(() => {
     setValues({});
     setOptionalFields({});
-  }, [selectedTemplateKey]);
+    setCategoryValue("");
+  }, [selection]);
 
   const handleOptionalFieldChange = <K extends keyof typeof optionalFields>(
     field: K,
@@ -507,6 +538,7 @@ export default function CaptureScreen() {
     setOptionalFields((prev) => ({ ...prev, [field]: value }));
   };
 
+  const selectedTemplateKey = selection?.type === "template" ? selection.key : null;
   const selectedTemplate =
     selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;
 
@@ -515,7 +547,7 @@ export default function CaptureScreen() {
     // This fixes Android issue where menu won't reopen after selection
     setMenuVisible(false);
     setTimeout(() => {
-      setSelectedTemplateKey(key);
+      setSelection({ type: "template", key });
       AsyncStorage.setItem(LAST_TEMPLATE_KEY, key);
     }, 0);
   };
