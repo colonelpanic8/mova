@@ -30,10 +30,12 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "(tabs)";
+    const inAuthenticatedRoute =
+      inAuthGroup || segments[0] === "edit" || segments[0] === "body-editor";
 
-    if (isAuthenticated && !inAuthGroup) {
+    if (isAuthenticated && !inAuthenticatedRoute && segments[0] !== undefined) {
       router.replace("/(tabs)");
-    } else if (!isAuthenticated && inAuthGroup) {
+    } else if (!isAuthenticated && inAuthenticatedRoute) {
       router.replace("/login");
     } else if (!isAuthenticated && !segments[0]) {
       router.replace("/login");
