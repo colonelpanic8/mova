@@ -460,6 +460,25 @@ class OrgAgendaApi {
       }),
     });
   }
+
+  async getHabitConfig(): Promise<HabitConfig> {
+    return this.request<HabitConfig>("/habit-config");
+  }
+
+  async getHabitStatus(
+    id: string,
+    preceding?: number,
+    following?: number,
+  ): Promise<HabitStatus> {
+    const params = new URLSearchParams({ id });
+    if (preceding !== undefined) {
+      params.append("preceding", preceding.toString());
+    }
+    if (following !== undefined) {
+      params.append("following", following.toString());
+    }
+    return this.request<HabitStatus>(`/habit-status?${params.toString()}`);
+  }
 }
 
 export const api = new OrgAgendaApi();
