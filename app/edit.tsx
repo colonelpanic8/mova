@@ -4,9 +4,11 @@ import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { api, Repeater, Todo, TodoUpdates } from "@/services/api";
+import { scheduleCustomNotification } from "@/services/notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
+  Platform,
   ScrollView,
   StyleSheet,
   View,
@@ -79,6 +81,13 @@ export default function EditScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [snackbar, setSnackbar] = useState({ visible: false, message: "", isError: false });
+  const [remindDialogVisible, setRemindDialogVisible] = useState(false);
+  const [remindDateTime, setRemindDateTime] = useState<Date>(() => {
+    const date = new Date();
+    date.setHours(date.getHours() + 1);
+    date.setMinutes(0, 0, 0);
+    return date;
+  });
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -184,9 +193,33 @@ export default function EditScreen() {
   }, [originalTodo, triggerRefresh, router]);
 
   const handleRemind = useCallback(() => {
-    // Placeholder - will be implemented in Task 6
-    setSnackbar({ visible: true, message: "Reminder feature coming soon", isError: false });
+    setRemindDialogVisible(true);
   }, []);
+
+  const handleScheduleReminder = useCallback(async () => {
+    const now = new Date();
+    if (remindDateTime <= now) {
+      setSnackbar({ visible: true, message: "Please select a future time", isError: true });
+      return;
+    }
+
+    const result = await scheduleCustomNotification(originalTodo, remindDateTime);
+    if (result) {
+      setSnackbar({
+        visible: true,
+        message: `Reminder set for ${remindDateTime.toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}`,
+        isError: false,
+      });
+      setRemindDialogVisible(false);
+    } else {
+      setSnackbar({ visible: true, message: "Failed to schedule reminder", isError: true });
+    }
+  }, [originalTodo, remindDateTime]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -317,6 +350,44 @@ export default function EditScreen() {
           <Dialog.Actions>
             <Button onPress={() => setDeleteDialogVisible(false)}>Cancel</Button>
             <Button onPress={handleDelete} textColor={theme.colors.error}>Delete</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog visible={remindDialogVisible} onDismiss={() => setRemindDialogVisible(false)}>
+          <Dialog.Title>Set Reminder</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>{originalTodo.title}</Text>
+            {Platform.OS === "web" ? (
+              <input
+                type="datetime-local"
+                value={`${remindDateTime.getFullYear()}-${String(remindDateTime.getMonth() + 1).padStart(2, "0")}-${String(remindDateTime.getDate()).padStart(2, "0")}T${String(remindDateTime.getHours()).padStart(2, "0")}:${String(remindDateTime.getMinutes()).padStart(2, "0")}`}
+                onChange={(e) => {
+                  const parsed = new Date(e.target.value);
+                  if (!isNaN(parsed.getTime())) {
+                    setRemindDateTime(parsed);
+                  }
+                }}
+                style={{
+                  padding: 12,
+                  fontSize: 16,
+                  borderRadius: 8,
+                  border: `1px solid ${theme.colors.outline}`,
+                }}
+              />
+            ) : (
+              <Text variant="bodySmall">
+                {remindDateTime.toLocaleString([], {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setRemindDialogVisible(false)}>Cancel</Button>
+            <Button onPress={handleScheduleReminder}>Set Reminder</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
