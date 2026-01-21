@@ -26,6 +26,8 @@ export interface Todo {
   olpath: string[] | null;
   notifyBefore: number[] | null;
   body?: string | null;
+  // Org-mode properties drawer key-value pairs
+  properties?: Record<string, string> | null;
   // Habit fields (present when isWindowHabit is true)
   isWindowHabit?: boolean;
   habitSummary?: HabitSummary;
@@ -134,6 +136,7 @@ export interface TodoUpdates {
   deadlineRepeater?: Repeater | null;
   priority?: string | null;
   body?: string | null;
+  properties?: Record<string, string> | null;
 }
 
 export interface UpdateTodoResponse {
