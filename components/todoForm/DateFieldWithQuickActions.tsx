@@ -4,7 +4,7 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import React, { useCallback, useState } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Button, IconButton, Text } from "react-native-paper";
+import { Button, IconButton, Switch, Text, useTheme } from "react-native-paper";
 
 function formatDateForApi(date: Date): string {
   return date.toISOString().split("T")[0];
@@ -54,12 +54,14 @@ export function DateFieldWithQuickActions({
   value,
   onChange,
   colorKey,
-  includeTime,
+  includeTime: initialIncludeTime,
 }: DateFieldWithQuickActionsProps) {
+  const theme = useTheme();
   const { getActionColor } = useColorPalette();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(new Date());
+  const [includeTime, setIncludeTime] = useState(initialIncludeTime);
 
   const handleToday = useCallback(() => {
     const today = new Date();
@@ -169,6 +171,17 @@ export function DateFieldWithQuickActions({
           >
             <Text style={styles.quickActionText}>Tomorrow</Text>
           </TouchableOpacity>
+          <View style={styles.timeToggle}>
+            <Text
+              style={[
+                styles.timeToggleLabel,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
+            >
+              Time
+            </Text>
+            <Switch value={includeTime} onValueChange={setIncludeTime} />
+          </View>
         </View>
         <View style={styles.dateInputRow}>
           <input
@@ -219,6 +232,17 @@ export function DateFieldWithQuickActions({
         >
           <Text style={styles.quickActionText}>Tomorrow</Text>
         </TouchableOpacity>
+        <View style={styles.timeToggle}>
+          <Text
+            style={[
+              styles.timeToggleLabel,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
+          >
+            Time
+          </Text>
+          <Switch value={includeTime} onValueChange={setIncludeTime} />
+        </View>
       </View>
       <View style={styles.dateButtonRow}>
         <Button
@@ -294,5 +318,14 @@ const styles = StyleSheet.create({
   },
   clearButtonInline: {
     marginLeft: -8,
+  },
+  timeToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: "auto",
+    gap: 4,
+  },
+  timeToggleLabel: {
+    fontSize: 13,
   },
 });

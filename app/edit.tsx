@@ -1,4 +1,5 @@
 import { PriorityPicker, StatePicker } from "@/components/capture";
+import { LogbookViewer } from "@/components/LogbookViewer";
 import { PropertiesEditor } from "@/components/PropertiesEditor";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
@@ -314,7 +315,6 @@ export default function EditScreen() {
             style={styles.input}
             testID="title-input"
             editable={true}
-            autoCapitalize="sentences"
           />
 
           {/* State */}
@@ -383,6 +383,12 @@ export default function EditScreen() {
           <PropertiesEditor
             properties={properties}
             onChange={setProperties}
+            defaultExpanded={false}
+          />
+
+          {/* Logbook - Read-only, collapsed by default */}
+          <LogbookViewer
+            logbook={originalTodo.logbook}
             defaultExpanded={false}
           />
 
