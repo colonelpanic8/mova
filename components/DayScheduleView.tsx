@@ -286,11 +286,7 @@ export function DayScheduleView({
             </Text>
           </View>
           {untimedEntries.map((entry) => (
-            <CompactTodoItem
-              key={getTodoKey(entry)}
-              todo={entry}
-              opacity={1}
-            />
+            <CompactTodoItem key={getTodoKey(entry)} todo={entry} opacity={1} />
           ))}
         </View>
       )}
@@ -354,7 +350,8 @@ export function DayScheduleView({
           const position = getPositionForTime(time.hours, time.minutes);
           const widthPercent = 100 / totalColumns;
           const leftPercent = (column / totalColumns) * 100;
-          const isCompleted = entry.completedAt || doneStates.includes(entry.todo);
+          const isCompleted =
+            entry.completedAt || doneStates.includes(entry.todo);
 
           return (
             <View
@@ -368,10 +365,7 @@ export function DayScheduleView({
                 },
               ]}
             >
-              <CompactTodoItem
-                todo={entry}
-                opacity={isCompleted ? 0.6 : 1}
-              />
+              <CompactTodoItem todo={entry} opacity={isCompleted ? 0.6 : 1} />
             </View>
           );
         })}
