@@ -61,7 +61,7 @@ export default function HabitsScreen() {
   const { mutationVersion } = useMutation();
   const [habits, setHabits] = useState<Todo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
   const loadHabits = useCallback(async () => {
     if (!isAuthenticated) return;

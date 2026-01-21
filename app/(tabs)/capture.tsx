@@ -308,11 +308,6 @@ export default function CaptureScreen() {
     setOptionalFields((prev) => ({ ...prev, [field]: value }));
   };
 
-  const selectedTemplateKey =
-    selection?.type === "template" ? selection.key : null;
-  const selectedTemplate =
-    selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;
-
   const handleTemplateSelect = (key: string) => {
     setMenuVisible(false);
     setTimeout(() => {

@@ -2,7 +2,7 @@ import { BodyEditor } from "@/components/BodyEditor";
 import { useMutation } from "@/context/MutationContext";
 import { api, Todo } from "@/services/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Appbar, Snackbar, useTheme } from "react-native-paper";
 
@@ -31,22 +31,25 @@ export default function BodyEditorScreen() {
   const bodyRef = useRef(body);
   bodyRef.current = body;
 
-  const todo: Todo = {
-    id: params.id || null,
-    file: params.file || null,
-    pos: params.pos ? parseInt(params.pos, 10) : null,
-    title: params.title || "",
-    todo: "",
-    tags: null,
-    level: 1,
-    scheduled: null,
-    scheduledRepeater: null,
-    deadline: null,
-    deadlineRepeater: null,
-    priority: null,
-    olpath: null,
-    notifyBefore: null,
-  };
+  const todo: Todo = useMemo(
+    () => ({
+      id: params.id || null,
+      file: params.file || null,
+      pos: params.pos ? parseInt(params.pos, 10) : null,
+      title: params.title || "",
+      todo: "",
+      tags: null,
+      level: 1,
+      scheduled: null,
+      scheduledRepeater: null,
+      deadline: null,
+      deadlineRepeater: null,
+      priority: null,
+      olpath: null,
+      notifyBefore: null,
+    }),
+    [params.id, params.file, params.pos, params.title],
+  );
 
   const save = useCallback(async () => {
     if (!isDirty) return true;
