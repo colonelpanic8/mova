@@ -32,7 +32,7 @@ export default {
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/mova.png",
-        backgroundColor: "#c9a227",
+        backgroundColor: "#f5f5f5",
       },
       package: "com.colonelpanic.mova",
       intentFilters: [
@@ -65,7 +65,7 @@ export default {
           image: "./assets/images/mova.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#c9a227",
+          backgroundColor: "#f5f5f5",
         },
       ],
       "expo-notifications",
