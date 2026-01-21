@@ -78,7 +78,8 @@ export function adjustColorBrightness(color: string, percent: number): string {
   }
 
   const adjust = (value: number) => {
-    const delta = percent > 0 ? (255 - value) * (percent / 100) : value * (percent / 100);
+    const delta =
+      percent > 0 ? (255 - value) * (percent / 100) : value * (percent / 100);
     return Math.round(Math.min(255, Math.max(0, value + delta)));
   };
 

@@ -287,7 +287,6 @@ describe("OrgAgendaApi", () => {
       expect(callBody).toEqual({
         file: "/test.org",
         pos: 100,
-        title: "Test Task",
         deadline: "2024-07-01",
       });
       // Should NOT include olpath
@@ -371,7 +370,7 @@ describe("OrgAgendaApi", () => {
       const callBody = JSON.parse(
         (global.fetch as jest.Mock).mock.calls[0][1].body,
       );
-      expect(callBody).toEqual({ id: "delete-id-789" });
+      expect(callBody).toEqual({ id: "delete-id-789", include_children: true });
       expect(callBody).not.toHaveProperty("olpath");
       expect(callBody).not.toHaveProperty("file");
       expect(callBody).not.toHaveProperty("pos");
@@ -412,6 +411,7 @@ describe("OrgAgendaApi", () => {
         file: "/test.org",
         pos: 200,
         title: "Task to Delete",
+        include_children: true,
       });
       expect(callBody).not.toHaveProperty("olpath");
       expect(callBody).not.toHaveProperty("id");

@@ -34,7 +34,7 @@ type PositionedEntry = TimedEntry & {
 };
 
 function getTimeFromEntry(
-  entry: Todo
+  entry: Todo,
 ): { hours: number; minutes: number } | null {
   // Check scheduled first, then deadline
   const timeStr = entry.scheduled || entry.deadline;
@@ -168,7 +168,7 @@ export function DayScheduleView({
     for (const item of timed) {
       // Find overlapping items already positioned
       const overlapping = positioned.filter(
-        (p) => Math.abs(p.totalMinutes - item.totalMinutes) < OVERLAP_THRESHOLD
+        (p) => Math.abs(p.totalMinutes - item.totalMinutes) < OVERLAP_THRESHOLD,
       );
 
       if (overlapping.length === 0) {
@@ -179,7 +179,10 @@ export function DayScheduleView({
         let column = 0;
         while (usedColumns.has(column)) column++;
 
-        const newTotalColumns = Math.max(column + 1, ...overlapping.map((p) => p.totalColumns));
+        const newTotalColumns = Math.max(
+          column + 1,
+          ...overlapping.map((p) => p.totalColumns),
+        );
 
         // Update all overlapping items with new total columns
         overlapping.forEach((p) => {
@@ -194,7 +197,7 @@ export function DayScheduleView({
     for (let i = 0; i < positioned.length; i++) {
       const item = positioned[i];
       const overlapping = positioned.filter(
-        (p) => Math.abs(p.totalMinutes - item.totalMinutes) < OVERLAP_THRESHOLD
+        (p) => Math.abs(p.totalMinutes - item.totalMinutes) < OVERLAP_THRESHOLD,
       );
       const maxColumns = Math.max(...overlapping.map((p) => p.totalColumns));
       overlapping.forEach((p) => {
@@ -223,7 +226,7 @@ export function DayScheduleView({
     const maxMinutes = totalHours * 60;
     return Math.max(
       0,
-      Math.min(totalHeight, (totalMinutes / maxMinutes) * totalHeight)
+      Math.min(totalHeight, (totalMinutes / maxMinutes) * totalHeight),
     );
   };
 

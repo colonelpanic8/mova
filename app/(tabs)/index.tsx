@@ -269,7 +269,9 @@ export default function AgendaScreen() {
             />
             <IconButton
               icon={viewMode === "schedule" ? "view-list" : "clock-outline"}
-              onPress={() => setViewMode(viewMode === "list" ? "schedule" : "list")}
+              onPress={() =>
+                setViewMode(viewMode === "list" ? "schedule" : "list")
+              }
               testID="agendaViewModeToggle"
             />
             <IconButton
