@@ -92,11 +92,11 @@ export interface HabitStatus {
     rescheduleThreshold: number;
     maxRepetitionsPerInterval: number;
     startTime: string;
-    windowSpecs: Array<{
+    windowSpecs: {
       duration: Record<string, number>;
       targetRepetitions: number;
       conformingValue: number;
-    }>;
+    }[];
   };
   currentState: HabitSummary;
   doneTimes: string[];
@@ -127,6 +127,7 @@ export interface CompleteTodoResponse {
 }
 
 export interface TodoUpdates {
+  title?: string;
   scheduled?: string | null;
   scheduledRepeater?: Repeater | null;
   deadline?: string | null;
