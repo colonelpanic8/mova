@@ -64,6 +64,7 @@ export default function EditScreen() {
   }, [params.todo]);
 
   // Form state
+  const [title, setTitle] = useState(originalTodo.title || "");
   const [todoState, setTodoState] = useState(originalTodo.todo || "TODO");
   const [priority, setPriority] = useState<string | null>(
     originalTodo.priority,
@@ -105,6 +106,9 @@ export default function EditScreen() {
       // Build updates object
       const updates: TodoUpdates = {};
 
+      if (title !== (originalTodo.title || "")) {
+        updates.title = title;
+      }
       if (scheduled !== (originalTodo.scheduled || "")) {
         updates.scheduled = scheduled || null;
       }
@@ -170,6 +174,7 @@ export default function EditScreen() {
       setIsSaving(false);
     }
   }, [
+    title,
     todoState,
     priority,
     scheduled,
@@ -275,113 +280,113 @@ export default function EditScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-        {/* Read-only category display */}
-        {originalTodo.file && (
-          <View style={styles.categoryContainer}>
-            <Text
-              variant="bodySmall"
-              style={[styles.categoryLabel, { color: theme.colors.outline }]}
-            >
-              {originalTodo.file}
-            </Text>
-          </View>
-        )}
+          {/* Read-only category display */}
+          {originalTodo.file && (
+            <View style={styles.categoryContainer}>
+              <Text
+                variant="bodySmall"
+                style={[styles.categoryLabel, { color: theme.colors.outline }]}
+              >
+                {originalTodo.file}
+              </Text>
+            </View>
+          )}
 
-        {/* Title - read only */}
-        <View style={styles.titleContainer}>
-          <Text variant="bodySmall" style={styles.fieldLabel}>
-            Title
-          </Text>
-          <Text variant="bodyLarge" style={styles.titleText}>
-            {originalTodo.title}
-          </Text>
-        </View>
+          {/* Title */}
+          <TextInput
+            label="Title"
+            value={title}
+            onChangeText={setTitle}
+            mode="outlined"
+            style={styles.input}
+            testID="title-input"
+          />
 
-        {/* State */}
-        <StatePicker value={todoState} onChange={setTodoState} />
+          {/* State */}
+          <StatePicker value={todoState} onChange={setTodoState} />
 
-        {/* Priority */}
-        <PriorityPicker value={priority} onChange={setPriority} />
+          {/* Priority */}
+          <PriorityPicker value={priority} onChange={setPriority} />
 
-        {/* Scheduled */}
-        <DateFieldWithQuickActions
-          label="Schedule"
-          value={scheduled}
-          onChange={setScheduled}
-          colorKey="schedule"
-          includeTime={quickScheduleIncludeTime}
-        />
+          {/* Scheduled */}
+          <DateFieldWithQuickActions
+            label="Schedule"
+            value={scheduled}
+            onChange={setScheduled}
+            colorKey="schedule"
+            includeTime={quickScheduleIncludeTime}
+          />
 
-        <RepeaterPicker
-          value={scheduledRepeater}
-          onChange={setScheduledRepeater}
-          label="Schedule Repeater"
-        />
+          <RepeaterPicker
+            value={scheduledRepeater}
+            onChange={setScheduledRepeater}
+            label="Schedule Repeater"
+          />
 
-        {/* Deadline */}
-        <DateFieldWithQuickActions
-          label="Deadline"
-          value={deadline}
-          onChange={setDeadline}
-          colorKey="deadline"
-          includeTime={quickScheduleIncludeTime}
-        />
+          {/* Deadline */}
+          <DateFieldWithQuickActions
+            label="Deadline"
+            value={deadline}
+            onChange={setDeadline}
+            colorKey="deadline"
+            includeTime={quickScheduleIncludeTime}
+          />
 
-        <RepeaterPicker
-          value={deadlineRepeater}
-          onChange={setDeadlineRepeater}
-          label="Deadline Repeater"
-        />
+          <RepeaterPicker
+            value={deadlineRepeater}
+            onChange={setDeadlineRepeater}
+            label="Deadline Repeater"
+          />
 
-        {/* Body - Collapsible */}
-        {bodyExpanded ? (
-          <View style={styles.bodyContainer}>
-            <Text variant="bodySmall" style={styles.fieldLabel}>
-              Body
-            </Text>
-            <TextInput
-              value={body}
-              onChangeText={setBody}
+          {/* Body - Collapsible */}
+          {bodyExpanded ? (
+            <View style={styles.bodyContainer}>
+              <Text variant="bodySmall" style={styles.fieldLabel}>
+                Body
+              </Text>
+              <TextInput
+                value={body}
+                onChangeText={setBody}
+                mode="outlined"
+                multiline
+                numberOfLines={6}
+                style={styles.bodyInput}
+              />
+            </View>
+          ) : (
+            <Button
               mode="outlined"
-              multiline
-              numberOfLines={6}
-              style={styles.bodyInput}
-            />
-          </View>
-        ) : (
-          <Button
-            mode="outlined"
-            onPress={() => setBodyExpanded(true)}
-            style={styles.addBodyButton}
-            icon="text"
-          >
-            Add Body
-          </Button>
-        )}
+              onPress={() => setBodyExpanded(true)}
+              style={styles.addBodyButton}
+              icon="text"
+            >
+              Add Body
+            </Button>
+          )}
 
-        {/* Remind button - only on native (notifications don't work on web) */}
-        {Platform.OS !== "web" && (
-          <Button
-            mode="outlined"
-            onPress={handleRemind}
-            style={styles.remindButton}
-            icon="bell"
-          >
-            Set Reminder
-          </Button>
-        )}
+          {/* Remind button - only on native (notifications don't work on web) */}
+          {Platform.OS !== "web" && (
+            <Button
+              mode="outlined"
+              onPress={handleRemind}
+              style={styles.remindButton}
+              icon="bell"
+            >
+              Set Reminder
+            </Button>
+          )}
 
-        {/* Save button */}
-        <Button
-          mode="contained"
-          onPress={handleSave}
-          loading={isSaving}
-          disabled={isSaving || isDeleting}
-          style={styles.saveButton}
-          icon="content-save"
-        >
-          Save
-        </Button>
+          {/* Save button */}
+          <Button
+            mode="contained"
+            onPress={handleSave}
+            loading={isSaving}
+            disabled={isSaving || isDeleting}
+            style={styles.saveButton}
+            icon="content-save"
+          >
+            Save
+          </Button>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -480,12 +485,6 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontFamily: "monospace",
-  },
-  titleContainer: {
-    marginBottom: 16,
-  },
-  titleText: {
-    marginTop: 4,
   },
   input: {
     marginBottom: 16,
