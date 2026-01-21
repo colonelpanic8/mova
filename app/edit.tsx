@@ -205,7 +205,7 @@ export default function EditScreen() {
     setIsDeleting(true);
     try {
       const result = await api.deleteTodo(originalTodo);
-      if (result.status === "deleted") {
+      if (result.deleted) {
         triggerRefresh();
         router.back();
       } else {
@@ -313,6 +313,8 @@ export default function EditScreen() {
             mode="outlined"
             style={styles.input}
             testID="title-input"
+            editable={true}
+            autoCapitalize="sentences"
           />
 
           {/* State */}

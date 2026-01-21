@@ -147,7 +147,8 @@ export interface UpdateTodoResponse {
 }
 
 export interface DeleteTodoResponse {
-  status: string;
+  deleted?: boolean;
+  status?: string;
   title?: string;
   message?: string;
 }
@@ -371,7 +372,10 @@ class OrgAgendaApi {
       : { file: todo.file, pos: todo.pos, title: todo.title };
     return this.request<DeleteTodoResponse>("/delete", {
       method: "POST",
-      body: JSON.stringify(identifier),
+      body: JSON.stringify({
+        ...identifier,
+        include_children: true,
+      }),
     });
   }
 

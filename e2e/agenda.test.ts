@@ -4,9 +4,11 @@
  * Tests that the agenda page UI works correctly.
  * Uses test container with known test data.
  *
+ * IMPORTANT: Today's date for testing should be 2026-01-21.
  * Test data includes items scheduled for:
- * - 2026-01-13: "Morning standup", "Code review"
- * - 2026-01-14: "Team meeting", "Submit report", "Doctor appointment", "Review code"
+ * - 2026-01-20: "Morning standup", "Code review"
+ * - 2026-01-21 (TODAY): "Team meeting", "Submit report", "Doctor appointment"
+ * - 2026-01-22: "Review code", "Update dependencies"
  */
 
 import { by, element, expect, waitFor } from "detox";
@@ -56,17 +58,18 @@ describe("Agenda Screen", () => {
   it("should populate agenda with entries from API", async () => {
     await waitForLoadingComplete();
 
-    // Navigate to tomorrow which has multiple test entries
-    await element(by.id("agendaNextDay")).tap();
-
+    // Test data is on today's date (2026-01-21): Team meeting, Doctor appointment, Submit report
     // Wait for agenda list to be visible
     await waitFor(element(by.id("agendaList")))
       .toBeVisible()
       .withTimeout(10000);
 
-    // Verify multiple entries are shown
-    await expect(element(by.text("Team meeting"))).toBeVisible();
-    await expect(element(by.text("Submit report"))).toBeVisible();
+    // Wait for and verify entries are shown
+    await waitFor(element(by.text("Team meeting")))
+      .toBeVisible()
+      .withTimeout(15000);
+    // Verify Doctor appointment is also visible
+    await expect(element(by.text("Doctor appointment"))).toBeVisible();
 
     // Verify TODO state is visible
     await expect(element(by.text("TODO")).atIndex(0)).toBeVisible();
@@ -74,7 +77,7 @@ describe("Agenda Screen", () => {
 
   it("should refresh when pulling down", async () => {
     await waitForLoadingComplete();
-    await element(by.id("agendaNextDay")).tap();
+    // Test data is on today (2026-01-21), no need to navigate
     await waitFor(element(by.id("agendaList")))
       .toBeVisible()
       .withTimeout(10000);
@@ -117,11 +120,15 @@ describe("Agenda Screen - Todo Manipulation", () => {
   beforeEach(async () => {
     await setupTestWithLogin();
     await waitForLoadingComplete();
-    // Navigate to tomorrow which has test entries
-    await element(by.id("agendaNextDay")).tap();
+    // Test items are on today's date (2026-01-21): Team meeting, Doctor appointment, Submit report
+    // Wait for the list container AND the data to load
     await waitFor(element(by.id("agendaList")))
       .toBeVisible()
       .withTimeout(10000);
+    // Wait for a known test entry to appear (ensures data is loaded)
+    await waitFor(element(by.text("Team meeting")))
+      .toBeVisible()
+      .withTimeout(15000);
   });
 
   it("should reveal swipe actions when swiping left on a todo", async () => {
@@ -214,5 +221,50 @@ describe("Agenda Screen - Todo Manipulation", () => {
 
     // Should see state options
     await expect(element(by.text("DONE"))).toBeVisible();
+  });
+
+  it("should delete item via detail view", async () => {
+    // beforeEach already navigated to tomorrow where Doctor appointment is scheduled
+    // Wait for the item to be visible (data may still be loading after navigation)
+    await waitFor(element(by.text("Doctor appointment")))
+      .toBeVisible()
+      .withTimeout(15000);
+
+    // Tap on item to open detail view
+    await element(by.text("Doctor appointment")).tap();
+
+    // Wait for edit screen to appear with delete button
+    await waitFor(element(by.id("delete-button")))
+      .toBeVisible()
+      .withTimeout(5000);
+
+    // Tap delete button
+    await element(by.id("delete-button")).tap();
+
+    // Confirmation dialog should appear
+    await waitFor(element(by.text("Delete Todo?")))
+      .toBeVisible()
+      .withTimeout(5000);
+
+    // Confirm deletion
+    await element(by.text("Delete")).tap();
+
+    // Wait for dialog to dismiss
+    await waitFor(element(by.text("Delete Todo?")))
+      .not.toBeVisible()
+      .withTimeout(5000);
+
+    // Wait for edit screen to close (delete button should no longer be visible)
+    await waitFor(element(by.id("delete-button")))
+      .not.toBeVisible()
+      .withTimeout(10000);
+
+    // Should be back on agenda screen and item should be gone
+    await waitFor(element(by.id("agendaScreen")))
+      .toBeVisible()
+      .withTimeout(15000);
+    await waitFor(element(by.text("Doctor appointment")))
+      .not.toBeVisible()
+      .withTimeout(10000);
   });
 });
