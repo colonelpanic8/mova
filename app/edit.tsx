@@ -5,6 +5,7 @@ import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useTemplates } from "@/context/TemplatesContext";
 import { api, Repeater, Todo, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -32,6 +33,7 @@ export default function EditScreen() {
   const router = useRouter();
   const { triggerRefresh } = useMutation();
   const { quickScheduleIncludeTime } = useSettings();
+  const { filterOptions } = useTemplates();
 
   const params = useLocalSearchParams<{
     todo: string;
@@ -321,7 +323,11 @@ export default function EditScreen() {
           <StatePicker value={todoState} onChange={setTodoState} />
 
           {/* Priority */}
-          <PriorityPicker value={priority} onChange={setPriority} />
+          <PriorityPicker
+            value={priority}
+            onChange={setPriority}
+            priorities={filterOptions?.priorities}
+          />
 
           {/* Scheduled */}
           <DateFieldWithQuickActions
