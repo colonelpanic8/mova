@@ -350,9 +350,12 @@ class OrgAgendaApi {
     todo: Todo,
     updates: TodoUpdates,
   ): Promise<UpdateTodoResponse> {
+    // Use id if available, otherwise file/pos for identification
+    // Note: we don't include title in the identifier because it could conflict
+    // with title updates. Backend uses file+pos to locate the todo.
     const identifier = todo.id
       ? { id: todo.id }
-      : { file: todo.file, pos: todo.pos, title: todo.title };
+      : { file: todo.file, pos: todo.pos };
     return this.request<UpdateTodoResponse>("/update", {
       method: "POST",
       body: JSON.stringify({

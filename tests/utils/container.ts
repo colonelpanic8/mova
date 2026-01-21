@@ -312,21 +312,27 @@ export class TestApiClient {
   async updateTodo(
     todo: { file: string; pos: number; title: string; id?: string | null },
     updates: {
+      title?: string;
       scheduled?: string | null;
       deadline?: string | null;
       priority?: string | null;
+      body?: string | null;
     },
   ) {
-    // Match frontend behavior: only send id, file, pos, title + updates
+    // Use id if available, otherwise file/pos for identification
+    // Note: we don't include title in the identifier because it could conflict
+    // with title updates. Backend should use file+pos to locate the todo.
+    const identifier = todo.id
+      ? { id: todo.id }
+      : { file: todo.file, pos: todo.pos };
+    const payload = {
+      ...identifier,
+      ...updates,
+    };
+    console.log("updateTodo payload:", JSON.stringify(payload, null, 2));
     return this.post<{ status: string; updates?: any; message?: string }>(
       "/update",
-      {
-        id: todo.id,
-        file: todo.file,
-        pos: todo.pos,
-        title: todo.title,
-        ...updates,
-      },
+      payload,
     );
   }
 

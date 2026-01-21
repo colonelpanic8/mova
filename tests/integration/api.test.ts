@@ -286,6 +286,56 @@ describe("org-agenda-api integration tests", () => {
     });
   });
 
+  describe("POST /update - title updates", () => {
+    // KNOWN LIMITATION: The backend does NOT support title updates.
+    // The 'title' field is used for identification (along with file+pos),
+    // not for updates. Backend returns "updated" status but updates: null.
+    // Title updates would require backend changes.
+
+    it("should document that title updates require backend support", async () => {
+      // Find an existing todo that has an ID
+      const todos = await client.getAllTodos();
+      const todoWithId = todos.todos.find((t: any) => t.id);
+
+      if (!todoWithId) {
+        console.log("Skipping - no todos with IDs found");
+        return;
+      }
+
+      const originalTitle = todoWithId.title;
+
+      // Try to update the title
+      const newTitle = `Title update attempt ${Date.now()}`;
+      const response = await fetch(`${(client as any).baseUrl}/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: todoWithId.id,
+          title: newTitle,
+        }),
+      });
+      const result = await response.json();
+
+      // Backend returns "updated" but doesn't actually update the title
+      expect(result.status).toBe("updated");
+      expect(result.updates).toBeNull(); // No updates were applied
+
+      // Wait and verify title was NOT changed
+      await new Promise((r) => setTimeout(r, 1000));
+      const updatedTodos = await client.getAllTodos();
+      const stillOriginal = updatedTodos.todos.find(
+        (t: any) => t.title === originalTitle,
+      );
+      const hasNewTitle = updatedTodos.todos.find(
+        (t: any) => t.title === newTitle,
+      );
+
+      // Title should NOT have changed - this documents the limitation
+      expect(stillOriginal).toBeTruthy();
+      expect(hasNewTitle).toBeFalsy();
+    });
+  });
+
   describe("POST /update - field name validation", () => {
     // Helper to wait for a todo to appear in getAllTodos
     async function waitForTodo(title: string, maxWait = 5000): Promise<any> {
