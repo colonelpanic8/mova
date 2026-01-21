@@ -73,8 +73,14 @@ export default function AgendaScreen() {
 
   // Apply filters to agenda entries and split into active/completed
   const filteredEntries = agenda ? filterTodos(agenda.entries, filters) : [];
-  const activeEntries = filteredEntries.filter((entry) => !entry.completedAt);
-  const completedEntries = filteredEntries.filter((entry) => entry.completedAt);
+  const doneStates = todoStates?.done ?? [];
+  const isCompleted = useCallback(
+    (entry: Todo & { completedAt?: string | null }) =>
+      entry.completedAt || doneStates.includes(entry.todo),
+    [doneStates],
+  );
+  const activeEntries = filteredEntries.filter((entry) => !isCompleted(entry));
+  const completedEntries = filteredEntries.filter((entry) => isCompleted(entry));
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
@@ -313,6 +319,7 @@ export default function AgendaScreen() {
         ) : viewMode === "schedule" ? (
           <DayScheduleView
             entries={filteredEntries}
+            doneStates={doneStates}
             refreshing={refreshing}
             onRefresh={onRefresh}
           />
