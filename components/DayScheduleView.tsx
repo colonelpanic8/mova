@@ -1,7 +1,16 @@
-import { TodoItem, getTodoKey } from "@/components/TodoItem";
+import { StatePill } from "@/components/StatePill";
+import { getTodoKey } from "@/components/TodoItem";
+import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
-import React, { useMemo } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { useRouter } from "expo-router";
+import React, { useCallback, useMemo } from "react";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 interface DayScheduleViewProps {
@@ -9,9 +18,24 @@ interface DayScheduleViewProps {
   startHour?: number;
   endHour?: number;
   hourHeight?: number;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-function getTimeFromEntry(entry: Todo): { hours: number; minutes: number } | null {
+type TimedEntry = {
+  entry: Todo & { completedAt?: string | null };
+  time: { hours: number; minutes: number };
+  totalMinutes: number;
+};
+
+type PositionedEntry = TimedEntry & {
+  column: number;
+  totalColumns: number;
+};
+
+function getTimeFromEntry(
+  entry: Todo
+): { hours: number; minutes: number } | null {
   // Check scheduled first, then deadline
   const timeStr = entry.scheduled || entry.deadline;
   if (!timeStr) return null;
@@ -29,41 +53,158 @@ function getTimeFromEntry(entry: Todo): { hours: number; minutes: number } | nul
 }
 
 function formatHour(hour: number): string {
+  if (hour === 0 || hour === 24) return "12 AM";
   const period = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const displayHour = hour > 12 ? hour - 12 : hour;
   return `${displayHour} ${period}`;
+}
+
+function formatTime(hours: number, minutes: number): string {
+  const period = hours >= 12 ? "PM" : "AM";
+  const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  const displayMinutes = minutes.toString().padStart(2, "0");
+  return `${displayHour}:${displayMinutes} ${period}`;
+}
+
+// Compact todo item for schedule view
+function CompactTodoItem({
+  todo,
+  opacity = 1,
+}: {
+  todo: Todo & { completedAt?: string | null };
+  opacity?: number;
+}) {
+  const router = useRouter();
+  const theme = useTheme();
+  const { handleTodoPress, completingIds } = useTodoEditingContext();
+
+  const key = getTodoKey(todo);
+  const isCompleting = completingIds.has(key);
+
+  const handlePress = useCallback(() => {
+    router.push({
+      pathname: "/edit",
+      params: {
+        todo: JSON.stringify(todo),
+      },
+    });
+  }, [router, todo]);
+
+  const onTodoChipPress = useCallback(() => {
+    handleTodoPress(todo);
+  }, [handleTodoPress, todo]);
+
+  const time = getTimeFromEntry(todo);
+
+  return (
+    <Pressable onPress={handlePress}>
+      <View
+        style={[
+          styles.compactItem,
+          {
+            backgroundColor: theme.colors.surfaceVariant,
+            borderLeftColor: theme.colors.primary,
+            opacity,
+          },
+        ]}
+      >
+        <View style={styles.compactHeader}>
+          {todo.todo && (
+            <StatePill
+              state={todo.todo}
+              selected={false}
+              onPress={onTodoChipPress}
+              loading={isCompleting}
+            />
+          )}
+          {time && (
+            <Text style={[styles.compactTime, { color: theme.colors.primary }]}>
+              {formatTime(time.hours, time.minutes)}
+            </Text>
+          )}
+        </View>
+        <Text
+          style={[styles.compactTitle, { color: theme.colors.onSurface }]}
+          numberOfLines={2}
+        >
+          {todo.title}
+        </Text>
+      </View>
+    </Pressable>
+  );
 }
 
 export function DayScheduleView({
   entries,
-  startHour = 6,
-  endHour = 22,
+  startHour = 0,
+  endHour = 24,
   hourHeight = 60,
+  refreshing = false,
+  onRefresh,
 }: DayScheduleViewProps) {
   const theme = useTheme();
 
   // Separate entries with times from those without
-  const { timedEntries, untimedEntries } = useMemo(() => {
-    const timed: { entry: Todo & { completedAt?: string | null }; time: { hours: number; minutes: number } }[] = [];
+  const { positionedEntries, untimedEntries } = useMemo(() => {
+    const timed: TimedEntry[] = [];
     const untimed: (Todo & { completedAt?: string | null })[] = [];
 
     entries.forEach((entry) => {
       const time = getTimeFromEntry(entry);
       if (time) {
-        timed.push({ entry, time });
+        const totalMinutes = time.hours * 60 + time.minutes;
+        timed.push({ entry, time, totalMinutes });
       } else {
         untimed.push(entry);
       }
     });
 
     // Sort timed entries by time
-    timed.sort((a, b) => {
-      const aMinutes = a.time.hours * 60 + a.time.minutes;
-      const bMinutes = b.time.hours * 60 + b.time.minutes;
-      return aMinutes - bMinutes;
-    });
+    timed.sort((a, b) => a.totalMinutes - b.totalMinutes);
 
-    return { timedEntries: timed, untimedEntries: untimed };
+    // Assign columns for overlapping items
+    // Items are considered overlapping if they're within 30 minutes of each other
+    const OVERLAP_THRESHOLD = 30; // minutes
+    const positioned: PositionedEntry[] = [];
+
+    for (const item of timed) {
+      // Find overlapping items already positioned
+      const overlapping = positioned.filter(
+        (p) => Math.abs(p.totalMinutes - item.totalMinutes) < OVERLAP_THRESHOLD
+      );
+
+      if (overlapping.length === 0) {
+        positioned.push({ ...item, column: 0, totalColumns: 1 });
+      } else {
+        // Find the first available column
+        const usedColumns = new Set(overlapping.map((p) => p.column));
+        let column = 0;
+        while (usedColumns.has(column)) column++;
+
+        const newTotalColumns = Math.max(column + 1, ...overlapping.map((p) => p.totalColumns));
+
+        // Update all overlapping items with new total columns
+        overlapping.forEach((p) => {
+          p.totalColumns = newTotalColumns;
+        });
+
+        positioned.push({ ...item, column, totalColumns: newTotalColumns });
+      }
+    }
+
+    // Second pass: update totalColumns for all items in each overlap group
+    for (let i = 0; i < positioned.length; i++) {
+      const item = positioned[i];
+      const overlapping = positioned.filter(
+        (p) => Math.abs(p.totalMinutes - item.totalMinutes) < OVERLAP_THRESHOLD
+      );
+      const maxColumns = Math.max(...overlapping.map((p) => p.totalColumns));
+      overlapping.forEach((p) => {
+        p.totalColumns = maxColumns;
+      });
+    }
+
+    return { positionedEntries: positioned, untimedEntries: untimed };
   }, [entries]);
 
   const totalHours = endHour - startHour;
@@ -82,7 +223,10 @@ export function DayScheduleView({
   const getPositionForTime = (hours: number, minutes: number): number => {
     const totalMinutes = (hours - startHour) * 60 + minutes;
     const maxMinutes = totalHours * 60;
-    return Math.max(0, Math.min(totalHeight, (totalMinutes / maxMinutes) * totalHeight));
+    return Math.max(
+      0,
+      Math.min(totalHeight, (totalMinutes / maxMinutes) * totalHeight)
+    );
   };
 
   // Get current time indicator position
@@ -95,7 +239,14 @@ export function DayScheduleView({
     : 0;
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        ) : undefined
+      }
+    >
       {/* Untimed entries section */}
       {untimedEntries.length > 0 && (
         <View style={styles.untimedSection}>
@@ -113,7 +264,7 @@ export function DayScheduleView({
             </Text>
           </View>
           {untimedEntries.map((entry) => (
-            <TodoItem
+            <CompactTodoItem
               key={getTodoKey(entry)}
               todo={entry}
               opacity={entry.completedAt ? 0.6 : 1}
@@ -127,17 +278,31 @@ export function DayScheduleView({
         {/* Hour markers and grid lines */}
         {hourMarkers.map((hour) => {
           const position = getPositionForTime(hour, 0);
+          const isMidnight = hour === 0 || hour === 24;
           return (
             <View key={hour} style={[styles.hourRow, { top: position }]}>
               <Text
-                style={[styles.hourLabel, { color: theme.colors.outline }]}
+                style={[
+                  styles.hourLabel,
+                  {
+                    color: isMidnight
+                      ? theme.colors.primary
+                      : theme.colors.outline,
+                    fontWeight: isMidnight ? "600" : "400",
+                  },
+                ]}
               >
                 {formatHour(hour)}
               </Text>
               <View
                 style={[
                   styles.hourLine,
-                  { backgroundColor: theme.colors.outlineVariant },
+                  {
+                    backgroundColor: isMidnight
+                      ? theme.colors.primary
+                      : theme.colors.outlineVariant,
+                    height: isMidnight ? 1 : StyleSheet.hairlineWidth,
+                  },
                 ]}
               />
             </View>
@@ -148,23 +313,39 @@ export function DayScheduleView({
         {showCurrentTime && (
           <View style={[styles.currentTimeRow, { top: currentTimePosition }]}>
             <View
-              style={[styles.currentTimeDot, { backgroundColor: theme.colors.error }]}
+              style={[
+                styles.currentTimeDot,
+                { backgroundColor: theme.colors.error },
+              ]}
             />
             <View
-              style={[styles.currentTimeLine, { backgroundColor: theme.colors.error }]}
+              style={[
+                styles.currentTimeLine,
+                { backgroundColor: theme.colors.error },
+              ]}
             />
           </View>
         )}
 
         {/* Timed entries */}
-        {timedEntries.map(({ entry, time }) => {
+        {positionedEntries.map(({ entry, time, column, totalColumns }) => {
           const position = getPositionForTime(time.hours, time.minutes);
+          const widthPercent = 100 / totalColumns;
+          const leftPercent = (column / totalColumns) * 100;
+
           return (
             <View
               key={getTodoKey(entry)}
-              style={[styles.timedEntry, { top: position }]}
+              style={[
+                styles.timedEntry,
+                {
+                  top: position,
+                  width: `${widthPercent}%` as const,
+                  left: `${leftPercent}%` as const,
+                },
+              ]}
             >
-              <TodoItem
+              <CompactTodoItem
                 todo={entry}
                 opacity={entry.completedAt ? 0.6 : 1}
               />
@@ -174,7 +355,7 @@ export function DayScheduleView({
       </View>
 
       {/* Empty state for timed section */}
-      {timedEntries.length === 0 && untimedEntries.length === 0 && (
+      {positionedEntries.length === 0 && untimedEntries.length === 0 && (
         <View style={styles.emptyState}>
           <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
             No items for today
@@ -217,7 +398,6 @@ const styles = StyleSheet.create({
   },
   hourLine: {
     flex: 1,
-    height: StyleSheet.hairlineWidth,
   },
   currentTimeRow: {
     position: "absolute",
@@ -240,14 +420,34 @@ const styles = StyleSheet.create({
   },
   timedEntry: {
     position: "absolute",
-    left: 0,
-    right: 0,
+    paddingRight: 4,
   },
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 48,
+  },
+  compactItem: {
+    padding: 8,
+    marginVertical: 2,
+    marginHorizontal: 4,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+  },
+  compactHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  compactTime: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  compactTitle: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
 

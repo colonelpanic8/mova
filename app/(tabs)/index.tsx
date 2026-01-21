@@ -309,7 +309,11 @@ export default function AgendaScreen() {
             </Text>
           </View>
         ) : viewMode === "schedule" ? (
-          <DayScheduleView entries={filteredEntries} />
+          <DayScheduleView
+            entries={filteredEntries}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
         ) : (
           <SectionList
             testID="agendaList"
