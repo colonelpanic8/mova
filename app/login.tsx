@@ -342,11 +342,13 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
-          <Image
-            source={require("@/assets/images/mova.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("@/assets/images/mova.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
           <Text variant="bodyMedium" style={styles.subtitle}>
             Connect to your org-agenda-api server
           </Text>
@@ -418,13 +420,15 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 24,
+  },
+  logoContainer: {
+    flex: 1,
     justifyContent: "center",
+    marginBottom: 16,
   },
   logo: {
-    width: 200,
-    height: 150,
-    alignSelf: "center",
-    marginBottom: 16,
+    width: "100%",
+    height: "100%",
   },
   subtitle: {
     textAlign: "center",
