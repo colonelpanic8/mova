@@ -115,7 +115,7 @@ export default function EditScreen() {
       const updates: TodoUpdates = {};
 
       if (title !== (originalTodo.title || "")) {
-        updates.title = title;
+        updates.new_title = title;
       }
       if (scheduled !== (originalTodo.scheduled || "")) {
         updates.scheduled = scheduled || null;
