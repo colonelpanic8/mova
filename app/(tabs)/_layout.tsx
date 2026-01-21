@@ -53,11 +53,16 @@ function CustomTabBar(props: BottomTabBarProps) {
     };
   }, [keyboardHeight]);
 
+  // On Android, windowSoftInputMode="adjustResize" already handles window resizing.
+  // Adding paddingBottom would double-count the keyboard space, making the content
+  // area shrink by 2x the keyboard height (once from adjustResize, once from padding).
+  // On iOS, we need animated padding to push the CaptureBar above the keyboard.
+
   return (
     <Animated.View
       style={{
         backgroundColor: theme.colors.surface,
-        paddingBottom: keyboardVisible ? keyboardHeight : 0,
+        paddingBottom: Platform.OS === "ios" ? keyboardHeight : 0,
       }}
     >
       <CaptureBar />
