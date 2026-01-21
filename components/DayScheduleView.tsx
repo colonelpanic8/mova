@@ -142,30 +142,45 @@ export function DayScheduleView({
 }: DayScheduleViewProps) {
   const theme = useTheme();
 
-  // Separate entries with times from those without
-  const { positionedEntries, untimedEntries } = useMemo(() => {
-    const timed: TimedEntry[] = [];
-    const untimed: (Todo & { completedAt?: string | null })[] = [];
+  // Separate entries by timed/untimed and active/completed
+  const { positionedEntries, activeUntimedEntries, completedEntries } = useMemo(() => {
+    const timedActive: TimedEntry[] = [];
+    const timedCompleted: TimedEntry[] = [];
+    const untimedActive: (Todo & { completedAt?: string | null })[] = [];
+    const untimedCompleted: (Todo & { completedAt?: string | null })[] = [];
 
     entries.forEach((entry) => {
       const time = getTimeFromEntry(entry);
       if (time) {
         const totalMinutes = time.hours * 60 + time.minutes;
-        timed.push({ entry, time, totalMinutes });
+        if (entry.completedAt) {
+          timedCompleted.push({ entry, time, totalMinutes });
+        } else {
+          timedActive.push({ entry, time, totalMinutes });
+        }
+      } else if (entry.completedAt) {
+        untimedCompleted.push(entry);
       } else {
-        untimed.push(entry);
+        untimedActive.push(entry);
       }
     });
 
     // Sort timed entries by time
-    timed.sort((a, b) => a.totalMinutes - b.totalMinutes);
+    timedActive.sort((a, b) => a.totalMinutes - b.totalMinutes);
+    timedCompleted.sort((a, b) => a.totalMinutes - b.totalMinutes);
 
-    // Assign columns for overlapping items
+    // Combine all completed entries: untimed first, then timed (sorted by time)
+    const allCompleted: (Todo & { completedAt?: string | null })[] = [
+      ...untimedCompleted,
+      ...timedCompleted.map(t => t.entry),
+    ];
+
+    // Assign columns for overlapping items (only for active timed entries)
     // Items are considered overlapping if they're within 30 minutes of each other
     const OVERLAP_THRESHOLD = 30; // minutes
     const positioned: PositionedEntry[] = [];
 
-    for (const item of timed) {
+    for (const item of timedActive) {
       // Find overlapping items already positioned
       const overlapping = positioned.filter(
         (p) => Math.abs(p.totalMinutes - item.totalMinutes) < OVERLAP_THRESHOLD,
@@ -205,7 +220,7 @@ export function DayScheduleView({
       });
     }
 
-    return { positionedEntries: positioned, untimedEntries: untimed };
+    return { positionedEntries: positioned, activeUntimedEntries: untimedActive, completedEntries: allCompleted };
   }, [entries]);
 
   const totalHours = endHour - startHour;
@@ -248,8 +263,8 @@ export function DayScheduleView({
         ) : undefined
       }
     >
-      {/* Untimed entries section */}
-      {untimedEntries.length > 0 && (
+      {/* Untimed active entries section */}
+      {activeUntimedEntries.length > 0 && (
         <View style={styles.untimedSection}>
           <View
             style={[
@@ -264,11 +279,11 @@ export function DayScheduleView({
               All Day / No Time
             </Text>
           </View>
-          {untimedEntries.map((entry) => (
+          {activeUntimedEntries.map((entry) => (
             <CompactTodoItem
               key={getTodoKey(entry)}
               todo={entry}
-              opacity={entry.completedAt ? 0.6 : 1}
+              opacity={1}
             />
           ))}
         </View>
@@ -355,8 +370,34 @@ export function DayScheduleView({
         })}
       </View>
 
+      {/* Completed entries section - all done items grouped at the end */}
+      {completedEntries.length > 0 && (
+        <View style={styles.completedSection}>
+          <View
+            style={[
+              styles.untimedHeader,
+              { backgroundColor: theme.colors.surfaceVariant },
+            ]}
+          >
+            <Text
+              variant="labelMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              Completed
+            </Text>
+          </View>
+          {completedEntries.map((entry) => (
+            <CompactTodoItem
+              key={getTodoKey(entry)}
+              todo={entry}
+              opacity={0.6}
+            />
+          ))}
+        </View>
+      )}
+
       {/* Empty state for timed section */}
-      {positionedEntries.length === 0 && untimedEntries.length === 0 && (
+      {positionedEntries.length === 0 && activeUntimedEntries.length === 0 && completedEntries.length === 0 && (
         <View style={styles.emptyState}>
           <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
             No items for today
@@ -373,6 +414,9 @@ const styles = StyleSheet.create({
   },
   untimedSection: {
     marginBottom: 8,
+  },
+  completedSection: {
+    marginTop: 8,
   },
   untimedHeader: {
     paddingHorizontal: 12,
