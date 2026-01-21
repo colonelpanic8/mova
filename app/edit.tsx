@@ -1,4 +1,5 @@
 import { PriorityPicker, StatePicker } from "@/components/capture";
+import { PropertiesEditor } from "@/components/PropertiesEditor";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useMutation } from "@/context/MutationContext";
@@ -60,6 +61,7 @@ export default function EditScreen() {
       olpath: null,
       notifyBefore: null,
       body: null,
+      properties: null,
     };
   }, [params.todo]);
 
@@ -79,6 +81,9 @@ export default function EditScreen() {
   );
   const [body, setBody] = useState(originalTodo.body || "");
   const [bodyExpanded, setBodyExpanded] = useState(!!originalTodo.body);
+  const [properties, setProperties] = useState<Record<string, string>>(
+    originalTodo.properties || {},
+  );
 
   // UI state
   const [isSaving, setIsSaving] = useState(false);
@@ -133,6 +138,13 @@ export default function EditScreen() {
       if (body !== (originalTodo.body || "")) {
         updates.body = body || null;
       }
+      if (
+        JSON.stringify(properties) !==
+        JSON.stringify(originalTodo.properties || {})
+      ) {
+        updates.properties =
+          Object.keys(properties).length > 0 ? properties : null;
+      }
 
       // Apply updates if any
       if (Object.keys(updates).length > 0) {
@@ -182,6 +194,7 @@ export default function EditScreen() {
     deadline,
     deadlineRepeater,
     body,
+    properties,
     originalTodo,
     triggerRefresh,
     router,
@@ -363,6 +376,13 @@ export default function EditScreen() {
               Add Body
             </Button>
           )}
+
+          {/* Properties - Collapsible, collapsed by default */}
+          <PropertiesEditor
+            properties={properties}
+            onChange={setProperties}
+            defaultExpanded={false}
+          />
 
           {/* Remind button - only on native (notifications don't work on web) */}
           {Platform.OS !== "web" && (
