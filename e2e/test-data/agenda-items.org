@@ -2,30 +2,30 @@
 
 * Calendar
 ** TODO Morning standup
-   SCHEDULED: <2026-01-13 Mon 09:00>
+   SCHEDULED: <2026-01-20 Mon 09:00>
    Daily standup meeting
 
 ** TODO [#A] Team meeting
-   SCHEDULED: <2026-01-14 Tue 10:00>
+   SCHEDULED: <2026-01-21 Tue 10:00>
    Weekly standup
 
 ** TODO Submit report
-   DEADLINE: <2026-01-14 Tue>
+   DEADLINE: <2026-01-21 Tue>
    Quarterly report due
 
 ** TODO Doctor appointment
-   SCHEDULED: <2026-01-14 Tue 14:30>
+   SCHEDULED: <2026-01-21 Tue 14:30>
 
 * Weekly Tasks
 ** TODO Code review
-   SCHEDULED: <2026-01-13 Mon>
+   SCHEDULED: <2026-01-20 Mon>
    Review pending PRs
 
 ** TODO Review code
-   SCHEDULED: <2026-01-15 Thu>
+   SCHEDULED: <2026-01-22 Thu>
 
 ** TODO Update dependencies
-   SCHEDULED: <2026-01-15 Wed>
+   SCHEDULED: <2026-01-22 Wed>
 
 * Next Action Items
 ** NEXT Prepare demo for stakeholders
