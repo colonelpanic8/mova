@@ -338,6 +338,7 @@ class OrgAgendaApi {
         file: todo.file,
         pos: todo.pos,
         title: todo.title,
+        olpath: todo.olpath,
         state: newState,
       }),
     });
@@ -354,20 +355,24 @@ class OrgAgendaApi {
         file: todo.file,
         pos: todo.pos,
         title: todo.title,
+        olpath: todo.olpath,
         ...updates,
       }),
     });
   }
 
   async deleteTodo(todo: Todo): Promise<DeleteTodoResponse> {
+    const payload = {
+      id: todo.id,
+      file: todo.file,
+      pos: todo.pos,
+      title: todo.title,
+      olpath: todo.olpath,
+    };
+    console.log("deleteTodo payload:", JSON.stringify(payload, null, 2));
     return this.request<DeleteTodoResponse>("/delete", {
       method: "POST",
-      body: JSON.stringify({
-        id: todo.id,
-        file: todo.file,
-        pos: todo.pos,
-        title: todo.title,
-      }),
+      body: JSON.stringify(payload),
     });
   }
 
