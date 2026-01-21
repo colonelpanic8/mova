@@ -10,6 +10,7 @@ import {
   ColorPaletteConfig,
   ColorValue,
   DEFAULT_COLOR_PALETTE,
+  generateRandomColor,
   getThemeColorKey,
   isThemeReference,
   PriorityLevel,
@@ -51,6 +52,7 @@ interface ColorPaletteContextType {
     priority: PriorityLevel,
     color: ColorValue,
   ) => Promise<void>;
+  randomizeTodoStateColors: (states: string[]) => Promise<void>;
   resetToDefaults: () => Promise<void>;
 }
 
@@ -222,6 +224,24 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     [config],
   );
 
+  const randomizeTodoStateColors = useCallback(
+    async (states: string[]) => {
+      const newTodoStateColors = { ...config.todoStateColors };
+      for (const state of states) {
+        const upperState = state.toUpperCase();
+        if (upperState !== "DEFAULT") {
+          newTodoStateColors[upperState] = generateRandomColor();
+        }
+      }
+      const newConfig = {
+        ...config,
+        todoStateColors: newTodoStateColors,
+      };
+      await saveConfig(newConfig);
+    },
+    [config],
+  );
+
   const resetToDefaults = useCallback(async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
     setConfig(DEFAULT_COLOR_PALETTE);
@@ -240,6 +260,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
         removeTodoStateColor,
         setActionColor,
         setPriorityColor,
+        randomizeTodoStateColors,
         resetToDefaults,
       }}
     >

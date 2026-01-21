@@ -141,3 +141,37 @@ export function getThemeColorKey(ref: string): ThemeColorKey | null {
 export function isValidHexColor(color: string): boolean {
   return /^#[0-9A-Fa-f]{6}$/.test(color);
 }
+
+/**
+ * Get a random color from the preset palette
+ */
+export function getRandomPresetColor(): string {
+  return PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)];
+}
+
+/**
+ * Generate a random HSL color with good saturation and lightness for visibility
+ */
+export function generateRandomColor(): string {
+  const hue = Math.floor(Math.random() * 360);
+  const saturation = 60 + Math.floor(Math.random() * 30); // 60-90%
+  const lightness = 45 + Math.floor(Math.random() * 15); // 45-60%
+  return hslToHex(hue, saturation, lightness);
+}
+
+/**
+ * Convert HSL to hex color
+ */
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}

@@ -1,4 +1,5 @@
 import { RepeaterPicker } from "@/components/RepeaterPicker";
+import { StatePill } from "@/components/StatePill";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import {
@@ -18,7 +19,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import {
   Button,
@@ -836,16 +837,14 @@ export function useTodoEditing(
               value={selectedState}
             >
               {allStates.map((state) => (
-                <RadioButton.Item
+                <Pressable
                   key={state}
-                  label={state}
-                  value={state}
-                  labelStyle={{
-                    color: todoStates?.done.includes(state)
-                      ? theme.colors.outline
-                      : theme.colors.onSurface,
-                  }}
-                />
+                  onPress={() => setSelectedState(state)}
+                  style={styles.stateRow}
+                >
+                  <RadioButton value={state} />
+                  <StatePill state={state} selected={false} />
+                </Pressable>
               ))}
             </RadioButton.Group>
 
@@ -1084,6 +1083,12 @@ const styles = StyleSheet.create({
   },
   remindPickerContainer: {
     marginBottom: 8,
+  },
+  stateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    gap: 8,
   },
 });
 
