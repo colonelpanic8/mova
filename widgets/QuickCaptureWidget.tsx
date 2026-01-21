@@ -64,7 +64,6 @@ export function QuickCaptureWidget({
           flex: 1,
           height: 36,
           backgroundColor: "#FFFBFE", // surface color
-          borderRadius: 18,
           paddingLeft: 16,
           paddingRight: 16,
           justifyContent: "center",
