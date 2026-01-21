@@ -115,7 +115,10 @@ export function ScheduledNotificationsModal({
         ) : notifications.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text
-              style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}
+              style={[
+                styles.emptyText,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
             >
               No scheduled notifications
             </Text>

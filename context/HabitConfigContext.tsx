@@ -27,7 +27,7 @@ const DEFAULT_GLYPHS = {
 };
 
 const HabitConfigContext = createContext<HabitConfigContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function HabitConfigProvider({ children }: { children: ReactNode }) {

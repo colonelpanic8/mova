@@ -8,8 +8,8 @@ Enable users to save multiple server credentials and switch between them. Primar
 
 ```typescript
 interface SavedServer {
-  id: string;          // UUID for stable identification
-  nickname?: string;   // Optional user-provided name, falls back to URL
+  id: string; // UUID for stable identification
+  nickname?: string; // Optional user-provided name, falls back to URL
   apiUrl: string;
   username: string;
   password: string;
@@ -17,6 +17,7 @@ interface SavedServer {
 ```
 
 **Storage keys:**
+
 - `mova_saved_servers` - JSON array of SavedServer objects
 - `mova_active_server_id` - ID of currently connected server (or null)
 - Existing keys (`mova_api_url`, `mova_username`, `mova_password`) continue to hold active credentials for backward compatibility and widget access
@@ -37,18 +38,21 @@ interface SavedServer {
 ### Settings Screen
 
 **Connection section updates:**
+
 - Server URL display
 - Username display
 - Password display (hidden by default, eye icon to reveal)
 - "Manage Servers" button
 
 **New "Manage Servers" screen** (`servers.tsx`):
+
 - List of all saved servers with active indicator
 - Tap to switch servers immediately
 - Swipe/long-press for edit and delete actions
 - "Add Server" button at bottom
 
 **Edit Server form:**
+
 - Nickname (optional), URL, username, password fields
 - Show password toggle
 - Save and Cancel buttons
@@ -63,7 +67,12 @@ interface AuthContextType {
   password: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login(apiUrl: string, username: string, password: string, save?: boolean): Promise<boolean>;
+  login(
+    apiUrl: string,
+    username: string,
+    password: string,
+    save?: boolean,
+  ): Promise<boolean>;
   logout(): Promise<void>;
   getAuthHeader(): string | null;
 
@@ -71,7 +80,7 @@ interface AuthContextType {
   savedServers: SavedServer[];
   activeServerId: string | null;
   switchServer(serverId: string): Promise<boolean>;
-  saveServer(server: Omit<SavedServer, 'id'>): Promise<SavedServer>;
+  saveServer(server: Omit<SavedServer, "id">): Promise<SavedServer>;
   updateServer(id: string, updates: Partial<SavedServer>): Promise<void>;
   deleteServer(id: string): Promise<void>;
 }
@@ -80,16 +89,19 @@ interface AuthContextType {
 ## Behavior
 
 ### Server Switch Flow
+
 1. `switchServer(id)` finds server in `savedServers`
 2. Validates credentials via API call
 3. On success: updates active credentials, SharedPreferences for widgets
 4. On failure: shows error snackbar, stays on current server
 
 ### Login with Save
+
 - `login()` accepts optional `save: boolean` parameter (default true)
 - If save=true and login succeeds, adds server to saved list
 
 ### Logout Flow
+
 - Clears active credentials
 - Sets `activeServerId` to null
 - Does NOT remove server from saved list

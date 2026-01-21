@@ -212,7 +212,10 @@ export function FilterModal({ visible, onDismiss }: FilterModalProps) {
           <ScrollView style={styles.scrollView}>
             {/* Habits Toggle */}
             <View style={styles.toggleSection}>
-              <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+              <Text
+                variant="labelLarge"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
                 Show Habits
               </Text>
               <Switch

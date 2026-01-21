@@ -13,6 +13,7 @@
 ## Task 1: Add Habit TypeScript Types
 
 **Files:**
+
 - Modify: `services/api.ts`
 
 **Step 1: Add habit-related interfaces**
@@ -116,6 +117,7 @@ git commit -m "feat: add habit TypeScript types"
 ## Task 2: Add Habit API Methods
 
 **Files:**
+
 - Modify: `services/api.ts`
 - Create: `tests/unit/habitApi.test.ts`
 
@@ -159,7 +161,7 @@ describe("Habit API methods", () => {
           headers: expect.objectContaining({
             Authorization: expect.any(String),
           }),
-        })
+        }),
       );
       expect(result.enabled).toBe(true);
       expect(result.colors?.conforming).toBe("#4d7085");
@@ -183,7 +185,7 @@ describe("Habit API methods", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/habit-status?id=habit-123",
-        expect.any(Object)
+        expect.any(Object),
       );
       expect(result.id).toBe("habit-123");
     });
@@ -198,7 +200,7 @@ describe("Habit API methods", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/habit-status?id=habit-123&preceding=10&following=5",
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -254,6 +256,7 @@ git commit -m "feat: add getHabitConfig and getHabitStatus API methods"
 ## Task 3: Add Color Utility Functions
 
 **Files:**
+
 - Create: `utils/habitColors.ts`
 - Create: `tests/unit/habitColors.test.ts`
 
@@ -335,7 +338,11 @@ Create `utils/habitColors.ts`:
  * @param ratio Value between 0 and 1 (0 = color1, 1 = color2)
  * @returns Interpolated hex color
  */
-export function lerpColor(color1: string, color2: string, ratio: number): string {
+export function lerpColor(
+  color1: string,
+  color2: string,
+  ratio: number,
+): string {
   const r1 = parseInt(color1.slice(1, 3), 16);
   const g1 = parseInt(color1.slice(3, 5), 16);
   const b1 = parseInt(color1.slice(5, 7), 16);
@@ -369,7 +376,7 @@ export const DEFAULT_HABIT_COLORS: HabitColors = {
  */
 export function getHabitCellColor(
   conformingRatio: number,
-  colors: HabitColors = DEFAULT_HABIT_COLORS
+  colors: HabitColors = DEFAULT_HABIT_COLORS,
 ): string {
   const clampedRatio = Math.max(0, Math.min(1, conformingRatio));
   return lerpColor(colors.notConforming, colors.conforming, clampedRatio);
@@ -394,6 +401,7 @@ git commit -m "feat: add color interpolation utilities for habit graphs"
 ## Task 4: Create HabitConfigContext
 
 **Files:**
+
 - Create: `context/HabitConfigContext.tsx`
 - Modify: `app/_layout.tsx`
 
@@ -540,6 +548,7 @@ git commit -m "feat: add HabitConfigContext for habit colors and settings"
 ## Task 5: Add showHabits Filter
 
 **Files:**
+
 - Modify: `context/FilterContext.tsx`
 - Modify: `utils/filterTodos.ts`
 
@@ -548,7 +557,7 @@ git commit -m "feat: add HabitConfigContext for habit colors and settings"
 Modify `context/FilterContext.tsx`. Add to `FilterState` interface (around line 25):
 
 ```typescript
-  showHabits: boolean;
+showHabits: boolean;
 ```
 
 Update `initialFilterState` (around line 60):
@@ -616,6 +625,7 @@ git commit -m "feat: add showHabits filter to hide/show habits in agenda"
 ## Task 6: Add Habits Toggle to FilterModal
 
 **Files:**
+
 - Modify: `components/FilterModal.tsx`
 
 **Step 1: Add toggle UI**
@@ -686,6 +696,7 @@ git commit -m "feat: add habits toggle to filter modal"
 ## Task 7: Create HabitGraph Component
 
 **Files:**
+
 - Create: `components/HabitGraph.tsx`
 
 **Step 1: Create the component**
@@ -815,6 +826,7 @@ git commit -m "feat: add HabitGraph component for rendering habit consistency gr
 ## Task 8: Add HabitGraph to TodoItem
 
 **Files:**
+
 - Modify: `components/TodoItem.tsx`
 
 **Step 1: Import HabitGraph**
@@ -854,6 +866,7 @@ git commit -m "feat: display habit graph in TodoItem for window-habits"
 ## Task 9: Create Habits Screen
 
 **Files:**
+
 - Create: `app/(tabs)/habits.tsx`
 
 **Step 1: Create the screen**
@@ -1049,6 +1062,7 @@ git commit -m "feat: add dedicated Habits screen with stats"
 ## Task 10: Add Habits Tab to Navigation
 
 **Files:**
+
 - Modify: `app/(tabs)/_layout.tsx`
 
 **Step 1: Add Habits tab**
@@ -1116,19 +1130,19 @@ git commit -m "fix: address test failures from habits integration"
 
 ## Summary
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 1 | Add habit TypeScript types | `services/api.ts` |
-| 2 | Add habit API methods | `services/api.ts`, `tests/unit/habitApi.test.ts` |
-| 3 | Add color utilities | `utils/habitColors.ts`, `tests/unit/habitColors.test.ts` |
-| 4 | Create HabitConfigContext | `context/HabitConfigContext.tsx`, `app/_layout.tsx` |
-| 5 | Add showHabits filter | `context/FilterContext.tsx`, `utils/filterTodos.ts` |
-| 6 | Add habits toggle to filter modal | `components/FilterModal.tsx` |
-| 7 | Create HabitGraph component | `components/HabitGraph.tsx` |
-| 8 | Add HabitGraph to TodoItem | `components/TodoItem.tsx` |
-| 9 | Create Habits screen | `app/(tabs)/habits.tsx` |
-| 10 | Add Habits tab | `app/(tabs)/_layout.tsx` |
-| 11 | Run full test suite | - |
+| Task | Description                       | Files                                                    |
+| ---- | --------------------------------- | -------------------------------------------------------- |
+| 1    | Add habit TypeScript types        | `services/api.ts`                                        |
+| 2    | Add habit API methods             | `services/api.ts`, `tests/unit/habitApi.test.ts`         |
+| 3    | Add color utilities               | `utils/habitColors.ts`, `tests/unit/habitColors.test.ts` |
+| 4    | Create HabitConfigContext         | `context/HabitConfigContext.tsx`, `app/_layout.tsx`      |
+| 5    | Add showHabits filter             | `context/FilterContext.tsx`, `utils/filterTodos.ts`      |
+| 6    | Add habits toggle to filter modal | `components/FilterModal.tsx`                             |
+| 7    | Create HabitGraph component       | `components/HabitGraph.tsx`                              |
+| 8    | Add HabitGraph to TodoItem        | `components/TodoItem.tsx`                                |
+| 9    | Create Habits screen              | `app/(tabs)/habits.tsx`                                  |
+| 10   | Add Habits tab                    | `app/(tabs)/_layout.tsx`                                 |
+| 11   | Run full test suite               | -                                                        |
 
 ---
 

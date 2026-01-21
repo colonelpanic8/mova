@@ -23,17 +23,18 @@ Integrate org-window-habit support into mova frontend with three capabilities:
 
 Colors fetched from `/habit-config`, with defaults:
 
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Conforming | `#4d7085` | Ratio = 1.0 (on track) |
-| Not Conforming | `#d40d0d` | Ratio = 0.0 (behind) |
-| Required Completion FG | `#000000` | Glyph color when completion matters |
+| Color                      | Hex       | Usage                                |
+| -------------------------- | --------- | ------------------------------------ |
+| Conforming                 | `#4d7085` | Ratio = 1.0 (on track)               |
+| Not Conforming             | `#d40d0d` | Ratio = 0.0 (behind)                 |
+| Required Completion FG     | `#000000` | Glyph color when completion matters  |
 | Non-Required Completion FG | `#FFFFFF` | Glyph color when completion optional |
-| Required Today FG | `#00FF00` | Glyph color for today when needed |
+| Required Today FG          | `#00FF00` | Glyph color for today when needed    |
 
 Cell background colors are interpolated between not-conforming and conforming based on `conformingRatio` (0.0 to 1.0).
 
 **Glyphs:**
+
 - `☐` - Completion needed today (not yet done)
 - `✓` - Completed
 
@@ -44,11 +45,13 @@ Cell background colors are interpolated between not-conforming and conforming ba
 **Layout:** Horizontal bar of colored cells below/beside the todo title.
 
 **Content:**
+
 - Past intervals: As many as fit in available width (~10-14 cells)
 - Today: 1 cell
 - Future: 0-1 cells
 
 **Cell rendering:**
+
 - Background: Lerp red → blue based on `conformingRatio`
 - Glyph (today only): `☐` if completion needed, `✓` if completed, empty otherwise
 
@@ -61,6 +64,7 @@ Cell background colors are interpolated between not-conforming and conforming ba
 **Behavior:** All visible habits expand to show full consistency graphs.
 
 **Layout:**
+
 - Each habit row expands vertically
 - Graph shows: 21 past + today (4 chars: `|☐ |`) + 4 future
 - Horizontally scrollable
@@ -68,6 +72,7 @@ Cell background colors are interpolated between not-conforming and conforming ba
 - Same dates align vertically across habits
 
 **Exit graph mode:**
+
 - Tap the graph area again
 - Tap anywhere outside the graphs
 - Explicit close button (appears in graph mode)
@@ -99,6 +104,7 @@ Cell background colors are interpolated between not-conforming and conforming ba
 - Completing updates graph immediately
 
 **Data source:**
+
 - Fetch all todos, filter for `isWindowHabit: true`
 - Fetch `/habit-status` for each habit for full graph data
 
@@ -141,7 +147,7 @@ interface MiniGraphEntry {
   date: string;
   conformingRatio: number;
   completed: boolean;
-  completionNeededToday?: boolean;  // only on today's entry
+  completionNeededToday?: boolean; // only on today's entry
 }
 
 interface HabitSummary {
@@ -160,7 +166,7 @@ interface HabitStatusGraphEntry {
   conformingRatioWithout: number;
   conformingRatioWith: number;
   completionCount: number;
-  status: 'past' | 'present' | 'future';
+  status: "past" | "present" | "future";
   completionExpectedToday: boolean;
 }
 
@@ -168,7 +174,9 @@ interface HabitStatus {
   status: string;
   id: string;
   title: string;
-  habit: { /* config */ };
+  habit: {
+    /* config */
+  };
   currentState: HabitSummary;
   doneTimes: string[];
   graph: HabitStatusGraphEntry[];
@@ -204,40 +212,41 @@ Extend `habitSummary` in `/agenda` and `/get-all-todos` responses to include `mi
 ```
 
 **miniGraph contents:**
+
 - Last 10-14 intervals (backend configurable or frontend specifies via query param)
 - Each entry: `date`, `conformingRatio`, `completed`
 - Today's entry includes `completionNeededToday`
 
 ### Caching Strategy
 
-| Data | Cache Duration | Invalidation |
-|------|----------------|--------------|
-| `habitConfig` | Indefinite | App restart |
-| `habitSummary/miniGraph` | Per fetch | Fresh on each agenda fetch |
-| `habitStatus` (full graph) | Per habit ID | On completion |
+| Data                       | Cache Duration | Invalidation               |
+| -------------------------- | -------------- | -------------------------- |
+| `habitConfig`              | Indefinite     | App restart                |
+| `habitSummary/miniGraph`   | Per fetch      | Fresh on each agenda fetch |
+| `habitStatus` (full graph) | Per habit ID   | On completion              |
 
 ## Files to Modify
 
 ### Frontend (mova)
 
-| File | Changes |
-|------|---------|
-| `services/api.ts` | Add `getHabitConfig()`, `getHabitStatus()` methods |
-| `types/` | Add habit-related TypeScript interfaces |
-| `context/` | Add `HabitConfigContext` or extend existing context |
-| `context/FilterContext.tsx` | Add `showHabits` filter state |
-| `components/TodoItem.tsx` | Add habit graph rendering |
-| `components/HabitGraph.tsx` | New - renders the consistency graph cells |
-| `components/FilterModal.tsx` | Add "Show habits" toggle |
-| `app/(tabs)/_layout.tsx` | Add Habits tab |
-| `app/(tabs)/habits.tsx` | New - dedicated habits screen |
-| `utils/filterTodos.ts` | Add habit filtering logic |
-| `utils/colors.ts` | Add `lerpColor()` utility |
+| File                         | Changes                                             |
+| ---------------------------- | --------------------------------------------------- |
+| `services/api.ts`            | Add `getHabitConfig()`, `getHabitStatus()` methods  |
+| `types/`                     | Add habit-related TypeScript interfaces             |
+| `context/`                   | Add `HabitConfigContext` or extend existing context |
+| `context/FilterContext.tsx`  | Add `showHabits` filter state                       |
+| `components/TodoItem.tsx`    | Add habit graph rendering                           |
+| `components/HabitGraph.tsx`  | New - renders the consistency graph cells           |
+| `components/FilterModal.tsx` | Add "Show habits" toggle                            |
+| `app/(tabs)/_layout.tsx`     | Add Habits tab                                      |
+| `app/(tabs)/habits.tsx`      | New - dedicated habits screen                       |
+| `utils/filterTodos.ts`       | Add habit filtering logic                           |
+| `utils/colors.ts`            | Add `lerpColor()` utility                           |
 
 ### Backend (org-agenda-api)
 
-| File | Changes |
-|------|---------|
+| File                | Changes                                            |
+| ------------------- | -------------------------------------------------- |
 | `org-agenda-api.el` | Extend `habitSummary` to include `miniGraph` array |
 
 ## Component Hierarchy
@@ -261,6 +270,7 @@ HabitsScreen (new tab)
 ### Synchronized Scrolling
 
 For graph mode where all habits scroll together:
+
 - Use a shared scroll position in context
 - Each `HabitGraph` component subscribes to this position
 - When any graph scrolls, update the shared position
@@ -271,6 +281,7 @@ React Native approach: Use `Animated.Value` for scroll position, share via conte
 ### Graph Cell Rendering
 
 Each cell is a small `View` with:
+
 - Width: ~12-16px (adjustable)
 - Height: ~20-24px
 - Background color from `lerpColor(notConforming, conforming, ratio)`
@@ -281,6 +292,7 @@ Today's cell in full graph mode is wider (4 char equivalent): `|☐ |` or `|✓ 
 ### Dark Mode
 
 Habit colors from Emacs are fixed hex values. Options:
+
 1. Use as-is (they're designed to be visible)
 2. Apply brightness adjustment for dark mode
 3. Allow user override in mova settings (future enhancement)

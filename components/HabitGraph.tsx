@@ -19,7 +19,14 @@ interface GraphCellProps {
   textColor: string;
 }
 
-function GraphCell({ entry, isToday, colors, glyphs, borderColor, textColor }: GraphCellProps) {
+function GraphCell({
+  entry,
+  isToday,
+  colors,
+  glyphs,
+  borderColor,
+  textColor,
+}: GraphCellProps) {
   const backgroundColor = getHabitCellColor(entry.conformingRatio, colors);
 
   let glyph = "";
@@ -59,11 +66,17 @@ export function HabitGraph({ miniGraph, expanded = false }: HabitGraphProps) {
   // Find today's index (last entry with completionNeededToday defined, or second-to-last).
   // The fallback to miniGraph.length - 2 assumes the graph includes tomorrow's entry as
   // the last element, making today the second-to-last position.
-  const todayIndex = miniGraph.findIndex((e) => e.completionNeededToday !== undefined);
-  const effectiveTodayIndex = todayIndex >= 0 ? todayIndex : miniGraph.length - 2;
+  const todayIndex = miniGraph.findIndex(
+    (e) => e.completionNeededToday !== undefined,
+  );
+  const effectiveTodayIndex =
+    todayIndex >= 0 ? todayIndex : miniGraph.length - 2;
 
   return (
-    <View style={[styles.container, expanded && styles.expandedContainer]} testID="habit-graph">
+    <View
+      style={[styles.container, expanded && styles.expandedContainer]}
+      testID="habit-graph"
+    >
       {miniGraph.map((entry, index) => (
         <GraphCell
           key={entry.date}
