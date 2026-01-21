@@ -80,7 +80,9 @@ export default function AgendaScreen() {
     [doneStates],
   );
   const activeEntries = filteredEntries.filter((entry) => !isCompleted(entry));
-  const completedEntries = filteredEntries.filter((entry) => isCompleted(entry));
+  const completedEntries = filteredEntries.filter((entry) =>
+    isCompleted(entry),
+  );
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {

@@ -843,7 +843,7 @@ export function useTodoEditing(
                   style={styles.stateRow}
                 >
                   <RadioButton value={state} />
-                  <StatePill state={state} selected={false} />
+                  <StatePill state={state} selected={state === selectedState} />
                 </Pressable>
               ))}
             </RadioButton.Group>
