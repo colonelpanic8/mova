@@ -7,10 +7,12 @@ Add support for editing the body (notes/content below the heading) of a todo ite
 ## User Experience
 
 ### Access
+
 - New swipe action button ("Body" or "Edit") in TodoItem alongside existing actions
 - Uses note/document icon (e.g., `note-edit-outline`)
 
 ### Editor UI
+
 - Full screen editor for ample editing space
 - Header with back button, todo title, and Save button
 - Scrollable content area with interactive elements
@@ -34,6 +36,7 @@ Add support for editing the body (notes/content below the heading) of a todo ite
 ```
 
 ### Toolbar Actions
+
 - **Checklist** (☐): Insert `- [ ] ` at cursor or new line
 - **Bullet** (•): Insert `- ` at cursor or new line
 - **Numbered** (1.): Insert `1. ` (auto-increment based on context)
@@ -41,11 +44,13 @@ Add support for editing the body (notes/content below the heading) of a todo ite
 - **Indent** (→): Add 2 spaces of indentation
 
 ### Checklist Interaction
+
 - Tappable checkboxes that toggle between `[ ]` and `[X]`
 - Editable text content next to each checkbox
 - Visual distinction between checked and unchecked items
 
 ### Saving
+
 - Explicit "Save" button in header
 - Auto-save when exiting the editor screen
 - Track dirty state to avoid unnecessary saves
@@ -57,12 +62,12 @@ Add support for editing the body (notes/content below the heading) of a todo ite
 ```typescript
 interface Todo {
   // ... existing fields
-  body?: string | null;  // org-mode formatted body text
+  body?: string | null; // org-mode formatted body text
 }
 
 interface TodoUpdates {
   // ... existing fields
-  body?: string | null;  // update body content
+  body?: string | null; // update body content
 }
 ```
 
@@ -73,21 +78,22 @@ The backend `/update` endpoint must accept a `body` field.
 ### Org-Mode Parsing (`utils/orgBody.ts`)
 
 ```typescript
-type BlockType = 'paragraph' | 'checklist' | 'bullet' | 'numbered';
+type BlockType = "paragraph" | "checklist" | "bullet" | "numbered";
 
 interface Block {
-  id: string;           // Unique ID for React keys
+  id: string; // Unique ID for React keys
   type: BlockType;
-  indent: number;       // Number of leading spaces (for nesting)
-  checked?: boolean;    // For checklists: [ ] = false, [X] = true
-  content: string;      // The text content
+  indent: number; // Number of leading spaces (for nesting)
+  checked?: boolean; // For checklists: [ ] = false, [X] = true
+  content: string; // The text content
 }
 
-function parseOrgBody(text: string): Block[]
-function serializeBlocks(blocks: Block[]): string
+function parseOrgBody(text: string): Block[];
+function serializeBlocks(blocks: Block[]): string;
 ```
 
 **Parsing rules:**
+
 - `- [ ] text` → checklist, checked=false
 - `- [X] text` or `- [x] text` → checklist, checked=true
 - `- text` (no checkbox) → bullet
@@ -105,13 +111,15 @@ const [isSaving, setIsSaving] = useState(false);
 
 // Load on mount
 useEffect(() => {
-  const parsed = parseOrgBody(todo.body ?? '');
+  const parsed = parseOrgBody(todo.body ?? "");
   setBlocks(parsed);
 }, []);
 
 // Track changes
 const updateBlock = (id: string, updates: Partial<Block>) => {
-  setBlocks(prev => prev.map(b => b.id === id ? {...b, ...updates} : b));
+  setBlocks((prev) =>
+    prev.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+  );
   setIsDirty(true);
 };
 
@@ -120,11 +128,12 @@ const save = async () => {
   const body = serializeBlocks(blocks);
   await api.updateTodo(todo, { body });
   setIsDirty(false);
-  triggerRefresh();  // From MutationContext
+  triggerRefresh(); // From MutationContext
 };
 ```
 
 ### Navigation Flow
+
 1. User swipes todo item, taps "Body" button
 2. Navigate to `body-editor.tsx` with todo data as route params
 3. Editor loads and parses existing body (if any)
@@ -136,6 +145,7 @@ const save = async () => {
 ## File Structure
 
 ### New Files
+
 - `app/body-editor.tsx` - Full screen editor screen
 - `components/BodyEditor/index.tsx` - Main editor component
 - `components/BodyEditor/Toolbar.tsx` - Formatting toolbar
@@ -143,6 +153,7 @@ const save = async () => {
 - `utils/orgBody.ts` - Parsing and serialization logic
 
 ### Modified Files
+
 - `services/api.ts` - Add `body` to `Todo` and `TodoUpdates` interfaces
 - `hooks/useTodoEditing.tsx` - Add `openBodyEditor` action
 - `components/TodoItem.tsx` - Add "Body" swipe action button

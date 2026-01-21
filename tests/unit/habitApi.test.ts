@@ -33,7 +33,7 @@ describe("Habit API methods", () => {
           headers: expect.objectContaining({
             Authorization: expect.any(String),
           }),
-        })
+        }),
       );
       expect(result.enabled).toBe(true);
       expect(result.colors?.conforming).toBe("#4d7085");
@@ -57,7 +57,7 @@ describe("Habit API methods", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/habit-status?id=habit-123",
-        expect.any(Object)
+        expect.any(Object),
       );
       expect(result.id).toBe("habit-123");
     });
@@ -72,7 +72,7 @@ describe("Habit API methods", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/habit-status?id=habit-123&preceding=10&following=5",
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });

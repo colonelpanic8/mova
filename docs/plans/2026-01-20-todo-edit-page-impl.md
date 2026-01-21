@@ -13,6 +13,7 @@
 ### Task 1: Add deleteTodo API method
 
 **Files:**
+
 - Modify: `services/api.ts:266-280`
 
 **Step 1: Add DeleteTodoResponse interface**
@@ -57,6 +58,7 @@ git commit -m "feat(api): add deleteTodo method"
 ### Task 2: Extract DateFieldWithQuickActions to shared component
 
 **Files:**
+
 - Create: `components/todoForm/DateFieldWithQuickActions.tsx`
 - Modify: `app/(tabs)/capture.tsx`
 
@@ -393,6 +395,7 @@ import { DateFieldWithQuickActions } from "@/components/todoForm";
 Remove the entire `DateFieldWithQuickActions` function definition (lines ~75-298) and its helper functions (`formatDateForApi`, `formatDateForDisplay`, `formatDateTimeForApi` - lines ~39-73).
 
 Also remove these styles from the StyleSheet at the bottom:
+
 - `quickActionsRow`
 - `quickActionButton`
 - `quickActionText`
@@ -413,6 +416,7 @@ git commit -m "refactor: extract DateFieldWithQuickActions to shared component"
 ### Task 3: Create the Edit page
 
 **Files:**
+
 - Create: `app/edit.tsx`
 
 **Step 1: Create the edit page**
@@ -838,6 +842,7 @@ git commit -m "feat: add todo edit page"
 ### Task 4: Update TodoItem to navigate to edit page
 
 **Files:**
+
 - Modify: `components/TodoItem.tsx`
 
 **Step 1: Add navigation import and update press handler**
@@ -891,6 +896,7 @@ git commit -m "feat(TodoItem): navigate to edit page on press"
 ### Task 5: Update swipe actions (remove Body/Remind, add Delete)
 
 **Files:**
+
 - Modify: `components/TodoItem.tsx`
 - Modify: `hooks/useTodoEditing.tsx`
 
@@ -1101,6 +1107,7 @@ git commit -m "feat: update swipe actions - remove Body/Remind, add Delete"
 ### Task 6: Integrate reminder functionality in edit page
 
 **Files:**
+
 - Modify: `app/edit.tsx`
 
 **Step 1: Import notification service**
@@ -1135,7 +1142,11 @@ const handleRemind = useCallback(() => {
 const handleScheduleReminder = useCallback(async () => {
   const now = new Date();
   if (remindDateTime <= now) {
-    setSnackbar({ visible: true, message: "Please select a future time", isError: true });
+    setSnackbar({
+      visible: true,
+      message: "Please select a future time",
+      isError: true,
+    });
     return;
   }
 
@@ -1153,7 +1164,11 @@ const handleScheduleReminder = useCallback(async () => {
     });
     setRemindDialogVisible(false);
   } else {
-    setSnackbar({ visible: true, message: "Failed to schedule reminder", isError: true });
+    setSnackbar({
+      visible: true,
+      message: "Failed to schedule reminder",
+      isError: true,
+    });
   }
 }, [originalTodo, remindDateTime]);
 ```
@@ -1217,6 +1232,7 @@ git commit -m "feat(edit): integrate reminder functionality"
 ### Task 7: Clean up unused code
 
 **Files:**
+
 - Modify: `hooks/useTodoEditing.tsx`
 
 **Step 1: Remove openBodyEditor since it's no longer used**

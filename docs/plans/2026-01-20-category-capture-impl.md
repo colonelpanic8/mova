@@ -13,6 +13,7 @@
 ## Task 1: Add API Types for Category Capture
 
 **Files:**
+
 - Modify: `services/api.ts:66-131` (types section)
 
 **Step 1: Add the new interface types**
@@ -59,6 +60,7 @@ git commit -m "feat(api): add category capture types"
 ## Task 2: Add API Methods for Category Capture
 
 **Files:**
+
 - Modify: `services/api.ts` (OrgAgendaApi class)
 - Test: `tests/unit/api.test.ts`
 
@@ -223,6 +225,7 @@ git commit -m "feat(api): add category capture methods
 ## Task 3: Add Category Types to TemplatesContext
 
 **Files:**
+
 - Modify: `context/TemplatesContext.tsx`
 
 **Step 1: Add categoryTypes to context type**
@@ -232,7 +235,7 @@ Update the `TemplatesContextType` interface:
 ```typescript
 interface TemplatesContextType {
   templates: TemplatesResponse | null;
-  categoryTypes: CategoryType[] | null;  // Add this
+  categoryTypes: CategoryType[] | null; // Add this
   filterOptions: FilterOptionsResponse | null;
   todoStates: TodoStatesResponse | null;
   customViews: CustomViewsResponse | null;
@@ -247,7 +250,15 @@ interface TemplatesContextType {
 Update imports:
 
 ```typescript
-import { api, CategoryType, CustomViewsResponse, FilterOptionsResponse, MetadataResponse, TemplatesResponse, TodoStatesResponse } from "@/services/api";
+import {
+  api,
+  CategoryType,
+  CustomViewsResponse,
+  FilterOptionsResponse,
+  MetadataResponse,
+  TemplatesResponse,
+  TodoStatesResponse,
+} from "@/services/api";
 ```
 
 Add state in provider:
@@ -302,6 +313,7 @@ templates. Exposes categoryTypes in context for capture screen."
 ## Task 4: Create CategoryField Component
 
 **Files:**
+
 - Create: `components/capture/CategoryField.tsx`
 
 **Step 1: Create the component file**
@@ -479,6 +491,7 @@ typing new category names. Shows visual indicator for new vs existing."
 ## Task 5: Update Capture Screen - Add Category Types to Menu
 
 **Files:**
+
 - Modify: `app/(tabs)/capture.tsx`
 
 **Step 1: Update imports and types**
@@ -486,7 +499,11 @@ typing new category names. Shows visual indicator for new vs existing."
 Add to imports:
 
 ```typescript
-import { CategoryField, PriorityPicker, StatePicker } from "@/components/capture";
+import {
+  CategoryField,
+  PriorityPicker,
+  StatePicker,
+} from "@/components/capture";
 import { api, CategoryType, TemplatePrompt } from "@/services/api";
 ```
 
@@ -597,6 +614,7 @@ git commit -m "feat(capture): add category types state and effects
 ## Task 6: Update Capture Screen - Render Category Types in Menu
 
 **Files:**
+
 - Modify: `app/(tabs)/capture.tsx`
 
 **Step 1: Update handleTemplateSelect for both types**
@@ -717,6 +735,7 @@ Selection handling works for both templates and category types."
 ## Task 7: Update Capture Screen - Render Category Field and Handle Capture
 
 **Files:**
+
 - Modify: `app/(tabs)/capture.tsx`
 
 **Step 1: Update the form rendering to show CategoryField**
@@ -738,11 +757,13 @@ In the ScrollView, before the template prompts section, add:
 **Step 2: Update the prompts rendering to use selectedPrompts**
 
 Replace:
+
 ```typescript
 {(selectedTemplate?.prompts ?? []).map((prompt) => (
 ```
 
 With:
+
 ```typescript
 {selectedPrompts.map((prompt) => (
 ```
@@ -867,6 +888,7 @@ git commit -m "feat(capture): complete category capture integration
 ## Task 8: Add Export and Verify Build
 
 **Files:**
+
 - Modify: `components/capture/index.ts` (if not already done)
 
 **Step 1: Verify the capture components index exports CategoryField**
@@ -941,14 +963,14 @@ Test the following manually:
 
 ## Summary
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 1 | Add API types | `services/api.ts` |
-| 2 | Add API methods + tests | `services/api.ts`, `tests/unit/api.test.ts` |
-| 3 | Add to TemplatesContext | `context/TemplatesContext.tsx` |
-| 4 | Create CategoryField | `components/capture/CategoryField.tsx` |
-| 5 | Capture state/effects | `app/(tabs)/capture.tsx` |
-| 6 | Render menu with category types | `app/(tabs)/capture.tsx` |
-| 7 | Handle category capture | `app/(tabs)/capture.tsx` |
-| 8 | Verify build | - |
-| 9 | Manual testing | - |
+| Task | Description                     | Files                                       |
+| ---- | ------------------------------- | ------------------------------------------- |
+| 1    | Add API types                   | `services/api.ts`                           |
+| 2    | Add API methods + tests         | `services/api.ts`, `tests/unit/api.test.ts` |
+| 3    | Add to TemplatesContext         | `context/TemplatesContext.tsx`              |
+| 4    | Create CategoryField            | `components/capture/CategoryField.tsx`      |
+| 5    | Capture state/effects           | `app/(tabs)/capture.tsx`                    |
+| 6    | Render menu with category types | `app/(tabs)/capture.tsx`                    |
+| 7    | Handle category capture         | `app/(tabs)/capture.tsx`                    |
+| 8    | Verify build                    | -                                           |
+| 9    | Manual testing                  | -                                           |

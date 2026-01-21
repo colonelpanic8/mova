@@ -1,4 +1,4 @@
-import { lerpColor, getHabitCellColor } from "@/utils/habitColors";
+import { getHabitCellColor, lerpColor } from "@/utils/habitColors";
 
 describe("habitColors", () => {
   describe("lerpColor", () => {

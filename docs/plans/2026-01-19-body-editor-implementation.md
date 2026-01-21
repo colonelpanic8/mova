@@ -13,6 +13,7 @@
 ## Task 1: Add body field to API types
 
 **Files:**
+
 - Modify: `services/api.ts:4-17` (Todo interface)
 - Modify: `services/api.ts:46-50` (TodoUpdates interface)
 
@@ -34,7 +35,7 @@ export interface Todo {
   id: string | null;
   olpath: string[] | null;
   notifyBefore: number[] | null;
-  body?: string | null;  // Add this line
+  body?: string | null; // Add this line
 }
 ```
 
@@ -45,7 +46,7 @@ export interface TodoUpdates {
   scheduled?: string | null;
   deadline?: string | null;
   priority?: string | null;
-  body?: string | null;  // Add this line
+  body?: string | null; // Add this line
 }
 ```
 
@@ -61,6 +62,7 @@ git commit -m "feat(api): add body field to Todo and TodoUpdates interfaces"
 ## Task 2: Create org body parser utility
 
 **Files:**
+
 - Create: `utils/orgBody.ts`
 - Create: `tests/unit/orgBody.test.ts`
 
@@ -151,7 +153,13 @@ describe("serializeBlocks", () => {
 
   it("should serialize unchecked checklist", () => {
     const blocks: Block[] = [
-      { id: "1", type: "checklist", indent: 0, checked: false, content: "Task" },
+      {
+        id: "1",
+        type: "checklist",
+        indent: 0,
+        checked: false,
+        content: "Task",
+      },
     ];
     expect(serializeBlocks(blocks)).toBe("- [ ] Task");
   });
@@ -179,7 +187,13 @@ describe("serializeBlocks", () => {
 
   it("should serialize with indentation", () => {
     const blocks: Block[] = [
-      { id: "1", type: "checklist", indent: 2, checked: false, content: "Nested" },
+      {
+        id: "1",
+        type: "checklist",
+        indent: 2,
+        checked: false,
+        content: "Nested",
+      },
     ];
     expect(serializeBlocks(blocks)).toBe("    - [ ] Nested");
   });
@@ -342,6 +356,7 @@ git commit -m "feat(utils): add org body parser and serializer"
 ## Task 3: Create Toolbar component
 
 **Files:**
+
 - Create: `components/BodyEditor/Toolbar.tsx`
 
 **Step 1: Create the Toolbar component**
@@ -436,6 +451,7 @@ git commit -m "feat(components): add Toolbar for body editor"
 ## Task 4: Create ChecklistItem component
 
 **Files:**
+
 - Create: `components/BodyEditor/ChecklistItem.tsx`
 
 **Step 1: Create the ChecklistItem component**
@@ -521,6 +537,7 @@ git commit -m "feat(components): add ChecklistItem for body editor"
 ## Task 5: Create BulletItem component
 
 **Files:**
+
 - Create: `components/BodyEditor/BulletItem.tsx`
 
 **Step 1: Create the BulletItem component**
@@ -604,6 +621,7 @@ git commit -m "feat(components): add BulletItem for body editor"
 ## Task 6: Create ParagraphItem component
 
 **Files:**
+
 - Create: `components/BodyEditor/ParagraphItem.tsx`
 
 **Step 1: Create the ParagraphItem component**
@@ -667,6 +685,7 @@ git commit -m "feat(components): add ParagraphItem for body editor"
 ## Task 7: Create main BodyEditor component
 
 **Files:**
+
 - Create: `components/BodyEditor/index.tsx`
 
 **Step 1: Create the BodyEditor component**
@@ -927,6 +946,7 @@ git commit -m "feat(components): add main BodyEditor component"
 ## Task 8: Create body-editor screen
 
 **Files:**
+
 - Create: `app/body-editor.tsx`
 - Modify: `app/_layout.tsx`
 
@@ -1104,6 +1124,7 @@ git commit -m "feat(app): add body-editor screen"
 ## Task 9: Add openBodyEditor to useTodoEditing hook
 
 **Files:**
+
 - Modify: `hooks/useTodoEditing.tsx`
 
 **Step 1: Add openBodyEditor function**
@@ -1111,16 +1132,19 @@ git commit -m "feat(app): add body-editor screen"
 In `hooks/useTodoEditing.tsx`, add the import for router and the new function.
 
 Add import at the top:
+
 ```typescript
 import { useRouter } from "expo-router";
 ```
 
 Inside `useTodoEditing` function, add router hook:
+
 ```typescript
 const router = useRouter();
 ```
 
 Add the openBodyEditor function after the existing modal functions:
+
 ```typescript
 const openBodyEditor = useCallback(
   (todo: Todo) => {
@@ -1137,11 +1161,12 @@ const openBodyEditor = useCallback(
       },
     });
   },
-  [router]
+  [router],
 );
 ```
 
 Add `openBodyEditor` to the `UseTodoEditingResult` interface:
+
 ```typescript
 export interface UseTodoEditingResult {
   // ... existing properties
@@ -1151,6 +1176,7 @@ export interface UseTodoEditingResult {
 ```
 
 Add to the return statement:
+
 ```typescript
 return {
   // ... existing
@@ -1171,6 +1197,7 @@ git commit -m "feat(hooks): add openBodyEditor to useTodoEditing"
 ## Task 10: Add Body swipe action to TodoItem
 
 **Files:**
+
 - Modify: `components/TodoItem.tsx`
 
 **Step 1: Add openBodyEditor to destructured context**
@@ -1189,7 +1216,7 @@ const {
   openDeadlineModal,
   openPriorityModal,
   openRemindModal,
-  openBodyEditor,  // Add this
+  openBodyEditor, // Add this
   openSwipeable,
 } = useTodoEditingContext();
 ```
@@ -1247,6 +1274,7 @@ git commit -m "feat(components): add Body swipe action to TodoItem"
 ## Task 11: Update test mocks for MutationContext
 
 **Files:**
+
 - Modify: `tests/components/AgendaScreen.test.tsx`
 - Modify: `tests/components/SearchScreen.test.tsx`
 
@@ -1259,6 +1287,7 @@ The useTodoEditing mock should also be added if not present. For now, since we'r
 Since the tests mock `useTodoEditingContext` implicitly through the provider pattern, we need to add `openBodyEditor` to the mock in the test setup or ensure the TodoEditingProvider works with the mocked MutationContext.
 
 Actually, looking at the test files, they mock MutationContext but the screens use TodoEditingProvider which uses the real useTodoEditing. The tests need to either:
+
 1. Mock useTodoEditing directly, or
 2. Ensure the MutationContext mock is sufficient
 
@@ -1321,6 +1350,7 @@ git commit -m "fix: address any issues found in testing"
 ## Summary
 
 This plan creates a full-screen body editor with:
+
 - Org-mode parser/serializer for `- [ ]` checklists, `- ` bullets, `1. ` numbered lists
 - Interactive checkbox toggling
 - Toolbar for adding items and indenting

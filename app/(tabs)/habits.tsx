@@ -21,19 +21,31 @@ function HabitStatsCard({ stats }: { stats: HabitStats }) {
     <Card style={styles.statsCard}>
       <Card.Content style={styles.statsContent}>
         <View style={styles.statItem}>
-          <Text variant="headlineMedium" style={{ color: theme.colors.primary }}>
+          <Text
+            variant="headlineMedium"
+            style={{ color: theme.colors.primary }}
+          >
             {stats.remainingToday}
           </Text>
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
             remaining today
           </Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text variant="headlineMedium" style={{ color: theme.colors.tertiary }}>
+          <Text
+            variant="headlineMedium"
+            style={{ color: theme.colors.tertiary }}
+          >
             {stats.onTrack}/{stats.totalHabits}
           </Text>
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
             on track
           </Text>
         </View>
@@ -74,10 +86,10 @@ export default function HabitsScreen() {
 
   const stats = useMemo((): HabitStats => {
     const remainingToday = habits.filter(
-      (h) => h.habitSummary?.completionNeededToday && h.todo !== "DONE"
+      (h) => h.habitSummary?.completionNeededToday && h.todo !== "DONE",
     ).length;
     const onTrack = habits.filter(
-      (h) => (h.habitSummary?.conformingRatio ?? 0) >= 1.0
+      (h) => (h.habitSummary?.conformingRatio ?? 0) >= 1.0,
     ).length;
     return {
       remainingToday,
@@ -88,22 +100,30 @@ export default function HabitsScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Todo }) => <TodoItem todo={item} />,
-    []
+    [],
   );
 
   const keyExtractor = useCallback(
     (item: Todo) => item.id || `${item.file}:${item.pos}`,
-    []
+    [],
   );
 
   if (!config?.enabled) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <View style={styles.emptyState}>
-          <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+          <Text
+            variant="bodyLarge"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
             Habits are not enabled on your server.
           </Text>
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
             Enable org-window-habit-mode in Emacs to use this feature.
           </Text>
         </View>
@@ -113,7 +133,9 @@ export default function HabitsScreen() {
 
   return (
     <TodoEditingProvider>
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <FlatList
           data={habits}
           renderItem={renderItem}
@@ -122,7 +144,10 @@ export default function HabitsScreen() {
           ListEmptyComponent={
             !isLoading ? (
               <View style={styles.emptyState}>
-                <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text
+                  variant="bodyLarge"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
                   No habits found
                 </Text>
               </View>

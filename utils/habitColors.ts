@@ -5,7 +5,11 @@
  * @param ratio Value between 0 and 1 (0 = color1, 1 = color2)
  * @returns Interpolated hex color
  */
-export function lerpColor(color1: string, color2: string, ratio: number): string {
+export function lerpColor(
+  color1: string,
+  color2: string,
+  ratio: number,
+): string {
   const r1 = parseInt(color1.slice(1, 3), 16);
   const g1 = parseInt(color1.slice(3, 5), 16);
   const b1 = parseInt(color1.slice(5, 7), 16);
@@ -39,7 +43,7 @@ export const DEFAULT_HABIT_COLORS: HabitColors = {
  */
 export function getHabitCellColor(
   conformingRatio: number,
-  colors: HabitColors = DEFAULT_HABIT_COLORS
+  colors: HabitColors = DEFAULT_HABIT_COLORS,
 ): string {
   const clampedRatio = Math.max(0, Math.min(1, conformingRatio));
   return lerpColor(colors.notConforming, colors.conforming, clampedRatio);

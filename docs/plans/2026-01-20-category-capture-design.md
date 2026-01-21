@@ -7,7 +7,9 @@ Add support for `org-category-capture` and `org-project-capture` features from o
 ## API Endpoints
 
 ### GET /category-types
+
 Returns list of registered category strategy types with prompts:
+
 ```json
 {
   "types": [
@@ -16,11 +18,11 @@ Returns list of registered category strategy types with prompts:
       "hasCategories": true,
       "captureTemplate": "* TODO %?\n",
       "prompts": [
-        {"name": "Title", "type": "string", "required": true},
-        {"name": "Scheduled", "type": "date", "required": false},
-        {"name": "Deadline", "type": "date", "required": false},
-        {"name": "Priority", "type": "string", "required": false},
-        {"name": "Tags", "type": "tags", "required": false}
+        { "name": "Title", "type": "string", "required": true },
+        { "name": "Scheduled", "type": "date", "required": false },
+        { "name": "Deadline", "type": "date", "required": false },
+        { "name": "Priority", "type": "string", "required": false },
+        { "name": "Tags", "type": "tags", "required": false }
       ]
     }
   ]
@@ -28,7 +30,9 @@ Returns list of registered category strategy types with prompts:
 ```
 
 ### GET /categories?type=NAME
+
 Returns categories for a strategy type:
+
 ```json
 {
   "type": "projects",
@@ -38,7 +42,9 @@ Returns categories for a strategy type:
 ```
 
 ### POST /category-capture
+
 Capture to a specific category:
+
 ```json
 {
   "type": "projects",
@@ -55,6 +61,7 @@ Capture to a specific category:
 ## UI Design
 
 ### Capture Menu Structure
+
 ```
 [Template A]
 [Template B]
@@ -82,6 +89,7 @@ When a category type is selected:
 ### CategoryField Component
 
 Combo input behavior:
+
 - Text input with dropdown indicator
 - On focus: shows dropdown of existing categories
 - As user types: filters dropdown list
@@ -93,6 +101,7 @@ Combo input behavior:
 ### 1. services/api.ts
 
 Add types:
+
 ```typescript
 export interface CategoryType {
   name: string;
@@ -113,6 +122,7 @@ export interface CategoriesResponse {
 ```
 
 Add methods:
+
 ```typescript
 async getCategoryTypes(): Promise<CategoryTypesResponse>
 async getCategories(type: string): Promise<CategoriesResponse>
@@ -141,6 +151,7 @@ async categoryCapture(
 ### 4. components/CategoryField.tsx
 
 New component:
+
 ```typescript
 interface CategoryFieldProps {
   categories: string[];
@@ -151,6 +162,7 @@ interface CategoryFieldProps {
 ```
 
 Implementation:
+
 - TextInput + Menu combo
 - Filter categories as user types
 - Show filtered existing categories
@@ -158,12 +170,12 @@ Implementation:
 
 ## Files to Change
 
-| File | Changes |
-|------|---------|
-| `services/api.ts` | Add 3 new API methods + types |
-| `context/TemplatesContext.tsx` | Fetch & expose `categoryTypes` |
-| `app/(tabs)/capture.tsx` | Extended menu, routing logic, category state |
-| `components/CategoryField.tsx` | New combo input component |
+| File                           | Changes                                      |
+| ------------------------------ | -------------------------------------------- |
+| `services/api.ts`              | Add 3 new API methods + types                |
+| `context/TemplatesContext.tsx` | Fetch & expose `categoryTypes`               |
+| `app/(tabs)/capture.tsx`       | Extended menu, routing logic, category state |
+| `components/CategoryField.tsx` | New combo input component                    |
 
 ## Testing
 

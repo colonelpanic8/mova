@@ -13,6 +13,7 @@
 ## Task 1: Create SavedServer Types and Storage Utilities
 
 **Files:**
+
 - Create: `types/server.ts`
 - Create: `utils/serverStorage.ts`
 - Create: `tests/unit/serverStorage.test.ts`
@@ -51,9 +52,16 @@ describe("serverStorage", () => {
 
     it("should return parsed servers from storage", async () => {
       const mockServers = [
-        { id: "1", apiUrl: "https://server1.com", username: "user1", password: "pass1" },
+        {
+          id: "1",
+          apiUrl: "https://server1.com",
+          username: "user1",
+          password: "pass1",
+        },
       ];
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(mockServers));
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify(mockServers),
+      );
       const servers = await getSavedServers();
       expect(servers).toEqual(mockServers);
     });
@@ -75,14 +83,26 @@ describe("serverStorage", () => {
   describe("deleteServer", () => {
     it("should remove server by id", async () => {
       const mockServers = [
-        { id: "1", apiUrl: "https://server1.com", username: "user1", password: "pass1" },
-        { id: "2", apiUrl: "https://server2.com", username: "user2", password: "pass2" },
+        {
+          id: "1",
+          apiUrl: "https://server1.com",
+          username: "user1",
+          password: "pass1",
+        },
+        {
+          id: "2",
+          apiUrl: "https://server2.com",
+          username: "user2",
+          password: "pass2",
+        },
       ];
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(mockServers));
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify(mockServers),
+      );
       await deleteServer("1");
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
         "mova_saved_servers",
-        JSON.stringify([mockServers[1]])
+        JSON.stringify([mockServers[1]]),
       );
     });
   });
@@ -134,27 +154,41 @@ export async function getSavedServers(): Promise<SavedServer[]> {
   }
 }
 
-export async function saveServer(input: SavedServerInput): Promise<SavedServer> {
+export async function saveServer(
+  input: SavedServerInput,
+): Promise<SavedServer> {
   const servers = await getSavedServers();
   const newServer: SavedServer = { ...input, id: generateId() };
   servers.push(newServer);
-  await AsyncStorage.setItem(STORAGE_KEYS.SAVED_SERVERS, JSON.stringify(servers));
+  await AsyncStorage.setItem(
+    STORAGE_KEYS.SAVED_SERVERS,
+    JSON.stringify(servers),
+  );
   return newServer;
 }
 
-export async function updateServer(id: string, updates: Partial<SavedServerInput>): Promise<void> {
+export async function updateServer(
+  id: string,
+  updates: Partial<SavedServerInput>,
+): Promise<void> {
   const servers = await getSavedServers();
   const index = servers.findIndex((s) => s.id === id);
   if (index !== -1) {
     servers[index] = { ...servers[index], ...updates };
-    await AsyncStorage.setItem(STORAGE_KEYS.SAVED_SERVERS, JSON.stringify(servers));
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.SAVED_SERVERS,
+      JSON.stringify(servers),
+    );
   }
 }
 
 export async function deleteServer(id: string): Promise<void> {
   const servers = await getSavedServers();
   const filtered = servers.filter((s) => s.id !== id);
-  await AsyncStorage.setItem(STORAGE_KEYS.SAVED_SERVERS, JSON.stringify(filtered));
+  await AsyncStorage.setItem(
+    STORAGE_KEYS.SAVED_SERVERS,
+    JSON.stringify(filtered),
+  );
 }
 
 export async function getActiveServerId(): Promise<string | null> {
@@ -169,7 +203,9 @@ export async function setActiveServerId(id: string | null): Promise<void> {
   }
 }
 
-export async function findServerById(id: string): Promise<SavedServer | undefined> {
+export async function findServerById(
+  id: string,
+): Promise<SavedServer | undefined> {
   const servers = await getSavedServers();
   return servers.find((s) => s.id === id);
 }
@@ -192,6 +228,7 @@ git commit -m "feat: add SavedServer types and storage utilities"
 ## Task 2: Update AuthContext with Multi-Server Methods
 
 **Files:**
+
 - Modify: `context/AuthContext.tsx`
 - Create: `tests/unit/AuthContext.test.ts`
 
@@ -231,7 +268,12 @@ describe("AuthContext multi-server", () => {
   it("should load saved servers on init", async () => {
     const spy = jest.spyOn(serverStorage, "getSavedServers");
     spy.mockResolvedValue([
-      { id: "1", apiUrl: "https://test.com", username: "user", password: "pass" },
+      {
+        id: "1",
+        apiUrl: "https://test.com",
+        username: "user",
+        password: "pass",
+      },
     ]);
 
     const servers = await serverStorage.getSavedServers();
@@ -265,7 +307,10 @@ interface AuthContextType extends AuthState {
   activeServerId: string | null;
   switchServer: (serverId: string) => Promise<boolean>;
   saveCurrentServer: (nickname?: string) => Promise<SavedServer | null>;
-  updateServer: (id: string, updates: Partial<SavedServerInput>) => Promise<void>;
+  updateServer: (
+    id: string,
+    updates: Partial<SavedServerInput>,
+  ) => Promise<void>;
   deleteServer: (id: string) => Promise<void>;
   refreshSavedServers: () => Promise<void>;
 }
@@ -309,7 +354,12 @@ async function switchServer(serverId: string): Promise<boolean> {
   const server = await findServerById(serverId);
   if (!server) return false;
 
-  const success = await login(server.apiUrl, server.username, server.password, false);
+  const success = await login(
+    server.apiUrl,
+    server.username,
+    server.password,
+    false,
+  );
   if (success) {
     await setActiveServerId(serverId);
     setActiveServerIdState(serverId);
@@ -317,7 +367,9 @@ async function switchServer(serverId: string): Promise<boolean> {
   return success;
 }
 
-async function saveCurrentServer(nickname?: string): Promise<SavedServer | null> {
+async function saveCurrentServer(
+  nickname?: string,
+): Promise<SavedServer | null> {
   if (!state.apiUrl || !state.username || !state.password) return null;
 
   const newServer = await saveServerToStorage({
@@ -333,7 +385,10 @@ async function saveCurrentServer(nickname?: string): Promise<SavedServer | null>
   return newServer;
 }
 
-async function handleUpdateServer(id: string, updates: Partial<SavedServerInput>): Promise<void> {
+async function handleUpdateServer(
+  id: string,
+  updates: Partial<SavedServerInput>,
+): Promise<void> {
   await updateServerInStorage(id, updates);
   await refreshSavedServers();
 
@@ -448,7 +503,7 @@ async function login(
       if (save) {
         // Check if server already exists
         const existing = savedServers.find(
-          (s) => s.apiUrl === normalizedUrl && s.username === username
+          (s) => s.apiUrl === normalizedUrl && s.username === username,
         );
         if (!existing) {
           const newServer = await saveServerToStorage({
@@ -560,6 +615,7 @@ git commit -m "feat: add multi-server methods to AuthContext"
 ## Task 3: Create PasswordInput Component with Show/Hide Toggle
 
 **Files:**
+
 - Create: `components/PasswordInput.tsx`
 
 **Step 1: Create the reusable component**
@@ -605,6 +661,7 @@ git commit -m "feat: add PasswordInput component with show/hide toggle"
 ## Task 4: Update Login Screen with Saved Servers List
 
 **Files:**
+
 - Modify: `app/login.tsx`
 
 **Step 1: Add imports**
@@ -958,6 +1015,7 @@ git commit -m "feat: add saved servers list and password toggle to login screen"
 ## Task 5: Update Settings Screen with Password Display and Manage Servers Link
 
 **Files:**
+
 - Modify: `app/(tabs)/settings/index.tsx`
 
 **Step 1: Add state for password visibility**
@@ -1038,6 +1096,7 @@ git commit -m "feat: add password display and manage servers link to settings"
 ## Task 6: Create Manage Servers Screen
 
 **Files:**
+
 - Create: `app/(tabs)/settings/servers.tsx`
 - Modify: `app/(tabs)/settings/_layout.tsx`
 
@@ -1386,6 +1445,7 @@ git commit -m "feat: add Manage Servers screen"
 ## Task 7: Final Integration Testing and Cleanup
 
 **Files:**
+
 - All modified files
 
 **Step 1: Run full test suite**

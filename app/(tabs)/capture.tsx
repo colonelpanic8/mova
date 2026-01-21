@@ -535,85 +535,85 @@ export default function CaptureScreen() {
           contentContainerStyle={styles.formContent}
           keyboardShouldPersistTaps="handled"
         >
-        {/* Category field for category type captures */}
-        {selection?.type === "category" && (
-          <CategoryField
-            categories={availableCategories}
-            value={categoryValue}
-            onChange={setCategoryValue}
-            loading={categoriesLoading}
-          />
-        )}
+          {/* Category field for category type captures */}
+          {selection?.type === "category" && (
+            <CategoryField
+              categories={availableCategories}
+              value={categoryValue}
+              onChange={setCategoryValue}
+              loading={categoriesLoading}
+            />
+          )}
 
-        {/* Template prompts */}
-        {selectedPrompts.map((prompt) => (
+          {/* Template prompts */}
+          {selectedPrompts.map((prompt) => (
+            <PromptField
+              key={prompt.name}
+              prompt={prompt}
+              value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
+              onChange={(value) => handleValueChange(prompt.name, value)}
+            />
+          ))}
+
+          {/* Universal org-mode fields */}
+          <Divider style={styles.optionsDivider} />
+
+          <StatePicker
+            value={optionalFields.todo || "TODO"}
+            onChange={(v) => handleOptionalFieldChange("todo", v)}
+          />
+
+          <PriorityPicker
+            value={optionalFields.priority || null}
+            onChange={(v) => handleOptionalFieldChange("priority", v)}
+            priorities={filterOptions?.priorities}
+          />
+
+          <DateFieldWithQuickActions
+            label="Schedule"
+            value={optionalFields.scheduled || ""}
+            onChange={(v) => handleOptionalFieldChange("scheduled", v)}
+            colorKey="schedule"
+            includeTime={quickScheduleIncludeTime}
+          />
+
+          <RepeaterPicker
+            value={optionalFields.scheduledRepeater || null}
+            onChange={(v) => handleOptionalFieldChange("scheduledRepeater", v)}
+            label="Schedule Repeater"
+          />
+
+          <DateFieldWithQuickActions
+            label="Deadline"
+            value={optionalFields.deadline || ""}
+            onChange={(v) => handleOptionalFieldChange("deadline", v)}
+            colorKey="deadline"
+            includeTime={quickScheduleIncludeTime}
+          />
+
+          <RepeaterPicker
+            value={optionalFields.deadlineRepeater || null}
+            onChange={(v) => handleOptionalFieldChange("deadlineRepeater", v)}
+            label="Deadline Repeater"
+          />
+
           <PromptField
-            key={prompt.name}
-            prompt={prompt}
-            value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
-            onChange={(value) => handleValueChange(prompt.name, value)}
+            prompt={{ name: "Tags", type: "tags", required: false }}
+            value={optionalFields.tags || []}
+            onChange={(v) => handleOptionalFieldChange("tags", v as string[])}
           />
-        ))}
 
-        {/* Universal org-mode fields */}
-        <Divider style={styles.optionsDivider} />
-
-        <StatePicker
-          value={optionalFields.todo || "TODO"}
-          onChange={(v) => handleOptionalFieldChange("todo", v)}
-        />
-
-        <PriorityPicker
-          value={optionalFields.priority || null}
-          onChange={(v) => handleOptionalFieldChange("priority", v)}
-          priorities={filterOptions?.priorities}
-        />
-
-        <DateFieldWithQuickActions
-          label="Schedule"
-          value={optionalFields.scheduled || ""}
-          onChange={(v) => handleOptionalFieldChange("scheduled", v)}
-          colorKey="schedule"
-          includeTime={quickScheduleIncludeTime}
-        />
-
-        <RepeaterPicker
-          value={optionalFields.scheduledRepeater || null}
-          onChange={(v) => handleOptionalFieldChange("scheduledRepeater", v)}
-          label="Schedule Repeater"
-        />
-
-        <DateFieldWithQuickActions
-          label="Deadline"
-          value={optionalFields.deadline || ""}
-          onChange={(v) => handleOptionalFieldChange("deadline", v)}
-          colorKey="deadline"
-          includeTime={quickScheduleIncludeTime}
-        />
-
-        <RepeaterPicker
-          value={optionalFields.deadlineRepeater || null}
-          onChange={(v) => handleOptionalFieldChange("deadlineRepeater", v)}
-          label="Deadline Repeater"
-        />
-
-        <PromptField
-          prompt={{ name: "Tags", type: "tags", required: false }}
-          value={optionalFields.tags || []}
-          onChange={(v) => handleOptionalFieldChange("tags", v as string[])}
-        />
-
-        <Button
-          testID="captureButton"
-          mode="contained"
-          onPress={handleCapture}
-          loading={submitting}
-          disabled={submitting || !selection}
-          style={styles.captureButton}
-          icon="check"
-        >
-          Capture
-        </Button>
+          <Button
+            testID="captureButton"
+            mode="contained"
+            onPress={handleCapture}
+            loading={submitting}
+            disabled={submitting || !selection}
+            style={styles.captureButton}
+            icon="check"
+          >
+            Capture
+          </Button>
         </ScrollView>
       </KeyboardAvoidingView>
 
