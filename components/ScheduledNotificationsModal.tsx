@@ -1,6 +1,6 @@
 import {
-  getScheduledNotifications,
-  ScheduledNotification,
+  getAllScheduledNotifications,
+  ScheduledNotificationInfo,
 } from "@/services/notifications";
 import React, { useEffect, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
@@ -24,18 +24,20 @@ export function ScheduledNotificationsModal({
   onDismiss,
 }: ScheduledNotificationsModalProps) {
   const theme = useTheme();
-  const [notifications, setNotifications] = useState<ScheduledNotification[]>(
-    [],
-  );
+  const [notifications, setNotifications] = useState<
+    ScheduledNotificationInfo[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (visible) {
       setLoading(true);
-      getScheduledNotifications().then((notifs) => {
-        setNotifications(notifs);
-        setLoading(false);
-      });
+      getAllScheduledNotifications().then(
+        (notifs: ScheduledNotificationInfo[]) => {
+          setNotifications(notifs);
+          setLoading(false);
+        },
+      );
     }
   }, [visible]);
 
@@ -68,7 +70,11 @@ export function ScheduledNotificationsModal({
     });
   };
 
-  const renderNotification = ({ item }: { item: ScheduledNotification }) => (
+  const renderNotification = ({
+    item,
+  }: {
+    item: ScheduledNotificationInfo;
+  }) => (
     <View style={styles.notificationItem}>
       <View style={styles.notificationHeader}>
         <Text
@@ -82,14 +88,14 @@ export function ScheduledNotificationsModal({
           variant="labelSmall"
           style={[styles.timeUntil, { color: theme.colors.primary }]}
         >
-          {formatTriggerDate(item.triggerDate)}
+          {formatTriggerDate(item.scheduledTime)}
         </Text>
       </View>
       <Text
         variant="bodySmall"
         style={[styles.triggerTime, { color: theme.colors.onSurfaceVariant }]}
       >
-        {formatTime(item.triggerDate)}
+        {formatTime(item.scheduledTime)}
       </Text>
     </View>
   );
