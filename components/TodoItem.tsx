@@ -1,4 +1,5 @@
 import { HabitGraph } from "@/components/HabitGraph";
+import { StatePill } from "@/components/StatePill";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Repeater, Todo } from "@/services/api";
@@ -57,8 +58,7 @@ export function getTodoKey(todo: Todo): string {
 export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
   const router = useRouter();
   const theme = useTheme();
-  const { getTodoStateColor, getActionColor, getPriorityColor } =
-    useColorPalette();
+  const { getActionColor, getPriorityColor } = useColorPalette();
   const {
     completingIds,
     updatingIds,
@@ -201,19 +201,12 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
         >
           <View style={styles.todoHeader}>
             {todo.todo && (
-              <Chip
-                mode="flat"
-                compact
-                onPress={isCompleting ? undefined : onTodoChipPress}
-                style={[
-                  styles.todoChip,
-                  { backgroundColor: getTodoStateColor(todo.todo) },
-                  isCompleting && styles.todoChipLoading,
-                ]}
-                textStyle={{ fontSize: 10, color: "white" }}
-              >
-                {isCompleting ? "..." : todo.todo}
-              </Chip>
+              <StatePill
+                state={todo.todo}
+                selected={false}
+                onPress={onTodoChipPress}
+                loading={isCompleting}
+              />
             )}
             {todo.priority && todo.priority.trim() && (
               <Chip
@@ -353,13 +346,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  },
-  todoChip: {
-    minHeight: 24,
-    justifyContent: "center",
-  },
-  todoChipLoading: {
-    opacity: 0.6,
   },
   priorityChip: {
     minHeight: 24,

@@ -9,10 +9,11 @@
 
 import { ColorPicker } from "@/components/ColorPicker";
 import { useColorPalette } from "@/context/ColorPaletteContext";
+import { useTemplates } from "@/context/TemplatesContext";
 import { ActionButtonType, ColorValue, PriorityLevel } from "@/types/colors";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
@@ -20,7 +21,6 @@ import {
   List,
   Portal,
   Text,
-  TextInput,
   useTheme,
 } from "react-native-paper";
 
@@ -40,18 +40,27 @@ export default function ColorSettingsScreen() {
     getPriorityColor,
     getConfiguredTodoStates,
     setTodoStateColor,
-    removeTodoStateColor,
     setActionColor,
     setPriorityColor,
+    randomizeTodoStateColors,
     resetToDefaults,
   } = useColorPalette();
+  const { todoStates: orgTodoStates } = useTemplates();
 
   const [editingItem, setEditingItem] = useState<EditingItem>(null);
-  const [showAddState, setShowAddState] = useState(false);
-  const [newStateName, setNewStateName] = useState("");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const todoStates = getConfiguredTodoStates();
+  // Merge actual org-mode states with any custom states from color config
+  const todoStates = useMemo(() => {
+    const orgStates = [
+      ...(orgTodoStates?.active || []),
+      ...(orgTodoStates?.done || []),
+    ];
+    const configuredStates = getConfiguredTodoStates();
+    // Combine and deduplicate, preserving org states order first
+    const allStates = new Set([...orgStates, ...configuredStates]);
+    return Array.from(allStates);
+  }, [orgTodoStates, getConfiguredTodoStates]);
   const actionButtons: { key: ActionButtonType; label: string }[] = [
     { key: "today", label: "Today" },
     { key: "tomorrow", label: "Tomorrow" },
@@ -79,17 +88,8 @@ export default function ColorSettingsScreen() {
     setEditingItem(null);
   };
 
-  const handleAddState = async () => {
-    const trimmed = newStateName.trim().toUpperCase();
-    if (trimmed && !todoStates.includes(trimmed)) {
-      await setTodoStateColor(trimmed, "theme:secondary");
-      setNewStateName("");
-      setShowAddState(false);
-    }
-  };
-
-  const handleRemoveState = async (keyword: string) => {
-    await removeTodoStateColor(keyword);
+  const handleRandomize = async () => {
+    await randomizeTodoStateColors(todoStates);
   };
 
   const handleReset = async () => {
@@ -149,28 +149,7 @@ export default function ColorSettingsScreen() {
               title={keyword}
               description={config.todoStateColors[keyword]}
               left={() => <ColorSwatch color={getTodoStateColor(keyword)} />}
-              right={() => (
-                <View style={styles.itemActions}>
-                  <Pressable
-                    onPress={() =>
-                      setEditingItem({ type: "todoState", keyword })
-                    }
-                    style={styles.editButton}
-                  >
-                    <Text style={{ color: theme.colors.primary }}>Edit</Text>
-                  </Pressable>
-                  {!["TODO", "NEXT", "DONE", "WAITING", "DEFAULT"].includes(
-                    keyword,
-                  ) && (
-                    <Pressable
-                      onPress={() => handleRemoveState(keyword)}
-                      style={styles.removeButton}
-                    >
-                      <Text style={{ color: theme.colors.error }}>Remove</Text>
-                    </Pressable>
-                  )}
-                </View>
-              )}
+              onPress={() => setEditingItem({ type: "todoState", keyword })}
               style={styles.listItem}
             />
           ))}
@@ -178,25 +157,18 @@ export default function ColorSettingsScreen() {
             title="Default (fallback)"
             description={config.todoStateColors["DEFAULT"]}
             left={() => <ColorSwatch color={getTodoStateColor("DEFAULT")} />}
-            right={() => (
-              <Pressable
-                onPress={() =>
-                  setEditingItem({ type: "todoState", keyword: "DEFAULT" })
-                }
-                style={styles.editButton}
-              >
-                <Text style={{ color: theme.colors.primary }}>Edit</Text>
-              </Pressable>
-            )}
+            onPress={() =>
+              setEditingItem({ type: "todoState", keyword: "DEFAULT" })
+            }
             style={styles.listItem}
           />
           <Button
             mode="outlined"
-            onPress={() => setShowAddState(true)}
+            onPress={handleRandomize}
             style={styles.addButton}
-            icon="plus"
+            icon="dice-multiple"
           >
-            Add Custom State
+            Randomize Colors
           </Button>
         </List.Section>
 
@@ -248,38 +220,6 @@ export default function ColorSettingsScreen() {
         title={getPickerTitle()}
       />
 
-      {/* Add State Dialog */}
-      <Portal>
-        <Dialog visible={showAddState} onDismiss={() => setShowAddState(false)}>
-          <Dialog.Title>Add Custom TODO State</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              mode="outlined"
-              label="State Name"
-              placeholder="e.g., SOMEDAY"
-              value={newStateName}
-              onChangeText={setNewStateName}
-              autoCapitalize="characters"
-            />
-            <Text
-              style={[
-                styles.dialogHint,
-                { color: theme.colors.onSurfaceVariant },
-              ]}
-            >
-              Enter the TODO keyword as it appears in your org files (e.g.,
-              SOMEDAY, HOLD, PROJECT)
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowAddState(false)}>Cancel</Button>
-            <Button onPress={handleAddState} disabled={!newStateName.trim()}>
-              Add
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-
       {/* Reset Confirmation Dialog */}
       <Portal>
         <Dialog
@@ -322,17 +262,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
     alignSelf: "center",
   },
-  itemActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  editButton: {
-    padding: 8,
-  },
-  removeButton: {
-    padding: 8,
-  },
   addButton: {
     marginHorizontal: 16,
     marginTop: 8,
@@ -340,9 +269,5 @@ const styles = StyleSheet.create({
   footer: {
     padding: 16,
     paddingBottom: 32,
-  },
-  dialogHint: {
-    fontSize: 12,
-    marginTop: 8,
   },
 });
