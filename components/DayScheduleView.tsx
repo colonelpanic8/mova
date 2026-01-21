@@ -15,6 +15,7 @@ import { Text, useTheme } from "react-native-paper";
 
 interface DayScheduleViewProps {
   entries: (Todo & { completedAt?: string | null })[];
+  doneStates?: string[];
   startHour?: number;
   endHour?: number;
   hourHeight?: number;
@@ -134,6 +135,7 @@ function CompactTodoItem({
 
 export function DayScheduleView({
   entries,
+  doneStates = [],
   startHour = 0,
   endHour = 24,
   hourHeight = 60,
@@ -142,45 +144,49 @@ export function DayScheduleView({
 }: DayScheduleViewProps) {
   const theme = useTheme();
 
-  // Separate entries by timed/untimed and active/completed
-  const { positionedEntries, activeUntimedEntries, completedEntries } = useMemo(() => {
-    const timedActive: TimedEntry[] = [];
-    const timedCompleted: TimedEntry[] = [];
-    const untimedActive: (Todo & { completedAt?: string | null })[] = [];
-    const untimedCompleted: (Todo & { completedAt?: string | null })[] = [];
+  // Separate entries by timed/untimed
+  // Timed entries include: scheduled/deadline times, or completion time for completed items
+  const { positionedEntries, untimedEntries } = useMemo(() => {
+    const timed: TimedEntry[] = [];
+    const untimed: (Todo & { completedAt?: string | null })[] = [];
+
+    const isCompleted = (entry: Todo & { completedAt?: string | null }) =>
+      entry.completedAt || doneStates.includes(entry.todo);
 
     entries.forEach((entry) => {
-      const time = getTimeFromEntry(entry);
+      // First try scheduled/deadline time
+      let time = getTimeFromEntry(entry);
+
+      // If no scheduled time but completed, use completion time
+      if (!time && entry.completedAt) {
+        const completedDate = new Date(entry.completedAt);
+        if (!isNaN(completedDate.getTime())) {
+          time = {
+            hours: completedDate.getHours(),
+            minutes: completedDate.getMinutes(),
+          };
+        }
+      }
+
       if (time) {
         const totalMinutes = time.hours * 60 + time.minutes;
-        if (entry.completedAt) {
-          timedCompleted.push({ entry, time, totalMinutes });
-        } else {
-          timedActive.push({ entry, time, totalMinutes });
-        }
-      } else if (entry.completedAt) {
-        untimedCompleted.push(entry);
-      } else {
-        untimedActive.push(entry);
+        timed.push({ entry, time, totalMinutes });
+      } else if (!isCompleted(entry)) {
+        // Only untimed active items go to the "All Day" section
+        untimed.push(entry);
       }
+      // Completed untimed items with no completion time are excluded from schedule view
     });
 
     // Sort timed entries by time
-    timedActive.sort((a, b) => a.totalMinutes - b.totalMinutes);
-    timedCompleted.sort((a, b) => a.totalMinutes - b.totalMinutes);
+    timed.sort((a, b) => a.totalMinutes - b.totalMinutes);
 
-    // Combine all completed entries: untimed first, then timed (sorted by time)
-    const allCompleted: (Todo & { completedAt?: string | null })[] = [
-      ...untimedCompleted,
-      ...timedCompleted.map(t => t.entry),
-    ];
-
-    // Assign columns for overlapping items (only for active timed entries)
+    // Assign columns for overlapping items
     // Items are considered overlapping if they're within 30 minutes of each other
     const OVERLAP_THRESHOLD = 30; // minutes
     const positioned: PositionedEntry[] = [];
 
-    for (const item of timedActive) {
+    for (const item of timed) {
       // Find overlapping items already positioned
       const overlapping = positioned.filter(
         (p) => Math.abs(p.totalMinutes - item.totalMinutes) < OVERLAP_THRESHOLD,
@@ -220,8 +226,8 @@ export function DayScheduleView({
       });
     }
 
-    return { positionedEntries: positioned, activeUntimedEntries: untimedActive, completedEntries: allCompleted };
-  }, [entries]);
+    return { positionedEntries: positioned, untimedEntries: untimed };
+  }, [entries, doneStates]);
 
   const totalHours = endHour - startHour;
   const totalHeight = totalHours * hourHeight;
@@ -263,8 +269,8 @@ export function DayScheduleView({
         ) : undefined
       }
     >
-      {/* Untimed active entries section */}
-      {activeUntimedEntries.length > 0 && (
+      {/* Untimed entries section */}
+      {untimedEntries.length > 0 && (
         <View style={styles.untimedSection}>
           <View
             style={[
@@ -279,7 +285,7 @@ export function DayScheduleView({
               All Day / No Time
             </Text>
           </View>
-          {activeUntimedEntries.map((entry) => (
+          {untimedEntries.map((entry) => (
             <CompactTodoItem
               key={getTodoKey(entry)}
               todo={entry}
@@ -348,6 +354,7 @@ export function DayScheduleView({
           const position = getPositionForTime(time.hours, time.minutes);
           const widthPercent = 100 / totalColumns;
           const leftPercent = (column / totalColumns) * 100;
+          const isCompleted = entry.completedAt || doneStates.includes(entry.todo);
 
           return (
             <View
@@ -363,41 +370,15 @@ export function DayScheduleView({
             >
               <CompactTodoItem
                 todo={entry}
-                opacity={entry.completedAt ? 0.6 : 1}
+                opacity={isCompleted ? 0.6 : 1}
               />
             </View>
           );
         })}
       </View>
 
-      {/* Completed entries section - all done items grouped at the end */}
-      {completedEntries.length > 0 && (
-        <View style={styles.completedSection}>
-          <View
-            style={[
-              styles.untimedHeader,
-              { backgroundColor: theme.colors.surfaceVariant },
-            ]}
-          >
-            <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              Completed
-            </Text>
-          </View>
-          {completedEntries.map((entry) => (
-            <CompactTodoItem
-              key={getTodoKey(entry)}
-              todo={entry}
-              opacity={0.6}
-            />
-          ))}
-        </View>
-      )}
-
       {/* Empty state for timed section */}
-      {positionedEntries.length === 0 && activeUntimedEntries.length === 0 && completedEntries.length === 0 && (
+      {positionedEntries.length === 0 && untimedEntries.length === 0 && (
         <View style={styles.emptyState}>
           <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
             No items for today
@@ -414,9 +395,6 @@ const styles = StyleSheet.create({
   },
   untimedSection: {
     marginBottom: 8,
-  },
-  completedSection: {
-    marginTop: 8,
   },
   untimedHeader: {
     paddingHorizontal: 12,
