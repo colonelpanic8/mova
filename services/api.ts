@@ -144,7 +144,7 @@ export interface CompleteTodoResponse {
 }
 
 export interface TodoUpdates {
-  title?: string;
+  new_title?: string;
   scheduled?: string | null;
   scheduledRepeater?: Repeater | null;
   deadline?: string | null;
