@@ -10,6 +10,19 @@ export interface Repeater {
   unit: RepeaterUnit;
 }
 
+// Logbook entry types
+export interface LogbookEntry {
+  type: "state-change" | "note" | "clock";
+  timestamp: string;
+  // For state changes
+  fromState?: string;
+  toState?: string;
+  // For notes
+  note?: string;
+  // For clock entries
+  duration?: string;
+}
+
 export interface Todo {
   todo: string;
   title: string;
@@ -28,6 +41,8 @@ export interface Todo {
   body?: string | null;
   // Org-mode properties drawer key-value pairs
   properties?: Record<string, string> | null;
+  // Org-mode logbook entries (state changes, notes, clock entries)
+  logbook?: LogbookEntry[] | null;
   // Habit fields (present when isWindowHabit is true)
   isWindowHabit?: boolean;
   habitSummary?: HabitSummary;
