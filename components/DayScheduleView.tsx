@@ -143,17 +143,20 @@ export function DayScheduleView({
   const theme = useTheme();
 
   // Separate entries with times from those without
-  const { positionedEntries, untimedEntries } = useMemo(() => {
+  const { positionedEntries, activeUntimedEntries, completedUntimedEntries } = useMemo(() => {
     const timed: TimedEntry[] = [];
-    const untimed: (Todo & { completedAt?: string | null })[] = [];
+    const untimedActive: (Todo & { completedAt?: string | null })[] = [];
+    const untimedCompleted: (Todo & { completedAt?: string | null })[] = [];
 
     entries.forEach((entry) => {
       const time = getTimeFromEntry(entry);
       if (time) {
         const totalMinutes = time.hours * 60 + time.minutes;
         timed.push({ entry, time, totalMinutes });
+      } else if (entry.completedAt) {
+        untimedCompleted.push(entry);
       } else {
-        untimed.push(entry);
+        untimedActive.push(entry);
       }
     });
 
@@ -205,7 +208,7 @@ export function DayScheduleView({
       });
     }
 
-    return { positionedEntries: positioned, untimedEntries: untimed };
+    return { positionedEntries: positioned, activeUntimedEntries: untimedActive, completedUntimedEntries: untimedCompleted };
   }, [entries]);
 
   const totalHours = endHour - startHour;
@@ -249,7 +252,7 @@ export function DayScheduleView({
       }
     >
       {/* Untimed entries section */}
-      {untimedEntries.length > 0 && (
+      {(activeUntimedEntries.length > 0 || completedUntimedEntries.length > 0) && (
         <View style={styles.untimedSection}>
           <View
             style={[
@@ -264,11 +267,26 @@ export function DayScheduleView({
               All Day / No Time
             </Text>
           </View>
-          {untimedEntries.map((entry) => (
+          {activeUntimedEntries.map((entry) => (
             <CompactTodoItem
               key={getTodoKey(entry)}
               todo={entry}
-              opacity={entry.completedAt ? 0.6 : 1}
+              opacity={1}
+            />
+          ))}
+          {completedUntimedEntries.length > 0 && activeUntimedEntries.length > 0 && (
+            <View
+              style={[
+                styles.completedDivider,
+                { backgroundColor: theme.colors.outlineVariant },
+              ]}
+            />
+          )}
+          {completedUntimedEntries.map((entry) => (
+            <CompactTodoItem
+              key={getTodoKey(entry)}
+              todo={entry}
+              opacity={0.6}
             />
           ))}
         </View>
@@ -356,7 +374,7 @@ export function DayScheduleView({
       </View>
 
       {/* Empty state for timed section */}
-      {positionedEntries.length === 0 && untimedEntries.length === 0 && (
+      {positionedEntries.length === 0 && activeUntimedEntries.length === 0 && completedUntimedEntries.length === 0 && (
         <View style={styles.emptyState}>
           <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
             No items for today
@@ -377,6 +395,11 @@ const styles = StyleSheet.create({
   untimedHeader: {
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  completedDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 12,
+    marginVertical: 4,
   },
   timeline: {
     position: "relative",
