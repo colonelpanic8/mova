@@ -1,3 +1,4 @@
+import { DayScheduleView } from "@/components/DayScheduleView";
 import { FilterBar } from "@/components/FilterBar";
 import { TodoItem, getTodoKey } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
@@ -63,6 +64,7 @@ export default function AgendaScreen() {
   const [showCompleted, setShowCompleted] = useState<boolean>(() =>
     isPastDay(new Date()),
   );
+  const [viewMode, setViewMode] = useState<"list" | "schedule">("list");
   const { apiUrl, username, password } = useAuth();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
@@ -266,6 +268,11 @@ export default function AgendaScreen() {
               testID="agendaShowCompletedToggle"
             />
             <IconButton
+              icon={viewMode === "schedule" ? "view-list" : "clock-outline"}
+              onPress={() => setViewMode(viewMode === "list" ? "schedule" : "list")}
+              testID="agendaViewModeToggle"
+            />
+            <IconButton
               icon="refresh"
               onPress={onRefresh}
               disabled={refreshing}
@@ -301,6 +308,8 @@ export default function AgendaScreen() {
               No items for today
             </Text>
           </View>
+        ) : viewMode === "schedule" ? (
+          <DayScheduleView entries={filteredEntries} />
         ) : (
           <SectionList
             testID="agendaList"
