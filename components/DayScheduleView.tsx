@@ -108,27 +108,25 @@ function CompactTodoItem({
           },
         ]}
       >
-        <View style={styles.compactHeader}>
-          {todo.todo && (
-            <StatePill
-              state={todo.todo}
-              selected={false}
-              onPress={onTodoChipPress}
-              loading={isCompleting}
-            />
-          )}
-          {time && (
-            <Text style={[styles.compactTime, { color: theme.colors.primary }]}>
-              {formatTime(time.hours, time.minutes)}
-            </Text>
-          )}
-        </View>
+        {todo.todo && (
+          <StatePill
+            state={todo.todo}
+            selected={false}
+            onPress={onTodoChipPress}
+            loading={isCompleting}
+          />
+        )}
         <Text
           style={[styles.compactTitle, { color: theme.colors.onSurface }]}
-          numberOfLines={2}
+          numberOfLines={1}
         >
           {todo.title}
         </Text>
+        {time && (
+          <Text style={[styles.compactTime, { color: theme.colors.primary }]}>
+            {formatTime(time.hours, time.minutes)}
+          </Text>
+        )}
       </View>
     </Pressable>
   );
@@ -429,25 +427,24 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
   },
   compactItem: {
-    padding: 8,
-    marginVertical: 2,
-    marginHorizontal: 4,
-    borderRadius: 6,
-    borderLeftWidth: 3,
-  },
-  compactHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 2,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginVertical: 1,
+    marginHorizontal: 2,
+    borderRadius: 4,
+    borderLeftWidth: 3,
   },
   compactTime: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "500",
+    flexShrink: 0,
   },
   compactTitle: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    flex: 1,
   },
 });
 
