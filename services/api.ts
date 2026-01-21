@@ -334,14 +334,13 @@ class OrgAgendaApi {
     todo: Todo,
     newState: string = "DONE",
   ): Promise<CompleteTodoResponse> {
+    const identifier = todo.id
+      ? { id: todo.id }
+      : { file: todo.file, pos: todo.pos, title: todo.title };
     return this.request<CompleteTodoResponse>("/complete", {
       method: "POST",
       body: JSON.stringify({
-        id: todo.id,
-        file: todo.file,
-        pos: todo.pos,
-        title: todo.title,
-        olpath: todo.olpath,
+        ...identifier,
         state: newState,
       }),
     });
@@ -351,31 +350,25 @@ class OrgAgendaApi {
     todo: Todo,
     updates: TodoUpdates,
   ): Promise<UpdateTodoResponse> {
+    const identifier = todo.id
+      ? { id: todo.id }
+      : { file: todo.file, pos: todo.pos, title: todo.title };
     return this.request<UpdateTodoResponse>("/update", {
       method: "POST",
       body: JSON.stringify({
-        id: todo.id,
-        file: todo.file,
-        pos: todo.pos,
-        title: todo.title,
-        olpath: todo.olpath,
+        ...identifier,
         ...updates,
       }),
     });
   }
 
   async deleteTodo(todo: Todo): Promise<DeleteTodoResponse> {
-    const payload = {
-      id: todo.id,
-      file: todo.file,
-      pos: todo.pos,
-      title: todo.title,
-      olpath: todo.olpath,
-    };
-    console.log("deleteTodo payload:", JSON.stringify(payload, null, 2));
+    const identifier = todo.id
+      ? { id: todo.id }
+      : { file: todo.file, pos: todo.pos, title: todo.title };
     return this.request<DeleteTodoResponse>("/delete", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(identifier),
     });
   }
 
@@ -387,13 +380,13 @@ class OrgAgendaApi {
     todo: Todo,
     newState: string,
   ): Promise<CompleteTodoResponse> {
+    const identifier = todo.id
+      ? { id: todo.id }
+      : { file: todo.file, pos: todo.pos, title: todo.title };
     return this.request<CompleteTodoResponse>("/complete", {
       method: "POST",
       body: JSON.stringify({
-        id: todo.id,
-        file: todo.file,
-        pos: todo.pos,
-        title: todo.title,
+        ...identifier,
         state: newState,
       }),
     });
