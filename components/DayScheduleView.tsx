@@ -422,6 +422,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+  completedDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 12,
+    marginVertical: 4,
+  },
   timeline: {
     position: "relative",
     marginLeft: 60,
