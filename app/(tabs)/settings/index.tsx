@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useTemplates } from "@/context/TemplatesContext";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import { AgendaFilesResponse, api, VersionResponse } from "@/services/api";
 import {
@@ -9,21 +10,23 @@ import {
 } from "@/services/notifications";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
   Divider,
   List,
+  Menu,
   Switch,
   useTheme,
 } from "react-native-paper";
 
 export default function SettingsScreen() {
-  const { apiUrl, username, password, logout } = useAuth();
+  const { apiUrl, username, password, logout, savedServers, activeServerId, updateServer } = useAuth();
   const { quickScheduleIncludeTime, setQuickScheduleIncludeTime } =
     useSettings();
+  const { templates } = useTemplates();
   const theme = useTheme();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
@@ -37,6 +40,36 @@ export default function SettingsScreen() {
   );
   const { lastSync, scheduledCount, isSyncing, syncNotifications } =
     useNotificationSync();
+  const [templateMenuVisible, setTemplateMenuVisible] = useState(false);
+
+  const activeServer = useMemo(
+    () => savedServers.find((s) => s.id === activeServerId),
+    [savedServers, activeServerId]
+  );
+
+  const templateOptions = useMemo(() => {
+    if (!templates) return [];
+    return Object.entries(templates).map(([key, template]) => ({
+      key,
+      name: template.name,
+    }));
+  }, [templates]);
+
+  const selectedTemplateName = useMemo(() => {
+    if (!activeServer?.defaultCaptureTemplate || !templates) return "Not set";
+    const template = templates[activeServer.defaultCaptureTemplate];
+    return template?.name || "Not set";
+  }, [activeServer?.defaultCaptureTemplate, templates]);
+
+  const handleTemplateSelect = useCallback(
+    async (templateKey: string) => {
+      setTemplateMenuVisible(false);
+      if (activeServerId) {
+        await updateServer(activeServerId, { defaultCaptureTemplate: templateKey });
+      }
+    },
+    [activeServerId, updateServer]
+  );
 
   // Mova version info from Expo Constants
   const movaVersion = Constants.expoConfig?.version || "unknown";
@@ -207,6 +240,32 @@ export default function SettingsScreen() {
             />
           )}
         />
+        <Menu
+          visible={templateMenuVisible}
+          onDismiss={() => setTemplateMenuVisible(false)}
+          anchor={
+            <List.Item
+              title="Default Capture Template"
+              description={selectedTemplateName}
+              left={(props) => <List.Icon {...props} icon="file-document-edit" />}
+              onPress={() => setTemplateMenuVisible(true)}
+              right={(props) => <List.Icon {...props} icon="chevron-down" />}
+            />
+          }
+        >
+          {templateOptions.map((option) => (
+            <Menu.Item
+              key={option.key}
+              onPress={() => handleTemplateSelect(option.key)}
+              title={option.name}
+              leadingIcon={
+                activeServer?.defaultCaptureTemplate === option.key
+                  ? "check"
+                  : undefined
+              }
+            />
+          ))}
+        </Menu>
       </List.Section>
 
       <Divider />

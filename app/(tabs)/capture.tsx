@@ -5,11 +5,11 @@ import {
 } from "@/components/capture";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
+import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { api, CategoryType, Repeater, TemplatePrompt } from "@/services/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -28,8 +28,6 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
-
-const LAST_TEMPLATE_KEY = "mova_last_template";
 
 type CaptureSelection =
   | { type: "template"; key: string }
@@ -223,7 +221,13 @@ export default function CaptureScreen() {
     isLoading: loading,
     reloadTemplates,
   } = useTemplates();
+  const { savedServers, activeServerId } = useAuth();
   const { quickScheduleIncludeTime } = useSettings();
+
+  const activeServer = useMemo(
+    () => savedServers.find((s) => s.id === activeServerId),
+    [savedServers, activeServerId]
+  );
   const [selection, setSelection] = useState<CaptureSelection | null>(null);
   const [categoryValue, setCategoryValue] = useState("");
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
@@ -247,23 +251,19 @@ export default function CaptureScreen() {
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
 
-  // Load last used template when templates become available
+  // Load default template when templates become available
   useEffect(() => {
     if (!templates) return;
 
-    const loadLastTemplate = async () => {
-      const lastTemplate = await AsyncStorage.getItem(LAST_TEMPLATE_KEY);
-      const templateKeys = Object.keys(templates);
+    const templateKeys = Object.keys(templates);
+    const defaultTemplate = activeServer?.defaultCaptureTemplate;
 
-      if (lastTemplate && templateKeys.includes(lastTemplate)) {
-        setSelection({ type: "template", key: lastTemplate });
-      } else if (templateKeys.length > 0) {
-        setSelection({ type: "template", key: templateKeys[0] });
-      }
-    };
-
-    loadLastTemplate();
-  }, [templates]);
+    if (defaultTemplate && templateKeys.includes(defaultTemplate)) {
+      setSelection({ type: "template", key: defaultTemplate });
+    } else if (templateKeys.length > 0) {
+      setSelection({ type: "template", key: templateKeys[0] });
+    }
+  }, [templates, activeServer?.defaultCaptureTemplate]);
 
   // Fetch categories when category type is selected
   useEffect(() => {
@@ -307,7 +307,6 @@ export default function CaptureScreen() {
     setMenuVisible(false);
     setTimeout(() => {
       setSelection({ type: "template", key });
-      AsyncStorage.setItem(LAST_TEMPLATE_KEY, key);
     }, 0);
   };
 
