@@ -1,13 +1,7 @@
-import { api, HabitConfig } from "@/services/api";
+import { useTemplates } from "@/context/TemplatesContext";
+import { HabitConfig } from "@/services/api";
 import { DEFAULT_HABIT_COLORS, HabitColors } from "@/utils/habitColors";
-import React, {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import React, { createContext, ReactNode, useContext } from "react";
 
 interface HabitConfigContextType {
   config: HabitConfig | null;
@@ -31,53 +25,32 @@ const HabitConfigContext = createContext<HabitConfigContextType | undefined>(
 );
 
 export function HabitConfigProvider({ children }: { children: ReactNode }) {
-  const [config, setConfig] = useState<HabitConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Get habitConfig from TemplatesContext (loaded via /metadata endpoint)
+  const { habitConfig, isLoading, error, reloadTemplates } = useTemplates();
 
-  const fetchConfig = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await api.getHabitConfig();
-      setConfig(result);
-    } catch (err) {
-      console.error("Failed to fetch habit config:", err);
-      setError("Failed to load habit configuration");
-      // Set default config so app still works
-      setConfig({ status: "ok", enabled: false });
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
-
-  const colors: HabitColors = config?.colors
+  const colors: HabitColors = habitConfig?.colors
     ? {
-        conforming: config.colors.conforming,
-        notConforming: config.colors.notConforming,
+        conforming: habitConfig.colors.conforming,
+        notConforming: habitConfig.colors.notConforming,
       }
     : DEFAULT_HABIT_COLORS;
 
-  const glyphs = config?.display
+  const glyphs = habitConfig?.display
     ? {
-        completionNeededToday: config.display.completionNeededTodayGlyph,
-        completed: config.display.completedGlyph,
+        completionNeededToday: habitConfig.display.completionNeededTodayGlyph,
+        completed: habitConfig.display.completedGlyph,
       }
     : DEFAULT_GLYPHS;
 
   return (
     <HabitConfigContext.Provider
       value={{
-        config,
+        config: habitConfig,
         isLoading,
         error,
         colors,
         glyphs,
-        refetch: fetchConfig,
+        refetch: reloadTemplates,
       }}
     >
       {children}

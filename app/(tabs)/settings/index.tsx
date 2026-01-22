@@ -38,6 +38,8 @@ export default function SettingsScreen() {
   const [agendaFiles, setAgendaFiles] = useState<AgendaFilesResponse | null>(
     null,
   );
+  const [connectionError, setConnectionError] = useState(false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const { lastSync, scheduledCount, isSyncing, syncNotifications } =
     useNotificationSync();
   const [templateMenuVisible, setTemplateMenuVisible] = useState(false);
@@ -82,25 +84,38 @@ export default function SettingsScreen() {
     });
   }, []);
 
+  // Function to check server connection and fetch version/files
+  const checkConnection = useCallback(async () => {
+    if (!apiUrl) return;
+
+    setIsCheckingConnection(true);
+    setConnectionError(false);
+
+    try {
+      const version = await api.getVersion();
+      setBackendVersion(version);
+      setConnectionError(false);
+    } catch (error) {
+      console.error("Failed to fetch backend version:", error);
+      setBackendVersion(null);
+      setConnectionError(true);
+    }
+
+    try {
+      const files = await api.getAgendaFiles();
+      setAgendaFiles(files);
+    } catch (error) {
+      console.error("Failed to fetch agenda files:", error);
+      setAgendaFiles(null);
+    }
+
+    setIsCheckingConnection(false);
+  }, [apiUrl]);
+
   // Fetch backend version and agenda files when connected
   useEffect(() => {
-    if (apiUrl) {
-      api
-        .getVersion()
-        .then(setBackendVersion)
-        .catch((error) => {
-          console.error("Failed to fetch backend version:", error);
-          setBackendVersion(null);
-        });
-      api
-        .getAgendaFiles()
-        .then(setAgendaFiles)
-        .catch((error) => {
-          console.error("Failed to fetch agenda files:", error);
-          setAgendaFiles(null);
-        });
-    }
-  }, [apiUrl]);
+    checkConnection();
+  }, [checkConnection]);
 
   const handleNotificationToggle = useCallback(
     async (value: boolean) => {
@@ -311,9 +326,21 @@ export default function SettingsScreen() {
           description={
             backendVersion
               ? `${backendVersion.version} (${backendVersion.gitCommit})`
-              : "Not connected"
+              : apiUrl
+                ? connectionError
+                  ? "Connection failed - tap to retry"
+                  : "Checking connection..."
+                : "Not connected"
           }
           left={(props) => <List.Icon {...props} icon="server" />}
+          onPress={apiUrl ? checkConnection : undefined}
+          right={
+            isCheckingConnection
+              ? () => <ActivityIndicator size="small" />
+              : apiUrl
+                ? (props) => <List.Icon {...props} icon="refresh" />
+                : undefined
+          }
         />
       </List.Section>
     </ScrollView>

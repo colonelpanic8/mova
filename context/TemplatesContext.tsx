@@ -4,6 +4,7 @@ import {
   CategoryType,
   CustomViewsResponse,
   FilterOptionsResponse,
+  HabitConfig,
   TemplatesResponse,
   TodoStatesResponse,
 } from "@/services/api";
@@ -22,6 +23,7 @@ interface TemplatesContextType {
   filterOptions: FilterOptionsResponse | null;
   todoStates: TodoStatesResponse | null;
   customViews: CustomViewsResponse | null;
+  habitConfig: HabitConfig | null;
   isLoading: boolean;
   error: string | null;
   reloadTemplates: () => Promise<void>;
@@ -42,6 +44,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
   const [customViews, setCustomViews] = useState<CustomViewsResponse | null>(
     null,
   );
+  const [habitConfig, setHabitConfig] = useState<HabitConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { apiUrl, username, password, isAuthenticated } = useAuth();
@@ -57,7 +60,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     api.configure(apiUrl, username, password);
 
     try {
-      // Try the unified /metadata endpoint first
+      // Use the unified /metadata endpoint for all app metadata
       const metadata = await api.getMetadata();
 
       // Log any errors from the backend
@@ -69,15 +72,8 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       setFilterOptions(metadata.filterOptions);
       setTodoStates(metadata.todoStates);
       setCustomViews(metadata.customViews);
-
-      // Fetch category types separately (not part of /metadata)
-      try {
-        const categoryTypesResponse = await api.getCategoryTypes();
-        setCategoryTypes(categoryTypesResponse.types);
-      } catch (categoryErr) {
-        console.warn("Failed to fetch category types:", categoryErr);
-        setCategoryTypes([]);
-      }
+      setCategoryTypes(metadata.categoryTypes?.types ?? null);
+      setHabitConfig(metadata.habitConfig);
 
       // Set error if templates failed (critical)
       if (!metadata.templates) {
@@ -95,6 +91,8 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         api.getFilterOptions(),
         api.getTodoStates(),
         api.getCustomViews(),
+        api.getCategoryTypes(),
+        api.getHabitConfig(),
       ]);
 
       const [
@@ -102,6 +100,8 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         filterOptionsResult,
         todoStatesResult,
         customViewsResult,
+        categoryTypesResult,
+        habitConfigResult,
       ] = results;
 
       if (templatesResult.status === "fulfilled") {
@@ -123,13 +123,18 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         setCustomViews(customViewsResult.value);
       }
 
-      // Fetch category types separately (not part of /metadata)
-      try {
-        const categoryTypesResponse = await api.getCategoryTypes();
-        setCategoryTypes(categoryTypesResponse.types);
-      } catch (categoryErr) {
-        console.warn("Failed to fetch category types:", categoryErr);
+      if (categoryTypesResult.status === "fulfilled") {
+        setCategoryTypes(categoryTypesResult.value.types);
+      } else {
+        console.warn("Failed to fetch category types:", categoryTypesResult.reason);
         setCategoryTypes([]);
+      }
+
+      if (habitConfigResult.status === "fulfilled") {
+        setHabitConfig(habitConfigResult.value);
+      } else {
+        console.warn("Failed to fetch habit config:", habitConfigResult.reason);
+        setHabitConfig({ status: "ok", enabled: false });
       }
     }
 
@@ -146,6 +151,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       setFilterOptions(null);
       setTodoStates(null);
       setCustomViews(null);
+      setHabitConfig(null);
     }
   }, [isAuthenticated, reloadTemplates]);
 
@@ -157,6 +163,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         filterOptions,
         todoStates,
         customViews,
+        habitConfig,
         isLoading,
         error,
         reloadTemplates,
