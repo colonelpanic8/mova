@@ -34,11 +34,12 @@ class QuickCaptureActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_quick_capture)
 
-        // Make it look like a floating dialog
+        // Make it look like a floating dialog at the top of the screen
         window.setLayout(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.WRAP_CONTENT
         )
+        window.setGravity(android.view.Gravity.TOP)
 
         // Close when tapping outside
         setFinishOnTouchOutside(true)
