@@ -139,23 +139,9 @@ export function filterTodos<T extends Todo>(
         return false;
     }
 
-    // Category filter
-    // In org-mode, category can be:
-    // 1. Explicitly set via CATEGORY property
-    // 2. Derived from the filename (without extension)
+    // Category filter - uses category field from API
     if (filters.categories.length > 0) {
-      // First check for explicit CATEGORY property
-      const explicitCategory = todo.properties?.CATEGORY;
-
-      // Extract category from filename as fallback (filename without path and extension)
-      let fileCategory: string | null = null;
-      if (todo.file) {
-        const filename = todo.file.split("/").pop() || "";
-        fileCategory = filename.replace(/\.org$/i, "");
-      }
-
-      const todoCategory = explicitCategory || fileCategory || "";
-
+      const todoCategory = todo.category || "";
       const matchesCategory = filters.categories.some(
         (cat) => todoCategory.toLowerCase() === cat.toLowerCase(),
       );

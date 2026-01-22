@@ -98,6 +98,7 @@ export function useDeepLinks() {
                 priority: null,
                 olpath: null,
                 notifyBefore: null,
+                category: null,
               },
               params.state || "DONE",
             );
