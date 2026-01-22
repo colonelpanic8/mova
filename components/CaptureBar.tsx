@@ -3,7 +3,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Keyboard, Pressable, StyleSheet, View } from "react-native";
 import {
   IconButton,
@@ -14,7 +14,12 @@ import {
   useTheme,
 } from "react-native-paper";
 
-const LAST_TEMPLATE_KEY = "mova_last_template";
+// Get the storage key for default template per server
+function getDefaultTemplateKey(serverId: string | null): string {
+  return serverId
+    ? `mova_default_template_${serverId}`
+    : "mova_default_template";
+}
 
 export function CaptureBar() {
   const { templates } = useTemplates();
@@ -29,25 +34,26 @@ export function CaptureBar() {
     text: string;
     isError: boolean;
   } | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, activeServerId } = useAuth();
   const theme = useTheme();
 
-  // Load last used template when templates become available
+  // Load default template when templates or server changes
   useEffect(() => {
     if (!templates) return;
 
-    const loadLastTemplate = async () => {
-      const lastTemplate = await AsyncStorage.getItem(LAST_TEMPLATE_KEY);
+    const loadDefaultTemplate = async () => {
+      const storageKey = getDefaultTemplateKey(activeServerId);
+      const savedTemplate = await AsyncStorage.getItem(storageKey);
       const templateKeys = Object.keys(templates);
 
-      if (lastTemplate && templateKeys.includes(lastTemplate)) {
+      if (savedTemplate && templateKeys.includes(savedTemplate)) {
         // Only use saved template if it's a single-field template
-        const template = templates[lastTemplate];
+        const template = templates[savedTemplate];
         const requiredPrompts = (template.prompts ?? []).filter(
           (p) => p.required,
         );
         if (requiredPrompts.length <= 1) {
-          setSelectedTemplateKey(lastTemplate);
+          setSelectedTemplateKey(savedTemplate);
         } else {
           setSelectedTemplateKey("default");
         }
@@ -56,8 +62,8 @@ export function CaptureBar() {
       }
     };
 
-    loadLastTemplate();
-  }, [templates]);
+    loadDefaultTemplate();
+  }, [templates, activeServerId]);
 
   const selectedTemplate =
     selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;
@@ -72,15 +78,19 @@ export function CaptureBar() {
       })
     : [];
 
-  const handleTemplateSelect = (key: string) => {
-    // Close menu first, then update state after menu animation completes
-    // This fixes Android issue where menu won't reopen after selection
-    setMenuVisible(false);
-    setTimeout(() => {
-      setSelectedTemplateKey(key);
-      AsyncStorage.setItem(LAST_TEMPLATE_KEY, key);
-    }, 0);
-  };
+  const handleTemplateSelect = useCallback(
+    (key: string) => {
+      // Close menu first, then update state after menu animation completes
+      // This fixes Android issue where menu won't reopen after selection
+      setMenuVisible(false);
+      setTimeout(() => {
+        setSelectedTemplateKey(key);
+        const storageKey = getDefaultTemplateKey(activeServerId);
+        AsyncStorage.setItem(storageKey, key);
+      }, 0);
+    },
+    [activeServerId],
+  );
 
   const handleCapture = async () => {
     const trimmedTitle = title.trim();
