@@ -24,8 +24,12 @@ import {
 
 export default function SettingsScreen() {
   const { apiUrl, username, password, logout, savedServers, activeServerId, updateServer } = useAuth();
-  const { quickScheduleIncludeTime, setQuickScheduleIncludeTime } =
-    useSettings();
+  const {
+    quickScheduleIncludeTime,
+    setQuickScheduleIncludeTime,
+    showHabitsInAgenda,
+    setShowHabitsInAgenda,
+  } = useSettings();
   const { templates } = useTemplates();
   const theme = useTheme();
   const router = useRouter();
@@ -252,6 +256,17 @@ export default function SettingsScreen() {
             <Switch
               value={quickScheduleIncludeTime}
               onValueChange={setQuickScheduleIncludeTime}
+            />
+          )}
+        />
+        <List.Item
+          title="Show Habits in Agenda"
+          description="Display habit items in the agenda view"
+          left={(props) => <List.Icon {...props} icon="checkbox-multiple-marked" />}
+          right={() => (
+            <Switch
+              value={showHabitsInAgenda}
+              onValueChange={setShowHabitsInAgenda}
             />
           )}
         />

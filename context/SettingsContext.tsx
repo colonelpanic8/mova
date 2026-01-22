@@ -1,6 +1,8 @@
 import {
   getQuickScheduleIncludeTime,
+  getShowHabitsInAgenda,
   setQuickScheduleIncludeTime as saveQuickScheduleIncludeTime,
+  setShowHabitsInAgenda as saveShowHabitsInAgenda,
 } from "@/services/settings";
 import React, {
   createContext,
@@ -14,6 +16,8 @@ import React, {
 interface SettingsContextType {
   quickScheduleIncludeTime: boolean;
   setQuickScheduleIncludeTime: (value: boolean) => Promise<void>;
+  showHabitsInAgenda: boolean;
+  setShowHabitsInAgenda: (value: boolean) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -24,13 +28,17 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [quickScheduleIncludeTime, setQuickScheduleIncludeTimeState] =
     useState(false);
+  const [showHabitsInAgenda, setShowHabitsInAgendaState] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getQuickScheduleIncludeTime().then((value) => {
-      setQuickScheduleIncludeTimeState(value);
-      setIsLoading(false);
-    });
+    Promise.all([getQuickScheduleIncludeTime(), getShowHabitsInAgenda()]).then(
+      ([quickScheduleValue, showHabitsValue]) => {
+        setQuickScheduleIncludeTimeState(quickScheduleValue);
+        setShowHabitsInAgendaState(showHabitsValue);
+        setIsLoading(false);
+      },
+    );
   }, []);
 
   const setQuickScheduleIncludeTime = useCallback(async (value: boolean) => {
@@ -38,11 +46,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await saveQuickScheduleIncludeTime(value);
   }, []);
 
+  const setShowHabitsInAgenda = useCallback(async (value: boolean) => {
+    setShowHabitsInAgendaState(value);
+    await saveShowHabitsInAgenda(value);
+  }, []);
+
   return (
     <SettingsContext.Provider
       value={{
         quickScheduleIncludeTime,
         setQuickScheduleIncludeTime,
+        showHabitsInAgenda,
+        setShowHabitsInAgenda,
         isLoading,
       }}
     >
