@@ -265,6 +265,8 @@ export interface MetadataResponse {
   filterOptions: FilterOptionsResponse | null;
   todoStates: TodoStatesResponse | null;
   customViews: CustomViewsResponse | null;
+  categoryTypes: CategoryTypesResponse | null;
+  habitConfig: HabitConfig | null;
   errors: string[];
 }
 
