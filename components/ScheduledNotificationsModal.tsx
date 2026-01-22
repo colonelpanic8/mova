@@ -96,7 +96,10 @@ export function ScheduledNotificationsModal({
           <Text
             variant="titleSmall"
             numberOfLines={1}
-            style={[styles.notificationTitle, { color: theme.colors.onSurface }]}
+            style={[
+              styles.notificationTitle,
+              { color: theme.colors.onSurface },
+            ]}
           >
             {item.title}
           </Text>
