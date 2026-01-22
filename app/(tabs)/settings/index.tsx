@@ -23,7 +23,15 @@ import {
 } from "react-native-paper";
 
 export default function SettingsScreen() {
-  const { apiUrl, username, password, logout, savedServers, activeServerId, updateServer } = useAuth();
+  const {
+    apiUrl,
+    username,
+    password,
+    logout,
+    savedServers,
+    activeServerId,
+    updateServer,
+  } = useAuth();
   const {
     quickScheduleIncludeTime,
     setQuickScheduleIncludeTime,
@@ -53,7 +61,7 @@ export default function SettingsScreen() {
 
   const activeServer = useMemo(
     () => savedServers.find((s) => s.id === activeServerId),
-    [savedServers, activeServerId]
+    [savedServers, activeServerId],
   );
 
   const templateOptions = useMemo(() => {
@@ -90,10 +98,12 @@ export default function SettingsScreen() {
     async (templateKey: string) => {
       setTemplateMenuVisible(false);
       if (activeServerId) {
-        await updateServer(activeServerId, { defaultCaptureTemplate: templateKey });
+        await updateServer(activeServerId, {
+          defaultCaptureTemplate: templateKey,
+        });
       }
     },
-    [activeServerId, updateServer]
+    [activeServerId, updateServer],
   );
 
   // Mova version info from Expo Constants
@@ -281,7 +291,9 @@ export default function SettingsScreen() {
         <List.Item
           title="Show Habits in Agenda"
           description="Display habit items in the agenda view"
-          left={(props) => <List.Icon {...props} icon="checkbox-multiple-marked" />}
+          left={(props) => (
+            <List.Icon {...props} icon="checkbox-multiple-marked" />
+          )}
           right={() => (
             <Switch
               value={showHabitsInAgenda}
@@ -295,7 +307,9 @@ export default function SettingsScreen() {
           anchor={
             <List.Item
               title="Default Done State"
-              description={defaultDoneState || `Auto (${effectiveDefaultDoneState})`}
+              description={
+                defaultDoneState || `Auto (${effectiveDefaultDoneState})`
+              }
               left={(props) => <List.Icon {...props} icon="check-circle" />}
               onPress={() => setDoneStateMenuVisible(true)}
               right={(props) => <List.Icon {...props} icon="chevron-down" />}
@@ -323,7 +337,9 @@ export default function SettingsScreen() {
             <List.Item
               title="Default Capture Template"
               description={selectedTemplateName}
-              left={(props) => <List.Icon {...props} icon="file-document-edit" />}
+              left={(props) => (
+                <List.Icon {...props} icon="file-document-edit" />
+              )}
               onPress={() => setTemplateMenuVisible(true)}
               right={(props) => <List.Icon {...props} icon="chevron-down" />}
             />

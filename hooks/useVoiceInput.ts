@@ -23,7 +23,12 @@ interface UseVoiceInputResult {
 export function useVoiceInput(
   options: UseVoiceInputOptions = {},
 ): UseVoiceInputResult {
-  const { onTranscript, onPartialTranscript, onError, lang = "en-US" } = options;
+  const {
+    onTranscript,
+    onPartialTranscript,
+    onError,
+    lang = "en-US",
+  } = options;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
 

@@ -3,6 +3,7 @@
 ## Problem
 
 Text fields become hidden behind the keyboard on multiple platforms:
+
 - **Android**: `KeyboardAvoidingView` has `behavior={undefined}`, doing nothing
 - **iOS**: Works but inconsistent `keyboardVerticalOffset` values across screens
 - **Mobile Web**: `KeyboardAvoidingView` doesn't work at all
@@ -20,19 +21,21 @@ Create a reusable `KeyboardAwareContainer` component that handles keyboard visib
 **Location**: `components/KeyboardAwareContainer.tsx`
 
 **Props**:
+
 - `children` (required) - content to render
 - `keyboardVerticalOffset` (optional, default 0) - offset for headers
 - `style` (optional) - additional container styles
 
 **Platform Behavior**:
 
-| Platform | Approach |
-|----------|----------|
-| Android | `KeyboardAvoidingView` with `behavior="height"` |
-| iOS | `KeyboardAvoidingView` with `behavior="padding"` |
-| Web | CSS `100dvh` + VisualViewport API fallback |
+| Platform | Approach                                         |
+| -------- | ------------------------------------------------ |
+| Android  | `KeyboardAvoidingView` with `behavior="height"`  |
+| iOS      | `KeyboardAvoidingView` with `behavior="padding"` |
+| Web      | CSS `100dvh` + VisualViewport API fallback       |
 
 **Native Implementation**:
+
 ```tsx
 <KeyboardAvoidingView
   behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -44,6 +47,7 @@ Create a reusable `KeyboardAwareContainer` component that handles keyboard visib
 ```
 
 **Web Implementation**:
+
 - Use `height: 100dvh` (dynamic viewport height) which automatically adjusts for mobile keyboards
 - Fallback: Listen to `window.visualViewport` resize events and calculate available height
 - Apply via inline style or CSS variable
@@ -51,19 +55,23 @@ Create a reusable `KeyboardAwareContainer` component that handles keyboard visib
 ### Screen Updates
 
 **capture.tsx**:
+
 - Remove `KeyboardAvoidingView` (lines 523-527)
 - Wrap content with `KeyboardAwareContainer`
 - Keep `ScrollView` with `keyboardShouldPersistTaps="handled"`
 
 **edit.tsx**:
+
 - Remove `KeyboardAvoidingView` (lines 289-293)
 - Wrap content after `Appbar.Header` with `KeyboardAwareContainer`
 - Keep `ScrollView` inside
 
 **BodyEditor/index.tsx**:
+
 - Replace existing `KeyboardAvoidingView` with `KeyboardAwareContainer`
 
 **search.tsx** (if needed):
+
 - Add `KeyboardAwareContainer` if keyboard issues exist
 
 ### QuickCaptureActivity (Android Native)

@@ -3,6 +3,7 @@ import {
   PriorityPicker,
   StatePicker,
 } from "@/components/capture";
+import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { VoiceMicButton } from "@/components/VoiceMicButton";
@@ -16,7 +17,6 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
-import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import {
   ActivityIndicator,
   Button,
@@ -65,7 +65,12 @@ interface PromptFieldProps {
   showVoiceInput?: boolean;
 }
 
-function PromptField({ prompt, value, onChange, showVoiceInput }: PromptFieldProps) {
+function PromptField({
+  prompt,
+  value,
+  onChange,
+  showVoiceInput,
+}: PromptFieldProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tagInputValue, setTagInputValue] = useState("");
 
@@ -236,7 +241,7 @@ export default function CaptureScreen() {
 
   const activeServer = useMemo(
     () => savedServers.find((s) => s.id === activeServerId),
-    [savedServers, activeServerId]
+    [savedServers, activeServerId],
   );
   const [selection, setSelection] = useState<CaptureSelection | null>(null);
   const [categoryValue, setCategoryValue] = useState("");

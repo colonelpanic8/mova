@@ -1,7 +1,7 @@
+import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";

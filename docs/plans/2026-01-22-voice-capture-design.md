@@ -22,6 +22,7 @@ Add in-app voice input for task capture on Android. Users tap a mic button to di
 Location: `hooks/useVoiceInput.ts`
 
 Responsibilities:
+
 - Initialize and manage `expo-speech-recognition`
 - Handle permissions
 - Expose `start()`, `stop()`, `isListening`, `transcript`, `partialTranscript`
@@ -32,6 +33,7 @@ Responsibilities:
 Location: `components/VoiceMicButton.tsx`
 
 Props:
+
 - `onTranscript: (text: string) => void` - called with final transcription
 - `disabled?: boolean`
 

@@ -13,12 +13,14 @@
 ## Task 1: Install and Configure expo-speech-recognition
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `app.config.js:61-95` (plugins array)
 
 **Step 1: Install the package**
 
 Run:
+
 ```bash
 npm install expo-speech-recognition
 ```
@@ -50,6 +52,7 @@ git commit -m "chore: add expo-speech-recognition dependency"
 ## Task 2: Create useVoiceInput Hook
 
 **Files:**
+
 - Create: `hooks/useVoiceInput.ts`
 
 **Step 1: Create the hook**
@@ -80,7 +83,12 @@ interface UseVoiceInputResult {
 export function useVoiceInput(
   options: UseVoiceInputOptions = {},
 ): UseVoiceInputResult {
-  const { onTranscript, onPartialTranscript, onError, lang = "en-US" } = options;
+  const {
+    onTranscript,
+    onPartialTranscript,
+    onError,
+    lang = "en-US",
+  } = options;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
 
@@ -157,6 +165,7 @@ git commit -m "feat: add useVoiceInput hook for speech recognition"
 ## Task 3: Create VoiceMicButton Component
 
 **Files:**
+
 - Create: `components/VoiceMicButton.tsx`
 
 **Step 1: Create the component**
@@ -233,6 +242,7 @@ git commit -m "feat: add VoiceMicButton component"
 ## Task 4: Integrate Voice Input into CaptureBar
 
 **Files:**
+
 - Modify: `components/CaptureBar.tsx`
 
 **Step 1: Add import**
@@ -295,6 +305,7 @@ git commit -m "feat: add voice input to CaptureBar"
 ## Task 5: Integrate Voice Input into Capture Screen
 
 **Files:**
+
 - Modify: `app/(tabs)/capture.tsx`
 
 **Step 1: Add import**
@@ -375,15 +386,17 @@ return (
 In the main render, find where PromptField is used for prompts and pass `showVoiceInput` for title fields:
 
 ```tsx
-{selectedPrompts.map((prompt) => (
-  <PromptField
-    key={prompt.name}
-    prompt={prompt}
-    value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
-    onChange={(value) => handleValueChange(prompt.name, value)}
-    showVoiceInput={prompt.name.toLowerCase() === "title"}
-  />
-))}
+{
+  selectedPrompts.map((prompt) => (
+    <PromptField
+      key={prompt.name}
+      prompt={prompt}
+      value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
+      onChange={(value) => handleValueChange(prompt.name, value)}
+      showVoiceInput={prompt.name.toLowerCase() === "title"}
+    />
+  ));
+}
 ```
 
 **Step 5: Add styles**
@@ -415,6 +428,7 @@ git commit -m "feat: add voice input to capture screen title field"
 **Step 1: Rebuild the Android app**
 
 Run:
+
 ```bash
 npx expo run:android
 ```
@@ -442,11 +456,11 @@ git commit -m "feat: complete voice capture feature for Android"
 
 ## Summary
 
-| Task | Description |
-|------|-------------|
-| 1 | Install expo-speech-recognition and configure plugin |
-| 2 | Create useVoiceInput hook |
-| 3 | Create VoiceMicButton component |
-| 4 | Add voice to CaptureBar |
-| 5 | Add voice to capture screen |
-| 6 | Rebuild and test |
+| Task | Description                                          |
+| ---- | ---------------------------------------------------- |
+| 1    | Install expo-speech-recognition and configure plugin |
+| 2    | Create useVoiceInput hook                            |
+| 3    | Create VoiceMicButton component                      |
+| 4    | Add voice to CaptureBar                              |
+| 5    | Add voice to capture screen                          |
+| 6    | Rebuild and test                                     |
