@@ -19,7 +19,7 @@ function HeaderLogo() {
   return (
     <Image
       source={require("@/assets/images/mova-header.png")}
-      style={{ height: 28, width: 84 }}
+      style={{ height: 36, width: 108 }}
       resizeMode="contain"
     />
   );
@@ -165,6 +165,7 @@ export default function TabLayout() {
         },
         headerTintColor: theme.colors.onSurface,
         headerTitle: () => <HeaderLogo />,
+        headerTitleAlign: "center",
       }}
     >
       <Tabs.Screen
