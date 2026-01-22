@@ -2,106 +2,152 @@ import { CaptureBar } from "@/components/CaptureBar";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
-import React from "react";
-import { Image, Pressable, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  Animated,
+  Image,
+  Keyboard,
+  KeyboardEvent,
+  Platform,
+  Pressable,
+  View,
+} from "react-native";
 import { useTheme } from "react-native-paper";
 
-// Header component with logo and capture bar
-function HeaderWithCapture() {
-  const theme = useTheme();
+// Header logo component
+function HeaderLogo() {
   return (
-    <View style={{ backgroundColor: theme.colors.surface }}>
-      <View
-        style={{
-          alignItems: "center",
-          paddingVertical: 8,
-        }}
-      >
-        <Image
-          source={require("@/assets/images/mova-header.png")}
-          style={{ height: 36, width: 108 }}
-          resizeMode="contain"
-        />
-      </View>
-      <CaptureBar position="top" />
-    </View>
+    <Image
+      source={require("@/assets/images/mova-header.png")}
+      style={{ height: 36, width: 108 }}
+      resizeMode="contain"
+    />
   );
 }
 
 // Hidden routes that shouldn't appear in tab bar
 const HIDDEN_ROUTES = new Set<string>([]);
 
-// Custom tab bar
+// Custom tab bar that includes CaptureBar above the tabs
 function CustomTabBar(props: BottomTabBarProps) {
   const { state, descriptors, navigation, insets } = props;
   const theme = useTheme();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (event: KeyboardEvent) => {
+        setKeyboardVisible(true);
+        Animated.timing(keyboardHeight, {
+          toValue: event.endCoordinates.height,
+          duration: Platform.OS === "ios" ? event.duration || 250 : 250,
+          useNativeDriver: false,
+        }).start();
+      },
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      (event: KeyboardEvent) => {
+        setKeyboardVisible(false);
+        Animated.timing(keyboardHeight, {
+          toValue: 0,
+          duration: Platform.OS === "ios" ? event.duration || 250 : 250,
+          useNativeDriver: false,
+        }).start();
+      },
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [keyboardHeight]);
+
+  // On Android, windowSoftInputMode="adjustResize" already handles window resizing.
+  // Adding paddingBottom would double-count the keyboard space, making the content
+  // area shrink by 2x the keyboard height (once from adjustResize, once from padding).
+  // On iOS, we need animated padding to push the CaptureBar above the keyboard.
 
   return (
-    <View
+    <Animated.View
       style={{
-        flexDirection: "row",
-        paddingBottom: insets.bottom,
         backgroundColor: theme.colors.surface,
+        paddingBottom: Platform.OS === "ios" ? keyboardHeight : 0,
       }}
     >
-      {state.routes.map((route, index) => {
-        const { options } = descriptors[route.key];
+      <CaptureBar />
+      {!keyboardVisible && (
+        <View
+          style={{
+            flexDirection: "row",
+            paddingBottom: insets.bottom,
+            backgroundColor: theme.colors.surface,
+          }}
+        >
+          {state.routes.map((route, index) => {
+            const { options } = descriptors[route.key];
 
-        // Skip hidden tabs
-        if (HIDDEN_ROUTES.has(route.name)) {
-          return null;
-        }
+            // Skip hidden tabs
+            if (HIDDEN_ROUTES.has(route.name)) {
+              return null;
+            }
 
-        const isFocused = state.index === index;
-        const color = isFocused ? theme.colors.primary : theme.colors.outline;
+            const isFocused = state.index === index;
+            const color = isFocused
+              ? theme.colors.primary
+              : theme.colors.outline;
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: "tabPress",
-            target: route.key,
-            canPreventDefault: true,
-          });
+            const onPress = () => {
+              const event = navigation.emit({
+                type: "tabPress",
+                target: route.key,
+                canPreventDefault: true,
+              });
 
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
 
-        const onLongPress = () => {
-          navigation.emit({
-            type: "tabLongPress",
-            target: route.key,
-          });
-        };
+            const onLongPress = () => {
+              navigation.emit({
+                type: "tabLongPress",
+                target: route.key,
+              });
+            };
 
-        // Get the icon from options
-        const icon = options.tabBarIcon?.({
-          focused: isFocused,
-          color,
-          size: 24,
-        });
+            // Get the icon from options
+            const icon = options.tabBarIcon?.({
+              focused: isFocused,
+              color,
+              size: 24,
+            });
 
-        return (
-          <Pressable
-            key={route.key}
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={(options as any).tabBarButtonTestID}
-            onPress={onPress}
-            onLongPress={onLongPress}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingVertical: 8,
-            }}
-          >
-            {icon}
-          </Pressable>
-        );
-      })}
-    </View>
+            return (
+              <Pressable
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityState={isFocused ? { selected: true } : {}}
+                accessibilityLabel={options.tabBarAccessibilityLabel}
+                testID={(options as any).tabBarButtonTestID}
+                onPress={onPress}
+                onLongPress={onLongPress}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingVertical: 8,
+                }}
+              >
+                {icon}
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </Animated.View>
   );
 }
 
@@ -114,7 +160,12 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.outline,
-        header: () => <HeaderWithCapture />,
+        headerStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerTintColor: theme.colors.onSurface,
+        headerTitle: () => <HeaderLogo />,
+        headerTitleAlign: "center",
       }}
     >
       <Tabs.Screen
