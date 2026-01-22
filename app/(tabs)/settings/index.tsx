@@ -402,7 +402,7 @@ export default function SettingsScreen() {
           title="Server"
           description={
             backendVersion
-              ? `${backendVersion.version} (${backendVersion.gitCommit})`
+              ? `${backendVersion.version} (${backendVersion.gitCommit || backendVersion.git_commit})`
               : apiUrl
                 ? connectionError
                   ? "Connection failed - tap to retry"

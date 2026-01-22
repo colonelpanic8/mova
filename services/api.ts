@@ -239,7 +239,9 @@ export interface CustomViewResponse {
 
 export interface VersionResponse {
   version: string;
-  gitCommit: string;
+  // Backend may return either camelCase or snake_case
+  gitCommit?: string;
+  git_commit?: string;
 }
 
 export interface AgendaFileInfo {
