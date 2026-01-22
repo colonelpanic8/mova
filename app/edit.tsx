@@ -10,13 +10,8 @@ import { api, Repeater, Todo, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import {
   Appbar,
   Button,
@@ -286,11 +281,7 @@ export default function EditScreen() {
         />
       </Appbar.Header>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.scrollView}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-      >
+      <KeyboardAwareContainer style={styles.scrollView}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.content}
@@ -422,7 +413,7 @@ export default function EditScreen() {
             Save
           </Button>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareContainer>
 
       {/* Delete confirmation dialog */}
       <Portal>

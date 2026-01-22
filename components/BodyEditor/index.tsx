@@ -1,12 +1,7 @@
 import { Block, parseOrgBody, serializeBlocks } from "@/utils/orgBody";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { useTheme } from "react-native-paper";
 import { BulletItem } from "./BulletItem";
 import { ChecklistItem } from "./ChecklistItem";
@@ -156,11 +151,7 @@ export function BodyEditor({
   let numberedIndex = 0;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={100}
-    >
+    <KeyboardAwareContainer style={styles.container}>
       <ScrollView
         style={[
           styles.scrollView,
@@ -220,7 +211,7 @@ export function BodyEditor({
         onIndent={handleIndent}
         onOutdent={handleOutdent}
       />
-    </KeyboardAvoidingView>
+    </KeyboardAwareContainer>
   );
 }
 
