@@ -32,7 +32,7 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/mova-icon-final.png",
+        foregroundImage: "./assets/images/mova-adaptive-foreground.png",
         backgroundColor: "#FDF6E3",
       },
       package: "com.colonelpanic.mova",
