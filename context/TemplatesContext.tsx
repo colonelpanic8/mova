@@ -126,7 +126,10 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       if (categoryTypesResult.status === "fulfilled") {
         setCategoryTypes(categoryTypesResult.value.types);
       } else {
-        console.warn("Failed to fetch category types:", categoryTypesResult.reason);
+        console.warn(
+          "Failed to fetch category types:",
+          categoryTypesResult.reason,
+        );
         setCategoryTypes([]);
       }
 

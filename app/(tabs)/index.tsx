@@ -18,8 +18,8 @@ import {
   SectionList,
   StyleSheet,
   TouchableOpacity,
-  useWindowDimensions,
   View,
+  useWindowDimensions,
 } from "react-native";
 import {
   ActivityIndicator,
@@ -36,7 +36,10 @@ function formatDateForApi(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function formatDateForDisplay(dateString: string, compact: boolean = false): string {
+function formatDateForDisplay(
+  dateString: string,
+  compact: boolean = false,
+): string {
   const date = new Date(dateString + "T00:00:00");
   if (compact) {
     return date.toLocaleDateString(undefined, {
@@ -272,7 +275,9 @@ export default function AgendaScreen() {
                 variant="titleMedium"
                 style={styles.dateText}
               >
-                {agenda?.date ? formatDateForDisplay(agenda.date, useCompactDate) : ""}
+                {agenda?.date
+                  ? formatDateForDisplay(agenda.date, useCompactDate)
+                  : ""}
               </Text>
             </TouchableOpacity>
             <IconButton

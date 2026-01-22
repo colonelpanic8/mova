@@ -1,3 +1,4 @@
+import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/services/api";
@@ -14,7 +15,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import {
   ActivityIndicator,
   Button,

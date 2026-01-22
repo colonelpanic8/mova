@@ -1,4 +1,5 @@
 import { PriorityPicker, StatePicker } from "@/components/capture";
+import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { LogbookViewer } from "@/components/LogbookViewer";
 import { PropertiesEditor } from "@/components/PropertiesEditor";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
@@ -11,7 +12,6 @@ import { scheduleCustomNotification } from "@/services/notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
-import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import {
   Appbar,
   Button,

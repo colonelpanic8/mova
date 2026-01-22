@@ -1,7 +1,7 @@
+import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { Block, parseOrgBody, serializeBlocks } from "@/utils/orgBody";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { useTheme } from "react-native-paper";
 import { BulletItem } from "./BulletItem";
 import { ChecklistItem } from "./ChecklistItem";
