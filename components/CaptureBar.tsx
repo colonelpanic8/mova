@@ -4,7 +4,7 @@ import { useTemplates } from "@/context/TemplatesContext";
 import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
-import { Keyboard, StyleSheet, View } from "react-native";
+import { Keyboard, Pressable, StyleSheet, View } from "react-native";
 import {
   IconButton,
   Menu,
@@ -144,12 +144,20 @@ export function CaptureBar() {
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
           anchor={
-            <IconButton
-              icon="chevron-up"
-              size={16}
+            <Pressable
               onPress={() => setMenuVisible(true)}
-              style={styles.menuButton}
-            />
+              style={styles.menuAnchor}
+            >
+              <IconButton
+                icon="chevron-up"
+                size={16}
+                onPress={() => setMenuVisible(true)}
+                style={styles.menuButton}
+              />
+              <Text variant="labelSmall" style={styles.templateLabel}>
+                {getDisplayName()}
+              </Text>
+            </Pressable>
           }
           anchorPosition="top"
         >
@@ -162,10 +170,6 @@ export function CaptureBar() {
             />
           ))}
         </Menu>
-
-        <Text variant="labelSmall" style={styles.templateLabel}>
-          {getDisplayName()}
-        </Text>
 
         <TextInput
           placeholder="Capture..."
@@ -227,6 +231,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: 2,
+  },
+  menuAnchor: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   menuButton: {
     margin: 0,
