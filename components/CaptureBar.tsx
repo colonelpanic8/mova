@@ -21,7 +21,11 @@ function getDefaultTemplateKey(serverId: string | null): string {
     : "mova_default_template";
 }
 
-export function CaptureBar() {
+interface CaptureBarProps {
+  position?: "top" | "bottom";
+}
+
+export function CaptureBar({ position = "bottom" }: CaptureBarProps) {
   const { templates } = useTemplates();
   const { quickScheduleIncludeTime, setQuickScheduleIncludeTime } =
     useSettings();
@@ -146,7 +150,13 @@ export function CaptureBar() {
           styles.container,
           {
             backgroundColor: theme.colors.surfaceVariant,
-            borderTopColor: theme.colors.outlineVariant,
+            borderTopColor:
+              position === "bottom" ? theme.colors.outlineVariant : undefined,
+            borderBottomColor:
+              position === "top" ? theme.colors.outlineVariant : undefined,
+            borderTopWidth: position === "bottom" ? StyleSheet.hairlineWidth : 0,
+            borderBottomWidth:
+              position === "top" ? StyleSheet.hairlineWidth : 0,
           },
         ]}
       >
@@ -169,7 +179,7 @@ export function CaptureBar() {
               </Text>
             </Pressable>
           }
-          anchorPosition="top"
+          anchorPosition={position === "top" ? "bottom" : "top"}
         >
           {singleFieldTemplates.map(([key, template]) => (
             <Menu.Item
@@ -224,7 +234,7 @@ export function CaptureBar() {
           message?.isError
             ? { backgroundColor: theme.colors.error }
             : undefined,
-          styles.snackbar,
+          position === "bottom" && styles.snackbar,
         ]}
       >
         {message?.text}
@@ -239,7 +249,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 4,
     paddingVertical: 4,
-    borderTopWidth: StyleSheet.hairlineWidth,
     gap: 2,
   },
   menuAnchor: {
