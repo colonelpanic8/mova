@@ -70,35 +70,68 @@ export function ScheduledNotificationsModal({
     });
   };
 
+  const formatReason = (item: ScheduledNotificationInfo): string => {
+    if (item.offsetMinutes === undefined) {
+      return ""; // Legacy notification without new data
+    }
+    const offsetText =
+      item.offsetMinutes === 0
+        ? "at event time"
+        : item.offsetMinutes < 60
+          ? `${item.offsetMinutes} min before`
+          : `${Math.floor(item.offsetMinutes / 60)}h ${item.offsetMinutes % 60 ? `${item.offsetMinutes % 60}m ` : ""}before`;
+    const typeText = item.isCustom ? "custom" : "default";
+    return `${offsetText} (${typeText})`;
+  };
+
   const renderNotification = ({
     item,
   }: {
     item: ScheduledNotificationInfo;
-  }) => (
-    <View style={styles.notificationItem}>
-      <View style={styles.notificationHeader}>
+  }) => {
+    const reason = formatReason(item);
+    return (
+      <View style={styles.notificationItem}>
+        <View style={styles.notificationHeader}>
+          <Text
+            variant="titleSmall"
+            numberOfLines={1}
+            style={[styles.notificationTitle, { color: theme.colors.onSurface }]}
+          >
+            {item.title}
+          </Text>
+          <Text
+            variant="labelSmall"
+            style={[styles.timeUntil, { color: theme.colors.primary }]}
+          >
+            {formatTriggerDate(item.scheduledTime)}
+          </Text>
+        </View>
         <Text
-          variant="titleSmall"
-          numberOfLines={1}
-          style={[styles.notificationTitle, { color: theme.colors.onSurface }]}
+          variant="bodySmall"
+          style={[styles.triggerTime, { color: theme.colors.onSurfaceVariant }]}
         >
-          {item.title}
+          {formatTime(item.scheduledTime)}
         </Text>
-        <Text
-          variant="labelSmall"
-          style={[styles.timeUntil, { color: theme.colors.primary }]}
-        >
-          {formatTriggerDate(item.scheduledTime)}
-        </Text>
+        {reason && (
+          <Text
+            variant="labelSmall"
+            style={[styles.reason, { color: theme.colors.outline }]}
+          >
+            {reason}
+          </Text>
+        )}
+        {item.eventTime && (
+          <Text
+            variant="labelSmall"
+            style={[styles.eventTime, { color: theme.colors.tertiary }]}
+          >
+            Event: {formatTime(item.eventTime)}
+          </Text>
+        )}
       </View>
-      <Text
-        variant="bodySmall"
-        style={[styles.triggerTime, { color: theme.colors.onSurfaceVariant }]}
-      >
-        {formatTime(item.scheduledTime)}
-      </Text>
-    </View>
-  );
+    );
+  };
 
   return (
     <Portal>
@@ -188,6 +221,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   triggerTime: {
+    marginTop: 2,
+  },
+  reason: {
+    marginTop: 4,
+  },
+  eventTime: {
     marginTop: 2,
   },
   closeButton: {
