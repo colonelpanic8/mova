@@ -5,6 +5,7 @@ import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Animated,
+  Image,
   Keyboard,
   KeyboardEvent,
   Platform,
@@ -12,6 +13,17 @@ import {
   View,
 } from "react-native";
 import { useTheme } from "react-native-paper";
+
+// Header logo component
+function HeaderLogo() {
+  return (
+    <Image
+      source={require("@/assets/images/mova-header.png")}
+      style={{ height: 28, width: 84 }}
+      resizeMode="contain"
+    />
+  );
+}
 
 // Hidden routes that shouldn't appear in tab bar
 const HIDDEN_ROUTES = new Set<string>([]);
@@ -152,6 +164,7 @@ export default function TabLayout() {
           backgroundColor: theme.colors.surface,
         },
         headerTintColor: theme.colors.onSurface,
+        headerTitle: () => <HeaderLogo />,
       }}
     >
       <Tabs.Screen
