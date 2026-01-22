@@ -5,6 +5,7 @@ import {
 } from "@/components/capture";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
+import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -61,9 +62,10 @@ interface PromptFieldProps {
   prompt: TemplatePrompt;
   value: string | string[];
   onChange: (value: string | string[]) => void;
+  showVoiceInput?: boolean;
 }
 
-function PromptField({ prompt, value, onChange }: PromptFieldProps) {
+function PromptField({ prompt, value, onChange, showVoiceInput }: PromptFieldProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tagInputValue, setTagInputValue] = useState("");
 
@@ -198,18 +200,26 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
   // Default: string type
   const stringValue = typeof value === "string" ? value : "";
   return (
-    <TextInput
-      label={`${prompt.name}${prompt.required ? " *" : ""}`}
-      value={stringValue}
-      onChangeText={(text) => onChange(text)}
-      mode="outlined"
-      style={styles.input}
-      multiline={
-        prompt.name.toLowerCase() === "title" ||
-        prompt.name.toLowerCase() === "body"
-      }
-      numberOfLines={prompt.name.toLowerCase() === "body" ? 4 : 2}
-    />
+    <View style={styles.textFieldContainer}>
+      <TextInput
+        label={`${prompt.name}${prompt.required ? " *" : ""}`}
+        value={stringValue}
+        onChangeText={(text) => onChange(text)}
+        mode="outlined"
+        style={styles.textFieldInput}
+        multiline={
+          prompt.name.toLowerCase() === "title" ||
+          prompt.name.toLowerCase() === "body"
+        }
+        numberOfLines={prompt.name.toLowerCase() === "body" ? 4 : 2}
+      />
+      {showVoiceInput && (
+        <VoiceMicButton
+          onTranscript={(text) => onChange(text)}
+          onPartialTranscript={(text) => onChange(text)}
+        />
+      )}
+    </View>
   );
 }
 
@@ -537,6 +547,7 @@ export default function CaptureScreen() {
               prompt={prompt}
               value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
               onChange={(value) => handleValueChange(prompt.name, value)}
+              showVoiceInput={prompt.name.toLowerCase() === "title"}
             />
           ))}
 
@@ -696,5 +707,13 @@ const styles = StyleSheet.create({
   },
   optionsDivider: {
     marginVertical: 16,
+  },
+  textFieldContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  textFieldInput: {
+    flex: 1,
   },
 });
