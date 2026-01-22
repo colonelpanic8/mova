@@ -1,6 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
+import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
@@ -36,6 +37,14 @@ export function CaptureBar() {
   } | null>(null);
   const { isAuthenticated, activeServerId } = useAuth();
   const theme = useTheme();
+
+  const handleVoiceTranscript = useCallback((text: string) => {
+    setTitle(text);
+  }, []);
+
+  const handleVoicePartial = useCallback((text: string) => {
+    setTitle(text);
+  }, []);
 
   // Load default template when templates or server changes
   useEffect(() => {
@@ -192,6 +201,12 @@ export function CaptureBar() {
           underlineStyle={styles.inputUnderline}
           disabled={submitting}
           returnKeyType="done"
+        />
+
+        <VoiceMicButton
+          onTranscript={handleVoiceTranscript}
+          onPartialTranscript={handleVoicePartial}
+          disabled={submitting}
         />
 
         <IconButton
