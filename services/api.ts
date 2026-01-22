@@ -39,6 +39,7 @@ export interface Todo {
   olpath: string[] | null;
   notifyBefore: number[] | null;
   category: string | null;
+  effectiveCategory: string | null;
   body?: string | null;
   // Org-mode properties drawer key-value pairs
   properties?: Record<string, string> | null;

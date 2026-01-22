@@ -97,6 +97,7 @@ describe("OrgAgendaApi", () => {
         olpath: ["Parent", "Child"],
         notifyBefore: null,
         category: null,
+        effectiveCategory: null,
       };
 
       const mockResponse = { status: "completed", newState: "DONE" };
@@ -139,6 +140,7 @@ describe("OrgAgendaApi", () => {
         olpath: ["Parent", "Child"],
         notifyBefore: null,
         category: null,
+        effectiveCategory: null,
       };
 
       const mockResponse = { status: "completed", newState: "DONE" };
@@ -222,6 +224,7 @@ describe("OrgAgendaApi", () => {
         olpath: ["Parent"],
         notifyBefore: null,
         category: null,
+        effectiveCategory: null,
       };
 
       const updates = {
@@ -270,6 +273,7 @@ describe("OrgAgendaApi", () => {
         olpath: ["Parent"],
         notifyBefore: null,
         category: null,
+        effectiveCategory: null,
       };
 
       const updates = {
@@ -314,6 +318,7 @@ describe("OrgAgendaApi", () => {
         olpath: null,
         notifyBefore: null,
         category: null,
+        effectiveCategory: null,
       };
 
       const updates = {
@@ -362,6 +367,7 @@ describe("OrgAgendaApi", () => {
         olpath: ["Some", "Path"],
         notifyBefore: null,
         category: null,
+        effectiveCategory: null,
       };
 
       const mockResponse = { status: "deleted" };
@@ -400,6 +406,7 @@ describe("OrgAgendaApi", () => {
         olpath: ["Some", "Path"],
         notifyBefore: null,
         category: null,
+        effectiveCategory: null,
       };
 
       const mockResponse = { status: "deleted" };
@@ -443,6 +450,7 @@ describe("OrgAgendaApi", () => {
         olpath: ["Parent"],
         notifyBefore: null,
         category: null,
+        effectiveCategory: null,
       };
 
       const mockResponse = { status: "completed", newState: "NEXT" };
@@ -482,6 +490,7 @@ describe("OrgAgendaApi", () => {
         olpath: ["Parent"],
         notifyBefore: null,
         category: null,
+        effectiveCategory: null,
       };
 
       const mockResponse = { status: "completed", newState: "DONE" };

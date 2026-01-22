@@ -54,6 +54,7 @@ export default function BodyEditorScreen() {
       olpath: null,
       notifyBefore: null,
       category: null,
+      effectiveCategory: null,
     }),
     [params.id, params.file, params.pos, params.title],
   );
