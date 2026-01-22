@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="capture"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_capture"
+        android:shortcutShortLabel="@string/shortcut_capture_short"
+        android:shortcutLongLabel="@string/shortcut_capture_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.colonelpanic.mova"
+            android:targetClass="com.colonelpanic.mova.QuickCaptureActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
     <capability android:name="actions.intent.CREATE_NOTE">
         <intent
             android:action="android.intent.action.VIEW"
