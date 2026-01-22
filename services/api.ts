@@ -353,6 +353,7 @@ class OrgAgendaApi {
   async completeTodo(
     todo: Todo,
     newState: string = "DONE",
+    overrideDate?: string,
   ): Promise<CompleteTodoResponse> {
     const identifier = todo.id
       ? { id: todo.id }
@@ -362,6 +363,7 @@ class OrgAgendaApi {
       body: JSON.stringify({
         ...identifier,
         state: newState,
+        ...(overrideDate && { override_date: overrideDate }),
       }),
     });
   }
@@ -405,6 +407,7 @@ class OrgAgendaApi {
   async setTodoState(
     todo: Todo,
     newState: string,
+    overrideDate?: string,
   ): Promise<CompleteTodoResponse> {
     const identifier = todo.id
       ? { id: todo.id }
@@ -414,6 +417,7 @@ class OrgAgendaApi {
       body: JSON.stringify({
         ...identifier,
         state: newState,
+        ...(overrideDate && { override_date: overrideDate }),
       }),
     });
   }

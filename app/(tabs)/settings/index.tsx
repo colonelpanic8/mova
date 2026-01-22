@@ -29,8 +29,10 @@ export default function SettingsScreen() {
     setQuickScheduleIncludeTime,
     showHabitsInAgenda,
     setShowHabitsInAgenda,
+    defaultDoneState,
+    setDefaultDoneState,
   } = useSettings();
-  const { templates } = useTemplates();
+  const { templates, todoStates } = useTemplates();
   const theme = useTheme();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
@@ -47,6 +49,7 @@ export default function SettingsScreen() {
   const { lastSync, scheduledCount, isSyncing, syncNotifications } =
     useNotificationSync();
   const [templateMenuVisible, setTemplateMenuVisible] = useState(false);
+  const [doneStateMenuVisible, setDoneStateMenuVisible] = useState(false);
 
   const activeServer = useMemo(
     () => savedServers.find((s) => s.id === activeServerId),
@@ -66,6 +69,22 @@ export default function SettingsScreen() {
     const template = templates[activeServer.defaultCaptureTemplate];
     return template?.name || "Not set";
   }, [activeServer?.defaultCaptureTemplate, templates]);
+
+  // Compute effective default done state (setting or auto-detect)
+  const effectiveDefaultDoneState = useMemo(() => {
+    if (defaultDoneState) return defaultDoneState;
+    if (!todoStates?.done?.length) return "DONE";
+    // Default to "DONE" if it exists, otherwise first done state
+    return todoStates.done.includes("DONE") ? "DONE" : todoStates.done[0];
+  }, [defaultDoneState, todoStates]);
+
+  const handleDoneStateSelect = useCallback(
+    async (state: string | null) => {
+      setDoneStateMenuVisible(false);
+      await setDefaultDoneState(state);
+    },
+    [setDefaultDoneState],
+  );
 
   const handleTemplateSelect = useCallback(
     async (templateKey: string) => {
@@ -270,6 +289,33 @@ export default function SettingsScreen() {
             />
           )}
         />
+        <Menu
+          visible={doneStateMenuVisible}
+          onDismiss={() => setDoneStateMenuVisible(false)}
+          anchor={
+            <List.Item
+              title="Default Done State"
+              description={defaultDoneState || `Auto (${effectiveDefaultDoneState})`}
+              left={(props) => <List.Icon {...props} icon="check-circle" />}
+              onPress={() => setDoneStateMenuVisible(true)}
+              right={(props) => <List.Icon {...props} icon="chevron-down" />}
+            />
+          }
+        >
+          <Menu.Item
+            onPress={() => handleDoneStateSelect(null)}
+            title="Auto (detect from server)"
+            leadingIcon={defaultDoneState === null ? "check" : undefined}
+          />
+          {todoStates?.done?.map((state) => (
+            <Menu.Item
+              key={state}
+              onPress={() => handleDoneStateSelect(state)}
+              title={state}
+              leadingIcon={defaultDoneState === state ? "check" : undefined}
+            />
+          ))}
+        </Menu>
         <Menu
           visible={templateMenuVisible}
           onDismiss={() => setTemplateMenuVisible(false)}

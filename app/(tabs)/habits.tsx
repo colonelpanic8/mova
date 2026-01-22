@@ -1,4 +1,4 @@
-import { TodoItem } from "@/components/TodoItem";
+import { HabitItem } from "@/components/HabitItem";
 import { useAuth } from "@/context/AuthContext";
 import { useHabitConfig } from "@/context/HabitConfigContext";
 import { useMutation } from "@/context/MutationContext";
@@ -99,7 +99,7 @@ export default function HabitsScreen() {
   }, [habits]);
 
   const renderItem = useCallback(
-    ({ item }: { item: Todo }) => <TodoItem todo={item} />,
+    ({ item }: { item: Todo }) => <HabitItem todo={item} />,
     [],
   );
 
