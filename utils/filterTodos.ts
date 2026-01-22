@@ -140,13 +140,24 @@ export function filterTodos<T extends Todo>(
     }
 
     // Category filter
-    // Note: We need to extract category from file path or use a category field if available
-    // For now, match on file path containing the category
+    // In org-mode, category can be:
+    // 1. Explicitly set via CATEGORY property
+    // 2. Derived from the filename (without extension)
     if (filters.categories.length > 0) {
-      // Categories might be stored differently - for now, check if file path contains category
-      const todoFile = todo.file || "";
-      const matchesCategory = filters.categories.some((cat) =>
-        todoFile.toLowerCase().includes(cat.toLowerCase()),
+      // First check for explicit CATEGORY property
+      const explicitCategory = todo.properties?.CATEGORY;
+
+      // Extract category from filename as fallback (filename without path and extension)
+      let fileCategory: string | null = null;
+      if (todo.file) {
+        const filename = todo.file.split("/").pop() || "";
+        fileCategory = filename.replace(/\.org$/i, "");
+      }
+
+      const todoCategory = explicitCategory || fileCategory || "";
+
+      const matchesCategory = filters.categories.some(
+        (cat) => todoCategory.toLowerCase() === cat.toLowerCase(),
       );
       if (!matchesCategory) return false;
     }
