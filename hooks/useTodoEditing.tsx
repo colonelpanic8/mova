@@ -89,6 +89,7 @@ export interface UseTodoEditingResult {
   openPriorityModal: (todo: Todo) => void;
   openRemindModal: (todo: Todo) => void;
   openDeleteConfirm: (todo: Todo) => void;
+  quickComplete: (todo: Todo, state: string, overrideDate?: Date) => void;
   dismissSnackbar: () => void;
 
   // Components
@@ -117,6 +118,9 @@ export function useTodoEditing(
   );
   const [remindDateTime, setRemindDateTime] = useState<Date>(new Date());
   const [quickScheduleDate, setQuickScheduleDate] = useState<Date>(new Date());
+  const [stateOverrideDate, setStateOverrideDate] = useState<Date | null>(null);
+  const [showStateOverrideDatePicker, setShowStateOverrideDatePicker] =
+    useState(false);
 
   // Loading states
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
@@ -172,6 +176,8 @@ export function useTodoEditing(
       setSelectedPriority(todo.priority || "");
     } else if (type === "state") {
       setSelectedState(todo.todo || "");
+      setStateOverrideDate(null);
+      setShowStateOverrideDatePicker(false);
     } else if (type === "remind") {
       // Default to 1 hour from now
       const defaultTime = new Date();
@@ -345,7 +351,7 @@ export function useTodoEditing(
   );
 
   const handleStateChange = useCallback(
-    async (newState: string) => {
+    async (newState: string, overrideDate?: Date | null) => {
       if (!editingTodo) return;
 
       const key = getTodoKey(editingTodo);
@@ -353,12 +359,22 @@ export function useTodoEditing(
       closeEditModal();
 
       try {
-        const result = await api.setTodoState(editingTodo, newState);
+        const overrideDateStr = overrideDate
+          ? formatLocalDate(overrideDate)
+          : undefined;
+        const result = await api.setTodoState(
+          editingTodo,
+          newState,
+          overrideDateStr,
+        );
 
         if (result.status === "completed") {
+          const dateMsg = overrideDate
+            ? ` (as of ${formatLocalDate(overrideDate)})`
+            : "";
           setSnackbar({
             visible: true,
-            message: `${editingTodo.title}: ${result.oldState} → ${result.newState}`,
+            message: `${editingTodo.title}: ${result.oldState} → ${result.newState}${dateMsg}`,
             isError: false,
           });
           onTodoUpdated?.(editingTodo, { todo: result.newState || newState });
@@ -386,6 +402,55 @@ export function useTodoEditing(
       }
     },
     [editingTodo, onTodoUpdated, closeEditModal, triggerRefresh],
+  );
+
+  const quickComplete = useCallback(
+    async (todo: Todo, state: string, overrideDate?: Date) => {
+      const key = getTodoKey(todo);
+      // Close swipeable if open
+      swipeableRefs.current.get(key)?.close();
+      setCompletingIds((prev) => new Set(prev).add(key));
+
+      try {
+        const overrideDateStr = overrideDate
+          ? formatLocalDate(overrideDate)
+          : undefined;
+        const result = await api.setTodoState(todo, state, overrideDateStr);
+
+        if (result.status === "completed") {
+          const dateMsg = overrideDate
+            ? ` (${formatLocalDate(overrideDate)})`
+            : "";
+          setSnackbar({
+            visible: true,
+            message: `${todo.title}: ${result.oldState} → ${result.newState}${dateMsg}`,
+            isError: false,
+          });
+          onTodoUpdated?.(todo, { todo: result.newState || state });
+          triggerRefresh();
+        } else {
+          setSnackbar({
+            visible: true,
+            message: result.message || "Failed to complete",
+            isError: true,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to quick complete:", err);
+        setSnackbar({
+          visible: true,
+          message: "Failed to complete",
+          isError: true,
+        });
+      } finally {
+        setCompletingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [onTodoUpdated, triggerRefresh, swipeableRefs],
   );
 
   const handleDeleteTodo = useCallback(
@@ -848,13 +913,70 @@ export function useTodoEditing(
               ))}
             </RadioButton.Group>
 
+            {/* Override date option */}
+            <List.Item
+              title="Effective Date"
+              description={
+                stateOverrideDate
+                  ? stateOverrideDate.toLocaleDateString()
+                  : "Today (default)"
+              }
+              left={(props) => <List.Icon {...props} icon="calendar" />}
+              onPress={() => {
+                if (Platform.OS === "web") {
+                  // Web: toggle picker visibility
+                  setShowStateOverrideDatePicker(!showStateOverrideDatePicker);
+                } else {
+                  // Native: show native picker
+                  setShowStateOverrideDatePicker(true);
+                }
+              }}
+              right={(props) =>
+                stateOverrideDate ? (
+                  <Pressable
+                    onPress={() => setStateOverrideDate(null)}
+                    style={{ justifyContent: "center" }}
+                  >
+                    <List.Icon {...props} icon="close" />
+                  </Pressable>
+                ) : null
+              }
+              style={styles.overrideDateItem}
+            />
+            {Platform.OS === "web" && showStateOverrideDatePicker && (
+              <input
+                type="date"
+                value={
+                  stateOverrideDate
+                    ? formatLocalDate(stateOverrideDate)
+                    : formatLocalDate(new Date())
+                }
+                onChange={(e) => {
+                  const parsed = new Date(e.target.value + "T00:00:00");
+                  if (!isNaN(parsed.getTime())) {
+                    setStateOverrideDate(parsed);
+                  }
+                  setShowStateOverrideDatePicker(false);
+                }}
+                style={{
+                  padding: 12,
+                  fontSize: 16,
+                  borderRadius: 8,
+                  border: `1px solid ${theme.colors.outline}`,
+                  marginBottom: 8,
+                }}
+              />
+            )}
+
             <View style={styles.modalButtons}>
               <Button mode="outlined" onPress={closeEditModal}>
                 Cancel
               </Button>
               <Button
                 mode="contained"
-                onPress={() => handleStateChange(selectedState)}
+                onPress={() =>
+                  handleStateChange(selectedState, stateOverrideDate)
+                }
                 disabled={selectedState === editingTodo?.todo}
               >
                 Change
@@ -964,6 +1086,21 @@ export function useTodoEditing(
           />
         )}
 
+        {/* Native Date Picker for State Override Date */}
+        {showStateOverrideDatePicker && Platform.OS !== "web" && (
+          <DateTimePicker
+            value={stateOverrideDate || new Date()}
+            mode="date"
+            display="default"
+            onChange={(event, date) => {
+              setShowStateOverrideDatePicker(false);
+              if (event.type !== "dismissed" && date) {
+                setStateOverrideDate(date);
+              }
+            }}
+          />
+        )}
+
         <Snackbar
           visible={snackbar.visible}
           onDismiss={dismissSnackbar}
@@ -990,6 +1127,8 @@ export function useTodoEditing(
     remindPickerMode,
     quickScheduleDate,
     quickScheduleIncludeTime,
+    stateOverrideDate,
+    showStateOverrideDatePicker,
     todoStates,
     snackbar,
     theme,
@@ -1023,6 +1162,7 @@ export function useTodoEditing(
     openPriorityModal,
     openRemindModal,
     openDeleteConfirm,
+    quickComplete,
     dismissSnackbar,
     EditModals,
   };
@@ -1089,6 +1229,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     gap: 8,
+  },
+  overrideDateItem: {
+    marginTop: 8,
+    marginBottom: 0,
+    paddingVertical: 0,
   },
 });
 
