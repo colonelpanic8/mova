@@ -108,6 +108,7 @@ const mockTodos = [
     pos: 100,
     olpath: null,
     notifyBefore: null,
+    category: "inbox",
   },
   {
     id: "2",
@@ -124,6 +125,7 @@ const mockTodos = [
     pos: 200,
     olpath: null,
     notifyBefore: null,
+    category: "work",
   },
   {
     id: "3",
@@ -140,6 +142,7 @@ const mockTodos = [
     pos: 300,
     olpath: null,
     notifyBefore: null,
+    category: "inbox",
   },
 ];
 

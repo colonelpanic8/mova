@@ -96,6 +96,7 @@ describe("OrgAgendaApi", () => {
         priority: null,
         olpath: ["Parent", "Child"],
         notifyBefore: null,
+        category: null,
       };
 
       const mockResponse = { status: "completed", newState: "DONE" };
@@ -137,6 +138,7 @@ describe("OrgAgendaApi", () => {
         priority: null,
         olpath: ["Parent", "Child"],
         notifyBefore: null,
+        category: null,
       };
 
       const mockResponse = { status: "completed", newState: "DONE" };
@@ -219,6 +221,7 @@ describe("OrgAgendaApi", () => {
         priority: null,
         olpath: ["Parent"],
         notifyBefore: null,
+        category: null,
       };
 
       const updates = {
@@ -266,6 +269,7 @@ describe("OrgAgendaApi", () => {
         priority: null,
         olpath: ["Parent"],
         notifyBefore: null,
+        category: null,
       };
 
       const updates = {
@@ -309,6 +313,7 @@ describe("OrgAgendaApi", () => {
         priority: null,
         olpath: null,
         notifyBefore: null,
+        category: null,
       };
 
       const updates = {
@@ -356,6 +361,7 @@ describe("OrgAgendaApi", () => {
         priority: null,
         olpath: ["Some", "Path"],
         notifyBefore: null,
+        category: null,
       };
 
       const mockResponse = { status: "deleted" };
@@ -393,6 +399,7 @@ describe("OrgAgendaApi", () => {
         priority: null,
         olpath: ["Some", "Path"],
         notifyBefore: null,
+        category: null,
       };
 
       const mockResponse = { status: "deleted" };
@@ -435,6 +442,7 @@ describe("OrgAgendaApi", () => {
         priority: null,
         olpath: ["Parent"],
         notifyBefore: null,
+        category: null,
       };
 
       const mockResponse = { status: "completed", newState: "NEXT" };
@@ -473,6 +481,7 @@ describe("OrgAgendaApi", () => {
         priority: null,
         olpath: ["Parent"],
         notifyBefore: null,
+        category: null,
       };
 
       const mockResponse = { status: "completed", newState: "DONE" };
