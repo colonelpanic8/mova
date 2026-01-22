@@ -73,8 +73,8 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={theme}>
-        <ColorPaletteProvider>
+      <ColorPaletteProvider>
+        <PaperProvider theme={theme}>
           <SettingsProvider>
             <MutationProvider>
               <AuthProvider>
@@ -88,8 +88,8 @@ export default function RootLayout() {
               </AuthProvider>
             </MutationProvider>
           </SettingsProvider>
-        </ColorPaletteProvider>
-      </PaperProvider>
+        </PaperProvider>
+      </ColorPaletteProvider>
     </GestureHandlerRootView>
   );
 }
