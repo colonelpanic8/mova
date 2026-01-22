@@ -4,6 +4,7 @@ export interface SavedServer {
   apiUrl: string;
   username: string;
   password: string;
+  defaultCaptureTemplate?: string;
 }
 
 export type SavedServerInput = Omit<SavedServer, "id">;
