@@ -99,6 +99,7 @@ export function useDeepLinks() {
                 olpath: null,
                 notifyBefore: null,
                 category: null,
+                effectiveCategory: null,
               },
               params.state || "DONE",
             );

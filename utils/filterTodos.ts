@@ -139,9 +139,9 @@ export function filterTodos<T extends Todo>(
         return false;
     }
 
-    // Category filter - uses category field from API
+    // Category filter - uses effectiveCategory field from API
     if (filters.categories.length > 0) {
-      const todoCategory = todo.category || "";
+      const todoCategory = todo.effectiveCategory || "";
       const matchesCategory = filters.categories.some(
         (cat) => todoCategory.toLowerCase() === cat.toLowerCase(),
       );
