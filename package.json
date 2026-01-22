@@ -1,7 +1,7 @@
 {
   "name": "mova",
   "main": "./index.js",
-  "version": "3.3.9",
+  "version": "3.3.8",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
