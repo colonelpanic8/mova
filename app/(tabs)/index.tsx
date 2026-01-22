@@ -18,6 +18,7 @@ import {
   SectionList,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -35,8 +36,15 @@ function formatDateForApi(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function formatDateForDisplay(dateString: string): string {
+function formatDateForDisplay(dateString: string, compact: boolean = false): string {
   const date = new Date(dateString + "T00:00:00");
+  if (compact) {
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    });
+  }
   return date.toLocaleDateString(undefined, {
     weekday: "long",
     year: "numeric",
@@ -70,6 +78,8 @@ export default function AgendaScreen() {
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
   const isInitialMount = useRef(true);
+  const { width } = useWindowDimensions();
+  const useCompactDate = width < 400;
 
   // Apply filters to agenda entries and split into active/completed
   const filteredEntries = agenda ? filterTodos(agenda.entries, filters) : [];
@@ -262,7 +272,7 @@ export default function AgendaScreen() {
                 variant="titleMedium"
                 style={styles.dateText}
               >
-                {agenda?.date ? formatDateForDisplay(agenda.date) : ""}
+                {agenda?.date ? formatDateForDisplay(agenda.date, useCompactDate) : ""}
               </Text>
             </TouchableOpacity>
             <IconButton

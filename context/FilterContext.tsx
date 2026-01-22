@@ -1,8 +1,10 @@
+import { useSettings } from "@/context/SettingsContext";
 import React, {
   createContext,
   ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useState,
 } from "react";
 
@@ -60,20 +62,27 @@ interface FilterContextType {
   setShowHabits: (show: boolean) => void;
 }
 
-const initialFilterState: FilterState = {
-  tags: { include: [], exclude: [] },
-  states: [],
-  priorities: [],
-  dateRange: null,
-  files: [],
-  categories: [],
-  showHabits: true, // Default to showing habits
-};
-
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
-  const [filters, setFilters] = useState<FilterState>(initialFilterState);
+  const { showHabitsInAgenda, isLoading: settingsLoading } = useSettings();
+
+  const [filters, setFilters] = useState<FilterState>({
+    tags: { include: [], exclude: [] },
+    states: [],
+    priorities: [],
+    dateRange: null,
+    files: [],
+    categories: [],
+    showHabits: showHabitsInAgenda,
+  });
+
+  // Sync showHabits with settings when settings change
+  useEffect(() => {
+    if (!settingsLoading) {
+      setFilters((prev) => ({ ...prev, showHabits: showHabitsInAgenda }));
+    }
+  }, [showHabitsInAgenda, settingsLoading]);
 
   const addTagFilter = useCallback((tag: string, exclude = false) => {
     setFilters((prev) => {
@@ -200,8 +209,16 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   );
 
   const clearAllFilters = useCallback(() => {
-    setFilters(initialFilterState);
-  }, []);
+    setFilters({
+      tags: { include: [], exclude: [] },
+      states: [],
+      priorities: [],
+      dateRange: null,
+      files: [],
+      categories: [],
+      showHabits: showHabitsInAgenda,
+    });
+  }, [showHabitsInAgenda]);
 
   // Compute active filters as a flat list for display
   const activeFilters: ActiveFilter[] = [
