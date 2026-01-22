@@ -103,7 +103,8 @@ export async function scheduleNotificationsForTodos(
     if (isNaN(eventTime.getTime())) continue;
 
     // Get notification times (per-item or defaults)
-    const notifyMinutes = todo.notifyBefore || defaults.notifyBefore;
+    const isCustom = todo.notifyBefore && todo.notifyBefore.length > 0;
+    const notifyMinutes = isCustom ? todo.notifyBefore : defaults.notifyBefore;
     if (!notifyMinutes || notifyMinutes.length === 0) continue;
 
     const todoId = getTodoId(todo);
@@ -118,16 +119,20 @@ export async function scheduleNotificationsForTodos(
 
       // Schedule the notification
       const identifier = `${todoId}:${minutes}`;
+      const reasonText = isCustom ? "custom reminder" : "default reminder";
 
       try {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: todo.title,
-            body: `${formatTimeUntil(minutes)} (${formatTime(eventTime)})`,
+            body: `${formatTimeUntil(minutes)} at ${formatTime(eventTime)} (${reasonText})`,
             data: {
               todoId,
               file: todo.file,
               pos: todo.pos,
+              offsetMinutes: minutes,
+              isCustom,
+              eventTime: eventTime.toISOString(),
             },
           },
           trigger: {
@@ -169,6 +174,9 @@ export interface ScheduledNotificationInfo {
   body: string;
   scheduledTime: Date;
   todoId?: string;
+  offsetMinutes?: number;
+  isCustom?: boolean;
+  eventTime?: Date;
 }
 
 export async function getAllScheduledNotifications(): Promise<
@@ -191,12 +199,22 @@ export async function getAllScheduledNotifications(): Promise<
       continue;
     }
 
+    const data = notification.content.data as {
+      todoId?: string;
+      offsetMinutes?: number;
+      isCustom?: boolean;
+      eventTime?: string;
+    };
+
     result.push({
       identifier: notification.identifier,
       title: (notification.content.title as string) || "Notification",
       body: (notification.content.body as string) || "",
       scheduledTime,
-      todoId: (notification.content.data as { todoId?: string })?.todoId,
+      todoId: data?.todoId,
+      offsetMinutes: data?.offsetMinutes,
+      isCustom: data?.isCustom,
+      eventTime: data?.eventTime ? new Date(data.eventTime) : undefined,
     });
   }
 
