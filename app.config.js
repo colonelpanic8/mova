@@ -64,7 +64,7 @@ export default {
         "expo-splash-screen",
         {
           image: "./assets/images/mova-icon-final.png",
-          imageWidth: 200,
+          imageWidth: 280,
           resizeMode: "contain",
           backgroundColor: "#FDF6E3",
         },
