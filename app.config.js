@@ -21,18 +21,19 @@ export default {
     slug: "mova",
     version: packageJson.version,
     orientation: "portrait",
-    icon: "./assets/images/mova.png",
+    icon: "./assets/images/mova-icon-final.png",
     scheme: "mova",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.colonelpanic.mova",
+      backgroundColor: "#FDF6E3",
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/mova.png",
-        backgroundColor: "#f5f5f5",
+        foregroundImage: "./assets/images/mova-adaptive-final.png",
+        backgroundColor: "#FDF6E3",
       },
       package: "com.colonelpanic.mova",
       intentFilters: [
@@ -55,17 +56,17 @@ export default {
     web: {
       bundler: "metro",
       output: "static",
-      favicon: "./assets/images/mova.png",
+      favicon: "./assets/images/mova-icon-final.png",
     },
     plugins: [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/mova.png",
+          image: "./assets/images/mova-icon-final.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#f5f5f5",
+          backgroundColor: "#FDF6E3",
         },
       ],
       "expo-notifications",
