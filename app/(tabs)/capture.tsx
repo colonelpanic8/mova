@@ -14,13 +14,8 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import {
   ActivityIndicator,
   Button,
@@ -520,11 +515,7 @@ export default function CaptureScreen() {
 
       <Divider />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.formContainer}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-      >
+      <KeyboardAwareContainer style={styles.formContainer}>
         <ScrollView
           style={styles.formContainer}
           contentContainerStyle={styles.formContent}
@@ -610,7 +601,7 @@ export default function CaptureScreen() {
             Capture
           </Button>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareContainer>
 
       <Snackbar
         visible={!!message}

@@ -8,13 +8,13 @@ import Constants from "expo-constants";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Image,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
+import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import {
   ActivityIndicator,
   Button,
@@ -333,9 +333,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareContainer
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -406,7 +405,7 @@ export default function LoginScreen() {
       >
         {error}
       </Snackbar>
-    </KeyboardAvoidingView>
+    </KeyboardAwareContainer>
   );
 }
 
