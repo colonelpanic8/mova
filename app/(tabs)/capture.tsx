@@ -540,6 +540,18 @@ export default function CaptureScreen() {
             />
           ))}
 
+          <Button
+            testID="captureButtonTop"
+            mode="contained"
+            onPress={handleCapture}
+            loading={submitting}
+            disabled={submitting || !selection}
+            style={styles.captureButton}
+            icon="check"
+          >
+            Capture
+          </Button>
+
           {/* Universal org-mode fields */}
           <Divider style={styles.optionsDivider} />
 
