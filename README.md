@@ -1,6 +1,6 @@
 # Mova
 
-A mobile client for [org-agenda-api](../README.md) - access and manage your Emacs org-mode tasks from Android and iOS.
+A mobile client for [org-agenda-api](https://github.com/colonelpanic8/org-agenda-api) - access and manage your Emacs org-mode tasks from Android and iOS.
 
 ## Overview
 
@@ -14,7 +14,7 @@ Mova is a React Native/Expo application that connects to an org-agenda-api serve
 
 ## Relationship to org-agenda-api
 
-Mova is the mobile frontend for [org-agenda-api](../README.md), a JSON HTTP API that exposes org-mode data from GNU Emacs. The architecture:
+Mova is the mobile frontend for [org-agenda-api](https://github.com/colonelpanic8/org-agenda-api), a JSON HTTP API that exposes org-mode data from GNU Emacs. The architecture:
 
 ```
 +--------+         +----------------+         +-------+
@@ -26,7 +26,7 @@ Mova is the mobile frontend for [org-agenda-api](../README.md), a JSON HTTP API 
 - **org-agenda-api** runs as a Docker container or server, exposing your org files via REST endpoints
 - **Mova** connects to that server using HTTP Basic Auth to provide a native mobile experience
 
-You need a running org-agenda-api instance for Mova to connect to. See the [org-agenda-api README](../README.md) for setup instructions.
+You need a running org-agenda-api instance for Mova to connect to. See the [org-agenda-api README](https://github.com/colonelpanic8/org-agenda-api?tab=readme-ov-file) for setup instructions.
 
 ## Features
 
@@ -74,7 +74,7 @@ You need a running org-agenda-api instance for Mova to connect to. See the [org-
 
 - Node.js 18+
 - Yarn or npm
-- A running [org-agenda-api](../README.md) server
+- A running [org-agenda-api](https://github.com/colonelpanic8/org-agenda-api) server
 - For development: Android Studio (Android) or Xcode (iOS)
 
 ### Installation
