@@ -70,7 +70,9 @@ export default function HabitsScreen() {
     setError(null);
     try {
       const response = await api.getAllTodos();
-      const habitTodos = response.todos.filter((todo) => todo.isWindowHabit);
+      const habitTodos = response.todos.filter(
+        (todo) => todo.isWindowHabit || todo.properties?.STYLE === "habit",
+      );
       setHabits(habitTodos);
     } catch (err) {
       console.error("Failed to load habits:", err);

@@ -1,5 +1,6 @@
 import { DayScheduleView } from "@/components/DayScheduleView";
 import { FilterBar } from "@/components/FilterBar";
+import { HabitItem } from "@/components/HabitItem";
 import { TodoItem, getTodoKey } from "@/components/TodoItem";
 import { useAuth } from "@/context/AuthContext";
 import { useFilters } from "@/context/FilterContext";
@@ -89,7 +90,12 @@ export default function AgendaScreen() {
   const doneStates = todoStates?.done ?? [];
   const isCompleted = useCallback(
     (entry: Todo & { completedAt?: string | null }) =>
-      entry.completedAt || doneStates.includes(entry.todo),
+      entry.completedAt ||
+      doneStates.includes(entry.todo) ||
+      // For habits: if it's a window habit and completionNeededToday is false,
+      // it means the habit was already completed for today
+      (entry.isWindowHabit &&
+        entry.habitSummary?.completionNeededToday === false),
     [doneStates],
   );
   const activeEntries = filteredEntries.filter((entry) => !isCompleted(entry));
@@ -358,12 +364,19 @@ export default function AgendaScreen() {
                 : []),
             ]}
             keyExtractor={(item) => getTodoKey(item)}
-            renderItem={({ item, section }) => (
-              <TodoItem
-                todo={item}
-                opacity={section.key === "completed" ? 0.6 : 1}
-              />
-            )}
+            renderItem={({ item, section }) => {
+              const isHabit =
+                item.isWindowHabit || item.properties?.STYLE === "habit";
+              if (isHabit) {
+                return <HabitItem todo={item} />;
+              }
+              return (
+                <TodoItem
+                  todo={item}
+                  opacity={section.key === "completed" ? 0.6 : 1}
+                />
+              );
+            }}
             renderSectionHeader={({ section }) =>
               section.title ? (
                 <View

@@ -1,3 +1,4 @@
+import { HabitItem } from "@/components/HabitItem";
 import { StatePill } from "@/components/StatePill";
 import { getTodoKey } from "@/components/TodoItem";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
@@ -285,9 +286,20 @@ export function DayScheduleView({
               All Day / No Time
             </Text>
           </View>
-          {untimedEntries.map((entry) => (
-            <CompactTodoItem key={getTodoKey(entry)} todo={entry} opacity={1} />
-          ))}
+          {untimedEntries.map((entry) => {
+            const isHabit =
+              entry.isWindowHabit || entry.properties?.STYLE === "habit";
+            if (isHabit) {
+              return <HabitItem key={getTodoKey(entry)} todo={entry} />;
+            }
+            return (
+              <CompactTodoItem
+                key={getTodoKey(entry)}
+                todo={entry}
+                opacity={1}
+              />
+            );
+          })}
         </View>
       )}
 
@@ -353,6 +365,9 @@ export function DayScheduleView({
           const isCompleted =
             entry.completedAt || doneStates.includes(entry.todo);
 
+          const isHabit =
+            entry.isWindowHabit || entry.properties?.STYLE === "habit";
+
           return (
             <View
               key={getTodoKey(entry)}
@@ -365,7 +380,11 @@ export function DayScheduleView({
                 },
               ]}
             >
-              <CompactTodoItem todo={entry} opacity={isCompleted ? 0.6 : 1} />
+              {isHabit ? (
+                <HabitItem todo={entry} />
+              ) : (
+                <CompactTodoItem todo={entry} opacity={isCompleted ? 0.6 : 1} />
+              )}
             </View>
           );
         })}
