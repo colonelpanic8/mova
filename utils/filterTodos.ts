@@ -95,7 +95,9 @@ export function filterTodos<T extends Todo>(
 
   return todos.filter((todo) => {
     // Filter out habits if showHabits is false
-    if (!filters.showHabits && todo.isWindowHabit) {
+    // Check both isWindowHabit (window habits) and STYLE property (standard org habits)
+    const isHabit = todo.isWindowHabit || todo.properties?.STYLE === "habit";
+    if (!filters.showHabits && isHabit) {
       return false;
     }
 

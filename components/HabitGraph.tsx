@@ -2,8 +2,8 @@ import { useHabitConfig } from "@/context/HabitConfigContext";
 import { MiniGraphEntry } from "@/services/api";
 import { getHabitCellColor } from "@/utils/habitColors";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { useTheme } from "react-native-paper";
+import { Platform, StyleSheet, View } from "react-native";
+import { Text, useTheme } from "react-native-paper";
 
 interface HabitGraphProps {
   miniGraph: MiniGraphEntry[];
@@ -15,18 +15,10 @@ interface GraphCellProps {
   isToday: boolean;
   colors: { conforming: string; notConforming: string };
   glyphs: { completionNeededToday: string; completed: string };
-  borderColor: string;
-  textColor: string;
 }
 
-function GraphCell({
-  entry,
-  isToday,
-  colors,
-  glyphs,
-  borderColor,
-  textColor,
-}: GraphCellProps) {
+function GraphCell({ entry, isToday, colors, glyphs }: GraphCellProps) {
+  const theme = useTheme();
   const backgroundColor = getHabitCellColor(entry.conformingRatio, colors);
 
   let glyph = "";
@@ -45,11 +37,13 @@ function GraphCell({
       style={[
         styles.cell,
         { backgroundColor },
-        isToday && [styles.todayCell, { borderColor }],
+        isToday && [styles.todayCell, { borderColor: theme.colors.primary }],
       ]}
     >
       {glyph ? (
-        <Text style={[styles.glyph, { color: textColor }]}>{glyph}</Text>
+        <Text style={styles.glyph} numberOfLines={1}>
+          {glyph}
+        </Text>
       ) : null}
     </View>
   );
@@ -57,15 +51,12 @@ function GraphCell({
 
 export function HabitGraph({ miniGraph, expanded = false }: HabitGraphProps) {
   const { colors, glyphs } = useHabitConfig();
-  const theme = useTheme();
 
   if (!miniGraph || miniGraph.length === 0) {
     return null;
   }
 
   // Find today's index (last entry with completionNeededToday defined, or second-to-last).
-  // The fallback to miniGraph.length - 2 assumes the graph includes tomorrow's entry as
-  // the last element, making today the second-to-last position.
   const todayIndex = miniGraph.findIndex(
     (e) => e.completionNeededToday !== undefined,
   );
@@ -84,8 +75,6 @@ export function HabitGraph({ miniGraph, expanded = false }: HabitGraphProps) {
           isToday={index === effectiveTodayIndex}
           colors={colors}
           glyphs={glyphs}
-          borderColor={theme.colors.outline}
-          textColor={theme.colors.onSurface}
         />
       ))}
     </View>
@@ -96,25 +85,42 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    gap: 3,
   },
   expandedContainer: {
-    // For expanded mode - will be scrollable
+    flexWrap: "wrap",
   },
   cell: {
-    width: 12,
-    height: 16,
-    marginHorizontal: 1,
-    borderRadius: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 4,
     justifyContent: "center",
     alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   todayCell: {
-    width: 16,
-    borderWidth: 1,
+    width: 22,
+    height: 22,
+    borderWidth: 2,
+    borderRadius: 5,
   },
   glyph: {
-    fontSize: 10,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    textAlign: "center",
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
 });
 
