@@ -34,6 +34,29 @@ import {
   useTheme,
 } from "react-native-paper";
 
+/**
+ * Sort entries for list view: habits without a scheduled time go to the bottom,
+ * grouped together. Regular tasks and habits with scheduled times stay at the top
+ * in their original order.
+ */
+function sortEntriesForListView(entries: Todo[]): Todo[] {
+  const regularItems: Todo[] = [];
+  const habitsWithoutTime: Todo[] = [];
+
+  for (const entry of entries) {
+    const isHabit = entry.isWindowHabit || entry.properties?.STYLE === "habit";
+    const hasScheduledTime = entry.scheduled?.time != null;
+
+    if (isHabit && !hasScheduledTime) {
+      habitsWithoutTime.push(entry);
+    } else {
+      regularItems.push(entry);
+    }
+  }
+
+  return [...regularItems, ...habitsWithoutTime];
+}
+
 export default function AgendaScreen() {
   const [agenda, setAgenda] = useState<AgendaResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,9 +90,11 @@ export default function AgendaScreen() {
         entry.habitSummary?.completionNeededToday === false),
     [doneStates],
   );
-  const activeEntries = filteredEntries.filter((entry) => !isCompleted(entry));
-  const completedEntries = filteredEntries.filter((entry) =>
-    isCompleted(entry),
+  const activeEntries = sortEntriesForListView(
+    filteredEntries.filter((entry) => !isCompleted(entry)),
+  );
+  const completedEntries = sortEntriesForListView(
+    filteredEntries.filter((entry) => isCompleted(entry)),
   );
 
   const handleTodoUpdated = useCallback(
