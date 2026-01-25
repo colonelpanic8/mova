@@ -31,8 +31,8 @@ export interface HabitColors {
 }
 
 export const DEFAULT_HABIT_COLORS: HabitColors = {
-  conforming: "#9B4DB8", // Mova purple
-  notConforming: "#E57373", // Soft coral red
+  conforming: "#00B0FF", // Bright blue
+  notConforming: "#F44336", // Red
 };
 
 /**
