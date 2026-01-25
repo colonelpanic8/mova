@@ -9,7 +9,7 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -142,6 +142,21 @@ export function HabitItem({ todo }: HabitItemProps) {
     });
   }, [router, todo]);
 
+  const handleGraphCellPress = useCallback(
+    (entry: MiniGraphEntry) => {
+      if (entry.completed) {
+        Alert.alert(
+          "Not Yet Supported",
+          "Uncompleting habits is not yet supported.",
+        );
+        return;
+      }
+      const date = new Date(entry.date + "T00:00:00");
+      handleCompleteForDate(date);
+    },
+    [handleCompleteForDate],
+  );
+
   return (
     <>
       <Pressable
@@ -172,13 +187,28 @@ export function HabitItem({ todo }: HabitItemProps) {
             )}
           </View>
 
-          {needsCompletion && (
+          <View style={styles.actionsContainer}>
+            {!needsCompletion && (
+              <View
+                style={[
+                  styles.completedBadge,
+                  { backgroundColor: theme.colors.primaryContainer },
+                ]}
+              >
+                <Text
+                  variant="labelSmall"
+                  style={{ color: theme.colors.onPrimaryContainer }}
+                >
+                  Done
+                </Text>
+              </View>
+            )}
             <Menu
               visible={menuVisible}
               onDismiss={() => setMenuVisible(false)}
               anchor={
                 <Button
-                  mode="contained"
+                  mode={needsCompletion ? "contained" : "outlined"}
                   compact
                   onPress={() => setMenuVisible(true)}
                   disabled={isCompleting}
@@ -208,23 +238,7 @@ export function HabitItem({ todo }: HabitItemProps) {
                 leadingIcon="calendar"
               />
             </Menu>
-          )}
-
-          {!needsCompletion && (
-            <View
-              style={[
-                styles.completedBadge,
-                { backgroundColor: theme.colors.primaryContainer },
-              ]}
-            >
-              <Text
-                variant="labelSmall"
-                style={{ color: theme.colors.onPrimaryContainer }}
-              >
-                Done
-              </Text>
-            </View>
-          )}
+          </View>
         </View>
 
         {/* Habit Graph */}
@@ -232,7 +246,9 @@ export function HabitItem({ todo }: HabitItemProps) {
           {graphLoading && (
             <ActivityIndicator size="small" style={styles.graphSpinner} />
           )}
-          {!graphLoading && graphData && <HabitGraph miniGraph={graphData} />}
+          {!graphLoading && graphData && (
+            <HabitGraph miniGraph={graphData} onCellPress={handleGraphCellPress} />
+          )}
         </View>
       </Pressable>
 
@@ -266,6 +282,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: "500",
+  },
+  actionsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   completeButton: {
     minWidth: 100,

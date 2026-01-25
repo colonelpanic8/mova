@@ -2,12 +2,13 @@ import { useHabitConfig } from "@/context/HabitConfigContext";
 import { MiniGraphEntry } from "@/services/api";
 import { getHabitCellColor } from "@/utils/habitColors";
 import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 interface HabitGraphProps {
   miniGraph: MiniGraphEntry[];
   expanded?: boolean;
+  onCellPress?: (entry: MiniGraphEntry) => void;
 }
 
 interface GraphCellProps {
@@ -15,9 +16,10 @@ interface GraphCellProps {
   isToday: boolean;
   colors: { conforming: string; notConforming: string };
   glyphs: { completionNeededToday: string; completed: string };
+  onPress?: () => void;
 }
 
-function GraphCell({ entry, isToday, colors, glyphs }: GraphCellProps) {
+function GraphCell({ entry, isToday, colors, glyphs, onPress }: GraphCellProps) {
   const theme = useTheme();
   const backgroundColor = getHabitCellColor(entry.conformingRatio, colors);
 
@@ -33,11 +35,13 @@ function GraphCell({ entry, isToday, colors, glyphs }: GraphCellProps) {
   }
 
   return (
-    <View
-      style={[
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
         styles.cell,
         { backgroundColor },
         isToday && [styles.todayCell, { borderColor: theme.colors.primary }],
+        pressed && styles.cellPressed,
       ]}
     >
       {glyph ? (
@@ -45,11 +49,11 @@ function GraphCell({ entry, isToday, colors, glyphs }: GraphCellProps) {
           {glyph}
         </Text>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
-export function HabitGraph({ miniGraph, expanded = false }: HabitGraphProps) {
+export function HabitGraph({ miniGraph, expanded = false, onCellPress }: HabitGraphProps) {
   const { colors, glyphs } = useHabitConfig();
 
   if (!miniGraph || miniGraph.length === 0) {
@@ -75,6 +79,7 @@ export function HabitGraph({ miniGraph, expanded = false }: HabitGraphProps) {
           isToday={index === effectiveTodayIndex}
           colors={colors}
           glyphs={glyphs}
+          onPress={onCellPress ? () => onCellPress(entry) : undefined}
         />
       ))}
     </View>
@@ -113,6 +118,9 @@ const styles = StyleSheet.create({
     height: 22,
     borderWidth: 2,
     borderRadius: 5,
+  },
+  cellPressed: {
+    opacity: 0.6,
   },
   glyph: {
     fontSize: 12,
