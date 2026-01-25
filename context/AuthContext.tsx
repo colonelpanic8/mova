@@ -1,4 +1,3 @@
-import { api } from "@/services/api";
 import { SavedServer, SavedServerInput } from "@/types/server";
 import { base64Encode } from "@/utils/base64";
 import {
@@ -105,13 +104,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadStoredCredentials();
-  }, []);
-
-  // Register logout callback with API to handle 401 responses
-  useEffect(() => {
-    api.setOnUnauthorized(() => {
-      logout();
-    });
   }, []);
 
   async function refreshSavedServers() {

@@ -1,6 +1,7 @@
 import { BodyEditor } from "@/components/BodyEditor";
+import { useApi } from "@/context/ApiContext";
 import { useMutation } from "@/context/MutationContext";
-import { api, Todo } from "@/services/api";
+import { Todo } from "@/services/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, {
   useCallback,
@@ -15,6 +16,7 @@ import { Appbar, Snackbar, useTheme } from "react-native-paper";
 export default function BodyEditorScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const api = useApi();
   const params = useLocalSearchParams<{
     id: string;
     file: string;
@@ -58,7 +60,7 @@ export default function BodyEditorScreen() {
   );
 
   const save = useCallback(async () => {
-    if (!isDirty) return true;
+    if (!isDirty || !api) return true;
 
     setIsSaving(true);
     try {
@@ -83,7 +85,7 @@ export default function BodyEditorScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [isDirty, todo, triggerRefresh]);
+  }, [isDirty, todo, triggerRefresh, api]);
 
   const handleBack = useCallback(async () => {
     if (isDirty) {
@@ -96,12 +98,16 @@ export default function BodyEditorScreen() {
     }
   }, [isDirty, save, router]);
 
+  // Store api in ref for unmount effect
+  const apiRef = useRef(api);
+  apiRef.current = api;
+
   // Save on unmount if dirty
   useEffect(() => {
     return () => {
-      if (isDirty) {
+      if (isDirty && apiRef.current) {
         // Fire and forget - we're unmounting
-        api
+        apiRef.current
           .updateTodo(todo, { body: bodyRef.current })
           .then(() => {
             triggerRefresh();

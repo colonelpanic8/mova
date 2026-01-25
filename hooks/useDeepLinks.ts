@@ -1,5 +1,5 @@
+import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
-import { api } from "@/services/api";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -43,7 +43,8 @@ function parseDeepLink(
 
 export function useDeepLinks() {
   const router = useRouter();
-  const { isAuthenticated, apiUrl, username, password } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const api = useApi();
   const processedUrls = useRef<Set<string>>(new Set());
 
   const handleUrl = async (url: string) => {
@@ -56,13 +57,9 @@ export function useDeepLinks() {
 
     const { action, params } = parsed;
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !api) {
       return;
     }
-
-    if (!apiUrl || !username || !password) return;
-
-    api.configure(apiUrl, username, password);
 
     switch (action) {
       case "create":
@@ -139,5 +136,5 @@ export function useDeepLinks() {
     });
 
     return () => subscription.remove();
-  }, [isAuthenticated, apiUrl, username, password]);
+  }, [isAuthenticated, api]);
 }

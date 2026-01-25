@@ -1,3 +1,4 @@
+import { ApiProvider } from "@/context/ApiContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
 import { FilterProvider } from "@/context/FilterContext";
@@ -6,12 +7,13 @@ import { MutationProvider } from "@/context/MutationContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { TemplatesProvider } from "@/context/TemplatesContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
+import { getTheme } from "@/theme";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { ActivityIndicator, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
+import { PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
 
 // Register background sync task (imported here to avoid loading expo modules in widget headless context)
@@ -69,7 +71,7 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const theme = colorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
+  const theme = getTheme(colorScheme);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -78,13 +80,15 @@ export default function RootLayout() {
           <SettingsProvider>
             <MutationProvider>
               <AuthProvider>
-                <TemplatesProvider>
-                  <HabitConfigProvider>
-                    <FilterProvider>
-                      <RootLayoutNav />
-                    </FilterProvider>
-                  </HabitConfigProvider>
-                </TemplatesProvider>
+                <ApiProvider>
+                  <TemplatesProvider>
+                    <HabitConfigProvider>
+                      <FilterProvider>
+                        <RootLayoutNav />
+                      </FilterProvider>
+                    </HabitConfigProvider>
+                  </TemplatesProvider>
+                </ApiProvider>
               </AuthProvider>
             </MutationProvider>
           </SettingsProvider>

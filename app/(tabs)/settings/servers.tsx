@@ -1,6 +1,5 @@
 import { PasswordInput } from "@/components/PasswordInput";
 import { useAuth } from "@/context/AuthContext";
-import { api } from "@/services/api";
 import { SavedServer, SavedServerInput } from "@/types/server";
 import React, { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -115,11 +114,6 @@ export default function ServersScreen() {
           true, // save to server list
         );
         if (success) {
-          api.configure(
-            editingServer.apiUrl,
-            editingServer.username,
-            editingServer.password,
-          );
           setDialogVisible(false);
           setEditingServer(null);
         } else {

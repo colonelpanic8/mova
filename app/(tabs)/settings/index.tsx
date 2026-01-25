@@ -1,8 +1,9 @@
+import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
-import { AgendaFilesResponse, api, VersionResponse } from "@/services/api";
+import { AgendaFilesResponse, VersionResponse } from "@/services/api";
 import {
   getNotificationsEnabled,
   requestNotificationPermissions,
@@ -23,6 +24,7 @@ import {
 } from "react-native-paper";
 
 export default function SettingsScreen() {
+  const api = useApi();
   const {
     apiUrl,
     username,
@@ -119,7 +121,7 @@ export default function SettingsScreen() {
 
   // Function to check server connection and fetch version/files
   const checkConnection = useCallback(async () => {
-    if (!apiUrl) return;
+    if (!api) return;
 
     setIsCheckingConnection(true);
     setConnectionError(false);
@@ -143,7 +145,7 @@ export default function SettingsScreen() {
     }
 
     setIsCheckingConnection(false);
-  }, [apiUrl]);
+  }, [api]);
 
   // Fetch backend version and agenda files when connected
   useEffect(() => {

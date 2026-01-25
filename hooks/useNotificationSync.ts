@@ -1,5 +1,5 @@
+import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
-import { api } from "@/services/api";
 import { registerBackgroundSync } from "@/services/backgroundSync";
 import {
   getLastSyncTime,
@@ -11,20 +11,20 @@ import { useCallback, useEffect, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
 
 export function useNotificationSync() {
-  const { isAuthenticated, apiUrl, username, password } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const api = useApi();
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [scheduledCount, setScheduledCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const syncNotifications = useCallback(async () => {
-    if (!isAuthenticated || !apiUrl || !username || !password) return;
+    if (!isAuthenticated || !api) return;
 
     const enabled = await getNotificationsEnabled();
     if (!enabled) return;
 
     setIsSyncing(true);
     try {
-      api.configure(apiUrl, username, password);
       const response = await api.getAllTodos();
       const count = await scheduleNotificationsForTodos(
         response.todos,
@@ -38,7 +38,7 @@ export function useNotificationSync() {
     } finally {
       setIsSyncing(false);
     }
-  }, [isAuthenticated, apiUrl, username, password]);
+  }, [isAuthenticated, api]);
 
   // Sync on mount and when app comes to foreground
   useEffect(() => {

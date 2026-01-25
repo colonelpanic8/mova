@@ -1,9 +1,9 @@
 import { HabitItem } from "@/components/HabitItem";
-import { useAuth } from "@/context/AuthContext";
+import { useApi } from "@/context/ApiContext";
 import { useHabitConfig } from "@/context/HabitConfigContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
-import { api, Todo } from "@/services/api";
+import { Todo } from "@/services/api";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import { Card, Text, useTheme } from "react-native-paper";
@@ -56,7 +56,7 @@ function HabitStatsCard({ stats }: { stats: HabitStats }) {
 
 export default function HabitsScreen() {
   const theme = useTheme();
-  const { isAuthenticated } = useAuth();
+  const api = useApi();
   const { config } = useHabitConfig();
   const { mutationVersion } = useMutation();
   const [habits, setHabits] = useState<Todo[]>([]);
@@ -64,7 +64,7 @@ export default function HabitsScreen() {
   const [, setError] = useState<string | null>(null);
 
   const loadHabits = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!api) return;
 
     setIsLoading(true);
     setError(null);
@@ -80,7 +80,7 @@ export default function HabitsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [api]);
 
   useEffect(() => {
     loadHabits();

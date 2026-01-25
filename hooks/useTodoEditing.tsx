@@ -1,8 +1,8 @@
 import { StatePill } from "@/components/StatePill";
+import { useApi } from "@/context/ApiContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import {
-  api,
   Timestamp,
   Todo,
   TodoStatesResponse,
@@ -81,6 +81,7 @@ export function useTodoEditing(
   options: UseTodoEditingOptions = {},
 ): UseTodoEditingResult {
   const { onTodoUpdated, todoStates } = options;
+  const api = useApi();
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
   const { quickScheduleIncludeTime } = useSettings();
@@ -194,6 +195,7 @@ export function useTodoEditing(
 
   const applyQuickSchedule = useCallback(
     async (todo: Todo, timestamp: Timestamp) => {
+      if (!api) return;
       const key = getTodoKey(todo);
       setUpdatingIds((prev) => new Set(prev).add(key));
 
@@ -230,7 +232,7 @@ export function useTodoEditing(
         });
       }
     },
-    [onTodoUpdated, triggerRefresh],
+    [api, onTodoUpdated, triggerRefresh],
   );
 
   const scheduleToday = useCallback(
@@ -274,7 +276,7 @@ export function useTodoEditing(
 
   const handleUpdateTodo = useCallback(
     async (updates: TodoUpdates) => {
-      if (!editingTodo) {
+      if (!editingTodo || !api) {
         return;
       }
 
@@ -315,12 +317,12 @@ export function useTodoEditing(
         });
       }
     },
-    [editingTodo, onTodoUpdated, closeEditModal, triggerRefresh],
+    [api, editingTodo, onTodoUpdated, closeEditModal, triggerRefresh],
   );
 
   const handleStateChange = useCallback(
     async (newState: string, overrideDate?: Date | null) => {
-      if (!editingTodo) return;
+      if (!editingTodo || !api) return;
 
       const key = getTodoKey(editingTodo);
       setCompletingIds((prev) => new Set(prev).add(key));
@@ -369,11 +371,12 @@ export function useTodoEditing(
         });
       }
     },
-    [editingTodo, onTodoUpdated, closeEditModal, triggerRefresh],
+    [api, editingTodo, onTodoUpdated, closeEditModal, triggerRefresh],
   );
 
   const quickComplete = useCallback(
     async (todo: Todo, state: string, overrideDate?: Date) => {
+      if (!api) return;
       const key = getTodoKey(todo);
       // Close swipeable if open
       swipeableRefs.current.get(key)?.close();
@@ -418,11 +421,12 @@ export function useTodoEditing(
         });
       }
     },
-    [onTodoUpdated, triggerRefresh, swipeableRefs],
+    [api, onTodoUpdated, triggerRefresh, swipeableRefs],
   );
 
   const handleDeleteTodo = useCallback(
     async (todo: Todo) => {
+      if (!api) return;
       const key = getTodoKey(todo);
       setDeletingIds((prev) => new Set(prev).add(key));
       setDeleteConfirmTodo(null);
@@ -458,7 +462,7 @@ export function useTodoEditing(
         });
       }
     },
-    [triggerRefresh],
+    [api, triggerRefresh],
   );
 
   const openDeleteConfirm = useCallback((todo: Todo) => {

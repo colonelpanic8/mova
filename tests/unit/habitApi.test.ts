@@ -1,13 +1,15 @@
-import { api } from "@/services/api";
+import { createApiClient, OrgAgendaApi } from "@/services/api";
 
 // Mock fetch globally
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
 describe("Habit API methods", () => {
+  let api: OrgAgendaApi;
+
   beforeEach(() => {
     mockFetch.mockClear();
-    api.configure("http://localhost:8080", "user", "pass");
+    api = createApiClient("http://localhost:8080", "user", "pass");
   });
 
   describe("getHabitConfig", () => {

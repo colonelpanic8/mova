@@ -625,10 +625,10 @@ describe("mova API client", () => {
 
   it("should work with the actual mova API client", async () => {
     // Import the actual mova API client
-    const { api } = require("../../services/api");
+    const { createApiClient } = require("../../services/api");
 
-    // Configure it to use the test container
-    api.configure(container.baseUrl, "", ""); // No auth for local container
+    // Create an API client for the test container
+    const api = createApiClient(container.baseUrl, "", ""); // No auth for local container
 
     // Test getAllTodos
     const response = await api.getAllTodos();
@@ -637,8 +637,8 @@ describe("mova API client", () => {
   });
 
   it("should create todos via mova API client", async () => {
-    const { api } = require("../../services/api");
-    api.configure(container.baseUrl, "", "");
+    const { createApiClient } = require("../../services/api");
+    const api = createApiClient(container.baseUrl, "", "");
 
     const title = `Mova client test ${Date.now()}`;
     const response = await api.createTodo(title);
@@ -647,8 +647,8 @@ describe("mova API client", () => {
   });
 
   it("should get custom views via mova API client", async () => {
-    const { api } = require("../../services/api");
-    api.configure(container.baseUrl, "", "");
+    const { createApiClient } = require("../../services/api");
+    const api = createApiClient(container.baseUrl, "", "");
 
     const response = await api.getCustomViews();
     expect(response).toHaveProperty("views");

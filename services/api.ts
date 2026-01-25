@@ -275,18 +275,24 @@ export interface MetadataResponse {
   errors: string[];
 }
 
-class OrgAgendaApi {
-  private baseUrl: string = "";
-  private authHeader: string = "";
-  private onUnauthorized: (() => void) | null = null;
+export interface ApiClientOptions {
+  onUnauthorized?: () => void;
+}
 
-  setOnUnauthorized(callback: () => void) {
-    this.onUnauthorized = callback;
-  }
+export class OrgAgendaApi {
+  private readonly baseUrl: string;
+  private readonly authHeader: string;
+  private readonly onUnauthorized: (() => void) | null;
 
-  configure(baseUrl: string, username: string, password: string) {
+  constructor(
+    baseUrl: string,
+    username: string,
+    password: string,
+    options: ApiClientOptions = {},
+  ) {
     this.baseUrl = normalizeUrl(baseUrl);
     this.authHeader = `Basic ${base64Encode(`${username}:${password}`)}`;
+    this.onUnauthorized = options.onUnauthorized || null;
   }
 
   private async request<T>(
@@ -518,4 +524,11 @@ class OrgAgendaApi {
   }
 }
 
-export const api = new OrgAgendaApi();
+export function createApiClient(
+  baseUrl: string,
+  username: string,
+  password: string,
+  options: ApiClientOptions = {},
+): OrgAgendaApi {
+  return new OrgAgendaApi(baseUrl, username, password, options);
+}
