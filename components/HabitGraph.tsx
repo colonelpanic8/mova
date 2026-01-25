@@ -19,7 +19,13 @@ interface GraphCellProps {
   onPress?: () => void;
 }
 
-function GraphCell({ entry, isToday, colors, glyphs, onPress }: GraphCellProps) {
+function GraphCell({
+  entry,
+  isToday,
+  colors,
+  glyphs,
+  onPress,
+}: GraphCellProps) {
   const theme = useTheme();
   const backgroundColor = getHabitCellColor(entry.conformingRatio, colors);
 
@@ -59,7 +65,11 @@ function GraphCell({ entry, isToday, colors, glyphs, onPress }: GraphCellProps) 
   );
 }
 
-export function HabitGraph({ miniGraph, expanded = false, onCellPress }: HabitGraphProps) {
+export function HabitGraph({
+  miniGraph,
+  expanded = false,
+  onCellPress,
+}: HabitGraphProps) {
   const { colors, glyphs } = useHabitConfig();
 
   if (!miniGraph || miniGraph.length === 0) {
@@ -75,10 +85,7 @@ export function HabitGraph({ miniGraph, expanded = false, onCellPress }: HabitGr
 
   return (
     <View
-      style={[
-        styles.container,
-        expanded && styles.expandedContainer,
-      ]}
+      style={[styles.container, expanded && styles.expandedContainer]}
       testID="habit-graph"
     >
       {miniGraph.map((entry, index) => (

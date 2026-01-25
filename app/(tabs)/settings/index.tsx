@@ -406,7 +406,11 @@ export default function SettingsScreen() {
             backendVersion
               ? backendVersion.version
                 ? `${backendVersion.version} (${(backendVersion.gitCommit || backendVersion.git_commit || "").slice(0, 7) || "dev"})`
-                : (backendVersion.gitCommit || backendVersion.git_commit || "").slice(0, 7) || "Unknown"
+                : (
+                    backendVersion.gitCommit ||
+                    backendVersion.git_commit ||
+                    ""
+                  ).slice(0, 7) || "Unknown"
               : apiUrl
                 ? connectionError
                   ? "Connection failed - tap to retry"
