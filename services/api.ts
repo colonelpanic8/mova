@@ -309,33 +309,60 @@ export class OrgAgendaApi {
       throw new Error("API not configured: authHeader is empty");
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        Authorization: this.authHeader,
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
+    let lastError: Error | null = null;
+    const maxAttempts = 2;
 
-    if (!response.ok) {
-      if (response.status === 401 && this.onUnauthorized) {
-        this.onUnauthorized();
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            Authorization: this.authHeader,
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+        });
+
+        if (!response.ok) {
+          // Don't retry client errors (4xx) - they won't succeed on retry
+          if (response.status >= 400 && response.status < 500) {
+            if (response.status === 401 && this.onUnauthorized) {
+              this.onUnauthorized();
+            }
+            throw new Error(`API error: ${response.status}`);
+          }
+          // Server errors (5xx) are retryable
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const text = await response.text();
+
+        try {
+          return JSON.parse(text);
+        } catch (parseError) {
+          console.error("[API] JSON parse error", {
+            url,
+            body: text.substring(0, 500),
+          });
+          throw parseError;
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Don't retry client errors (4xx)
+        if (lastError.message.match(/API error: 4\d\d/)) {
+          throw lastError;
+        }
+
+        // If we have retries left, wait briefly and try again
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          continue;
+        }
       }
-      throw new Error(`API error: ${response.status}`);
     }
 
-    const text = await response.text();
-
-    try {
-      return JSON.parse(text);
-    } catch (parseError) {
-      console.error("[API] JSON parse error", {
-        url,
-        body: text.substring(0, 500),
-      });
-      throw parseError;
-    }
+    throw lastError || new Error("Request failed after retries");
   }
 
   async getAgenda(
