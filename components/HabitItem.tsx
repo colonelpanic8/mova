@@ -85,7 +85,7 @@ export function HabitItem({ todo }: HabitItemProps) {
 
     setGraphLoading(true);
     api
-      .getHabitStatus(todo.id, 14, 1)
+      .getHabitStatus(todo.id, 14, 5)
       .then((status) => {
         if (status.graph) {
           setGraphData(transformGraphData(status.graph));
