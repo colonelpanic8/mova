@@ -2,56 +2,25 @@ import { HabitGraph } from "@/components/HabitGraph";
 import { StatePill } from "@/components/StatePill";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
-import { Repeater, Todo } from "@/services/api";
+import { Todo } from "@/services/api";
 import { PriorityLevel } from "@/types/colors";
+import { formatRepeater } from "@/utils/repeaterFormatting";
+import {
+  formatCompletedAt,
+  formatTimestampShort as formatTimestamp,
+} from "@/utils/timeFormatting";
+import { getTodoKey } from "@/utils/todoKey";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
 import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { Chip, Icon, Text, useTheme } from "react-native-paper";
 
-function formatRepeater(repeater: Repeater): string {
-  const unitLabels: Record<string, string> = {
-    d: "day",
-    w: "week",
-    m: "month",
-    y: "year",
-  };
-  const plural = repeater.value !== 1 ? "s" : "";
-  return `${repeater.value} ${unitLabels[repeater.unit] || repeater.unit}${plural}`;
-}
+export { getTodoKey };
 
 export interface TodoItemProps {
   todo: Todo & { completedAt?: string | null };
   opacity?: number;
-}
-
-function formatTimestamp(ts: { date: string; time?: string }): string {
-  const hasTime = !!ts.time;
-  // Parse date-only strings as local time to avoid timezone shift
-  const dateStr = hasTime ? `${ts.date}T${ts.time}:00` : `${ts.date}T00:00:00`;
-  const date = new Date(dateStr);
-  if (hasTime) {
-    return date.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-function formatCompletedAt(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-export function getTodoKey(todo: Todo): string {
-  return todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
 }
 
 export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {

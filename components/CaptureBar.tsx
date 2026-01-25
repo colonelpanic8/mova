@@ -1,4 +1,3 @@
-import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
@@ -37,14 +36,6 @@ export function CaptureBar() {
   } | null>(null);
   const { isAuthenticated, activeServerId } = useAuth();
   const theme = useTheme();
-
-  const handleVoiceTranscript = useCallback((text: string) => {
-    setTitle(text);
-  }, []);
-
-  const handleVoicePartial = useCallback((text: string) => {
-    setTitle(text);
-  }, []);
 
   // Load default template when templates or server changes
   useEffect(() => {

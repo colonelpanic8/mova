@@ -9,6 +9,9 @@ import {
   TodoUpdates,
 } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
+import { formatLocalDate } from "@/utils/dateFormatting";
+import { dateToTimestamp, timestampToDate } from "@/utils/timestampConversion";
+import { getTodoKey } from "@/utils/todoKey";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, {
   createContext,
@@ -31,42 +34,6 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-
-// Helper function duplicated here to avoid circular dependency
-function getTodoKey(todo: Todo): string {
-  return todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
-}
-
-// Format a Date to YYYY-MM-DD using local time (not UTC)
-function formatLocalDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-// Format a Date to HH:MM using local time
-function formatLocalTime(date: Date): string {
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
-// Convert Date to Timestamp object
-function dateToTimestamp(date: Date, includeTime: boolean): Timestamp {
-  const timestamp: Timestamp = { date: formatLocalDate(date) };
-  if (includeTime) {
-    timestamp.time = formatLocalTime(date);
-  }
-  return timestamp;
-}
-
-// Convert Timestamp object to Date
-function timestampToDate(ts: Timestamp | null): Date | null {
-  if (!ts) return null;
-  const dateStr = ts.time ? `${ts.date}T${ts.time}:00` : `${ts.date}T00:00:00`;
-  return new Date(dateStr);
-}
 
 type EditModalType =
   | "schedule"
