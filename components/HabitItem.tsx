@@ -143,108 +143,110 @@ export function HabitItem({ todo }: HabitItemProps) {
   }, [router, todo]);
 
   return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => [
-        styles.container,
-        {
-          backgroundColor: pressed
-            ? theme.colors.surfaceVariant
-            : theme.colors.surface,
-          borderBottomColor: theme.colors.outlineVariant,
-        },
-      ]}
-    >
-      {/* Header row: Title and completion button */}
-      <View style={styles.headerRow}>
-        <View style={styles.titleContainer}>
-          <Text variant="titleMedium" style={styles.title} numberOfLines={2}>
-            {todo.title}
-          </Text>
-          {nextRequired && !needsCompletion && (
-            <Text
-              variant="bodySmall"
-              style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}
-            >
-              {nextRequired}
+    <>
+      <Pressable
+        onPress={handlePress}
+        style={({ pressed }) => [
+          styles.container,
+          {
+            backgroundColor: pressed
+              ? theme.colors.surfaceVariant
+              : theme.colors.surface,
+            borderBottomColor: theme.colors.outlineVariant,
+          },
+        ]}
+      >
+        {/* Header row: Title and completion button */}
+        <View style={styles.headerRow}>
+          <View style={styles.titleContainer}>
+            <Text variant="titleMedium" style={styles.title} numberOfLines={2}>
+              {todo.title}
             </Text>
+            {nextRequired && !needsCompletion && (
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}
+              >
+                {nextRequired}
+              </Text>
+            )}
+          </View>
+
+          {needsCompletion && (
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <Button
+                  mode="contained"
+                  compact
+                  onPress={() => setMenuVisible(true)}
+                  disabled={isCompleting}
+                  loading={isCompleting}
+                  icon="check"
+                  style={styles.completeButton}
+                >
+                  Complete
+                </Button>
+              }
+              anchorPosition="bottom"
+            >
+              <Menu.Item
+                onPress={handleCompleteToday}
+                title="Today"
+                leadingIcon="calendar-today"
+              />
+              <Menu.Item
+                onPress={handleCompleteYesterday}
+                title="Yesterday"
+                leadingIcon="calendar-arrow-left"
+              />
+              <Divider />
+              <Menu.Item
+                onPress={handleOpenDatePicker}
+                title="Choose date..."
+                leadingIcon="calendar"
+              />
+            </Menu>
+          )}
+
+          {!needsCompletion && (
+            <View
+              style={[
+                styles.completedBadge,
+                { backgroundColor: theme.colors.primaryContainer },
+              ]}
+            >
+              <Text
+                variant="labelSmall"
+                style={{ color: theme.colors.onPrimaryContainer }}
+              >
+                Done
+              </Text>
+            </View>
           )}
         </View>
 
-        {needsCompletion && (
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <Button
-                mode="contained"
-                compact
-                onPress={() => setMenuVisible(true)}
-                disabled={isCompleting}
-                loading={isCompleting}
-                icon="check"
-                style={styles.completeButton}
-              >
-                Complete
-              </Button>
-            }
-            anchorPosition="bottom"
-          >
-            <Menu.Item
-              onPress={handleCompleteToday}
-              title="Today"
-              leadingIcon="calendar-today"
-            />
-            <Menu.Item
-              onPress={handleCompleteYesterday}
-              title="Yesterday"
-              leadingIcon="calendar-arrow-left"
-            />
-            <Divider />
-            <Menu.Item
-              onPress={handleOpenDatePicker}
-              title="Choose date..."
-              leadingIcon="calendar"
-            />
-          </Menu>
-        )}
+        {/* Habit Graph */}
+        <View style={styles.graphContainer}>
+          {graphLoading && (
+            <ActivityIndicator size="small" style={styles.graphSpinner} />
+          )}
+          {!graphLoading && graphData && <HabitGraph miniGraph={graphData} />}
+        </View>
+      </Pressable>
 
-        {!needsCompletion && (
-          <View
-            style={[
-              styles.completedBadge,
-              { backgroundColor: theme.colors.primaryContainer },
-            ]}
-          >
-            <Text
-              variant="labelSmall"
-              style={{ color: theme.colors.onPrimaryContainer }}
-            >
-              Done
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Habit Graph */}
-      <View style={styles.graphContainer}>
-        {graphLoading && (
-          <ActivityIndicator size="small" style={styles.graphSpinner} />
-        )}
-        {!graphLoading && graphData && <HabitGraph miniGraph={graphData} />}
-      </View>
-
-      {/* Date picker modal */}
+      {/* Date picker - rendered outside Pressable to prevent touch conflicts */}
       {showDatePicker && (
         <DateTimePicker
           value={new Date()}
           mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
+          display="default"
           onChange={handleDateChange}
           maximumDate={new Date()}
         />
       )}
-    </Pressable>
+    </>
   );
 }
 
