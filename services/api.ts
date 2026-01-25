@@ -157,6 +157,7 @@ export interface TodoUpdates {
   priority?: string | null;
   body?: string | null;
   properties?: Record<string, string> | null;
+  tags?: string[] | null;
 }
 
 export interface UpdateTodoResponse {

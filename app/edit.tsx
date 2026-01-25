@@ -3,6 +3,7 @@ import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { LogbookViewer } from "@/components/LogbookViewer";
 import { PropertiesEditor } from "@/components/PropertiesEditor";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
+import { TagsEditor } from "@/components/TagsEditor";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useApi } from "@/context/ApiContext";
 import { useMutation } from "@/context/MutationContext";
@@ -92,6 +93,7 @@ export default function EditScreen() {
   const [properties, setProperties] = useState<Record<string, string>>(
     originalTodo.properties || {},
   );
+  const [tags, setTags] = useState<string[]>(originalTodo.tags || []);
 
   // UI state
   const [isSaving, setIsSaving] = useState(false);
@@ -161,6 +163,9 @@ export default function EditScreen() {
         updates.properties =
           Object.keys(properties).length > 0 ? properties : null;
       }
+      if (JSON.stringify(tags) !== JSON.stringify(originalTodo.tags || [])) {
+        updates.tags = tags.length > 0 ? tags : null;
+      }
 
       // Apply updates if any
       if (Object.keys(updates).length > 0) {
@@ -211,6 +216,7 @@ export default function EditScreen() {
     deadlineRepeater,
     body,
     properties,
+    tags,
     originalTodo,
     triggerRefresh,
     router,
@@ -400,6 +406,13 @@ export default function EditScreen() {
           <PropertiesEditor
             properties={properties}
             onChange={setProperties}
+            defaultExpanded={false}
+          />
+
+          {/* Tags - Collapsible, collapsed by default */}
+          <TagsEditor
+            tags={tags}
+            onChange={setTags}
             defaultExpanded={false}
           />
 
