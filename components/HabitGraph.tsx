@@ -23,6 +23,9 @@ function GraphCell({ entry, isToday, colors, glyphs, onPress }: GraphCellProps) 
   const theme = useTheme();
   const backgroundColor = getHabitCellColor(entry.conformingRatio, colors);
 
+  // Extract day number from date string (YYYY-MM-DD)
+  const dayNumber = parseInt(entry.date.split("-")[2], 10);
+
   let glyph = "";
   if (isToday || entry.completionNeededToday) {
     if (entry.completed) {
@@ -44,6 +47,9 @@ function GraphCell({ entry, isToday, colors, glyphs, onPress }: GraphCellProps) 
         pressed && styles.cellPressed,
       ]}
     >
+      <Text style={styles.dayNumber} numberOfLines={1}>
+        {dayNumber}
+      </Text>
       {glyph ? (
         <Text style={styles.glyph} numberOfLines={1}>
           {glyph}
@@ -69,7 +75,10 @@ export function HabitGraph({ miniGraph, expanded = false, onCellPress }: HabitGr
 
   return (
     <View
-      style={[styles.container, expanded && styles.expandedContainer]}
+      style={[
+        styles.container,
+        expanded && styles.expandedContainer,
+      ]}
       testID="habit-graph"
     >
       {miniGraph.map((entry, index) => (
@@ -91,13 +100,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
+    backgroundColor: "rgba(155, 77, 184, 0.15)", // Mova purple with transparency
+    padding: 6,
+    borderRadius: 8,
   },
   expandedContainer: {
     flexWrap: "wrap",
   },
   cell: {
-    width: 18,
-    height: 18,
+    width: 24,
+    height: 24,
     borderRadius: 4,
     justifyContent: "center",
     alignItems: "center",
@@ -114,16 +126,27 @@ const styles = StyleSheet.create({
     }),
   },
   todayCell: {
-    width: 22,
-    height: 22,
+    width: 28,
+    height: 28,
     borderWidth: 2,
     borderRadius: 5,
   },
   cellPressed: {
     opacity: 0.6,
   },
+  dayNumber: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    textAlign: "center",
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
   glyph: {
-    fontSize: 12,
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    fontSize: 10,
     fontWeight: "600",
     color: "#FFFFFF",
     textAlign: "center",
