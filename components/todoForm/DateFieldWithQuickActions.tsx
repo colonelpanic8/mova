@@ -39,7 +39,13 @@ export function DateFieldWithQuickActions({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(new Date());
-  const [includeTime, setIncludeTime] = useState(initialIncludeTime);
+  // Auto-detect if existing value has time, otherwise use initial setting
+  const valueHasTime = value
+    ? value.includes("T") || value.includes(" ")
+    : false;
+  const [includeTime, setIncludeTime] = useState(
+    initialIncludeTime || valueHasTime,
+  );
 
   const handleToday = useCallback(() => {
     const today = new Date();
@@ -118,7 +124,20 @@ export function DateFieldWithQuickActions({
 
   const fieldColor = getActionColor(colorKey);
 
+  // Parse value into date and time parts, handling both "T" and " " separators
+  const parseValue = (
+    val: string | undefined,
+  ): { datePart: string; timePart: string } => {
+    if (!val) return { datePart: "", timePart: "" };
+    // Handle both "T" separator (from timestampToFormString) and " " separator
+    const separator = val.includes("T") ? "T" : " ";
+    const parts = val.split(separator);
+    return { datePart: parts[0] || "", timePart: parts[1] || "" };
+  };
+
   if (Platform.OS === "web") {
+    const { datePart, timePart } = parseValue(value);
+
     return (
       <View style={styles.fieldContainer}>
         <Text variant="bodySmall" style={styles.fieldLabel}>
@@ -142,13 +161,12 @@ export function DateFieldWithQuickActions({
         <View style={styles.dateInputRow}>
           <input
             type="date"
-            value={value ? value.split(" ")[0] : ""}
+            value={datePart}
             onChange={(e) => {
               if (e.target.value) {
                 // Keep existing time if there was one
-                const existingTime = value?.split(" ")[1];
-                const newValue = existingTime
-                  ? `${e.target.value} ${existingTime}`
+                const newValue = timePart
+                  ? `${e.target.value} ${timePart}`
                   : e.target.value;
                 onChange(newValue);
               }
@@ -165,15 +183,14 @@ export function DateFieldWithQuickActions({
           {includeTime && (
             <input
               type="time"
-              value={value?.split(" ")[1] || ""}
+              value={timePart}
               onChange={(e) => {
-                const datePart =
-                  value?.split(" ")[0] || formatLocalDate(new Date());
+                const currentDatePart = datePart || formatLocalDate(new Date());
                 if (e.target.value) {
-                  onChange(`${datePart} ${e.target.value}`);
+                  onChange(`${currentDatePart} ${e.target.value}`);
                 } else {
                   // Time cleared, just keep date
-                  onChange(datePart);
+                  onChange(currentDatePart);
                 }
               }}
               style={{
