@@ -66,6 +66,12 @@ export interface PriorityColorConfig {
   E: ColorValue;
 }
 
+// Habit color configuration
+export interface HabitColorConfig {
+  conforming: ColorValue;
+  notConforming: ColorValue;
+}
+
 // Complete color palette configuration
 export interface ColorPaletteConfig {
   // Map of todo keyword (uppercase) -> color
@@ -74,13 +80,15 @@ export interface ColorPaletteConfig {
   actionColors: ActionButtonColorConfig;
   // Priority colors (A, B, C)
   priorityColors: PriorityColorConfig;
+  // Habit graph colors
+  habitColors: HabitColorConfig;
   // Version for migration purposes
   version: number;
 }
 
 // Default color values (matching current behavior)
 export const DEFAULT_COLOR_PALETTE: ColorPaletteConfig = {
-  version: 2,
+  version: 3,
   todoStateColors: {
     TODO: "theme:error",
     NEXT: "theme:primary",
@@ -102,6 +110,10 @@ export const DEFAULT_COLOR_PALETTE: ColorPaletteConfig = {
     C: "#FFC107",
     D: "#8BC34A",
     E: "theme:outline",
+  },
+  habitColors: {
+    conforming: "#00B0FF", // Bright blue
+    notConforming: "#F44336", // Red
   },
 };
 

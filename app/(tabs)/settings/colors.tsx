@@ -10,7 +10,12 @@
 import { ColorPicker } from "@/components/ColorPicker";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { ActionButtonType, ColorValue, PriorityLevel } from "@/types/colors";
+import {
+  ActionButtonType,
+  ColorValue,
+  HabitColorConfig,
+  PriorityLevel,
+} from "@/types/colors";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -28,6 +33,7 @@ type EditingItem =
   | { type: "todoState"; keyword: string }
   | { type: "action"; action: ActionButtonType }
   | { type: "priority"; level: PriorityLevel }
+  | { type: "habit"; key: keyof HabitColorConfig }
   | null;
 
 export default function ColorSettingsScreen() {
@@ -38,10 +44,12 @@ export default function ColorSettingsScreen() {
     getTodoStateColor,
     getActionColor,
     getPriorityColor,
+    getHabitColors,
     getConfiguredTodoStates,
     setTodoStateColor,
     setActionColor,
     setPriorityColor,
+    setHabitColor,
     randomizeTodoStateColors,
     resetToDefaults,
   } = useColorPalette();
@@ -74,6 +82,10 @@ export default function ColorSettingsScreen() {
     { key: "D", label: "Priority D (Low)" },
     { key: "E", label: "Priority E (Lowest)" },
   ];
+  const habitColorItems: { key: keyof HabitColorConfig; label: string }[] = [
+    { key: "conforming", label: "Conforming (On Track)" },
+    { key: "notConforming", label: "Not Conforming (Behind)" },
+  ];
 
   const handleColorSelect = async (color: ColorValue) => {
     if (!editingItem) return;
@@ -84,6 +96,8 @@ export default function ColorSettingsScreen() {
       await setActionColor(editingItem.action, color);
     } else if (editingItem.type === "priority") {
       await setPriorityColor(editingItem.level, color);
+    } else if (editingItem.type === "habit") {
+      await setHabitColor(editingItem.key, color);
     }
     setEditingItem(null);
   };
@@ -105,6 +119,8 @@ export default function ColorSettingsScreen() {
       return config.actionColors[editingItem.action];
     } else if (editingItem.type === "priority") {
       return config.priorityColors[editingItem.level];
+    } else if (editingItem.type === "habit") {
+      return config.habitColors[editingItem.key];
     }
     return "#000000";
   };
@@ -119,6 +135,9 @@ export default function ColorSettingsScreen() {
     } else if (editingItem.type === "priority") {
       const priority = priorityLevels.find((p) => p.key === editingItem.level);
       return `Color for ${priority?.label || editingItem.level}`;
+    } else if (editingItem.type === "habit") {
+      const habit = habitColorItems.find((h) => h.key === editingItem.key);
+      return `Color for ${habit?.label || editingItem.key}`;
     }
     return "Select Color";
   };
@@ -195,6 +214,20 @@ export default function ColorSettingsScreen() {
               description={config.actionColors[key]}
               left={() => <ColorSwatch color={getActionColor(key)} />}
               onPress={() => setEditingItem({ type: "action", action: key })}
+              style={styles.listItem}
+            />
+          ))}
+        </List.Section>
+
+        <List.Section>
+          <List.Subheader>Habit Graph Colors</List.Subheader>
+          {habitColorItems.map(({ key, label }) => (
+            <List.Item
+              key={key}
+              title={label}
+              description={config.habitColors[key]}
+              left={() => <ColorSwatch color={getHabitColors()[key]} />}
+              onPress={() => setEditingItem({ type: "habit", key })}
               style={styles.listItem}
             />
           ))}

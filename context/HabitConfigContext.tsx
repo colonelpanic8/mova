@@ -1,6 +1,7 @@
+import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { HabitConfig } from "@/services/api";
-import { DEFAULT_HABIT_COLORS, HabitColors } from "@/utils/habitColors";
+import { HabitColors } from "@/utils/habitColors";
 import React, { createContext, ReactNode, useContext } from "react";
 
 interface HabitConfigContextType {
@@ -27,13 +28,13 @@ const HabitConfigContext = createContext<HabitConfigContextType | undefined>(
 export function HabitConfigProvider({ children }: { children: ReactNode }) {
   // Get habitConfig from TemplatesContext (loaded via /metadata endpoint)
   const { habitConfig, isLoading, error, reloadTemplates } = useTemplates();
+  // Get colors from ColorPalette (user-customizable)
+  const { getHabitColors } = useColorPalette();
 
-  const colors: HabitColors = habitConfig?.colors
-    ? {
-        conforming: habitConfig.colors.conforming,
-        notConforming: habitConfig.colors.notConforming,
-      }
-    : DEFAULT_HABIT_COLORS;
+  // Priority: 1) User settings from ColorPalette, 2) Server config, 3) defaults (in ColorPalette)
+  // ColorPalette already handles defaults, so we just use it directly
+  // Server config could override user settings if needed, but for now user settings take precedence
+  const colors: HabitColors = getHabitColors();
 
   const glyphs = habitConfig?.display
     ? {

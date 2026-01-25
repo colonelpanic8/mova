@@ -12,6 +12,7 @@ import {
   DEFAULT_COLOR_PALETTE,
   generateRandomColor,
   getThemeColorKey,
+  HabitColorConfig,
   isThemeReference,
   PriorityLevel,
 } from "@/types/colors";
@@ -37,6 +38,7 @@ interface ColorPaletteContextType {
   getTodoStateColor: (keyword: string) => string;
   getActionColor: (action: ActionButtonType) => string;
   getPriorityColor: (priority: PriorityLevel) => string;
+  getHabitColors: () => { conforming: string; notConforming: string };
 
   // Get all configured todo states (for settings UI)
   getConfiguredTodoStates: () => string[];
@@ -50,6 +52,10 @@ interface ColorPaletteContextType {
   ) => Promise<void>;
   setPriorityColor: (
     priority: PriorityLevel,
+    color: ColorValue,
+  ) => Promise<void>;
+  setHabitColor: (
+    key: keyof HabitColorConfig,
     color: ColorValue,
   ) => Promise<void>;
   randomizeTodoStateColors: (states: string[]) => Promise<void>;
@@ -92,6 +98,10 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
           priorityColors: {
             ...DEFAULT_COLOR_PALETTE.priorityColors,
             ...parsed.priorityColors,
+          },
+          habitColors: {
+            ...DEFAULT_COLOR_PALETTE.habitColors,
+            ...parsed.habitColors,
           },
         });
       }
@@ -159,6 +169,16 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     [config, resolveColor],
   );
 
+  const getHabitColors = useCallback((): {
+    conforming: string;
+    notConforming: string;
+  } => {
+    return {
+      conforming: resolveColor(config.habitColors.conforming),
+      notConforming: resolveColor(config.habitColors.notConforming),
+    };
+  }, [config, resolveColor]);
+
   const getConfiguredTodoStates = useCallback((): string[] => {
     return Object.keys(config.todoStateColors).filter(
       (key) => key !== "DEFAULT",
@@ -224,6 +244,20 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     [config],
   );
 
+  const setHabitColor = useCallback(
+    async (key: keyof HabitColorConfig, color: ColorValue) => {
+      const newConfig = {
+        ...config,
+        habitColors: {
+          ...config.habitColors,
+          [key]: color,
+        },
+      };
+      await saveConfig(newConfig);
+    },
+    [config],
+  );
+
   const randomizeTodoStateColors = useCallback(
     async (states: string[]) => {
       const newTodoStateColors = { ...config.todoStateColors };
@@ -255,11 +289,13 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
         getTodoStateColor,
         getActionColor,
         getPriorityColor,
+        getHabitColors,
         getConfiguredTodoStates,
         setTodoStateColor,
         removeTodoStateColor,
         setActionColor,
         setPriorityColor,
+        setHabitColor,
         randomizeTodoStateColors,
         resetToDefaults,
       }}
