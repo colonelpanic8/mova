@@ -596,4 +596,78 @@ describe("OrgAgendaApi", () => {
       expect(result.status).toBe("created");
     });
   });
+
+  describe("retry behavior", () => {
+    it("should retry once on 5xx server error and succeed", async () => {
+      const mockResponse = { todos: [], defaults: { notifyBefore: [] } };
+
+      // First call fails with 500, second succeeds
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(JSON.stringify(mockResponse)),
+        });
+
+      const result = await api.getAllTodos();
+
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(result).toEqual(mockResponse);
+    });
+
+    it("should retry once on network error and succeed", async () => {
+      const mockResponse = { todos: [], defaults: { notifyBefore: [] } };
+
+      // First call throws network error, second succeeds
+      (global.fetch as jest.Mock)
+        .mockRejectedValueOnce(new Error("Network error"))
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(JSON.stringify(mockResponse)),
+        });
+
+      const result = await api.getAllTodos();
+
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(result).toEqual(mockResponse);
+    });
+
+    it("should not retry on 4xx client errors", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+      });
+
+      await expect(api.getAllTodos()).rejects.toThrow("API error: 400");
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not retry on 401 unauthorized", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      });
+
+      await expect(api.getAllTodos()).rejects.toThrow("API error: 401");
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("should throw after retry exhausted on persistent 5xx error", async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 503,
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 503,
+        });
+
+      await expect(api.getAllTodos()).rejects.toThrow("API error: 503");
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+  });
 });
