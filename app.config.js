@@ -61,18 +61,6 @@ export default {
     plugins: [
       "expo-router",
       [
-        "expo-speech-recognition",
-        {
-          microphonePermission:
-            "Allow Mova to use the microphone for voice capture.",
-          speechRecognitionPermission:
-            "Allow Mova to use speech recognition for voice capture.",
-          androidSpeechServicePackages: [
-            "com.google.android.googlequicksearchbox",
-          ],
-        },
-      ],
-      [
         "expo-splash-screen",
         {
           image: "./assets/images/mova-icon-final.png",

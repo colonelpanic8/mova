@@ -194,12 +194,6 @@ export function CaptureBar() {
           returnKeyType="done"
         />
 
-        <VoiceMicButton
-          onTranscript={handleVoiceTranscript}
-          onPartialTranscript={handleVoicePartial}
-          disabled={submitting}
-        />
-
         <IconButton
           icon="send"
           size={20}
