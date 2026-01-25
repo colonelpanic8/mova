@@ -76,40 +76,58 @@ export function HabitGraph({
     return null;
   }
 
-  // Find today's index (last entry with completionNeededToday defined, or second-to-last).
+  // Find today's index (entry with completionNeededToday defined)
   const todayIndex = miniGraph.findIndex(
     (e) => e.completionNeededToday !== undefined,
   );
   const effectiveTodayIndex =
-    todayIndex >= 0 ? todayIndex : miniGraph.length - 2;
+    todayIndex >= 0 ? todayIndex : miniGraph.length - 1;
+
+  // Split into past (including today) and future
+  const pastEntries = miniGraph.slice(0, effectiveTodayIndex + 1);
+  const futureEntries = miniGraph.slice(effectiveTodayIndex + 1);
+
+  const renderCell = (entry: MiniGraphEntry, index: number, isInPast: boolean) => (
+    <GraphCell
+      key={entry.date}
+      entry={entry}
+      isToday={isInPast && index === pastEntries.length - 1}
+      colors={colors}
+      glyphs={glyphs}
+      onPress={onCellPress ? () => onCellPress(entry) : undefined}
+    />
+  );
 
   return (
-    <View
-      style={[styles.container, expanded && styles.expandedContainer]}
-      testID="habit-graph"
-    >
-      {miniGraph.map((entry, index) => (
-        <GraphCell
-          key={entry.date}
-          entry={entry}
-          isToday={index === effectiveTodayIndex}
-          colors={colors}
-          glyphs={glyphs}
-          onPress={onCellPress ? () => onCellPress(entry) : undefined}
-        />
-      ))}
+    <View style={styles.outerContainer} testID="habit-graph">
+      {/* Past row (including today) */}
+      <View style={[styles.row, expanded && styles.expandedContainer]}>
+        {pastEntries.map((entry, index) => renderCell(entry, index, true))}
+      </View>
+      {/* Future row */}
+      {futureEntries.length > 0 && (
+        <View style={[styles.row, styles.futureRow, expanded && styles.expandedContainer]}>
+          {futureEntries.map((entry, index) => renderCell(entry, index, false))}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
+  outerContainer: {
     backgroundColor: "rgba(155, 77, 184, 0.15)", // Mova purple with transparency
     padding: 6,
     borderRadius: 8,
+    gap: 4,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  futureRow: {
+    opacity: 0.7,
   },
   expandedContainer: {
     flexWrap: "wrap",
