@@ -1,0 +1,224 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  e2e-android:
+    name: Android E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Free disk space
+        run: |
+          echo "Before cleanup:"
+          df -h
+          # Remove unnecessary large packages (keep Android SDK!)
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/share/swift
+          sudo docker image prune --all --force
+          echo "After cleanup:"
+          df -h
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build and load org-agenda-api container
+        run: |
+          echo "Building org-agenda-api container using locked revision from flake.lock..."
+          # Use the locked org-agenda-api revision from our flake.lock to ensure compatibility
+          ORG_API_REV=$(nix flake metadata --json . | jq -r '.locks.nodes."org-agenda-api".locked.rev')
+          echo "Using org-agenda-api revision: $ORG_API_REV"
+          nix build "github:colonelpanic8/org-agenda-api/$ORG_API_REV#container" -o result-container
+
+          # Load and capture the image name from docker load output
+          LOAD_OUTPUT=$(docker load < result-container)
+          echo "Docker load output: $LOAD_OUTPUT"
+
+          # Extract image name from "Loaded image: <name>" output
+          IMAGE_NAME=$(echo "$LOAD_OUTPUT" | grep -oP 'Loaded image: \K.*' | tr -d '[:space:]')
+          echo "Extracted image name: $IMAGE_NAME"
+          if [ -z "$IMAGE_NAME" ]; then
+            echo "Failed to extract image name!"
+            exit 1
+          fi
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+          # Clean up Nix store to free disk space for Android build
+          rm -rf result-container
+          nix-collect-garbage -d
+
+          echo "After Nix cleanup:"
+          df -h
+
+      - name: Prepare test data
+        run: |
+          # Create a writable copy of test data
+          TEST_DATA_DIR=$(mktemp -d)
+          cp -r e2e/test-data/* "$TEST_DATA_DIR/"
+
+          # Initialize git in the test data directory
+          git -C "$TEST_DATA_DIR" init
+          git -C "$TEST_DATA_DIR" config user.email "test@test.local"
+          git -C "$TEST_DATA_DIR" config user.name "Test User"
+          git -C "$TEST_DATA_DIR" add .
+          git -C "$TEST_DATA_DIR" commit -m "Initial test data"
+
+          # Create inbox.org if it doesn't exist
+          if [ ! -f "$TEST_DATA_DIR/inbox.org" ]; then
+            echo -e "#+TITLE: Inbox\n\n* Tasks\n" > "$TEST_DATA_DIR/inbox.org"
+            git -C "$TEST_DATA_DIR" add inbox.org
+            git -C "$TEST_DATA_DIR" commit -m "Add inbox.org"
+          fi
+
+          echo "TEST_DATA_DIR=$TEST_DATA_DIR" >> $GITHUB_ENV
+
+      - name: Start test API container
+        run: |
+          # Read custom elisp config if it exists
+          CUSTOM_ELISP=""
+          if [ -f "e2e/test-config.el" ]; then
+            CUSTOM_ELISP=$(cat e2e/test-config.el)
+          fi
+
+          # Start the container
+          docker run -d \
+            --name mova-test-api \
+            -p 8080:80 \
+            -e AUTH_USER=testuser \
+            -e AUTH_PASSWORD=testpass \
+            -e GIT_USER_EMAIL=test@test.local \
+            -e GIT_USER_NAME="Test User" \
+            ${CUSTOM_ELISP:+-e "ORG_API_CUSTOM_ELISP_CONTENT=$CUSTOM_ELISP"} \
+            -v "$TEST_DATA_DIR:/data/org" \
+            ${{ env.IMAGE_NAME }}
+
+          # Wait for API to be ready
+          echo "Waiting for API to be ready..."
+          for i in {1..60}; do
+            if curl -s -o /dev/null -w '%{http_code}' "http://localhost:8080" | grep -q "401\|200"; then
+              echo "API is ready!"
+              break
+            fi
+            sleep 1
+          done
+
+          # Show container logs for debugging
+          docker logs mova-test-api
+
+      - name: Build Android app for testing
+        env:
+          NODE_ENV: production
+          EXPO_E2E: "true"
+        run: |
+          cd android
+          # Build with x86_64 architecture for CI emulator
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest \
+            -DtestBuildType=debug \
+            -PreactNativeArchitectures=x86_64
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run E2E tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 31
+          arch: x86_64
+          profile: pixel_5
+          avd-name: mova_test
+          force-avd-creation: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            # Wait for emulator to be fully ready
+            adb wait-for-device
+            adb shell input keyevent 82
+
+            # Start logcat in background to capture crash logs
+            mkdir -p artifacts
+            adb logcat -c  # Clear previous logs
+            adb logcat *:E ReactNative:V ReactNativeJS:V > artifacts/logcat.txt 2>&1 &
+            LOGCAT_PID=$!
+
+            # Install the test APKs
+            adb install android/app/build/outputs/apk/debug/app-debug.apk
+            adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+
+            # Run Detox tests - just login tests for now
+            yarn detox test --configuration android.emu.debug e2e/login.test.ts --headless --record-logs all
+
+            # Stop logcat and save
+            kill $LOGCAT_PID 2>/dev/null || true
+
+            # Show last 200 lines of logcat for immediate debugging
+            echo "=== Last 200 lines of logcat ==="
+            tail -200 artifacts/logcat.txt || true
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: |
+            artifacts/
+            android/app/build/outputs/androidTest-results/
+          if-no-files-found: ignore
+
+      - name: Upload Detox logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-logs
+          path: artifacts/
+          if-no-files-found: ignore
+
+      - name: Stop test container
+        if: always()
+        run: |
+          docker logs mova-test-api || true
+          docker rm -f mova-test-api || true
