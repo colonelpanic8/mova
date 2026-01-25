@@ -8,13 +8,16 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
+  Dialog,
   Divider,
+  IconButton,
   Menu,
+  Portal,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -64,9 +67,14 @@ export function HabitItem({ todo }: HabitItemProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [graphData, setGraphData] = useState<MiniGraphEntry[] | null>(null);
   const [graphLoading, setGraphLoading] = useState(false);
+  const [confirmEntry, setConfirmEntry] = useState<MiniGraphEntry | null>(null);
+
+  const key = todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
+  const isCompleting = completingIds.has(key);
+  const wasCompletingRef = useRef(false);
 
   // Fetch habit status for graph data
-  useEffect(() => {
+  const fetchGraphData = useCallback(() => {
     if (!todo.id || !api) return;
 
     setGraphLoading(true);
@@ -85,15 +93,25 @@ export function HabitItem({ todo }: HabitItemProps) {
       });
   }, [todo.id, api]);
 
+  // Initial fetch
+  useEffect(() => {
+    fetchGraphData();
+  }, [fetchGraphData]);
+
+  // Refresh graph after completion finishes
+  useEffect(() => {
+    if (wasCompletingRef.current && !isCompleting) {
+      fetchGraphData();
+    }
+    wasCompletingRef.current = isCompleting;
+  }, [isCompleting, fetchGraphData]);
+
   // Compute effective default done state
   const effectiveDoneState = useMemo(() => {
     if (defaultDoneState) return defaultDoneState;
     if (!todoStates?.done?.length) return "DONE";
     return todoStates.done.includes("DONE") ? "DONE" : todoStates.done[0];
   }, [defaultDoneState, todoStates]);
-
-  const key = todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
-  const isCompleting = completingIds.has(key);
 
   const habitSummary = todo.habitSummary;
   const needsCompletion = habitSummary?.completionNeededToday;
@@ -142,49 +160,59 @@ export function HabitItem({ todo }: HabitItemProps) {
     });
   }, [router, todo]);
 
-  const handleGraphCellPress = useCallback(
-    (entry: MiniGraphEntry) => {
-      if (entry.completed) {
-        Alert.alert(
-          "Not Yet Supported",
-          "Uncompleting habits is not yet supported.",
-        );
-        return;
-      }
-      const date = new Date(entry.date + "T00:00:00");
-      handleCompleteForDate(date);
-    },
-    [handleCompleteForDate],
-  );
+  const handleGraphCellPress = useCallback((entry: MiniGraphEntry) => {
+    setConfirmEntry(entry);
+  }, []);
+
+  const handleConfirmComplete = useCallback(() => {
+    if (!confirmEntry) return;
+    const date = new Date(confirmEntry.date + "T00:00:00");
+    handleCompleteForDate(date);
+    setConfirmEntry(null);
+  }, [confirmEntry, handleCompleteForDate]);
+
+  const confirmDate = confirmEntry
+    ? new Date(confirmEntry.date + "T00:00:00")
+    : null;
+  const formattedConfirmDate = confirmDate?.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 
   return (
     <>
-      <Pressable
-        onPress={handlePress}
-        style={({ pressed }) => [
+      <View
+        style={[
           styles.container,
           {
-            backgroundColor: pressed
-              ? theme.colors.surfaceVariant
-              : theme.colors.surface,
+            backgroundColor: theme.colors.surface,
             borderBottomColor: theme.colors.outlineVariant,
           },
         ]}
       >
         {/* Header row: Title and completion button */}
         <View style={styles.headerRow}>
-          <View style={styles.titleContainer}>
-            <Text variant="titleMedium" style={styles.title} numberOfLines={2}>
-              {todo.title}
-            </Text>
-            {nextRequired && !needsCompletion && (
-              <Text
-                variant="bodySmall"
-                style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}
-              >
-                {nextRequired}
+          <View style={styles.titleRow}>
+            <IconButton
+              icon="pencil"
+              size={16}
+              onPress={handlePress}
+              style={styles.editButton}
+            />
+            <View style={styles.titleContainer}>
+              <Text variant="titleMedium" style={styles.title} numberOfLines={2}>
+                {todo.title}
               </Text>
-            )}
+              {nextRequired && !needsCompletion && (
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}
+                >
+                  {nextRequired}
+                </Text>
+              )}
+            </View>
           </View>
 
           <View style={styles.actionsContainer}>
@@ -250,7 +278,7 @@ export function HabitItem({ todo }: HabitItemProps) {
             <HabitGraph miniGraph={graphData} onCellPress={handleGraphCellPress} />
           )}
         </View>
-      </Pressable>
+      </View>
 
       {/* Date picker - rendered outside Pressable to prevent touch conflicts */}
       {showDatePicker && (
@@ -262,6 +290,35 @@ export function HabitItem({ todo }: HabitItemProps) {
           maximumDate={new Date()}
         />
       )}
+
+      {/* Confirmation dialog for completing habit on a specific date */}
+      <Portal>
+        <Dialog
+          visible={confirmEntry !== null}
+          onDismiss={() => setConfirmEntry(null)}
+        >
+          <Dialog.Title>
+            {confirmEntry?.completed ? "Not Yet Supported" : "Complete Habit"}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              {confirmEntry?.completed
+                ? "Uncompleting habits is not yet supported."
+                : `Mark "${todo.title}" as complete for ${formattedConfirmDate}?`}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            {confirmEntry?.completed ? (
+              <Button onPress={() => setConfirmEntry(null)}>OK</Button>
+            ) : (
+              <>
+                <Button onPress={() => setConfirmEntry(null)}>Cancel</Button>
+                <Button onPress={handleConfirmComplete}>Complete</Button>
+              </>
+            )}
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }
@@ -276,6 +333,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  editButton: {
+    margin: 0,
+    marginLeft: -8,
+    marginRight: 4,
   },
   titleContainer: {
     flex: 1,
