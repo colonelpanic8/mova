@@ -21,6 +21,7 @@ import {
   Button,
   Dialog,
   Divider,
+  Icon,
   IconButton,
   Menu,
   Portal,
@@ -215,12 +216,19 @@ export function HabitItem({ todo }: HabitItemProps) {
                 {todo.title}
               </Text>
               {nextRequired && !needsCompletion && (
-                <Text
-                  variant="bodySmall"
-                  style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}
-                >
-                  {nextRequired}
-                </Text>
+                <View style={styles.nextRequiredRow}>
+                  <Icon
+                    source="calendar-clock"
+                    size={14}
+                    color={theme.colors.onSurfaceVariant}
+                  />
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {nextRequired}
+                  </Text>
+                </View>
               )}
             </View>
           </View>
@@ -366,6 +374,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: "500",
+  },
+  nextRequiredRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
   },
   actionsContainer: {
     flexDirection: "row",
