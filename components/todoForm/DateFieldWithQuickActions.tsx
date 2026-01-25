@@ -8,7 +8,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import React, { useCallback, useState } from "react";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { Button, IconButton, Switch, Text, useTheme } from "react-native-paper";
 
 function formatDateTimeForApi(date: Date, includeTime: boolean): string {
@@ -42,33 +42,26 @@ export function DateFieldWithQuickActions({
 
   const handleToday = useCallback(() => {
     const today = new Date();
-    if (includeTime) {
-      const minutes = Math.ceil(today.getMinutes() / 15) * 15;
-      today.setMinutes(minutes, 0, 0);
-      if (Platform.OS === "web") {
-        onChange(formatDateTimeForApi(today, true));
-      } else {
-        setTempDate(today);
-        setShowTimePicker(true);
-      }
-    } else {
-      onChange(formatDateTimeForApi(today, false));
+    today.setSeconds(0, 0);
+    // Always set date immediately
+    onChange(formatDateTimeForApi(today, false));
+    // On mobile, open time picker if includeTime is on
+    if (includeTime && Platform.OS !== "web") {
+      setTempDate(today);
+      setShowTimePicker(true);
     }
   }, [includeTime, onChange]);
 
   const handleTomorrow = useCallback(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    if (includeTime) {
-      tomorrow.setHours(9, 0, 0, 0);
-      if (Platform.OS === "web") {
-        onChange(formatDateTimeForApi(tomorrow, true));
-      } else {
-        setTempDate(tomorrow);
-        setShowTimePicker(true);
-      }
-    } else {
-      onChange(formatDateTimeForApi(tomorrow, false));
+    tomorrow.setSeconds(0, 0);
+    // Always set date immediately
+    onChange(formatDateTimeForApi(tomorrow, false));
+    // On mobile, open time picker if includeTime is on
+    if (includeTime && Platform.OS !== "web") {
+      setTempDate(tomorrow);
+      setShowTimePicker(true);
     }
   }, [includeTime, onChange]);
 
@@ -122,8 +115,6 @@ export function DateFieldWithQuickActions({
     setShowDatePicker(true);
   }, [value]);
 
-  const todayColor = getActionColor("today");
-  const tomorrowColor = getActionColor("tomorrow");
   const fieldColor = getActionColor(colorKey);
 
   if (Platform.OS === "web") {
@@ -133,21 +124,12 @@ export function DateFieldWithQuickActions({
           {label}
         </Text>
         <View style={styles.quickActionsRow}>
-          <TouchableOpacity
-            style={[styles.quickActionButton, { backgroundColor: todayColor }]}
-            onPress={handleToday}
-          >
-            <Text style={styles.quickActionText}>Today</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.quickActionButton,
-              { backgroundColor: tomorrowColor },
-            ]}
-            onPress={handleTomorrow}
-          >
-            <Text style={styles.quickActionText}>Tomorrow</Text>
-          </TouchableOpacity>
+          <Button mode="contained" compact onPress={handleToday}>
+            Today
+          </Button>
+          <Button mode="contained" compact onPress={handleTomorrow}>
+            Tomorrow
+          </Button>
           <View style={styles.timeToggle}>
             <Text
               style={[
@@ -162,16 +144,14 @@ export function DateFieldWithQuickActions({
         </View>
         <View style={styles.dateInputRow}>
           <input
-            type={includeTime ? "datetime-local" : "date"}
-            value={
-              includeTime && value
-                ? value.replace(" ", "T")
-                : value.split(" ")[0] || ""
-            }
+            type="date"
+            value={value ? value.split(" ")[0] : ""}
             onChange={(e) => {
               if (e.target.value) {
-                const newValue = includeTime
-                  ? e.target.value.replace("T", " ")
+                // Keep existing time if there was one
+                const existingTime = value?.split(" ")[1];
+                const newValue = existingTime
+                  ? `${e.target.value} ${existingTime}`
                   : e.target.value;
                 onChange(newValue);
               }
@@ -185,6 +165,30 @@ export function DateFieldWithQuickActions({
               backgroundColor: "transparent",
             }}
           />
+          {includeTime && (
+            <input
+              type="time"
+              value={value?.split(" ")[1] || ""}
+              onChange={(e) => {
+                const datePart =
+                  value?.split(" ")[0] || formatLocalDate(new Date());
+                if (e.target.value) {
+                  onChange(`${datePart} ${e.target.value}`);
+                } else {
+                  // Time cleared, just keep date
+                  onChange(datePart);
+                }
+              }}
+              style={{
+                marginLeft: 8,
+                padding: 12,
+                fontSize: 16,
+                borderRadius: 4,
+                border: `1px solid ${fieldColor}`,
+                backgroundColor: "transparent",
+              }}
+            />
+          )}
           {value && <IconButton icon="close" size={20} onPress={handleClear} />}
         </View>
       </View>
@@ -197,18 +201,12 @@ export function DateFieldWithQuickActions({
         {label}
       </Text>
       <View style={styles.quickActionsRow}>
-        <TouchableOpacity
-          style={[styles.quickActionButton, { backgroundColor: todayColor }]}
-          onPress={handleToday}
-        >
-          <Text style={styles.quickActionText}>Today</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.quickActionButton, { backgroundColor: tomorrowColor }]}
-          onPress={handleTomorrow}
-        >
-          <Text style={styles.quickActionText}>Tomorrow</Text>
-        </TouchableOpacity>
+        <Button mode="contained" compact onPress={handleToday}>
+          Today
+        </Button>
+        <Button mode="contained" compact onPress={handleTomorrow}>
+          Tomorrow
+        </Button>
         <View style={styles.timeToggle}>
           <Text
             style={[
@@ -269,18 +267,9 @@ const styles = StyleSheet.create({
   },
   quickActionsRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 8,
-  },
-  quickActionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  quickActionText: {
-    color: "white",
-    fontSize: 13,
-    fontWeight: "600",
   },
   dateInputRow: {
     flexDirection: "row",
@@ -304,5 +293,11 @@ const styles = StyleSheet.create({
   },
   timeToggleLabel: {
     fontSize: 13,
+  },
+  webTimePickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 8,
   },
 });
