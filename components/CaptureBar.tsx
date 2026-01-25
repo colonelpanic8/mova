@@ -187,10 +187,10 @@ export function CaptureBar() {
           value={title}
           onChangeText={setTitle}
           onSubmitEditing={handleCapture}
-          mode="flat"
+          mode="outlined"
           dense
           style={[styles.input, { backgroundColor: theme.colors.surface }]}
-          underlineStyle={styles.inputUnderline}
+          outlineStyle={styles.inputOutline}
           disabled={submitting}
           returnKeyType="done"
         />
@@ -258,10 +258,10 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 36,
     marginHorizontal: 4,
-    borderRadius: 18,
+    borderRadius: 8,
   },
-  inputUnderline: {
-    display: "none",
+  inputOutline: {
+    borderRadius: 8,
   },
   sendButton: {
     margin: 0,
