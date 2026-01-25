@@ -1,10 +1,10 @@
 import { FilterBar } from "@/components/FilterBar";
 import { getTodoKey, TodoItem } from "@/components/TodoItem";
-import { useAuth } from "@/context/AuthContext";
+import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
-import { api, Todo, TodoStatesResponse } from "@/services/api";
+import { Todo, TodoStatesResponse } from "@/services/api";
 import { filterTodos } from "@/utils/filterTodos";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -31,7 +31,7 @@ export default function SearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
 
-  const { apiUrl, username, password } = useAuth();
+  const api = useApi();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
@@ -48,10 +48,9 @@ export default function SearchScreen() {
   );
 
   const fetchTodos = useCallback(async () => {
-    if (!apiUrl || !username || !password) return;
+    if (!api) return;
 
     try {
-      api.configure(apiUrl, username, password);
       const [todosResponse, statesResponse] = await Promise.all([
         api.getAllTodos(),
         api.getTodoStates().catch(() => null),
@@ -66,7 +65,7 @@ export default function SearchScreen() {
       setError("Failed to load todos");
       console.error(err);
     }
-  }, [apiUrl, username, password]);
+  }, [api]);
 
   useEffect(() => {
     fetchTodos().finally(() => setLoading(false));

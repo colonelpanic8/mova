@@ -18,6 +18,7 @@ import { FilterProvider } from "../../context/FilterContext";
 // Mock the modules before importing the component
 jest.mock("../../services/api");
 jest.mock("../../context/AuthContext");
+jest.mock("../../context/ApiContext");
 jest.mock("../../context/ColorPaletteContext", () => ({
   useColorPalette: () => ({
     getTodoStateColor: (keyword: string) => "#888888",
@@ -73,8 +74,14 @@ jest.mock("expo-router", () => ({
 }));
 
 // Import after mocks are set up
+import { useApi } from "../../context/ApiContext";
 import { useAuth } from "../../context/AuthContext";
-import { api } from "../../services/api";
+
+// Create mock API object that we can reference in tests
+const mockApi = {
+  getAgenda: jest.fn(),
+  getTodoStates: jest.fn(),
+};
 
 // Mock data
 const mockAgendaEntries = [
@@ -146,13 +153,18 @@ beforeEach(() => {
     isAuthenticated: true,
   });
 
-  // Mock API methods
-  (api.configure as jest.Mock).mockImplementation(() => {});
-  (api.getAgenda as jest.Mock).mockResolvedValue(mockAgendaResponse);
-  (api.getTodoStates as jest.Mock).mockResolvedValue({
+  // Reset mock API methods
+  mockApi.getAgenda.mockReset();
+  mockApi.getTodoStates.mockReset();
+
+  // Set default mock implementations
+  mockApi.getAgenda.mockResolvedValue(mockAgendaResponse);
+  mockApi.getTodoStates.mockResolvedValue({
     active: ["TODO", "NEXT", "WAITING"],
     done: ["DONE", "CANCELLED"],
   });
+
+  (useApi as jest.Mock).mockReturnValue(mockApi);
 });
 
 // Helper to render with providers
@@ -172,9 +184,7 @@ import AgendaScreen from "../../app/(tabs)/index";
 describe("AgendaScreen", () => {
   it("should render loading state initially", async () => {
     // Make getAgenda hang to test loading state
-    (api.getAgenda as jest.Mock).mockImplementation(
-      () => new Promise(() => {}),
-    );
+    mockApi.getAgenda.mockImplementation(() => new Promise(() => {}));
 
     const { getByTestId, queryByTestId } = renderScreen(<AgendaScreen />);
 
@@ -227,7 +237,7 @@ describe("AgendaScreen", () => {
   });
 
   it("should show empty state when no entries", async () => {
-    (api.getAgenda as jest.Mock).mockResolvedValue({
+    mockApi.getAgenda.mockResolvedValue({
       span: "day",
       date: "2024-06-15",
       entries: [],
@@ -242,7 +252,7 @@ describe("AgendaScreen", () => {
   });
 
   it("should handle API errors gracefully", async () => {
-    (api.getAgenda as jest.Mock).mockRejectedValue(new Error("Network error"));
+    mockApi.getAgenda.mockRejectedValue(new Error("Network error"));
 
     const { getByText, getByTestId } = renderScreen(<AgendaScreen />);
 
@@ -259,12 +269,7 @@ describe("AgendaScreen", () => {
       expect(getByTestId("agendaScreen")).toBeTruthy();
     });
 
-    expect(api.configure).toHaveBeenCalledWith(
-      "http://test-api.local",
-      "testuser",
-      "testpass",
-    );
-    expect(api.getAgenda).toHaveBeenCalledWith(
+    expect(mockApi.getAgenda).toHaveBeenCalledWith(
       "day",
       expect.any(String),
       expect.any(Boolean),

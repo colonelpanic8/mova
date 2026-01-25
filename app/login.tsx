@@ -1,7 +1,6 @@
 import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useAuth } from "@/context/AuthContext";
-import { api } from "@/services/api";
 import { SavedServer } from "@/types/server";
 import { normalizeUrl } from "@/utils/url";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -165,7 +164,6 @@ export default function LoginScreen() {
     try {
       const success = await login(apiUrl, username, password);
       if (success) {
-        api.configure(apiUrl, username, password);
         await saveUrlToHistory(apiUrl);
       } else {
         setError("Invalid credentials or server URL");
@@ -183,9 +181,7 @@ export default function LoginScreen() {
 
     try {
       const success = await switchServer(server.id);
-      if (success) {
-        api.configure(server.apiUrl, server.username, server.password);
-      } else {
+      if (!success) {
         setError("Failed to connect to saved server");
       }
     } catch {

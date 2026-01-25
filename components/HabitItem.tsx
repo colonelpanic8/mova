@@ -1,14 +1,9 @@
 import { HabitGraph } from "@/components/HabitGraph";
-import { useAuth } from "@/context/AuthContext";
+import { useApi } from "@/context/ApiContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
-import {
-  HabitStatusGraphEntry,
-  MiniGraphEntry,
-  Todo,
-  api,
-} from "@/services/api";
+import { HabitStatusGraphEntry, MiniGraphEntry, Todo } from "@/services/api";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -60,10 +55,10 @@ export interface HabitItemProps {
 export function HabitItem({ todo }: HabitItemProps) {
   const theme = useTheme();
   const router = useRouter();
+  const api = useApi();
   const { quickComplete, completingIds } = useTodoEditingContext();
   const { defaultDoneState } = useSettings();
   const { todoStates } = useTemplates();
-  const { apiUrl, username, password } = useAuth();
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -72,10 +67,9 @@ export function HabitItem({ todo }: HabitItemProps) {
 
   // Fetch habit status for graph data
   useEffect(() => {
-    if (!todo.id || !apiUrl || !username || !password) return;
+    if (!todo.id || !api) return;
 
     setGraphLoading(true);
-    api.configure(apiUrl, username, password);
     api
       .getHabitStatus(todo.id, 14, 1)
       .then((status) => {
@@ -83,13 +77,13 @@ export function HabitItem({ todo }: HabitItemProps) {
           setGraphData(transformGraphData(status.graph));
         }
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         console.error("Failed to fetch habit status:", err);
       })
       .finally(() => {
         setGraphLoading(false);
       });
-  }, [todo.id, apiUrl, username, password]);
+  }, [todo.id, api]);
 
   // Compute effective default done state
   const effectiveDoneState = useMemo(() => {

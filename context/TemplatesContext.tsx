@@ -1,6 +1,6 @@
+import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
 import {
-  api,
   CategoryType,
   CustomViewsResponse,
   FilterOptionsResponse,
@@ -47,17 +47,16 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
   const [habitConfig, setHabitConfig] = useState<HabitConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { apiUrl, username, password, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const api = useApi();
 
   const reloadTemplates = useCallback(async () => {
-    if (!apiUrl || !username || !password) {
+    if (!api) {
       return;
     }
 
     setIsLoading(true);
     setError(null);
-
-    api.configure(apiUrl, username, password);
 
     try {
       // Use the unified /metadata endpoint for all app metadata
@@ -142,7 +141,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     }
 
     setIsLoading(false);
-  }, [apiUrl, username, password]);
+  }, [api]);
 
   useEffect(() => {
     if (isAuthenticated) {

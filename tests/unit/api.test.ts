@@ -1,20 +1,20 @@
-import { api } from "../../services/api";
+import { createApiClient, OrgAgendaApi } from "../../services/api";
 
 // Mock fetch globally
 global.fetch = jest.fn();
 
 describe("OrgAgendaApi", () => {
+  let api: OrgAgendaApi;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    api.configure("http://test-api.local", "testuser", "testpass");
+    api = createApiClient("http://test-api.local", "testuser", "testpass");
   });
 
-  describe("configure", () => {
-    it("should set base URL and auth header", () => {
-      // The configure method sets private properties, so we test through behavior
-      expect(() =>
-        api.configure("http://new-url", "user", "pass"),
-      ).not.toThrow();
+  describe("createApiClient", () => {
+    it("should create an API client instance", () => {
+      const client = createApiClient("http://new-url", "user", "pass");
+      expect(client).toBeInstanceOf(OrgAgendaApi);
     });
   });
 

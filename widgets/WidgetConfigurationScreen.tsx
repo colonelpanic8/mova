@@ -1,4 +1,4 @@
-import { api, TemplatesResponse } from "@/services/api";
+import { createApiClient, TemplatesResponse } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
 import { NativeModules, ScrollView, StyleSheet, View } from "react-native";
@@ -68,10 +68,10 @@ export function WidgetConfigurationScreen({
       }
 
       const { apiUrl, username, password } = JSON.parse(authData);
-      api.configure(apiUrl, username, password);
+      const apiClient = createApiClient(apiUrl, username, password);
 
       // Load templates
-      const data = await api.getTemplates();
+      const data = await apiClient.getTemplates();
       setTemplates(data);
 
       // Load previously selected template for this widget (from SharedPreferences)

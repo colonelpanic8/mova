@@ -4,10 +4,11 @@ import { LogbookViewer } from "@/components/LogbookViewer";
 import { PropertiesEditor } from "@/components/PropertiesEditor";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
+import { useApi } from "@/context/ApiContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { api, Repeater, Todo, TodoUpdates } from "@/services/api";
+import { Repeater, Todo, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import {
   formStringToTimestamp,
@@ -30,6 +31,7 @@ import {
 export default function EditScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const api = useApi();
   const { triggerRefresh } = useMutation();
   const { quickScheduleIncludeTime } = useSettings();
   const { filterOptions } = useTemplates();
@@ -109,6 +111,7 @@ export default function EditScreen() {
   });
 
   const handleSave = useCallback(async () => {
+    if (!api) return;
     setIsSaving(true);
     try {
       // Check if state changed
@@ -211,9 +214,11 @@ export default function EditScreen() {
     originalTodo,
     triggerRefresh,
     router,
+    api,
   ]);
 
   const handleDelete = useCallback(async () => {
+    if (!api) return;
     setDeleteDialogVisible(false);
     setIsDeleting(true);
     try {
@@ -238,7 +243,7 @@ export default function EditScreen() {
     } finally {
       setIsDeleting(false);
     }
-  }, [originalTodo, triggerRefresh, router]);
+  }, [originalTodo, triggerRefresh, router, api]);
 
   const handleRemind = useCallback(() => {
     setRemindDialogVisible(true);

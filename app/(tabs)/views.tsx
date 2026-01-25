@@ -1,11 +1,10 @@
 import { FilterBar } from "@/components/FilterBar";
 import { getTodoKey, TodoItem } from "@/components/TodoItem";
-import { useAuth } from "@/context/AuthContext";
+import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
-  api,
   CustomView,
   CustomViewResponse,
   Todo,
@@ -37,7 +36,7 @@ export default function ViewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
-  const { apiUrl, username, password } = useAuth();
+  const api = useApi();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
@@ -66,10 +65,9 @@ export default function ViewsScreen() {
   );
 
   const fetchViews = useCallback(async () => {
-    if (!apiUrl || !username || !password) return;
+    if (!api) return;
 
     try {
-      api.configure(apiUrl, username, password);
       const [viewsData, statesData] = await Promise.all([
         api.getCustomViews(),
         api.getTodoStates().catch(() => null),
@@ -83,15 +81,14 @@ export default function ViewsScreen() {
       setError("Failed to load views");
       console.error(err);
     }
-  }, [apiUrl, username, password]);
+  }, [api]);
 
   const fetchViewEntries = useCallback(
     async (key: string) => {
-      if (!apiUrl || !username || !password) return;
+      if (!api) return;
 
       setLoading(true);
       try {
-        api.configure(apiUrl, username, password);
         const viewData = await api.getCustomView(key);
         setSelectedView(viewData);
         setError(null);
@@ -102,7 +99,7 @@ export default function ViewsScreen() {
         setLoading(false);
       }
     },
-    [apiUrl, username, password],
+    [api],
   );
 
   useEffect(() => {

@@ -2,11 +2,11 @@ import { DayScheduleView } from "@/components/DayScheduleView";
 import { FilterBar } from "@/components/FilterBar";
 import { HabitItem } from "@/components/HabitItem";
 import { TodoItem, getTodoKey } from "@/components/TodoItem";
-import { useAuth } from "@/context/AuthContext";
+import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
-import { AgendaResponse, Todo, TodoStatesResponse, api } from "@/services/api";
+import { AgendaResponse, Todo, TodoStatesResponse } from "@/services/api";
 import {
   formatLocalDate as formatDateForApi,
   formatDateForDisplay,
@@ -46,7 +46,7 @@ export default function AgendaScreen() {
     isPastDay(new Date()),
   );
   const [viewMode, setViewMode] = useState<"list" | "schedule">("list");
-  const { apiUrl, username, password } = useAuth();
+  const api = useApi();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
@@ -109,12 +109,11 @@ export default function AgendaScreen() {
 
   const fetchAgenda = useCallback(
     async (date: Date, includeCompleted: boolean) => {
-      if (!apiUrl || !username || !password) {
+      if (!api) {
         return;
       }
 
       try {
-        api.configure(apiUrl, username, password);
         const dateString = formatDateForApi(date);
         const todayString = formatDateForApi(new Date());
         const includeOverdue = dateString <= todayString;
@@ -132,7 +131,7 @@ export default function AgendaScreen() {
         setError("Failed to load agenda");
       }
     },
-    [apiUrl, username, password],
+    [api],
   );
 
   // Reset showCompleted when date changes

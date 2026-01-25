@@ -24,6 +24,7 @@ import { FilterProvider } from "../../context/FilterContext";
 // Mock the modules before importing the component
 jest.mock("../../services/api");
 jest.mock("../../context/AuthContext");
+jest.mock("../../context/ApiContext");
 jest.mock("../../context/ColorPaletteContext", () => ({
   useColorPalette: () => ({
     getTodoStateColor: (keyword: string) => "#888888",
@@ -88,8 +89,17 @@ jest.mock("expo-router", () => ({
 }));
 
 // Import after mocks are set up
+import { useApi } from "../../context/ApiContext";
 import { useAuth } from "../../context/AuthContext";
-import { api } from "../../services/api";
+
+// Create mock API object that we can reference in tests
+const mockApi = {
+  getAllTodos: jest.fn(),
+  getTodoStates: jest.fn(),
+  completeTodo: jest.fn(),
+  setTodoState: jest.fn(),
+  updateTodo: jest.fn(),
+};
 
 // Mock data
 const mockTodos = [
@@ -155,27 +165,35 @@ beforeEach(() => {
     isAuthenticated: true,
   });
 
-  // Mock API methods
-  (api.configure as jest.Mock).mockImplementation(() => {});
-  (api.getAllTodos as jest.Mock).mockResolvedValue({
+  // Reset mock API methods
+  mockApi.getAllTodos.mockReset();
+  mockApi.getTodoStates.mockReset();
+  mockApi.completeTodo.mockReset();
+  mockApi.setTodoState.mockReset();
+  mockApi.updateTodo.mockReset();
+
+  // Set default mock implementations
+  mockApi.getAllTodos.mockResolvedValue({
     todos: mockTodos,
     defaults: { notifyBefore: [30] },
   });
-  (api.getTodoStates as jest.Mock).mockResolvedValue({
+  mockApi.getTodoStates.mockResolvedValue({
     active: ["TODO", "NEXT", "WAITING"],
     done: ["DONE"],
   });
-  (api.completeTodo as jest.Mock).mockResolvedValue({
+  mockApi.completeTodo.mockResolvedValue({
     status: "completed",
     newState: "DONE",
   });
-  (api.setTodoState as jest.Mock).mockResolvedValue({
+  mockApi.setTodoState.mockResolvedValue({
     status: "completed",
     newState: "DONE",
   });
-  (api.updateTodo as jest.Mock).mockResolvedValue({
+  mockApi.updateTodo.mockResolvedValue({
     status: "updated",
   });
+
+  (useApi as jest.Mock).mockReturnValue(mockApi);
 });
 
 // Helper to render with providers
@@ -186,32 +204,19 @@ const renderWithProviders = (component: React.ReactElement) => {
 };
 
 describe("SearchScreen API Integration", () => {
-  it("should configure API with auth credentials on mount", async () => {
-    // We test the expected API calls without rendering the full screen
-    // This verifies the logic that would happen in useEffect
-
-    const apiUrl = "http://test-api.local";
-    const username = "testuser";
-    const password = "testpass";
-
-    api.configure(apiUrl, username, password);
-
-    expect(api.configure).toHaveBeenCalledWith(apiUrl, username, password);
-  });
-
   it("should fetch todos via API", async () => {
-    const result = await api.getAllTodos();
+    const result = await mockApi.getAllTodos();
 
-    expect(api.getAllTodos).toHaveBeenCalled();
+    expect(mockApi.getAllTodos).toHaveBeenCalled();
     expect(result.todos).toHaveLength(3);
     expect(result.todos[0].title).toBe("Buy groceries");
   });
 
   it("should complete a todo via API", async () => {
     const todo = mockTodos[0];
-    const result = await api.completeTodo(todo);
+    const result = await mockApi.completeTodo(todo);
 
-    expect(api.completeTodo).toHaveBeenCalledWith(todo);
+    expect(mockApi.completeTodo).toHaveBeenCalledWith(todo);
     expect(result.status).toBe("completed");
     expect(result.newState).toBe("DONE");
   });
@@ -220,9 +225,9 @@ describe("SearchScreen API Integration", () => {
     const todo = mockTodos[0];
     const updates = { scheduled: { date: "2024-06-25" } };
 
-    const result = await api.updateTodo(todo, updates);
+    const result = await mockApi.updateTodo(todo, updates);
 
-    expect(api.updateTodo).toHaveBeenCalledWith(todo, updates);
+    expect(mockApi.updateTodo).toHaveBeenCalledWith(todo, updates);
     expect(result.status).toBe("updated");
   });
 });
@@ -369,19 +374,15 @@ describe("SearchScreen Todo Key Generation", () => {
 
 describe("SearchScreen Error Handling", () => {
   it("should handle API errors gracefully", async () => {
-    (api.getAllTodos as jest.Mock).mockRejectedValue(
-      new Error("Network error"),
-    );
+    mockApi.getAllTodos.mockRejectedValue(new Error("Network error"));
 
-    await expect(api.getAllTodos()).rejects.toThrow("Network error");
+    await expect(mockApi.getAllTodos()).rejects.toThrow("Network error");
   });
 
   it("should handle completion errors", async () => {
-    (api.completeTodo as jest.Mock).mockRejectedValue(
-      new Error("Completion failed"),
-    );
+    mockApi.completeTodo.mockRejectedValue(new Error("Completion failed"));
 
-    await expect(api.completeTodo(mockTodos[0])).rejects.toThrow(
+    await expect(mockApi.completeTodo(mockTodos[0])).rejects.toThrow(
       "Completion failed",
     );
   });
@@ -483,31 +484,35 @@ describe("SearchScreen Component", () => {
       isAuthenticated: true,
     });
 
-    // Mock API methods
-    (api.configure as jest.Mock).mockImplementation(() => {});
-    (api.getAllTodos as jest.Mock).mockResolvedValue({
+    // Reset and set default mock implementations
+    mockApi.getAllTodos.mockReset();
+    mockApi.getTodoStates.mockReset();
+    mockApi.completeTodo.mockReset();
+    mockApi.setTodoState.mockReset();
+
+    mockApi.getAllTodos.mockResolvedValue({
       todos: mockTodos,
       defaults: { notifyBefore: [30] },
     });
-    (api.getTodoStates as jest.Mock).mockResolvedValue({
+    mockApi.getTodoStates.mockResolvedValue({
       active: ["TODO", "NEXT", "WAITING"],
       done: ["DONE"],
     });
-    (api.completeTodo as jest.Mock).mockResolvedValue({
+    mockApi.completeTodo.mockResolvedValue({
       status: "completed",
       newState: "DONE",
     });
-    (api.setTodoState as jest.Mock).mockResolvedValue({
+    mockApi.setTodoState.mockResolvedValue({
       status: "completed",
       newState: "DONE",
     });
+
+    (useApi as jest.Mock).mockReturnValue(mockApi);
   });
 
   it("should render loading state initially", async () => {
     // Make getAllTodos hang to test loading state
-    (api.getAllTodos as jest.Mock).mockImplementation(
-      () => new Promise(() => {}),
-    );
+    mockApi.getAllTodos.mockImplementation(() => new Promise(() => {}));
 
     const { getByTestId, queryByText } = renderScreen(<SearchScreen />);
 
@@ -567,9 +572,7 @@ describe("SearchScreen Component", () => {
   });
 
   it("should handle API errors gracefully", async () => {
-    (api.getAllTodos as jest.Mock).mockRejectedValue(
-      new Error("Network error"),
-    );
+    mockApi.getAllTodos.mockRejectedValue(new Error("Network error"));
 
     const { getByText } = renderScreen(<SearchScreen />);
 
@@ -622,7 +625,7 @@ describe("SearchScreen Component", () => {
 
     // Verify API was called with correct state
     await waitFor(() => {
-      expect(api.setTodoState).toHaveBeenCalled();
+      expect(mockApi.setTodoState).toHaveBeenCalled();
     });
   });
 

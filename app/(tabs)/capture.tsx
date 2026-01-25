@@ -6,12 +6,12 @@ import {
 import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
+import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import {
-  api,
   CategoryType,
   Repeater,
   TemplatePrompt,
@@ -203,6 +203,7 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
 }
 
 export default function CaptureScreen() {
+  const api = useApi();
   const {
     templates,
     categoryTypes,
@@ -263,6 +264,7 @@ export default function CaptureScreen() {
     }
 
     const fetchCategories = async () => {
+      if (!api) return;
       setCategoriesLoading(true);
       try {
         const response = await api.getCategories(selection.categoryType.name);
@@ -276,7 +278,7 @@ export default function CaptureScreen() {
     };
 
     fetchCategories();
-  }, [selection]);
+  }, [selection, api]);
 
   // Reset form values when selection changes
   useEffect(() => {
@@ -333,7 +335,7 @@ export default function CaptureScreen() {
   };
 
   const handleCapture = async () => {
-    if (!selection) return;
+    if (!selection || !api) return;
 
     setSubmitting(true);
 

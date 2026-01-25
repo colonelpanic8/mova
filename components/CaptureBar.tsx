@@ -1,7 +1,7 @@
+import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
 import { Keyboard, Pressable, StyleSheet, View } from "react-native";
@@ -22,6 +22,7 @@ function getDefaultTemplateKey(serverId: string | null): string {
 }
 
 export function CaptureBar() {
+  const api = useApi();
   const { templates } = useTemplates();
   const { quickScheduleIncludeTime, setQuickScheduleIncludeTime } =
     useSettings();
@@ -94,7 +95,7 @@ export function CaptureBar() {
 
   const handleCapture = async () => {
     const trimmedTitle = title.trim();
-    if (!trimmedTitle || !selectedTemplate) return;
+    if (!trimmedTitle || !selectedTemplate || !api) return;
 
     setSubmitting(true);
     Keyboard.dismiss();
