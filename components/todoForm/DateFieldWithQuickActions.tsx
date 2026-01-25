@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/ActionButton";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import {
   formatDateForDisplay,
@@ -124,12 +125,8 @@ export function DateFieldWithQuickActions({
           {label}
         </Text>
         <View style={styles.quickActionsRow}>
-          <Button mode="contained" compact onPress={handleToday}>
-            Today
-          </Button>
-          <Button mode="contained" compact onPress={handleTomorrow}>
-            Tomorrow
-          </Button>
+          <ActionButton onPress={handleToday}>Today</ActionButton>
+          <ActionButton onPress={handleTomorrow}>Tomorrow</ActionButton>
           <View style={styles.timeToggle}>
             <Text
               style={[
@@ -201,12 +198,8 @@ export function DateFieldWithQuickActions({
         {label}
       </Text>
       <View style={styles.quickActionsRow}>
-        <Button mode="contained" compact onPress={handleToday}>
-          Today
-        </Button>
-        <Button mode="contained" compact onPress={handleTomorrow}>
-          Tomorrow
-        </Button>
+        <ActionButton onPress={handleToday}>Today</ActionButton>
+        <ActionButton onPress={handleTomorrow}>Tomorrow</ActionButton>
         <View style={styles.timeToggle}>
           <Text
             style={[
