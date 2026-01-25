@@ -8,7 +8,13 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -201,7 +207,11 @@ export function HabitItem({ todo }: HabitItemProps) {
               style={styles.editButton}
             />
             <View style={styles.titleContainer}>
-              <Text variant="titleMedium" style={styles.title} numberOfLines={2}>
+              <Text
+                variant="titleMedium"
+                style={styles.title}
+                numberOfLines={2}
+              >
                 {todo.title}
               </Text>
               {nextRequired && !needsCompletion && (
@@ -275,7 +285,10 @@ export function HabitItem({ todo }: HabitItemProps) {
             <ActivityIndicator size="small" style={styles.graphSpinner} />
           )}
           {!graphLoading && graphData && (
-            <HabitGraph miniGraph={graphData} onCellPress={handleGraphCellPress} />
+            <HabitGraph
+              miniGraph={graphData}
+              onCellPress={handleGraphCellPress}
+            />
           )}
         </View>
       </View>
