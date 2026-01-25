@@ -239,15 +239,14 @@ export function useTodoEditing(
       swipeableRefs.current.get(key)?.close();
 
       const today = new Date();
+      today.setSeconds(0, 0);
+      // Always apply date immediately
+      applyQuickSchedule(todo, dateToTimestamp(today, false));
+      // Then open time picker if setting is enabled
       if (quickScheduleIncludeTime) {
-        // Round to next 15-minute interval
-        const minutes = Math.ceil(today.getMinutes() / 15) * 15;
-        today.setMinutes(minutes, 0, 0);
         setQuickScheduleDate(today);
         setEditingTodo(todo);
         setEditModalType("quickScheduleTime");
-      } else {
-        applyQuickSchedule(todo, dateToTimestamp(today, false));
       }
     },
     [quickScheduleIncludeTime, applyQuickSchedule],
@@ -260,14 +259,14 @@ export function useTodoEditing(
 
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setSeconds(0, 0);
+      // Always apply date immediately
+      applyQuickSchedule(todo, dateToTimestamp(tomorrow, false));
+      // Then open time picker if setting is enabled
       if (quickScheduleIncludeTime) {
-        // Default to 9 AM for tomorrow
-        tomorrow.setHours(9, 0, 0, 0);
         setQuickScheduleDate(tomorrow);
         setEditingTodo(todo);
         setEditModalType("quickScheduleTime");
-      } else {
-        applyQuickSchedule(todo, dateToTimestamp(tomorrow, false));
       }
     },
     [quickScheduleIncludeTime, applyQuickSchedule],
@@ -579,7 +578,7 @@ export function useTodoEditing(
     [editModalType, closeEditModal],
   );
 
-  // Handle quick schedule time picker result
+  // Handle quick schedule time picker result - adds time to already-scheduled item
   const handleQuickScheduleTimeChange = useCallback(
     (event: any, date?: Date) => {
       if (event.type === "dismissed") {
@@ -1077,7 +1076,6 @@ export function useTodoEditing(
     remindDateTime,
     remindPickerMode,
     quickScheduleDate,
-    quickScheduleIncludeTime,
     stateOverrideDate,
     showStateOverrideDatePicker,
     todoStates,
