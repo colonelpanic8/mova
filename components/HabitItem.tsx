@@ -324,10 +324,14 @@ export function HabitItem({ todo }: HabitItemProps) {
             {confirmEntry?.completed ? (
               <Button onPress={() => setConfirmEntry(null)}>OK</Button>
             ) : (
-              <>
-                <Button onPress={() => setConfirmEntry(null)}>Cancel</Button>
-                <Button onPress={handleConfirmComplete}>Complete</Button>
-              </>
+              [
+                <Button key="cancel" onPress={() => setConfirmEntry(null)}>
+                  Cancel
+                </Button>,
+                <Button key="complete" onPress={handleConfirmComplete}>
+                  Complete
+                </Button>,
+              ]
             )}
           </Dialog.Actions>
         </Dialog>
