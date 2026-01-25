@@ -6,8 +6,14 @@
  */
 
 import React from "react";
-import { StyleProp, ViewStyle } from "react-native";
+import { StyleProp, StyleSheet, ViewStyle } from "react-native";
 import { Button } from "react-native-paper";
+
+/**
+ * Border radius for action buttons.
+ * Gives a subtle squircle look rather than fully rounded pills.
+ */
+const ACTION_BUTTON_RADIUS = 8;
 
 export interface ActionButtonProps {
   children: React.ReactNode;
@@ -42,9 +48,15 @@ export function ActionButton({
       loading={loading}
       buttonColor={buttonColor}
       textColor={textColor}
-      style={style}
+      style={[styles.button, style]}
     >
       {children}
     </Button>
   );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    borderRadius: ACTION_BUTTON_RADIUS,
+  },
+});

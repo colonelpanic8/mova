@@ -9,10 +9,11 @@ import { MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 
 /**
  * Roundness value for buttons and other interactive elements.
- * Lower values = more squircle/squared, higher values = more rounded/pill.
- * Default MD3 is 20. We use 6 for a subtle squircle look.
+ * In MD3, actual border radius = roundness * 5.
+ * Default MD3 roundness is 4 (= 20px radius).
+ * We use 2 for a subtle squircle look (= 10px radius).
  */
-const BUTTON_ROUNDNESS = 6;
+const BUTTON_ROUNDNESS = 2;
 
 export const lightTheme = {
   ...MD3LightTheme,
