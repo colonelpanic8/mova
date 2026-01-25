@@ -29,8 +29,8 @@ function getEndOfWeek(date: Date): Date {
 function matchesDateRange(todo: Todo, dateRange: DateRange): boolean {
   if (!dateRange) return true;
 
-  const scheduledDate = todo.scheduled ? todo.scheduled.split("T")[0] : null;
-  const deadlineDate = todo.deadline ? todo.deadline.split("T")[0] : null;
+  const scheduledDate = todo.scheduled?.date || null;
+  const deadlineDate = todo.deadline?.date || null;
   const todoDate = scheduledDate || deadlineDate;
 
   if (!todoDate) {

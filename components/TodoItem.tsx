@@ -26,12 +26,11 @@ export interface TodoItemProps {
   opacity?: number;
 }
 
-function formatDate(dateString: string): string {
-  const hasTime = dateString.includes("T") && dateString.includes(":");
+function formatTimestamp(ts: { date: string; time?: string }): string {
+  const hasTime = !!ts.time;
   // Parse date-only strings as local time to avoid timezone shift
-  const date = hasTime
-    ? new Date(dateString)
-    : new Date(dateString + "T00:00:00");
+  const dateStr = hasTime ? `${ts.date}T${ts.time}:00` : `${ts.date}T00:00:00`;
+  const date = new Date(dateStr);
   if (hasTime) {
     return date.toLocaleString(undefined, {
       month: "short",
@@ -256,9 +255,9 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
                     <Text
                       style={[styles.metaText, { color: theme.colors.primary }]}
                     >
-                      S: {formatDate(todo.scheduled)}
+                      S: {formatTimestamp(todo.scheduled)}
                     </Text>
-                    {todo.scheduledRepeater && (
+                    {todo.scheduled.repeater && (
                       <View style={styles.repeaterBadge}>
                         <Icon
                           source="repeat"
@@ -271,7 +270,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
                             { color: theme.colors.primary },
                           ]}
                         >
-                          {formatRepeater(todo.scheduledRepeater)}
+                          {formatRepeater(todo.scheduled.repeater)}
                         </Text>
                       </View>
                     )}
@@ -282,9 +281,9 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
                     <Text
                       style={[styles.metaText, { color: theme.colors.error }]}
                     >
-                      D: {formatDate(todo.deadline)}
+                      D: {formatTimestamp(todo.deadline)}
                     </Text>
-                    {todo.deadlineRepeater && (
+                    {todo.deadline.repeater && (
                       <View style={styles.repeaterBadge}>
                         <Icon
                           source="repeat"
@@ -297,7 +296,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
                             { color: theme.colors.error },
                           ]}
                         >
-                          {formatRepeater(todo.deadlineRepeater)}
+                          {formatRepeater(todo.deadline.repeater)}
                         </Text>
                       </View>
                     )}

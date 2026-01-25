@@ -111,7 +111,7 @@ export default function AgendaScreen() {
         // If schedule changed, check if item should be removed from current view
         if (updates.scheduled !== undefined) {
           const currentDateStr = formatDateForApi(selectedDate);
-          const newScheduledDate = updates.scheduled?.split("T")[0];
+          const newScheduledDate = updates.scheduled?.date;
 
           // If scheduled to a different day, remove from current view
           if (newScheduledDate && newScheduledDate !== currentDateStr) {

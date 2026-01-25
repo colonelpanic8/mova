@@ -39,19 +39,17 @@ function getTimeFromEntry(
   entry: Todo,
 ): { hours: number; minutes: number } | null {
   // Check scheduled first, then deadline
-  const timeStr = entry.scheduled || entry.deadline;
-  if (!timeStr) return null;
+  const timestamp = entry.scheduled || entry.deadline;
+  if (!timestamp) return null;
 
-  // Check if it has a time component (contains T and :)
-  if (!timeStr.includes("T") || !timeStr.includes(":")) return null;
+  // Check if it has a time component
+  if (!timestamp.time) return null;
 
-  const date = new Date(timeStr);
-  if (isNaN(date.getTime())) return null;
+  // Parse time string (HH:MM format)
+  const [hours, minutes] = timestamp.time.split(":").map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return null;
 
-  return {
-    hours: date.getHours(),
-    minutes: date.getMinutes(),
-  };
+  return { hours, minutes };
 }
 
 function formatHour(hour: number): string {
