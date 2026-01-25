@@ -99,10 +99,8 @@ const mockTodos = [
     todo: "TODO",
     tags: ["shopping", "personal"],
     level: 1,
-    scheduled: "2024-06-15",
-    scheduledRepeater: null,
+    scheduled: { date: "2024-06-15" },
     deadline: null,
-    deadlineRepeater: null,
     priority: "A",
     file: "/test/inbox.org",
     pos: 100,
@@ -118,9 +116,7 @@ const mockTodos = [
     tags: ["work"],
     level: 1,
     scheduled: null,
-    scheduledRepeater: null,
-    deadline: "2024-06-20",
-    deadlineRepeater: null,
+    deadline: { date: "2024-06-20" },
     priority: null,
     file: "/test/work.org",
     pos: 200,
@@ -136,9 +132,7 @@ const mockTodos = [
     tags: null,
     level: 1,
     scheduled: null,
-    scheduledRepeater: null,
     deadline: null,
-    deadlineRepeater: null,
     priority: null,
     file: "/test/inbox.org",
     pos: 300,
@@ -224,7 +218,7 @@ describe("SearchScreen API Integration", () => {
 
   it("should update a todo via API", async () => {
     const todo = mockTodos[0];
-    const updates = { scheduled: "2024-06-25" };
+    const updates = { scheduled: { date: "2024-06-25" } };
 
     const result = await api.updateTodo(todo, updates);
 

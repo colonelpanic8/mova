@@ -1,10 +1,9 @@
-import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { StatePill } from "@/components/StatePill";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import {
   api,
-  Repeater,
+  Timestamp,
   Todo,
   TodoStatesResponse,
   TodoUpdates,
@@ -46,12 +45,27 @@ function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-// Format a Date to YYYY-MM-DD HH:MM using local time
-function formatLocalDateTime(date: Date): string {
-  const dateStr = formatLocalDate(date);
+// Format a Date to HH:MM using local time
+function formatLocalTime(date: Date): string {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${dateStr} ${hours}:${minutes}`;
+  return `${hours}:${minutes}`;
+}
+
+// Convert Date to Timestamp object
+function dateToTimestamp(date: Date, includeTime: boolean): Timestamp {
+  const timestamp: Timestamp = { date: formatLocalDate(date) };
+  if (includeTime) {
+    timestamp.time = formatLocalTime(date);
+  }
+  return timestamp;
+}
+
+// Convert Timestamp object to Date
+function timestampToDate(ts: Timestamp | null): Date | null {
+  if (!ts) return null;
+  const dateStr = ts.time ? `${ts.date}T${ts.time}:00` : `${ts.date}T00:00:00`;
+  return new Date(dateStr);
 }
 
 type EditModalType =
@@ -108,9 +122,6 @@ export function useTodoEditing(
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [editModalType, setEditModalType] = useState<EditModalType>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedRepeater, setSelectedRepeater] = useState<Repeater | null>(
-    null,
-  );
   const [selectedPriority, setSelectedPriority] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
   const [remindPickerMode, setRemindPickerMode] = useState<"date" | "time">(
@@ -156,22 +167,13 @@ export function useTodoEditing(
     setEditModalType(type);
 
     if (type === "schedule" || type === "deadline") {
-      const existingDate = type === "schedule" ? todo.scheduled : todo.deadline;
-      const existingRepeater =
-        type === "schedule" ? todo.scheduledRepeater : todo.deadlineRepeater;
+      const existingTs = type === "schedule" ? todo.scheduled : todo.deadline;
+      const existingDate = timestampToDate(existingTs);
       if (existingDate) {
-        // Parse date-only strings as local time to avoid timezone shift
-        const hasTime =
-          existingDate.includes("T") && existingDate.includes(":");
-        setSelectedDate(
-          hasTime
-            ? new Date(existingDate)
-            : new Date(existingDate + "T00:00:00"),
-        );
+        setSelectedDate(existingDate);
       } else {
         setSelectedDate(new Date());
       }
-      setSelectedRepeater(existingRepeater || null);
     } else if (type === "priority") {
       setSelectedPriority(todo.priority || "");
     } else if (type === "state") {
@@ -224,12 +226,12 @@ export function useTodoEditing(
   );
 
   const applyQuickSchedule = useCallback(
-    async (todo: Todo, dateString: string) => {
+    async (todo: Todo, timestamp: Timestamp) => {
       const key = getTodoKey(todo);
       setUpdatingIds((prev) => new Set(prev).add(key));
 
       try {
-        const result = await api.updateTodo(todo, { scheduled: dateString });
+        const result = await api.updateTodo(todo, { scheduled: timestamp });
 
         if (result.status === "updated") {
           setSnackbar({
@@ -237,7 +239,7 @@ export function useTodoEditing(
             message: `Scheduled: ${todo.title}`,
             isError: false,
           });
-          onTodoUpdated?.(todo, { scheduled: dateString });
+          onTodoUpdated?.(todo, { scheduled: timestamp });
           triggerRefresh();
         } else {
           setSnackbar({
@@ -278,7 +280,7 @@ export function useTodoEditing(
         setEditingTodo(todo);
         setEditModalType("quickScheduleTime");
       } else {
-        applyQuickSchedule(todo, formatLocalDate(today));
+        applyQuickSchedule(todo, dateToTimestamp(today, false));
       }
     },
     [quickScheduleIncludeTime, applyQuickSchedule],
@@ -298,7 +300,7 @@ export function useTodoEditing(
         setEditingTodo(todo);
         setEditModalType("quickScheduleTime");
       } else {
-        applyQuickSchedule(todo, formatLocalDate(tomorrow));
+        applyQuickSchedule(todo, dateToTimestamp(tomorrow, false));
       }
     },
     [quickScheduleIncludeTime, applyQuickSchedule],
@@ -620,32 +622,25 @@ export function useTodoEditing(
       if (date && editingTodo) {
         const combined = new Date(quickScheduleDate);
         combined.setHours(date.getHours(), date.getMinutes(), 0, 0);
-        const dateString = formatLocalDateTime(combined);
         closeEditModal();
-        applyQuickSchedule(editingTodo, dateString);
+        applyQuickSchedule(editingTodo, dateToTimestamp(combined, true));
       }
     },
     [quickScheduleDate, editingTodo, closeEditModal, applyQuickSchedule],
   );
 
-  // Save schedule/deadline with optional repeater
+  // Save schedule/deadline (modal only sets date, not repeater - repeaters are set in edit page)
   const handleSaveDateTime = useCallback(
     (type: "schedule" | "deadline", includeTime: boolean = false) => {
-      const dateString = includeTime
-        ? formatLocalDateTime(selectedDate)
-        : formatLocalDate(selectedDate);
       const fieldName = type === "schedule" ? "scheduled" : "deadline";
-      const repeaterField =
-        type === "schedule" ? "scheduledRepeater" : "deadlineRepeater";
 
       const updates: TodoUpdates = {
-        [fieldName]: dateString,
-        [repeaterField]: selectedRepeater,
+        [fieldName]: dateToTimestamp(selectedDate, includeTime),
       };
 
       handleUpdateTodo(updates);
     },
-    [selectedDate, selectedRepeater, handleUpdateTodo],
+    [selectedDate, handleUpdateTodo],
   );
 
   const EditModals = useCallback(() => {
@@ -736,9 +731,11 @@ export function useTodoEditing(
                     .map(Number);
                   const combined = new Date(quickScheduleDate);
                   combined.setHours(hours, minutes, 0, 0);
-                  const dateString = formatLocalDateTime(combined);
                   closeEditModal();
-                  applyQuickSchedule(editingTodo, dateString);
+                  applyQuickSchedule(
+                    editingTodo,
+                    dateToTimestamp(combined, true),
+                  );
                 }
               }}
               onBlur={closeEditModal}
@@ -780,12 +777,6 @@ export function useTodoEditing(
               })}
             </Text>
 
-            <RepeaterPicker
-              value={selectedRepeater}
-              onChange={setSelectedRepeater}
-              label="Repeat"
-            />
-
             <View style={styles.modalButtons}>
               <Button mode="outlined" onPress={closeEditModal}>
                 Cancel
@@ -819,12 +810,6 @@ export function useTodoEditing(
                 day: "numeric",
               })}
             </Text>
-
-            <RepeaterPicker
-              value={selectedRepeater}
-              onChange={setSelectedRepeater}
-              label="Repeat"
-            />
 
             <View style={styles.modalButtons}>
               <Button mode="outlined" onPress={closeEditModal}>
@@ -1120,7 +1105,6 @@ export function useTodoEditing(
     editModalType,
     editingTodo,
     selectedDate,
-    selectedRepeater,
     selectedPriority,
     selectedState,
     remindDateTime,

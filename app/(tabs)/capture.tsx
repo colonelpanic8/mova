@@ -11,7 +11,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { api, CategoryType, Repeater, TemplatePrompt } from "@/services/api";
+import {
+  api,
+  CategoryType,
+  Repeater,
+  TemplatePrompt,
+  Timestamp,
+} from "@/services/api";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -29,6 +35,29 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+
+// Convert form string + repeater to Timestamp
+function formStringToTimestamp(
+  dateStr: string,
+  repeater: Repeater | null,
+): Timestamp | null {
+  if (!dateStr) return null;
+  const ts: Timestamp = { date: "" };
+
+  if (dateStr.includes("T")) {
+    const [date, time] = dateStr.split("T");
+    ts.date = date;
+    ts.time = time;
+  } else {
+    ts.date = dateStr;
+  }
+
+  if (repeater) {
+    ts.repeater = repeater;
+  }
+
+  return ts;
+}
 
 type CaptureSelection =
   | { type: "template"; key: string }
@@ -389,11 +418,28 @@ export default function CaptureScreen() {
       }
 
       // Build capture values
-      const captureValues: Record<string, string | string[]> = { ...values };
-      if (optionalFields.scheduled)
-        captureValues.scheduled = optionalFields.scheduled;
-      if (optionalFields.deadline)
-        captureValues.deadline = optionalFields.deadline;
+      const captureValues: Record<string, string | string[] | Timestamp> = {
+        ...values,
+      };
+
+      // Convert scheduled to Timestamp (combines date string + repeater)
+      const scheduledTs = formStringToTimestamp(
+        optionalFields.scheduled || "",
+        optionalFields.scheduledRepeater || null,
+      );
+      if (scheduledTs) {
+        captureValues.scheduled = scheduledTs;
+      }
+
+      // Convert deadline to Timestamp (combines date string + repeater)
+      const deadlineTs = formStringToTimestamp(
+        optionalFields.deadline || "",
+        optionalFields.deadlineRepeater || null,
+      );
+      if (deadlineTs) {
+        captureValues.deadline = deadlineTs;
+      }
+
       if (optionalFields.priority)
         captureValues.priority = optionalFields.priority;
       if (optionalFields.tags?.length) captureValues.tags = optionalFields.tags;
@@ -402,18 +448,7 @@ export default function CaptureScreen() {
 
       let result;
       if (selection.type === "template") {
-        // For template captures, include repeaters
-        const templateCaptureValues: Record<
-          string,
-          string | string[] | Repeater
-        > = { ...captureValues };
-        if (optionalFields.scheduledRepeater)
-          templateCaptureValues.scheduledRepeater =
-            optionalFields.scheduledRepeater;
-        if (optionalFields.deadlineRepeater)
-          templateCaptureValues.deadlineRepeater =
-            optionalFields.deadlineRepeater;
-        result = await api.capture(selection.key, templateCaptureValues);
+        result = await api.capture(selection.key, captureValues);
       } else {
         // Category capture
         // Map prompt names to API field names

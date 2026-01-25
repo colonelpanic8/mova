@@ -90,9 +90,7 @@ describe("OrgAgendaApi", () => {
         level: 1,
         tags: null,
         scheduled: null,
-        scheduledRepeater: null,
         deadline: null,
-        deadlineRepeater: null,
         priority: null,
         olpath: ["Parent", "Child"],
         notifyBefore: null,
@@ -133,9 +131,7 @@ describe("OrgAgendaApi", () => {
         level: 1,
         tags: null,
         scheduled: null,
-        scheduledRepeater: null,
         deadline: null,
-        deadlineRepeater: null,
         priority: null,
         olpath: ["Parent", "Child"],
         notifyBefore: null,
@@ -217,9 +213,7 @@ describe("OrgAgendaApi", () => {
         level: 1,
         tags: null,
         scheduled: null,
-        scheduledRepeater: null,
         deadline: null,
-        deadlineRepeater: null,
         priority: null,
         olpath: ["Parent"],
         notifyBefore: null,
@@ -228,7 +222,7 @@ describe("OrgAgendaApi", () => {
       };
 
       const updates = {
-        scheduled: "2024-06-20",
+        scheduled: { date: "2024-06-20" },
         priority: "A",
       };
 
@@ -246,7 +240,7 @@ describe("OrgAgendaApi", () => {
       );
       expect(callBody).toEqual({
         id: "test-id-456",
-        scheduled: "2024-06-20",
+        scheduled: { date: "2024-06-20" },
         priority: "A",
       });
       // Should NOT include olpath, file, pos, title when id is present
@@ -266,9 +260,7 @@ describe("OrgAgendaApi", () => {
         level: 1,
         tags: null,
         scheduled: null,
-        scheduledRepeater: null,
         deadline: null,
-        deadlineRepeater: null,
         priority: null,
         olpath: ["Parent"],
         notifyBefore: null,
@@ -277,7 +269,7 @@ describe("OrgAgendaApi", () => {
       };
 
       const updates = {
-        deadline: "2024-07-01",
+        deadline: { date: "2024-07-01" },
       };
 
       const mockResponse = { status: "updated" };
@@ -295,13 +287,13 @@ describe("OrgAgendaApi", () => {
       expect(callBody).toEqual({
         file: "/test.org",
         pos: 100,
-        deadline: "2024-07-01",
+        deadline: { date: "2024-07-01" },
       });
       // Should NOT include olpath
       expect(callBody).not.toHaveProperty("olpath");
     });
 
-    it("should use correct field names for schedule updates", async () => {
+    it("should use Timestamp objects for schedule/deadline with repeaters", async () => {
       const todo = {
         id: "test-id",
         title: "Test",
@@ -311,9 +303,7 @@ describe("OrgAgendaApi", () => {
         level: 1,
         tags: null,
         scheduled: null,
-        scheduledRepeater: null,
         deadline: null,
-        deadlineRepeater: null,
         priority: null,
         olpath: null,
         notifyBefore: null,
@@ -322,10 +312,15 @@ describe("OrgAgendaApi", () => {
       };
 
       const updates = {
-        scheduled: "2024-06-20",
-        scheduledRepeater: { type: "+" as const, value: 1, unit: "w" as const },
-        deadline: "2024-07-01",
-        deadlineRepeater: { type: "++" as const, value: 2, unit: "d" as const },
+        scheduled: {
+          date: "2024-06-20",
+          time: "10:00",
+          repeater: { type: "+" as const, value: 1, unit: "w" as const },
+        },
+        deadline: {
+          date: "2024-07-01",
+          repeater: { type: "++" as const, value: 2, unit: "d" as const },
+        },
       };
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -338,14 +333,19 @@ describe("OrgAgendaApi", () => {
       const callBody = JSON.parse(
         (global.fetch as jest.Mock).mock.calls[0][1].body,
       );
-      // Verify exact field names match what backend expects
-      expect(callBody).toHaveProperty("scheduled", "2024-06-20");
-      expect(callBody).toHaveProperty("scheduledRepeater");
-      expect(callBody).toHaveProperty("deadline", "2024-07-01");
-      expect(callBody).toHaveProperty("deadlineRepeater");
-      // Should NOT have typos like "schedule" instead of "scheduled"
-      expect(callBody).not.toHaveProperty("schedule");
-      expect(callBody).not.toHaveProperty("scheduleRepeater");
+      // Verify Timestamp structure is sent correctly
+      expect(callBody.scheduled).toEqual({
+        date: "2024-06-20",
+        time: "10:00",
+        repeater: { type: "+", value: 1, unit: "w" },
+      });
+      expect(callBody.deadline).toEqual({
+        date: "2024-07-01",
+        repeater: { type: "++", value: 2, unit: "d" },
+      });
+      // Should NOT have old-style separate repeater fields
+      expect(callBody).not.toHaveProperty("scheduledRepeater");
+      expect(callBody).not.toHaveProperty("deadlineRepeater");
     });
   });
 
@@ -360,9 +360,7 @@ describe("OrgAgendaApi", () => {
         level: 1,
         tags: null,
         scheduled: null,
-        scheduledRepeater: null,
         deadline: null,
-        deadlineRepeater: null,
         priority: null,
         olpath: ["Some", "Path"],
         notifyBefore: null,
@@ -399,9 +397,7 @@ describe("OrgAgendaApi", () => {
         level: 1,
         tags: null,
         scheduled: null,
-        scheduledRepeater: null,
         deadline: null,
-        deadlineRepeater: null,
         priority: null,
         olpath: ["Some", "Path"],
         notifyBefore: null,
@@ -443,9 +439,7 @@ describe("OrgAgendaApi", () => {
         level: 1,
         tags: null,
         scheduled: null,
-        scheduledRepeater: null,
         deadline: null,
-        deadlineRepeater: null,
         priority: null,
         olpath: ["Parent"],
         notifyBefore: null,
@@ -483,9 +477,7 @@ describe("OrgAgendaApi", () => {
         level: 1,
         tags: null,
         scheduled: null,
-        scheduledRepeater: null,
         deadline: null,
-        deadlineRepeater: null,
         priority: null,
         olpath: ["Parent"],
         notifyBefore: null,

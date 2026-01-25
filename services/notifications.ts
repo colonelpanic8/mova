@@ -96,10 +96,14 @@ export async function scheduleNotificationsForTodos(
     }
 
     // Get the event time (scheduled or deadline)
-    const eventTimeStr = todo.scheduled || todo.deadline;
-    if (!eventTimeStr) continue;
+    const timestamp = todo.scheduled || todo.deadline;
+    if (!timestamp) continue;
 
-    const eventTime = new Date(eventTimeStr);
+    // Build date string from timestamp object
+    const dateStr = timestamp.time
+      ? `${timestamp.date}T${timestamp.time}:00`
+      : `${timestamp.date}T00:00:00`;
+    const eventTime = new Date(dateStr);
     if (isNaN(eventTime.getTime())) continue;
 
     // Get notification times (per-item or defaults)

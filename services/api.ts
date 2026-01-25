@@ -10,6 +10,13 @@ export interface Repeater {
   unit: RepeaterUnit;
 }
 
+// Unified timestamp structure for scheduled/deadline
+export interface Timestamp {
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:MM (optional)
+  repeater?: Repeater; // (optional)
+}
+
 // Logbook entry types
 export interface LogbookEntry {
   type: "state-change" | "note" | "clock";
@@ -28,10 +35,8 @@ export interface Todo {
   title: string;
   tags: string[] | null;
   level: number;
-  scheduled: string | null;
-  scheduledRepeater: Repeater | null;
-  deadline: string | null;
-  deadlineRepeater: Repeater | null;
+  scheduled: Timestamp | null;
+  deadline: Timestamp | null;
   priority: string | null;
   file: string | null;
   pos: number | null;
@@ -147,10 +152,8 @@ export interface CompleteTodoResponse {
 
 export interface TodoUpdates {
   new_title?: string;
-  scheduled?: string | null;
-  scheduledRepeater?: Repeater | null;
-  deadline?: string | null;
-  deadlineRepeater?: Repeater | null;
+  scheduled?: Timestamp | null;
+  deadline?: Timestamp | null;
   priority?: string | null;
   body?: string | null;
   properties?: Record<string, string> | null;
@@ -430,7 +433,7 @@ class OrgAgendaApi {
 
   async capture(
     template: string,
-    values: Record<string, string | string[] | Repeater>,
+    values: Record<string, string | string[] | Repeater | Timestamp>,
   ): Promise<CaptureResponse> {
     return this.request<CaptureResponse>("/capture", {
       method: "POST",
@@ -481,7 +484,7 @@ class OrgAgendaApi {
   async categoryCapture(
     type: string,
     category: string,
-    values: Record<string, string | string[]>,
+    values: Record<string, string | string[] | Timestamp>,
   ): Promise<CategoryCaptureResponse> {
     const { title, ...rest } = values;
     return this.request<CategoryCaptureResponse>("/category-capture", {

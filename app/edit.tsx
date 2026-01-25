@@ -7,7 +7,7 @@ import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { api, Repeater, Todo, TodoUpdates } from "@/services/api";
+import { api, Repeater, Timestamp, Todo, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -22,6 +22,38 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+
+// Convert Timestamp to form string (YYYY-MM-DD or YYYY-MM-DDTHH:MM)
+function timestampToFormString(ts: Timestamp | null): string {
+  if (!ts) return "";
+  if (ts.time) {
+    return `${ts.date}T${ts.time}`;
+  }
+  return ts.date;
+}
+
+// Convert form string + repeater to Timestamp
+function formStringToTimestamp(
+  dateStr: string,
+  repeater: Repeater | null,
+): Timestamp | null {
+  if (!dateStr) return null;
+  const ts: Timestamp = { date: "" };
+
+  if (dateStr.includes("T")) {
+    const [date, time] = dateStr.split("T");
+    ts.date = date;
+    ts.time = time;
+  } else {
+    ts.date = dateStr;
+  }
+
+  if (repeater) {
+    ts.repeater = repeater;
+  }
+
+  return ts;
+}
 
 export default function EditScreen() {
   const theme = useTheme();
@@ -52,14 +84,14 @@ export default function EditScreen() {
       tags: null,
       level: 1,
       scheduled: null,
-      scheduledRepeater: null,
       deadline: null,
-      deadlineRepeater: null,
       priority: null,
       olpath: null,
       notifyBefore: null,
       body: null,
       properties: null,
+      category: null,
+      effectiveCategory: null,
     };
   }, [params.todo]);
 
@@ -69,13 +101,17 @@ export default function EditScreen() {
   const [priority, setPriority] = useState<string | null>(
     originalTodo.priority,
   );
-  const [scheduled, setScheduled] = useState(originalTodo.scheduled || "");
-  const [scheduledRepeater, setScheduledRepeater] = useState<Repeater | null>(
-    originalTodo.scheduledRepeater,
+  const [scheduled, setScheduled] = useState(
+    timestampToFormString(originalTodo.scheduled),
   );
-  const [deadline, setDeadline] = useState(originalTodo.deadline || "");
+  const [scheduledRepeater, setScheduledRepeater] = useState<Repeater | null>(
+    originalTodo.scheduled?.repeater || null,
+  );
+  const [deadline, setDeadline] = useState(
+    timestampToFormString(originalTodo.deadline),
+  );
   const [deadlineRepeater, setDeadlineRepeater] = useState<Repeater | null>(
-    originalTodo.deadlineRepeater,
+    originalTodo.deadline?.repeater || null,
   );
   const [body, setBody] = useState(originalTodo.body || "");
   const [bodyExpanded, setBodyExpanded] = useState(!!originalTodo.body);
@@ -112,23 +148,30 @@ export default function EditScreen() {
       if (title !== (originalTodo.title || "")) {
         updates.new_title = title;
       }
-      if (scheduled !== (originalTodo.scheduled || "")) {
-        updates.scheduled = scheduled || null;
-      }
+
+      // Check if scheduled or its repeater changed
+      const originalScheduledStr = timestampToFormString(
+        originalTodo.scheduled,
+      );
+      const originalScheduledRepeater =
+        originalTodo.scheduled?.repeater || null;
       if (
+        scheduled !== originalScheduledStr ||
         JSON.stringify(scheduledRepeater) !==
-        JSON.stringify(originalTodo.scheduledRepeater)
+          JSON.stringify(originalScheduledRepeater)
       ) {
-        updates.scheduledRepeater = scheduledRepeater;
+        updates.scheduled = formStringToTimestamp(scheduled, scheduledRepeater);
       }
-      if (deadline !== (originalTodo.deadline || "")) {
-        updates.deadline = deadline || null;
-      }
+
+      // Check if deadline or its repeater changed
+      const originalDeadlineStr = timestampToFormString(originalTodo.deadline);
+      const originalDeadlineRepeater = originalTodo.deadline?.repeater || null;
       if (
+        deadline !== originalDeadlineStr ||
         JSON.stringify(deadlineRepeater) !==
-        JSON.stringify(originalTodo.deadlineRepeater)
+          JSON.stringify(originalDeadlineRepeater)
       ) {
-        updates.deadlineRepeater = deadlineRepeater;
+        updates.deadline = formStringToTimestamp(deadline, deadlineRepeater);
       }
       if (priority !== originalTodo.priority) {
         updates.priority = priority;
