@@ -6,7 +6,6 @@ import {
 import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
-import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -18,6 +17,11 @@ import {
   TemplatePrompt,
   Timestamp,
 } from "@/services/api";
+import {
+  formatLocalDate as formatDateForApi,
+  formatDateForDisplay,
+} from "@/utils/dateFormatting";
+import { formStringToTimestamp } from "@/utils/timestampConversion";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -36,70 +40,17 @@ import {
   useTheme,
 } from "react-native-paper";
 
-// Convert form string + repeater to Timestamp
-function formStringToTimestamp(
-  dateStr: string,
-  repeater: Repeater | null,
-): Timestamp | null {
-  if (!dateStr) return null;
-  const ts: Timestamp = { date: "" };
-
-  if (dateStr.includes("T")) {
-    const [date, time] = dateStr.split("T");
-    ts.date = date;
-    ts.time = time;
-  } else {
-    ts.date = dateStr;
-  }
-
-  if (repeater) {
-    ts.repeater = repeater;
-  }
-
-  return ts;
-}
-
 type CaptureSelection =
   | { type: "template"; key: string }
   | { type: "category"; categoryType: CategoryType };
-
-function formatDateForApi(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
-
-function formatDateForDisplay(dateString: string): string {
-  // Check if the string includes time
-  if (dateString.includes("T") || dateString.includes(" ")) {
-    const date = new Date(dateString);
-    return date.toLocaleString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-  const date = new Date(dateString + "T00:00:00");
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 interface PromptFieldProps {
   prompt: TemplatePrompt;
   value: string | string[];
   onChange: (value: string | string[]) => void;
-  showVoiceInput?: boolean;
 }
 
-function PromptField({
-  prompt,
-  value,
-  onChange,
-  showVoiceInput,
-}: PromptFieldProps) {
+function PromptField({ prompt, value, onChange }: PromptFieldProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tagInputValue, setTagInputValue] = useState("");
 
@@ -247,12 +198,6 @@ function PromptField({
         }
         numberOfLines={prompt.name.toLowerCase() === "body" ? 4 : 2}
       />
-      {showVoiceInput && (
-        <VoiceMicButton
-          onTranscript={(text) => onChange(text)}
-          onPartialTranscript={(text) => onChange(text)}
-        />
-      )}
     </View>
   );
 }
@@ -587,7 +532,6 @@ export default function CaptureScreen() {
               prompt={prompt}
               value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
               onChange={(value) => handleValueChange(prompt.name, value)}
-              showVoiceInput={prompt.name.toLowerCase() === "title"}
             />
           ))}
 

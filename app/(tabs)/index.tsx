@@ -7,6 +7,11 @@ import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { AgendaResponse, Todo, TodoStatesResponse, api } from "@/services/api";
+import {
+  formatLocalDate as formatDateForApi,
+  formatDateForDisplay,
+  isPastDay,
+} from "@/utils/dateFormatting";
 import { filterTodos } from "@/utils/filterTodos";
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -28,42 +33,6 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-
-function formatDateForApi(date: Date): string {
-  // Use local time instead of UTC to avoid off-by-one errors
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function formatDateForDisplay(
-  dateString: string,
-  compact: boolean = false,
-): string {
-  const date = new Date(dateString + "T00:00:00");
-  if (compact) {
-    return date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-    });
-  }
-  return date.toLocaleDateString(undefined, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-function isPastDay(date: Date): boolean {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const compareDate = new Date(date);
-  compareDate.setHours(0, 0, 0, 0);
-  return compareDate < today;
-}
 
 export default function AgendaScreen() {
   const [agenda, setAgenda] = useState<AgendaResponse | null>(null);

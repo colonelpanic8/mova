@@ -7,8 +7,12 @@ import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { api, Repeater, Timestamp, Todo, TodoUpdates } from "@/services/api";
+import { api, Repeater, Todo, TodoUpdates } from "@/services/api";
 import { scheduleCustomNotification } from "@/services/notifications";
+import {
+  formStringToTimestamp,
+  timestampToFormString,
+} from "@/utils/timestampConversion";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
@@ -22,38 +26,6 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
-
-// Convert Timestamp to form string (YYYY-MM-DD or YYYY-MM-DDTHH:MM)
-function timestampToFormString(ts: Timestamp | null): string {
-  if (!ts) return "";
-  if (ts.time) {
-    return `${ts.date}T${ts.time}`;
-  }
-  return ts.date;
-}
-
-// Convert form string + repeater to Timestamp
-function formStringToTimestamp(
-  dateStr: string,
-  repeater: Repeater | null,
-): Timestamp | null {
-  if (!dateStr) return null;
-  const ts: Timestamp = { date: "" };
-
-  if (dateStr.includes("T")) {
-    const [date, time] = dateStr.split("T");
-    ts.date = date;
-    ts.time = time;
-  } else {
-    ts.date = dateStr;
-  }
-
-  if (repeater) {
-    ts.repeater = repeater;
-  }
-
-  return ts;
-}
 
 export default function EditScreen() {
   const theme = useTheme();

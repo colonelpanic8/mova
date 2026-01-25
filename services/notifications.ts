@@ -1,3 +1,4 @@
+import { formatTimeFromDate, formatTimeUntil } from "@/utils/timeFormatting";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
@@ -59,19 +60,6 @@ function getTodoId(todo: Todo): string {
   return todo.id || `${todo.file}:${todo.pos}`;
 }
 
-function formatTimeUntil(minutes: number): string {
-  if (minutes <= 0) return "now";
-  if (minutes < 60) return `in ${minutes} minutes`;
-  const hours = Math.floor(minutes / 60);
-  const remainingMins = minutes % 60;
-  if (remainingMins === 0) return `in ${hours} hour${hours > 1 ? "s" : ""}`;
-  return `in ${hours}h ${remainingMins}m`;
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
 export async function scheduleNotificationsForTodos(
   todos: Todo[],
   defaults: NotificationDefaults,
@@ -129,7 +117,7 @@ export async function scheduleNotificationsForTodos(
         await Notifications.scheduleNotificationAsync({
           content: {
             title: todo.title,
-            body: `${formatTimeUntil(minutes)} at ${formatTime(eventTime)} (${reasonText})`,
+            body: `${formatTimeUntil(minutes)} at ${formatTimeFromDate(eventTime)} (${reasonText})`,
             data: {
               todoId,
               file: todo.file,
@@ -253,7 +241,7 @@ export async function scheduleCustomNotification(
     await Notifications.scheduleNotificationAsync({
       content: {
         title: todo.title,
-        body: `Reminder: ${formatTime(notificationTime)}`,
+        body: `Reminder: ${formatTimeFromDate(notificationTime)}`,
         data: {
           todoId,
           file: todo.file,

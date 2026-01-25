@@ -6,6 +6,7 @@
  */
 
 import { Repeater, RepeaterType, RepeaterUnit } from "@/services/api";
+import { formatRepeaterDisplay } from "@/utils/repeaterFormatting";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
@@ -16,6 +17,9 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+
+// Re-export for backwards compatibility
+export { formatRepeaterDisplay };
 
 interface RepeaterPickerProps {
   value: Repeater | null;
@@ -43,15 +47,6 @@ const REPEATER_UNITS: { value: RepeaterUnit; label: string }[] = [
   { value: "m", label: "month" },
   { value: "y", label: "year" },
 ];
-
-export function formatRepeaterDisplay(repeater: Repeater | null): string {
-  if (!repeater) return "No repeat";
-  const unitLabel =
-    REPEATER_UNITS.find((u) => u.value === repeater.unit)?.label ||
-    repeater.unit;
-  const plural = repeater.value !== 1 ? "s" : "";
-  return `Every ${repeater.value} ${unitLabel}${plural}`;
-}
 
 export function RepeaterPicker({
   value,

@@ -3,6 +3,7 @@ import { StatePill } from "@/components/StatePill";
 import { getTodoKey } from "@/components/TodoItem";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
+import { formatHour, formatTime } from "@/utils/timeFormatting";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
 import {
@@ -50,20 +51,6 @@ function getTimeFromEntry(
   if (isNaN(hours) || isNaN(minutes)) return null;
 
   return { hours, minutes };
-}
-
-function formatHour(hour: number): string {
-  if (hour === 0 || hour === 24) return "12 AM";
-  const period = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour > 12 ? hour - 12 : hour;
-  return `${displayHour} ${period}`;
-}
-
-function formatTime(hours: number, minutes: number): string {
-  const period = hours >= 12 ? "PM" : "AM";
-  const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-  const displayMinutes = minutes.toString().padStart(2, "0");
-  return `${displayHour}:${displayMinutes} ${period}`;
 }
 
 // Compact todo item for schedule view

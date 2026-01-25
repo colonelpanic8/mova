@@ -1,4 +1,9 @@
 import { useColorPalette } from "@/context/ColorPaletteContext";
+import {
+  formatDateForDisplay,
+  formatLocalDate,
+  formatLocalDateTime,
+} from "@/utils/dateFormatting";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -6,39 +11,11 @@ import React, { useCallback, useState } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Button, IconButton, Switch, Text, useTheme } from "react-native-paper";
 
-function formatDateForApi(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
-
-function formatDateForDisplay(dateString: string): string {
-  if (dateString.includes("T") || dateString.includes(" ")) {
-    const date = new Date(dateString);
-    return date.toLocaleString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-  const date = new Date(dateString + "T00:00:00");
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 function formatDateTimeForApi(date: Date, includeTime: boolean): string {
   if (includeTime) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
+    return formatLocalDateTime(date).replace(" ", " "); // YYYY-MM-DD HH:MM format
   }
-  return formatDateForApi(date);
+  return formatLocalDate(date);
 }
 
 export interface DateFieldWithQuickActionsProps {
