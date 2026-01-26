@@ -9,10 +9,10 @@ const isHeadlessContext = () => {
   return AppState.currentState === null || AppState.currentState === undefined;
 };
 
-// Storage keys for credentials (shared with AuthContext)
-const API_URL_KEY = "api_url";
-const USERNAME_KEY = "username";
-const PASSWORD_KEY = "password";
+// Storage keys for credentials (must match AuthContext STORAGE_KEYS)
+const API_URL_KEY = "mova_api_url";
+const USERNAME_KEY = "mova_username";
+const PASSWORD_KEY = "mova_password";
 
 async function getStoredCredentials(): Promise<{
   apiUrl: string | null;
