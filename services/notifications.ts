@@ -53,8 +53,13 @@ export async function cancelAllNotifications(): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
-function getNotificationIdentifier(notification: ServerNotification): string {
-  return notification.id || `${notification.file}:${notification.pos}`;
+function getNotificationIdentifier(notification: ServerNotification, index: number): string {
+  if (notification.id) return notification.id;
+  if (notification.file && notification.pos != null) {
+    return `${notification.file}:${notification.pos}`;
+  }
+  // Fallback to index-based ID if no other identifier available
+  return `notif-${index}`;
 }
 
 function formatNotificationBody(notification: ServerNotification): string {
@@ -106,13 +111,11 @@ export async function scheduleNotificationsFromServer(
 
   let scheduledCount = 0;
 
-  for (const notification of response.notifications) {
+  for (let i = 0; i < response.notifications.length; i++) {
+    const notification = response.notifications[i];
     const notifyAt = new Date(notification.notifyAt);
 
-    // Skip if notification time has passed
-    if (notifyAt <= now) continue;
-
-    const identifier = `${getNotificationIdentifier(notification)}:${notifyAt.getTime()}`;
+    const identifier = `${getNotificationIdentifier(notification, i)}:${notifyAt.getTime()}`;
 
     try {
       await Notifications.scheduleNotificationAsync({
@@ -138,7 +141,7 @@ export async function scheduleNotificationsFromServer(
       scheduledCount++;
     } catch (err) {
       console.error(
-        `Failed to schedule notification for ${notification.title}:`,
+        `[Notifications] Failed to schedule ${notification.title}:`,
         err,
       );
     }
@@ -231,7 +234,7 @@ export function updateActiveNotificationIds(
   notifications: ServerNotification[],
 ): void {
   activeNotificationIds = new Set(
-    notifications.map((n) => getNotificationIdentifier(n)),
+    notifications.map((n, i) => getNotificationIdentifier(n, i)),
   );
 }
 
