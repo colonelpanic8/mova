@@ -7,6 +7,7 @@ import { Chip } from "react-native-paper";
 interface StatePillProps {
   state: string;
   selected?: boolean;
+  dimWhenUnselected?: boolean;
   onPress?: () => void;
   loading?: boolean;
 }
@@ -14,6 +15,7 @@ interface StatePillProps {
 export function StatePill({
   state,
   selected = true,
+  dimWhenUnselected = true,
   onPress,
   loading = false,
 }: StatePillProps) {
@@ -30,7 +32,7 @@ export function StatePill({
       style={[
         styles.chip,
         { backgroundColor },
-        !selected && styles.unselected,
+        !selected && dimWhenUnselected && styles.unselected,
         loading && styles.loading,
       ]}
       textStyle={{ fontSize: 10, color: textColor }}

@@ -3,6 +3,7 @@
 ## [5.10.2]
 
 - fix: force data refresh after switching servers
+- fix: remove redundant dimming from state selection modal
 
 ## [5.10.1]
 
