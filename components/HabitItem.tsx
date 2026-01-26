@@ -296,6 +296,7 @@ export function HabitItem({ todo }: HabitItemProps) {
             <HabitGraph
               miniGraph={graphData}
               onCellPress={handleGraphCellPress}
+              nextRequiredDate={habitSummary?.nextRequiredInterval}
             />
           )}
         </View>

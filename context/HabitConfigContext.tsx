@@ -12,6 +12,7 @@ interface HabitConfigContextType {
   glyphs: {
     completionNeededToday: string;
     completed: string;
+    nextRequired: string;
   };
   refetch: () => Promise<void>;
 }
@@ -19,6 +20,7 @@ interface HabitConfigContextType {
 const DEFAULT_GLYPHS = {
   completionNeededToday: "\u2610", // ☐
   completed: "\u2713", // ✓
+  nextRequired: "\u25B6", // ▶
 };
 
 const HabitConfigContext = createContext<HabitConfigContextType | undefined>(
@@ -40,6 +42,7 @@ export function HabitConfigProvider({ children }: { children: ReactNode }) {
     ? {
         completionNeededToday: habitConfig.display.completionNeededTodayGlyph,
         completed: habitConfig.display.completedGlyph,
+        nextRequired: DEFAULT_GLYPHS.nextRequired,
       }
     : DEFAULT_GLYPHS;
 
