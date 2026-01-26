@@ -179,7 +179,9 @@ export default function NotificationsScreen() {
                       <Chip
                         icon={() => (
                           <Icon
-                            source={getTimestampTypeIcon(notification.timestampType)}
+                            source={getTimestampTypeIcon(
+                              notification.timestampType,
+                            )}
                             size={14}
                             color={theme.colors.onSurfaceVariant}
                           />

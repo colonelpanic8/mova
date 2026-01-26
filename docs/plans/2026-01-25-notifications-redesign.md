@@ -25,22 +25,22 @@ interface NotificationsResponse {
 
 interface ServerNotification {
   title: string;
-  notifyAt: string;  // ISO 8601 - when to fire notification
+  notifyAt: string; // ISO 8601 - when to fire notification
   type: "relative" | "absolute" | "day-wide";
 
   // For relative notifications
   timestampType?: "deadline" | "scheduled" | "timestamp";
-  eventTime?: string;       // ISO 8601 - when event happens
+  eventTime?: string; // ISO 8601 - when event happens
   eventTimeString?: string; // Original org timestamp
   minutesBefore?: number;
 
   // Location/identity
   file: string;
   pos: number;
-  id?: string;  // org ID if set
+  id?: string; // org ID if set
 
   // Context
-  allTimes?: Array<{timestampType: string; timestampString: string}>;
+  allTimes?: Array<{ timestampType: string; timestampString: string }>;
 }
 ```
 
@@ -108,6 +108,7 @@ Keep the feature but ensure it sets the appropriate property (`WILD_NOTIFIER_NOT
 ## Migration
 
 No data migration needed. On first sync after update:
+
 1. All old scheduled notifications get cancelled
 2. New notifications scheduled from server response
 

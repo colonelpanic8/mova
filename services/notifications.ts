@@ -61,13 +61,20 @@ function formatNotificationBody(notification: ServerNotification): string {
   const parts: string[] = [];
 
   // Add time info for relative notifications
-  if (notification.type === "relative" && notification.minutesBefore && notification.eventTime) {
+  if (
+    notification.type === "relative" &&
+    notification.minutesBefore &&
+    notification.eventTime
+  ) {
     const eventDate = new Date(notification.eventTime);
-    parts.push(`${formatTimeUntil(notification.minutesBefore)} at ${formatTimeFromDate(eventDate)}`);
+    parts.push(
+      `${formatTimeUntil(notification.minutesBefore)} at ${formatTimeFromDate(eventDate)}`,
+    );
   }
 
   // Add type label
-  const typeLabel = notification.type === "day-wide" ? "day-wide" : notification.type;
+  const typeLabel =
+    notification.type === "day-wide" ? "day-wide" : notification.type;
   const timestampLabel = notification.timestampType || "";
   if (timestampLabel) {
     parts.push(`${timestampLabel} · ${typeLabel}`);
