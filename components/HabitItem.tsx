@@ -8,6 +8,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
+import { formatLocalDate } from "@/utils/dateFormatting";
 import React, {
   useCallback,
   useEffect,
@@ -15,7 +16,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -324,7 +325,7 @@ export function HabitItem({ todo }: HabitItemProps) {
       </View>
 
       {/* Date picker - rendered outside Pressable to prevent touch conflicts */}
-      {showDatePicker && (
+      {showDatePicker && Platform.OS !== "web" && (
         <DateTimePicker
           value={new Date()}
           mode="date"
@@ -332,6 +333,41 @@ export function HabitItem({ todo }: HabitItemProps) {
           onChange={handleDateChange}
           maximumDate={new Date()}
         />
+      )}
+
+      {/* Web-specific date picker using Portal and Dialog */}
+      {Platform.OS === "web" && (
+        <Portal>
+          <Dialog
+            visible={showDatePicker}
+            onDismiss={() => setShowDatePicker(false)}
+          >
+            <Dialog.Title>Choose Date</Dialog.Title>
+            <Dialog.Content>
+              <input
+                type="date"
+                max={formatLocalDate(new Date())}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const selectedDate = new Date(e.target.value + "T00:00:00");
+                    setShowDatePicker(false);
+                    handleCompleteForDate(selectedDate);
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  fontSize: 16,
+                  borderRadius: 4,
+                  border: "1px solid #ccc",
+                }}
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowDatePicker(false)}>Cancel</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       )}
 
       {/* Confirmation dialog for completing/uncompleting habit on a specific date */}

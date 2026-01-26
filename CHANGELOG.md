@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.9.1]
+
+- fix: habit date picker not working on web platform
+
 ## [5.4.0]
 
 - feat: add inline save button next to title input
