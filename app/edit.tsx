@@ -22,6 +22,7 @@ import {
   Appbar,
   Button,
   Dialog,
+  IconButton,
   Portal,
   Snackbar,
   Text,
@@ -325,16 +326,26 @@ export default function EditScreen() {
             </View>
           )}
 
-          {/* Title */}
-          <TextInput
-            label="Title"
-            value={title}
-            onChangeText={setTitle}
-            mode="outlined"
-            style={styles.input}
-            testID="title-input"
-            editable={true}
-          />
+          {/* Title with inline save button */}
+          <View style={styles.titleRow}>
+            <TextInput
+              label="Title"
+              value={title}
+              onChangeText={setTitle}
+              mode="outlined"
+              style={styles.titleInput}
+              testID="title-input"
+              editable={true}
+            />
+            <IconButton
+              icon="content-save"
+              mode="contained"
+              onPress={handleSave}
+              disabled={isSaving || isDeleting}
+              loading={isSaving}
+              style={styles.inlineSaveButton}
+            />
+          </View>
 
           {/* State */}
           <StatePicker value={todoState} onChange={setTodoState} />
@@ -543,6 +554,18 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontFamily: "monospace",
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 8,
+  },
+  titleInput: {
+    flex: 1,
+  },
+  inlineSaveButton: {
+    marginTop: 6,
   },
   input: {
     marginBottom: 16,
