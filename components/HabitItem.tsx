@@ -75,6 +75,7 @@ export function HabitItem({ todo }: HabitItemProps) {
   const [graphData, setGraphData] = useState<MiniGraphEntry[] | null>(null);
   const [graphLoading, setGraphLoading] = useState(false);
   const [confirmEntry, setConfirmEntry] = useState<MiniGraphEntry | null>(null);
+  const [isUncompleting, setIsUncompleting] = useState(false);
 
   const key = todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
   const isCompleting = completingIds.has(key);
@@ -177,6 +178,26 @@ export function HabitItem({ todo }: HabitItemProps) {
     handleCompleteForDate(date);
     setConfirmEntry(null);
   }, [confirmEntry, handleCompleteForDate]);
+
+  const handleConfirmUncomplete = useCallback(async () => {
+    if (!confirmEntry || !api) return;
+    setIsUncompleting(true);
+    try {
+      const result = await api.deleteLogbookEntry(
+        todo,
+        confirmEntry.date,
+        "state-change",
+      );
+      if (result.status === "deleted") {
+        fetchGraphData();
+      }
+    } catch (err) {
+      console.error("Failed to remove completion:", err);
+    } finally {
+      setIsUncompleting(false);
+      setConfirmEntry(null);
+    }
+  }, [confirmEntry, api, todo, fetchGraphData]);
 
   const confirmDate = confirmEntry
     ? new Date(confirmEntry.date + "T00:00:00")
@@ -313,34 +334,40 @@ export function HabitItem({ todo }: HabitItemProps) {
         />
       )}
 
-      {/* Confirmation dialog for completing habit on a specific date */}
+      {/* Confirmation dialog for completing/uncompleting habit on a specific date */}
       <Portal>
         <Dialog
           visible={confirmEntry !== null}
-          onDismiss={() => setConfirmEntry(null)}
+          onDismiss={() => !isUncompleting && setConfirmEntry(null)}
         >
           <Dialog.Title>
-            {confirmEntry?.completed ? "Not Yet Supported" : "Complete Habit"}
+            {confirmEntry?.completed ? "Remove Completion" : "Complete Habit"}
           </Dialog.Title>
           <Dialog.Content>
             <Text>
               {confirmEntry?.completed
-                ? "Uncompleting habits is not yet supported."
+                ? `Remove completion for "${todo.title}" on ${formattedConfirmDate}?`
                 : `Mark "${todo.title}" as complete for ${formattedConfirmDate}?`}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
+            <Button
+              onPress={() => setConfirmEntry(null)}
+              disabled={isUncompleting}
+            >
+              Cancel
+            </Button>
             {confirmEntry?.completed ? (
-              <Button onPress={() => setConfirmEntry(null)}>OK</Button>
+              <Button
+                onPress={handleConfirmUncomplete}
+                loading={isUncompleting}
+                disabled={isUncompleting}
+                textColor={theme.colors.error}
+              >
+                Remove
+              </Button>
             ) : (
-              [
-                <Button key="cancel" onPress={() => setConfirmEntry(null)}>
-                  Cancel
-                </Button>,
-                <Button key="complete" onPress={handleConfirmComplete}>
-                  Complete
-                </Button>,
-              ]
+              <Button onPress={handleConfirmComplete}>Complete</Button>
             )}
           </Dialog.Actions>
         </Dialog>
