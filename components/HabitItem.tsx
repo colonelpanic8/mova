@@ -82,7 +82,9 @@ function calculateCellCount(screenWidth: number): {
 
   // How many cells fit: (availableWidth + gap) / (cellWidth + gap)
   // We add gap because gaps are between cells, not after the last one
-  const cellsFit = Math.floor((availableWidth + CELL_GAP) / (CELL_WIDTH + CELL_GAP));
+  const cellsFit = Math.floor(
+    (availableWidth + CELL_GAP) / (CELL_WIDTH + CELL_GAP),
+  );
 
   // Cap at the maximum total (14 + 5 = 19)
   const totalMax = MAX_PRECEDING + MAX_FOLLOWING;

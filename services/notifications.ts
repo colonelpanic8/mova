@@ -53,7 +53,10 @@ export async function cancelAllNotifications(): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
-function getNotificationIdentifier(notification: ServerNotification, index: number): string {
+function getNotificationIdentifier(
+  notification: ServerNotification,
+  index: number,
+): string {
   if (notification.id) return notification.id;
   if (notification.file && notification.pos != null) {
     return `${notification.file}:${notification.pos}`;
