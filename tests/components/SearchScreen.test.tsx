@@ -21,6 +21,13 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
 import { FilterProvider } from "../../context/FilterContext";
 
+// Import after mocks are set up
+import { useApi } from "../../context/ApiContext";
+import { useAuth } from "../../context/AuthContext";
+
+// Import the actual screen component
+import SearchScreen from "../../app/(tabs)/search";
+
 // Mock the modules before importing the component
 jest.mock("../../services/api");
 jest.mock("../../context/AuthContext");
@@ -87,10 +94,6 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({}),
   useSegments: () => [],
 }));
-
-// Import after mocks are set up
-import { useApi } from "../../context/ApiContext";
-import { useAuth } from "../../context/AuthContext";
 
 // Create mock API object that we can reference in tests
 const mockApi = {
@@ -457,9 +460,6 @@ describe("SearchScreen UI Components", () => {
     expect(getByText(":work:")).toBeTruthy();
   });
 });
-
-// Import the actual screen component
-import SearchScreen from "../../app/(tabs)/search";
 
 // Helper to render with all required providers
 const renderScreen = (component: React.ReactElement) => {
