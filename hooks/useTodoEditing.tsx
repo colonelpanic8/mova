@@ -8,7 +8,6 @@ import {
   TodoStatesResponse,
   TodoUpdates,
 } from "@/services/api";
-import { scheduleCustomNotification } from "@/services/notifications";
 import { formatLocalDate } from "@/utils/dateFormatting";
 import { dateToTimestamp, timestampToDate } from "@/utils/timestampConversion";
 import { getTodoKey } from "@/utils/todoKey";
@@ -495,29 +494,14 @@ export function useTodoEditing(
       return;
     }
 
-    const result = await scheduleCustomNotification(
-      editingTodo,
-      remindDateTime,
-    );
-    if (result) {
-      setSnackbar({
-        visible: true,
-        message: `Reminder set for ${remindDateTime.toLocaleString([], {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })}`,
-        isError: false,
-      });
-      closeEditModal();
-    } else {
-      setSnackbar({
-        visible: true,
-        message: "Failed to schedule reminder",
-        isError: true,
-      });
-    }
+    // Custom notification scheduling removed - server is now source of truth
+    // TODO: Implement via API by setting WILD_NOTIFIER_NOTIFY_AT property
+    setSnackbar({
+      visible: true,
+      message: "Custom reminders not yet supported with server-driven notifications",
+      isError: true,
+    });
+    closeEditModal();
   }, [editingTodo, remindDateTime, closeEditModal]);
 
   const handleRemindDateChange = useCallback(
