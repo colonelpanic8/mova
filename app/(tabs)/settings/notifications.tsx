@@ -1,17 +1,17 @@
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import {
-  cancelNotification,
   getAllScheduledNotifications,
   ScheduledNotificationInfo,
 } from "@/services/notifications";
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
   Card,
+  Chip,
   Divider,
-  IconButton,
+  Icon,
   List,
   Text,
   useTheme,
@@ -50,6 +50,32 @@ function formatFullDateTime(date: Date): string {
   });
 }
 
+function getTypeIcon(type?: string): string {
+  switch (type) {
+    case "relative":
+      return "clock-outline";
+    case "absolute":
+      return "clock-check-outline";
+    case "day-wide":
+      return "calendar-today";
+    default:
+      return "bell-outline";
+  }
+}
+
+function getTimestampTypeIcon(timestampType?: string): string {
+  switch (timestampType) {
+    case "deadline":
+      return "flag-outline";
+    case "scheduled":
+      return "calendar-clock";
+    case "timestamp":
+      return "calendar";
+    default:
+      return "";
+  }
+}
+
 export default function NotificationsScreen() {
   const theme = useTheme();
   const [notifications, setNotifications] = useState<
@@ -73,27 +99,6 @@ export default function NotificationsScreen() {
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
-
-  const handleCancelNotification = useCallback(
-    (notification: ScheduledNotificationInfo) => {
-      Alert.alert(
-        "Cancel Notification",
-        `Remove the notification for "${notification.title}"?`,
-        [
-          { text: "Keep", style: "cancel" },
-          {
-            text: "Cancel Notification",
-            style: "destructive",
-            onPress: async () => {
-              await cancelNotification(notification.identifier);
-              await loadNotifications();
-            },
-          },
-        ],
-      );
-    },
-    [loadNotifications],
-  );
 
   const handleRefresh = useCallback(async () => {
     await syncNotifications();
@@ -146,13 +151,12 @@ export default function NotificationsScreen() {
             variant="bodySmall"
             style={[styles.emptySubtext, { color: theme.colors.outline }]}
           >
-            Notifications will appear here when you have upcoming reminders for
-            scheduled items
+            Notifications will appear here when you have upcoming reminders
           </Text>
         </View>
       ) : (
         <View style={styles.listContainer}>
-          {notifications.map((notification, index) => (
+          {notifications.map((notification) => (
             <Card
               key={notification.identifier}
               style={[
@@ -170,12 +174,40 @@ export default function NotificationsScreen() {
                   >
                     {notification.title}
                   </Text>
-                  <Text
-                    variant="bodySmall"
-                    style={{ color: theme.colors.outline }}
-                  >
-                    {notification.body}
-                  </Text>
+                  <View style={styles.typeRow}>
+                    {notification.timestampType && (
+                      <Chip
+                        icon={() => (
+                          <Icon
+                            source={getTimestampTypeIcon(notification.timestampType)}
+                            size={14}
+                            color={theme.colors.onSurfaceVariant}
+                          />
+                        )}
+                        compact
+                        style={styles.chip}
+                        textStyle={styles.chipText}
+                      >
+                        {notification.timestampType}
+                      </Chip>
+                    )}
+                    {notification.type && (
+                      <Chip
+                        icon={() => (
+                          <Icon
+                            source={getTypeIcon(notification.type)}
+                            size={14}
+                            color={theme.colors.onSurfaceVariant}
+                          />
+                        )}
+                        compact
+                        style={styles.chip}
+                        textStyle={styles.chipText}
+                      >
+                        {notification.type}
+                      </Chip>
+                    )}
+                  </View>
                   <View style={styles.timeRow}>
                     <Text
                       variant="labelMedium"
@@ -191,12 +223,6 @@ export default function NotificationsScreen() {
                     </Text>
                   </View>
                 </View>
-                <IconButton
-                  icon="close"
-                  size={20}
-                  onPress={() => handleCancelNotification(notification)}
-                  style={styles.cancelButton}
-                />
               </Card.Content>
             </Card>
           ))}
@@ -250,14 +276,22 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontWeight: "600",
   },
+  typeRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 4,
+  },
+  chip: {
+    height: 24,
+  },
+  chipText: {
+    fontSize: 11,
+    marginVertical: 0,
+  },
   timeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginTop: 4,
-  },
-  cancelButton: {
-    margin: -8,
-    marginLeft: 8,
   },
 });
