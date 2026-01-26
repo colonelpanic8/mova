@@ -55,7 +55,7 @@ if (Platform.OS !== "web") {
     try {
       const { TaskManager: TM, BackgroundFetch: BF } = await loadExpoModules();
       const { createApiClient } = await import("./api");
-      const { getNotificationsEnabled, scheduleNotificationsForTodos } =
+      const { getNotificationsEnabled, scheduleNotificationsFromServer } =
         await import("./notifications");
 
       TM.defineTask(BACKGROUND_SYNC_TASK, async () => {
@@ -71,12 +71,9 @@ if (Platform.OS !== "web") {
           }
 
           const api = createApiClient(apiUrl, username, password);
-          const response = await api.getAllTodos();
+          const response = await api.getNotifications();
 
-          const count = await scheduleNotificationsForTodos(
-            response.todos,
-            response.defaults,
-          );
+          const count = await scheduleNotificationsFromServer(response);
           console.log(`Background sync: scheduled ${count} notifications`);
 
           return BF.BackgroundFetchResult.NewData;
