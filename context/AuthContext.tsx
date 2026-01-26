@@ -23,6 +23,7 @@ import React, {
   useState,
 } from "react";
 import { NativeModules, Platform } from "react-native";
+import { useMutation } from "./MutationContext";
 
 interface AuthState {
   apiUrl: string | null;
@@ -90,6 +91,7 @@ const STORAGE_KEYS = {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { triggerRefresh } = useMutation();
   const [state, setState] = useState<AuthState>({
     apiUrl: null,
     username: null,
@@ -262,6 +264,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (success) {
       await setActiveServerId(serverId);
       setActiveServerIdState(serverId);
+      // Trigger a refresh of all screens to fetch data from the new server
+      triggerRefresh();
     }
     return success;
   }

@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.10.2]
+
+- fix: force data refresh after switching servers
+
 ## [5.10.1]
 
 - fix: show full git commit hash in server version display
