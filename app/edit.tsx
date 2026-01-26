@@ -421,11 +421,7 @@ export default function EditScreen() {
           />
 
           {/* Tags - Collapsible, collapsed by default */}
-          <TagsEditor
-            tags={tags}
-            onChange={setTags}
-            defaultExpanded={false}
-          />
+          <TagsEditor tags={tags} onChange={setTags} defaultExpanded={false} />
 
           {/* Logbook - Read-only, collapsed by default */}
           <LogbookViewer

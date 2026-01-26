@@ -17,7 +17,11 @@ interface GraphCellProps {
   isToday: boolean;
   isNextRequired: boolean;
   colors: { conforming: string; notConforming: string };
-  glyphs: { completionNeededToday: string; completed: string; nextRequired: string };
+  glyphs: {
+    completionNeededToday: string;
+    completed: string;
+    nextRequired: string;
+  };
   onPress?: () => void;
 }
 
@@ -93,7 +97,11 @@ export function HabitGraph({
   const pastEntries = miniGraph.slice(0, effectiveTodayIndex + 1);
   const futureEntries = miniGraph.slice(effectiveTodayIndex + 1);
 
-  const renderCell = (entry: MiniGraphEntry, index: number, isInPast: boolean) => (
+  const renderCell = (
+    entry: MiniGraphEntry,
+    index: number,
+    isInPast: boolean,
+  ) => (
     <GraphCell
       key={entry.date}
       entry={entry}
@@ -113,7 +121,13 @@ export function HabitGraph({
       </View>
       {/* Future row */}
       {futureEntries.length > 0 && (
-        <View style={[styles.row, styles.futureRow, expanded && styles.expandedContainer]}>
+        <View
+          style={[
+            styles.row,
+            styles.futureRow,
+            expanded && styles.expandedContainer,
+          ]}
+        >
           {futureEntries.map((entry, index) => renderCell(entry, index, false))}
         </View>
       )}

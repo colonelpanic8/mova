@@ -16,7 +16,13 @@ import { filterTodos } from "@/utils/filterTodos";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Platform,
   RefreshControl,
@@ -79,7 +85,7 @@ export default function AgendaScreen() {
 
   // Apply filters to agenda entries and split into active/completed
   const filteredEntries = agenda ? filterTodos(agenda.entries, filters) : [];
-  const doneStates = todoStates?.done ?? [];
+  const doneStates = useMemo(() => todoStates?.done ?? [], [todoStates?.done]);
   const isCompleted = useCallback(
     (entry: Todo & { completedAt?: string | null }) =>
       entry.completedAt ||
@@ -237,10 +243,17 @@ export default function AgendaScreen() {
         <Text
           testID="agendaErrorText"
           variant="bodyLarge"
-          style={{ color: theme.colors.error }}
+          style={{ color: theme.colors.error, marginBottom: 16 }}
         >
           {error}
         </Text>
+        <IconButton
+          icon="refresh"
+          mode="contained"
+          onPress={onRefresh}
+          loading={refreshing}
+          testID="agendaErrorRefreshButton"
+        />
       </ScrollView>
     );
   }
