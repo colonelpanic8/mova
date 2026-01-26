@@ -332,7 +332,9 @@ export class OrgAgendaApi {
     endpoint: string,
     options: RequestInit = {},
   ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
+    const cacheBuster = `_t=${Date.now()}`;
+    const separator = endpoint.includes("?") ? "&" : "?";
+    const url = `${this.baseUrl}${endpoint}${separator}${cacheBuster}`;
 
     if (!this.baseUrl) {
       throw new Error("API not configured: baseUrl is empty");
@@ -352,6 +354,8 @@ export class OrgAgendaApi {
           headers: {
             Authorization: this.authHeader,
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
             ...options.headers,
           },
         });
