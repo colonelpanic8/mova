@@ -54,6 +54,47 @@ describe("OrgAgendaApi", () => {
     });
   });
 
+  describe("getNotifications", () => {
+    it("should make GET request to /notifications", async () => {
+      const mockResponse = {
+        count: 2,
+        withinMinutes: null,
+        defaultNotifyBefore: [10, 30],
+        notifications: [
+          {
+            title: "Test Task",
+            notifyAt: "2026-01-25T10:00:00",
+            type: "relative",
+            timestampType: "deadline",
+            eventTime: "2026-01-25T10:30:00",
+            minutesBefore: 30,
+            file: "/test.org",
+            pos: 100,
+            id: "test-id",
+          },
+        ],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
+      });
+
+      const result = await api.getNotifications();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://test-api.local/notifications",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Basic"),
+          }),
+        }),
+      );
+      expect(result).toEqual(mockResponse);
+      expect(result.notifications[0].type).toBe("relative");
+    });
+  });
+
   describe("capture", () => {
     it("should make POST request to /capture with template and values", async () => {
       const mockResponse = { status: "created", template: "default" };

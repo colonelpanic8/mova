@@ -131,6 +131,30 @@ export interface NotificationDefaults {
   notifyBefore: number[];
 }
 
+export type NotificationType = "relative" | "absolute" | "day-wide";
+export type TimestampType = "deadline" | "scheduled" | "timestamp";
+
+export interface ServerNotification {
+  title: string;
+  notifyAt: string;
+  type: NotificationType;
+  timestampType?: TimestampType;
+  eventTime?: string;
+  eventTimeString?: string;
+  minutesBefore?: number;
+  file: string;
+  pos: number;
+  id?: string;
+  allTimes?: Array<{ timestampType: string; timestampString: string }>;
+}
+
+export interface NotificationsResponse {
+  count: number;
+  withinMinutes: number | null;
+  defaultNotifyBefore: number[];
+  notifications: ServerNotification[];
+}
+
 export interface GetAllTodosResponse {
   defaults: NotificationDefaults;
   todos: Todo[];
@@ -395,6 +419,10 @@ export class OrgAgendaApi {
 
   async getAllTodos(): Promise<GetAllTodosResponse> {
     return this.request<GetAllTodosResponse>("/get-all-todos");
+  }
+
+  async getNotifications(): Promise<NotificationsResponse> {
+    return this.request<NotificationsResponse>("/notifications");
   }
 
   async completeTodo(
