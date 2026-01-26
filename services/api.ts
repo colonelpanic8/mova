@@ -174,6 +174,14 @@ export interface DeleteTodoResponse {
   message?: string;
 }
 
+export interface DeleteLogbookEntryResponse {
+  status: string;
+  title?: string;
+  date?: string;
+  deletedEntry?: string;
+  message?: string;
+}
+
 export interface TodoStatesResponse {
   active: string[];
   done: string[];
@@ -435,6 +443,24 @@ export class OrgAgendaApi {
       body: JSON.stringify({
         ...identifier,
         include_children: true,
+      }),
+    });
+  }
+
+  async deleteLogbookEntry(
+    todo: Todo,
+    date: string,
+    entryType?: "state-change" | "note",
+  ): Promise<DeleteLogbookEntryResponse> {
+    const identifier = todo.id
+      ? { id: todo.id }
+      : { file: todo.file, pos: todo.pos };
+    return this.request<DeleteLogbookEntryResponse>("/delete-logbook-entry", {
+      method: "POST",
+      body: JSON.stringify({
+        ...identifier,
+        date,
+        ...(entryType && { type: entryType }),
       }),
     });
   }

@@ -120,11 +120,11 @@
     "mova": {
       "flake": false,
       "locked": {
-        "lastModified": 1769075738,
-        "narHash": "sha256-KDmx9WN+YyK/w+ypfYHckIiXT9+JW6KHR7fW83wNku8=",
+        "lastModified": 1769369181,
+        "narHash": "sha256-uqOecUbsq/jJRzF2RPpR5y3SZ31r6NKuWJPSCB1ubM0=",
         "ref": "refs/heads/master",
-        "rev": "9c9b5e6ff2e51625db5cd7557c5c59f1469710d1",
-        "revCount": 300,
+        "rev": "c27da31ad0c36fe9cbf82a9ac0c9a161d1614480",
+        "revCount": 351,
         "type": "git",
         "url": "ssh://git@github.com/colonelpanic8/mova"
       },
@@ -185,11 +185,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1768886240,
-        "narHash": "sha256-C2TjvwYZ2VDxYWeqvvJ5XPPp6U7H66zeJlRaErJKoEM=",
+        "lastModified": 1769170682,
+        "narHash": "sha256-oMmN1lVQU0F0W2k6OI3bgdzp2YOHWYUAw79qzDSjenU=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "80e4adbcf8992d3fd27ad4964fbb84907f9478b0",
+        "rev": "c5296fdd05cfa2c187990dd909864da9658df755",
         "type": "github"
       },
       "original": {
@@ -242,11 +242,11 @@
         "org-window-habit": "org-window-habit"
       },
       "locked": {
-        "lastModified": 1769077954,
-        "narHash": "sha256-kPW2DOREJh1hoCNl/bmEp2Kw6KBn75B4j7hPU6g8unE=",
+        "lastModified": 1769402684,
+        "narHash": "sha256-aeHC/ODn4XlCk71QwJxDCGQI9q0plXokhrui6x8oLdc=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "22724c3b464f7e6387b6073284fb86d1cbb68b54",
+        "rev": "184c648a9113cce95c0ebf13c97e43b58d158757",
         "type": "github"
       },
       "original": {
@@ -274,11 +274,11 @@
     "org-window-habit": {
       "flake": false,
       "locked": {
-        "lastModified": 1769072196,
-        "narHash": "sha256-OHsjM/O656/y/WxeikKA7ibKLnqBhmk7GLydrGBUnMs=",
+        "lastModified": 1769368586,
+        "narHash": "sha256-rNCOa+LsRKBTra6VTD9mLp3EwnVs20eJjHkE9lsye2Q=",
         "owner": "colonelpanic8",
         "repo": "org-window-habit",
-        "rev": "cf95626f7cf091b9951514900c73b61f966b0412",
+        "rev": "6ead9bc8e211439ef49149b9851c796f3db32536",
         "type": "github"
       },
       "original": {
