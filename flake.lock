@@ -9,11 +9,11 @@
         "nixpkgs-stable": "nixpkgs-stable"
       },
       "locked": {
-        "lastModified": 1769393665,
-        "narHash": "sha256-I5NGEzFd18eQKvl/CVM3dLQkNGoL5RK0NtiL1leqn0Y=",
+        "lastModified": 1769419246,
+        "narHash": "sha256-WJwjIHukPk8eQ3tJ5Ee/p2CnzywEU5XHX6D73mosaks=",
         "owner": "nix-community",
         "repo": "emacs-overlay",
-        "rev": "59d540d726ee0d4486b73a397aee587b82b50738",
+        "rev": "4ca13dfec858ebb688fed4074ec865b60e330f21",
         "type": "github"
       },
       "original": {
@@ -120,11 +120,11 @@
     "mova": {
       "flake": false,
       "locked": {
-        "lastModified": 1769407754,
-        "narHash": "sha256-LkrrT4F3FGVSNuncSn2hq/biug5O/eO5lJItcuilnfs=",
+        "lastModified": 1769436103,
+        "narHash": "sha256-fNF+tm2j4h8CE7O8coyeiflhnCEGJITsccCJZD4tOH0=",
         "owner": "colonelpanic8",
         "repo": "mova",
-        "rev": "58db8c23d5f0c9da713830e76db39b38ab3e455b",
+        "rev": "ad0a286aff983fe73995139dd07dbcfa8e124d2b",
         "type": "github"
       },
       "original": {
@@ -243,11 +243,11 @@
         "org-window-habit": "org-window-habit"
       },
       "locked": {
-        "lastModified": 1769408616,
-        "narHash": "sha256-QpV4EsVDJkuc7hz92f0R2I3OlClDlqJeEq5+0ceLdDE=",
+        "lastModified": 1769469423,
+        "narHash": "sha256-fsR4/cJNARXb9NxE5chpn8qCmpf997m4lOTC2n+sJOE=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "d22de8cff0720167ea0e320d80c362dd02d944aa",
+        "rev": "37a31bd0b9f7c1a97d79ea0de95ada1cdcf7d40b",
         "type": "github"
       },
       "original": {
@@ -275,11 +275,11 @@
     "org-wild-notifier": {
       "flake": false,
       "locked": {
-        "lastModified": 1769405113,
-        "narHash": "sha256-+PiXWPCrT8h+tq+sT00XdZFuc6mblYz1dULKQQWQBtw=",
+        "lastModified": 1769469291,
+        "narHash": "sha256-1CWB61A9yAFZLcwylShXh7/cM5EDyTsBPZd/XOLAGEY=",
         "owner": "emacsorphanage",
         "repo": "org-wild-notifier",
-        "rev": "4794a5345f50aa2538724508a65e59d82b0f4ad7",
+        "rev": "86c55aa80e499d10ef6dba5b804dba82d188d32e",
         "type": "github"
       },
       "original": {
