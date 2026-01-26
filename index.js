@@ -1,5 +1,9 @@
 import { Platform } from "react-native";
 
+// Import the Expo Router entry point
+// Note: backgroundSync is imported in app/_layout.tsx to avoid loading expo modules in widget context
+import "expo-router/entry";
+
 // Only register Android widgets on Android platform
 if (Platform.OS === "android") {
   const {
@@ -17,7 +21,3 @@ if (Platform.OS === "android") {
   // Register the widget configuration screen
   registerWidgetConfigurationScreen(WidgetConfigurationScreen);
 }
-
-// Import the Expo Router entry point
-// Note: backgroundSync is imported in app/_layout.tsx to avoid loading expo modules in widget context
-import "expo-router/entry";
