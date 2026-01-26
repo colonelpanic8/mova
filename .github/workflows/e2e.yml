@@ -153,7 +153,8 @@ jobs:
           mkdir -p android/app/src/main/assets
 
           # Bundle JavaScript so the debug APK doesn't need Metro bundler
-          npx react-native bundle \
+          # Use expo export:embed which is the correct command for Expo projects
+          npx expo export:embed \
             --platform android \
             --dev false \
             --entry-file index.js \
