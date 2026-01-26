@@ -1,7 +1,5 @@
 # Changelog
 
-All notable changes to Mova are documented in this file.
-
 ## [5.4.0]
 
 - feat: add inline save button next to title input
