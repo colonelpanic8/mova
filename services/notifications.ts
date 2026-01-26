@@ -93,6 +93,10 @@ export async function scheduleNotificationsFromServer(
   await cancelAllNotifications();
 
   const now = new Date();
+
+  // Update the set of active notification IDs
+  updateActiveNotificationIds(response.notifications);
+
   let scheduledCount = 0;
 
   for (const notification of response.notifications) {
@@ -211,4 +215,23 @@ export async function getAllScheduledNotifications(): Promise<
   return result.sort(
     (a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime(),
   );
+}
+
+// Store for active notification identifiers (updated on each sync)
+let activeNotificationIds: Set<string> = new Set();
+
+export function updateActiveNotificationIds(
+  notifications: ServerNotification[],
+): void {
+  activeNotificationIds = new Set(
+    notifications.map((n) => getNotificationIdentifier(n)),
+  );
+}
+
+export function isNotificationActive(identifier: string): boolean {
+  // Extract the base ID (before the timestamp suffix)
+  const parts = identifier.split(":");
+  // Handle both "id:timestamp" and "file:pos:timestamp" formats
+  const baseId = parts.length > 2 ? parts.slice(0, -1).join(":") : parts[0];
+  return activeNotificationIds.has(baseId);
 }
