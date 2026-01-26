@@ -128,7 +128,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       if (isThemeReference(colorValue)) {
         const key = getThemeColorKey(colorValue);
         if (key && key in theme.colors) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           return (theme.colors as any)[key] || colorValue;
         }
       }

@@ -145,7 +145,7 @@ export interface ServerNotification {
   file: string;
   pos: number;
   id?: string;
-  allTimes?: Array<{ timestampType: string; timestampString: string }>;
+  allTimes?: { timestampType: string; timestampString: string }[];
 }
 
 export interface NotificationsResponse {
