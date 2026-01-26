@@ -11,10 +11,18 @@ import {
 } from "@/utils/timeFormatting";
 import { getTodoKey } from "@/utils/todoKey";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import { Chip, Icon, Text, useTheme } from "react-native-paper";
+import {
+  Chip,
+  Divider,
+  Icon,
+  IconButton,
+  Menu,
+  Text,
+  useTheme,
+} from "react-native-paper";
 
 export { getTodoKey };
 
@@ -42,6 +50,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
   } = useTodoEditingContext();
 
   const internalRef = useRef<Swipeable>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
   const key = getTodoKey(todo);
   const isCompleting = completingIds.has(key);
   const isUpdating = updatingIds.has(key);
@@ -85,69 +94,68 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
     .replace(/[^a-zA-Z0-9]/g, "_")
     .substring(0, 20);
 
+  // Define actions once, used for both swipe and menu
+  const quickActions = [
+    {
+      key: "today",
+      label: "Today",
+      icon: "calendar-today",
+      colorKey: "today" as const,
+      onPress: () => scheduleToday(todo),
+    },
+    {
+      key: "tomorrow",
+      label: "Tomorrow",
+      icon: "calendar-arrow-right",
+      colorKey: "tomorrow" as const,
+      onPress: () => scheduleTomorrow(todo),
+    },
+    {
+      key: "schedule",
+      label: "Schedule",
+      icon: "calendar",
+      colorKey: "schedule" as const,
+      onPress: () => openScheduleModal(todo),
+    },
+    {
+      key: "deadline",
+      label: "Deadline",
+      icon: "calendar-clock",
+      colorKey: "deadline" as const,
+      onPress: () => openDeadlineModal(todo),
+    },
+    {
+      key: "delete",
+      label: "Delete",
+      icon: "delete",
+      color: theme.colors.error,
+      onPress: () => openDeleteConfirm(todo),
+      isDividerBefore: true,
+    },
+  ];
+
   const renderRightActions = useCallback(() => {
     return (
       <View style={styles.swipeActions}>
-        <TouchableOpacity
-          testID={`tomorrowActionButton_${testIdSuffix}`}
-          style={[
-            styles.swipeAction,
-            { backgroundColor: getActionColor("tomorrow") },
-          ]}
-          onPress={() => scheduleTomorrow(todo)}
-        >
-          <Text style={styles.swipeActionText}>Tomorrow</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          testID={`scheduleActionButton_${testIdSuffix}`}
-          style={[
-            styles.swipeAction,
-            { backgroundColor: getActionColor("schedule") },
-          ]}
-          onPress={() => openScheduleModal(todo)}
-        >
-          <Text style={styles.swipeActionText}>Schedule</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          testID={`deadlineActionButton_${testIdSuffix}`}
-          style={[
-            styles.swipeAction,
-            { backgroundColor: getActionColor("deadline") },
-          ]}
-          onPress={() => openDeadlineModal(todo)}
-        >
-          <Text style={styles.swipeActionText}>Deadline</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          testID={`todayActionButton_${testIdSuffix}`}
-          style={[
-            styles.swipeAction,
-            { backgroundColor: getActionColor("today") },
-          ]}
-          onPress={() => scheduleToday(todo)}
-        >
-          <Text style={styles.swipeActionText}>Today</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          testID={`deleteActionButton_${testIdSuffix}`}
-          style={[styles.swipeAction, { backgroundColor: theme.colors.error }]}
-          onPress={() => openDeleteConfirm(todo)}
-        >
-          <Text style={styles.swipeActionText}>Delete</Text>
-        </TouchableOpacity>
+        {quickActions.map((action) => (
+          <TouchableOpacity
+            key={action.key}
+            testID={`${action.key}ActionButton_${testIdSuffix}`}
+            style={[
+              styles.swipeAction,
+              {
+                backgroundColor:
+                  action.color ?? getActionColor(action.colorKey!),
+              },
+            ]}
+            onPress={action.onPress}
+          >
+            <Text style={styles.swipeActionText}>{action.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     );
-  }, [
-    testIdSuffix,
-    getActionColor,
-    theme.colors.error,
-    todo,
-    scheduleToday,
-    scheduleTomorrow,
-    openScheduleModal,
-    openDeadlineModal,
-    openDeleteConfirm,
-  ]);
+  }, [testIdSuffix, getActionColor, quickActions]);
 
   return (
     <Swipeable
@@ -212,6 +220,33 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
             >
               {todo.title}
             </Text>
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  size={20}
+                  onPress={() => setMenuVisible(true)}
+                  style={styles.menuButton}
+                />
+              }
+            >
+              {quickActions.map((action) => (
+                <React.Fragment key={action.key}>
+                  {action.isDividerBefore && <Divider />}
+                  <Menu.Item
+                    onPress={() => {
+                      setMenuVisible(false);
+                      action.onPress();
+                    }}
+                    title={action.label}
+                    leadingIcon={action.icon}
+                    titleStyle={action.color ? { color: action.color } : undefined}
+                  />
+                </React.Fragment>
+              ))}
+            </Menu>
           </View>
           {(todo.scheduled ||
             todo.deadline ||
@@ -321,6 +356,10 @@ const styles = StyleSheet.create({
   },
   todoTitle: {
     flex: 1,
+  },
+  menuButton: {
+    margin: 0,
+    marginRight: -8,
   },
   metaRow: {
     flexDirection: "row",
