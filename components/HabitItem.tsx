@@ -16,7 +16,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -63,6 +63,39 @@ export interface HabitItemProps {
   todo: Todo;
 }
 
+// Cell sizing constants (must match HabitGraph styles)
+const CELL_WIDTH = 24;
+const CELL_GAP = 3;
+const GRAPH_PADDING = 6; // outerContainer padding
+const ITEM_PADDING = 12; // HabitItem container padding
+
+// Default maximums
+const MAX_PRECEDING = 14;
+const MAX_FOLLOWING = 5;
+
+function calculateCellCount(screenWidth: number): {
+  preceding: number;
+  following: number;
+} {
+  // Available width for cells: screen - item padding (both sides) - graph padding (both sides)
+  const availableWidth = screenWidth - ITEM_PADDING * 2 - GRAPH_PADDING * 2;
+
+  // How many cells fit: (availableWidth + gap) / (cellWidth + gap)
+  // We add gap because gaps are between cells, not after the last one
+  const cellsFit = Math.floor((availableWidth + CELL_GAP) / (CELL_WIDTH + CELL_GAP));
+
+  // Cap at the maximum total (14 + 5 = 19)
+  const totalMax = MAX_PRECEDING + MAX_FOLLOWING;
+  const totalCells = Math.min(cellsFit, totalMax);
+
+  // Allocate to preceding and following, prioritizing preceding
+  // Keep the same ratio: 14:5 ~= 74% preceding, 26% following
+  const following = Math.min(MAX_FOLLOWING, Math.floor(totalCells * 0.26));
+  const preceding = Math.min(MAX_PRECEDING, totalCells - following);
+
+  return { preceding, following };
+}
+
 export function HabitItem({ todo }: HabitItemProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -70,6 +103,7 @@ export function HabitItem({ todo }: HabitItemProps) {
   const { quickComplete, completingIds } = useTodoEditingContext();
   const { defaultDoneState } = useSettings();
   const { todoStates } = useTemplates();
+  const { width: screenWidth } = useWindowDimensions();
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -82,13 +116,19 @@ export function HabitItem({ todo }: HabitItemProps) {
   const isCompleting = completingIds.has(key);
   const wasCompletingRef = useRef(false);
 
+  // Calculate how many cells fit in the display
+  const { preceding, following } = useMemo(
+    () => calculateCellCount(screenWidth),
+    [screenWidth],
+  );
+
   // Fetch habit status for graph data
   const fetchGraphData = useCallback(() => {
     if (!todo.id || !api) return;
 
     setGraphLoading(true);
     api
-      .getHabitStatus(todo.id, 14, 5)
+      .getHabitStatus(todo.id, preceding, following)
       .then((status) => {
         if (status.graph) {
           setGraphData(transformGraphData(status.graph));
@@ -100,7 +140,7 @@ export function HabitItem({ todo }: HabitItemProps) {
       .finally(() => {
         setGraphLoading(false);
       });
-  }, [todo.id, api]);
+  }, [todo.id, api, preceding, following]);
 
   // Initial fetch
   useEffect(() => {
