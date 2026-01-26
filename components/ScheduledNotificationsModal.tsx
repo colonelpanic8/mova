@@ -71,17 +71,28 @@ export function ScheduledNotificationsModal({
   };
 
   const formatReason = (item: ScheduledNotificationInfo): string => {
-    if (item.offsetMinutes === undefined) {
-      return ""; // Legacy notification without new data
+    const parts: string[] = [];
+
+    // Add minutes before info if available
+    if (item.minutesBefore !== undefined) {
+      const offsetText =
+        item.minutesBefore === 0
+          ? "at event time"
+          : item.minutesBefore < 60
+            ? `${item.minutesBefore} min before`
+            : `${Math.floor(item.minutesBefore / 60)}h ${item.minutesBefore % 60 ? `${item.minutesBefore % 60}m ` : ""}before`;
+      parts.push(offsetText);
     }
-    const offsetText =
-      item.offsetMinutes === 0
-        ? "at event time"
-        : item.offsetMinutes < 60
-          ? `${item.offsetMinutes} min before`
-          : `${Math.floor(item.offsetMinutes / 60)}h ${item.offsetMinutes % 60 ? `${item.offsetMinutes % 60}m ` : ""}before`;
-    const typeText = item.isCustom ? "custom" : "default";
-    return `${offsetText} (${typeText})`;
+
+    // Add type info if available
+    if (item.type) {
+      parts.push(item.type);
+    }
+    if (item.timestampType) {
+      parts.push(item.timestampType);
+    }
+
+    return parts.join(" \u00b7 ");
   };
 
   const renderNotification = ({
