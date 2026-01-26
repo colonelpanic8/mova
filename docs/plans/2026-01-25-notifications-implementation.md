@@ -13,6 +13,7 @@
 ## Task 1: Add API Types and Method
 
 **Files:**
+
 - Modify: `services/api.ts:130-138` (add new types after existing notification types)
 - Modify: `services/api.ts:395-398` (add new method after getAllTodos)
 - Test: `tests/unit/api.test.ts`
@@ -126,6 +127,7 @@ git commit -m "feat(api): add getNotifications method for server-driven notifica
 ## Task 2: Rewrite Notification Scheduling Logic
 
 **Files:**
+
 - Modify: `services/notifications.ts` (replace `scheduleNotificationsForTodos` with new function)
 
 **Step 1: Add new scheduling function**
@@ -196,13 +198,20 @@ function formatNotificationBody(notification: ServerNotification): string {
   const parts: string[] = [];
 
   // Add time info for relative notifications
-  if (notification.type === "relative" && notification.minutesBefore && notification.eventTime) {
+  if (
+    notification.type === "relative" &&
+    notification.minutesBefore &&
+    notification.eventTime
+  ) {
     const eventDate = new Date(notification.eventTime);
-    parts.push(`${formatTimeUntil(notification.minutesBefore)} at ${formatTimeFromDate(eventDate)}`);
+    parts.push(
+      `${formatTimeUntil(notification.minutesBefore)} at ${formatTimeFromDate(eventDate)}`,
+    );
   }
 
   // Add type label
-  const typeLabel = notification.type === "day-wide" ? "day-wide" : notification.type;
+  const typeLabel =
+    notification.type === "day-wide" ? "day-wide" : notification.type;
   const timestampLabel = notification.timestampType || "";
   if (timestampLabel) {
     parts.push(`${timestampLabel} \u00b7 ${typeLabel}`);
@@ -366,6 +375,7 @@ git commit -m "refactor(notifications): replace todo-based scheduling with serve
 ## Task 3: Update useNotificationSync Hook
 
 **Files:**
+
 - Modify: `hooks/useNotificationSync.ts`
 
 **Step 1: Update the hook to use new API**
@@ -460,6 +470,7 @@ git commit -m "refactor(useNotificationSync): use getNotifications endpoint"
 ## Task 4: Update Background Sync
 
 **Files:**
+
 - Modify: `services/backgroundSync.ts`
 
 **Step 1: Update background task to use new API**
@@ -512,6 +523,7 @@ git commit -m "refactor(backgroundSync): use getNotifications endpoint"
 ## Task 5: Update Notifications UI Screen
 
 **Files:**
+
 - Modify: `app/(tabs)/settings/notifications.tsx`
 
 **Step 1: Remove cancel functionality and add type/timestampType display**
@@ -830,6 +842,7 @@ git commit -m "refactor(notifications-ui): remove cancel button, add type/timest
 ## Task 6: Add Pre-fire Verification
 
 **Files:**
+
 - Modify: `services/notifications.ts` (add verification listener)
 - Modify: `hooks/useNotificationSync.ts` (set up listener)
 
@@ -998,6 +1011,7 @@ git commit -m "feat(notifications): add pre-fire verification to dismiss stale n
 ## Task 7: Clean Up Unused Code
 
 **Files:**
+
 - Modify: `services/notifications.ts` (remove old scheduling function)
 - Modify: `services/api.ts` (keep getAllTodos as it may be used elsewhere)
 
@@ -1006,6 +1020,7 @@ git commit -m "feat(notifications): add pre-fire verification to dismiss stale n
 Remove the old `scheduleNotificationsForTodos` function and the `DONE_STATES` constant since they are no longer needed. Also remove the `cancelNotification` export and the `scheduleCustomNotification` function (custom reminders should go through the server).
 
 After cleanup, the file should not export:
+
 - `scheduleNotificationsForTodos`
 - `cancelNotification`
 - `scheduleCustomNotification`
@@ -1043,6 +1058,7 @@ Run: `nix flake update`
 **Step 2: Run the app and verify**
 
 Run: `npm start` and test on device/simulator:
+
 - Enable notifications in settings
 - Verify notifications list shows type/timestampType chips
 - Verify refresh works
@@ -1065,6 +1081,7 @@ git commit -m "chore: update flake.lock for new org-agenda-api notifications end
 ## Summary
 
 This plan implements:
+
 1. New `getNotifications()` API method
 2. Server-driven notification scheduling
 3. Removal of client-side notification time calculation

@@ -498,7 +498,8 @@ export function useTodoEditing(
     // TODO: Implement via API by setting WILD_NOTIFIER_NOTIFY_AT property
     setSnackbar({
       visible: true,
-      message: "Custom reminders not yet supported with server-driven notifications",
+      message:
+        "Custom reminders not yet supported with server-driven notifications",
       isError: true,
     });
     closeEditModal();
