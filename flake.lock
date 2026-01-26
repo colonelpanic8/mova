@@ -120,17 +120,17 @@
     "mova": {
       "flake": false,
       "locked": {
-        "lastModified": 1769407280,
-        "narHash": "sha256-gUIitqwRVVdHcRb9EomfSyS+JbvV1F+rQ7txEaHwm3g=",
-        "ref": "refs/heads/master",
-        "rev": "7d055e442e915e05247caed8518e65e15a119eb9",
-        "revCount": 372,
-        "type": "git",
-        "url": "ssh://git@github.com/colonelpanic8/mova"
+        "lastModified": 1769407754,
+        "narHash": "sha256-LkrrT4F3FGVSNuncSn2hq/biug5O/eO5lJItcuilnfs=",
+        "owner": "colonelpanic8",
+        "repo": "mova",
+        "rev": "58db8c23d5f0c9da713830e76db39b38ab3e455b",
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/colonelpanic8/mova"
+        "owner": "colonelpanic8",
+        "repo": "mova",
+        "type": "github"
       }
     },
     "nixgl": {
@@ -239,14 +239,15 @@
         "mova": "mova",
         "nixpkgs": "nixpkgs_4",
         "org-project-capture": "org-project-capture",
+        "org-wild-notifier": "org-wild-notifier",
         "org-window-habit": "org-window-habit"
       },
       "locked": {
-        "lastModified": 1769407486,
-        "narHash": "sha256-rAeUiwrwBl8bIyFTNZN2GZYti1JHKVdi0Zm+17HSxXE=",
+        "lastModified": 1769407910,
+        "narHash": "sha256-gXNoiJoGo2lMW3//bLgCQY1d/mCunGstzNSOxzXWSQQ=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "f22455fbb506c2f93367c8c8e3bf4b6fe3537a2b",
+        "rev": "5467d0d08819f19b496a9fe3af0cde098e7838b6",
         "type": "github"
       },
       "original": {
@@ -268,6 +269,22 @@
       "original": {
         "owner": "colonelpanic8",
         "repo": "org-project-capture",
+        "type": "github"
+      }
+    },
+    "org-wild-notifier": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1769405113,
+        "narHash": "sha256-+PiXWPCrT8h+tq+sT00XdZFuc6mblYz1dULKQQWQBtw=",
+        "owner": "emacsorphanage",
+        "repo": "org-wild-notifier",
+        "rev": "4794a5345f50aa2538724508a65e59d82b0f4ad7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "emacsorphanage",
+        "repo": "org-wild-notifier",
         "type": "github"
       }
     },
