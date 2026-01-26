@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.10.3]
+
+- style: apply code style improvements
+- refactor: reorder imports in entry point and test files
+
 ## [5.10.2]
 
 - fix: force data refresh after switching servers
