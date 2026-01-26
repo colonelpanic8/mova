@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.10.1]
+
+- fix: show full git commit hash in server version display
+
 ## [5.10.0]
 
 - feat: add client-side completion timestamp option
