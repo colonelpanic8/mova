@@ -9,19 +9,22 @@ interface HabitGraphProps {
   miniGraph: MiniGraphEntry[];
   expanded?: boolean;
   onCellPress?: (entry: MiniGraphEntry) => void;
+  nextRequiredDate?: string;
 }
 
 interface GraphCellProps {
   entry: MiniGraphEntry;
   isToday: boolean;
+  isNextRequired: boolean;
   colors: { conforming: string; notConforming: string };
-  glyphs: { completionNeededToday: string; completed: string };
+  glyphs: { completionNeededToday: string; completed: string; nextRequired: string };
   onPress?: () => void;
 }
 
 function GraphCell({
   entry,
   isToday,
+  isNextRequired,
   colors,
   glyphs,
   onPress,
@@ -41,6 +44,8 @@ function GraphCell({
     }
   } else if (entry.completed) {
     glyph = glyphs.completed;
+  } else if (isNextRequired) {
+    glyph = glyphs.nextRequired;
   }
 
   return (
@@ -69,6 +74,7 @@ export function HabitGraph({
   miniGraph,
   expanded = false,
   onCellPress,
+  nextRequiredDate,
 }: HabitGraphProps) {
   const { colors, glyphs } = useHabitConfig();
 
@@ -92,6 +98,7 @@ export function HabitGraph({
       key={entry.date}
       entry={entry}
       isToday={isInPast && index === pastEntries.length - 1}
+      isNextRequired={entry.date === nextRequiredDate}
       colors={colors}
       glyphs={glyphs}
       onPress={onCellPress ? () => onCellPress(entry) : undefined}
