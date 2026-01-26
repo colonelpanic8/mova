@@ -11,7 +11,13 @@ import {
 } from "@/utils/timeFormatting";
 import { getTodoKey } from "@/utils/todoKey";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import {
@@ -95,44 +101,55 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
     .substring(0, 20);
 
   // Define actions once, used for both swipe and menu
-  const quickActions = [
-    {
-      key: "today",
-      label: "Today",
-      icon: "calendar-today",
-      colorKey: "today" as const,
-      onPress: () => scheduleToday(todo),
-    },
-    {
-      key: "tomorrow",
-      label: "Tomorrow",
-      icon: "calendar-arrow-right",
-      colorKey: "tomorrow" as const,
-      onPress: () => scheduleTomorrow(todo),
-    },
-    {
-      key: "schedule",
-      label: "Schedule",
-      icon: "calendar",
-      colorKey: "schedule" as const,
-      onPress: () => openScheduleModal(todo),
-    },
-    {
-      key: "deadline",
-      label: "Deadline",
-      icon: "calendar-clock",
-      colorKey: "deadline" as const,
-      onPress: () => openDeadlineModal(todo),
-    },
-    {
-      key: "delete",
-      label: "Delete",
-      icon: "delete",
-      color: theme.colors.error,
-      onPress: () => openDeleteConfirm(todo),
-      isDividerBefore: true,
-    },
-  ];
+  const quickActions = useMemo(
+    () => [
+      {
+        key: "today",
+        label: "Today",
+        icon: "calendar-today",
+        colorKey: "today" as const,
+        onPress: () => scheduleToday(todo),
+      },
+      {
+        key: "tomorrow",
+        label: "Tomorrow",
+        icon: "calendar-arrow-right",
+        colorKey: "tomorrow" as const,
+        onPress: () => scheduleTomorrow(todo),
+      },
+      {
+        key: "schedule",
+        label: "Schedule",
+        icon: "calendar",
+        colorKey: "schedule" as const,
+        onPress: () => openScheduleModal(todo),
+      },
+      {
+        key: "deadline",
+        label: "Deadline",
+        icon: "calendar-clock",
+        colorKey: "deadline" as const,
+        onPress: () => openDeadlineModal(todo),
+      },
+      {
+        key: "delete",
+        label: "Delete",
+        icon: "delete",
+        color: theme.colors.error,
+        onPress: () => openDeleteConfirm(todo),
+        isDividerBefore: true,
+      },
+    ],
+    [
+      todo,
+      theme.colors.error,
+      scheduleToday,
+      scheduleTomorrow,
+      openScheduleModal,
+      openDeadlineModal,
+      openDeleteConfirm,
+    ],
+  );
 
   const renderRightActions = useCallback(() => {
     return (
@@ -242,7 +259,9 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
                     }}
                     title={action.label}
                     leadingIcon={action.icon}
-                    titleStyle={action.color ? { color: action.color } : undefined}
+                    titleStyle={
+                      action.color ? { color: action.color } : undefined
+                    }
                   />
                 </React.Fragment>
               ))}
