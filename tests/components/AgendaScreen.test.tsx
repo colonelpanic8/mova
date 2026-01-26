@@ -15,6 +15,13 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
 import { FilterProvider } from "../../context/FilterContext";
 
+// Import after mocks are set up
+import { useApi } from "../../context/ApiContext";
+import { useAuth } from "../../context/AuthContext";
+
+// Import the actual screen component
+import AgendaScreen from "../../app/(tabs)/index";
+
 // Mock the modules before importing the component
 jest.mock("../../services/api");
 jest.mock("../../context/AuthContext");
@@ -72,10 +79,6 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({}),
   useSegments: () => [],
 }));
-
-// Import after mocks are set up
-import { useApi } from "../../context/ApiContext";
-import { useAuth } from "../../context/AuthContext";
 
 // Create mock API object that we can reference in tests
 const mockApi = {
@@ -177,9 +180,6 @@ const renderScreen = (component: React.ReactElement) => {
     </GestureHandlerRootView>,
   );
 };
-
-// Import the actual screen component
-import AgendaScreen from "../../app/(tabs)/index";
 
 describe("AgendaScreen", () => {
   it("should render loading state initially", async () => {

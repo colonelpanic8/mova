@@ -1,3 +1,6 @@
+// Test the storage utilities used by AuthContext
+import * as serverStorage from "../../utils/serverStorage";
+
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn(),
   setItem: jest.fn(),
@@ -16,9 +19,6 @@ jest.mock("../../widgets/storage", () => ({
   saveCredentialsToWidget: jest.fn(),
   clearWidgetCredentials: jest.fn(),
 }));
-
-// Test the storage utilities used by AuthContext
-import * as serverStorage from "../../utils/serverStorage";
 
 describe("AuthContext multi-server", () => {
   beforeEach(() => {
