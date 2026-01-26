@@ -19,6 +19,7 @@ export function useNotificationSync() {
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [scheduledCount, setScheduledCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const verificationInProgress = useRef(false);
 
   const syncNotifications = useCallback(async () => {
@@ -28,6 +29,7 @@ export function useNotificationSync() {
     if (!enabled) return;
 
     setIsSyncing(true);
+    setSyncError(null);
     try {
       const response = await api.getNotifications();
       const count = await scheduleNotificationsFromServer(response);
@@ -35,7 +37,10 @@ export function useNotificationSync() {
       setScheduledCount(count);
       setLastSync(new Date());
     } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Notification sync failed";
       console.error("Notification sync failed:", err);
+      setSyncError(message);
     } finally {
       setIsSyncing(false);
     }
@@ -107,6 +112,7 @@ export function useNotificationSync() {
     lastSync,
     scheduledCount,
     isSyncing,
+    syncError,
     syncNotifications,
   };
 }

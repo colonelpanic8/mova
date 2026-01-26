@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
+  Banner,
   Button,
   Card,
   Chip,
@@ -82,7 +83,7 @@ export default function NotificationsScreen() {
     ScheduledNotificationInfo[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const { syncNotifications, isSyncing } = useNotificationSync();
+  const { syncNotifications, isSyncing, syncError } = useNotificationSync();
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
@@ -122,6 +123,23 @@ export default function NotificationsScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
+      {syncError && (
+        <Banner
+          visible={true}
+          icon="alert-circle"
+          actions={[
+            {
+              label: "Retry",
+              onPress: handleRefresh,
+            },
+          ]}
+          style={{ backgroundColor: theme.colors.errorContainer }}
+        >
+          <Text style={{ color: theme.colors.onErrorContainer }}>
+            Failed to sync notifications: {syncError}
+          </Text>
+        </Banner>
+      )}
       <View style={styles.header}>
         <Text variant="titleMedium">
           {notifications.length} scheduled notification
