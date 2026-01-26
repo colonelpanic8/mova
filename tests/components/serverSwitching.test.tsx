@@ -2,10 +2,10 @@
  * Test to verify server switching behavior
  */
 
-import { renderHook, act, waitFor } from "@testing-library/react-native";
+import { act, renderHook, waitFor } from "@testing-library/react-native";
 import React from "react";
-import { AuthProvider, useAuth } from "../../context/AuthContext";
 import { ApiProvider, useApi } from "../../context/ApiContext";
+import { AuthProvider, useAuth } from "../../context/AuthContext";
 import { MutationProvider } from "../../context/MutationContext";
 
 // Mock all external dependencies
@@ -53,7 +53,7 @@ describe("Server Switching", () => {
         apiClients.push(api);
         return { auth, api };
       },
-      { wrapper }
+      { wrapper },
     );
 
     // Wait for initial load
@@ -67,7 +67,7 @@ describe("Server Switching", () => {
         "https://server1.com",
         "user1",
         "pass1",
-        false
+        false,
       );
     });
 
@@ -80,7 +80,7 @@ describe("Server Switching", () => {
         "https://server2.com",
         "user2",
         "pass2",
-        false
+        false,
       );
     });
 
@@ -98,7 +98,7 @@ describe("Server Switching", () => {
         const api = useApi();
         return { auth, api };
       },
-      { wrapper }
+      { wrapper },
     );
 
     await waitFor(() => {
@@ -111,7 +111,7 @@ describe("Server Switching", () => {
         "https://server1.com",
         "user1",
         "pass1",
-        false
+        false,
       );
     });
 
@@ -123,7 +123,7 @@ describe("Server Switching", () => {
         "https://server2.com",
         "user2",
         "pass2",
-        false
+        false,
       );
     });
 
