@@ -147,10 +147,20 @@ jobs:
           # Show container logs for debugging
           docker logs mova-test-api
 
+      - name: Bundle JavaScript for Android
+        run: |
+          # Create assets directory if it doesn't exist
+          mkdir -p android/app/src/main/assets
+
+          # Bundle JavaScript so the debug APK doesn't need Metro bundler
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+
       - name: Build Android app for testing
-        env:
-          NODE_ENV: production
-          EXPO_E2E: "true"
         run: |
           cd android
           # Build with x86_64 architecture for CI emulator
