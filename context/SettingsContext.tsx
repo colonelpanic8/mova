@@ -2,9 +2,11 @@ import {
   getDefaultDoneState,
   getQuickScheduleIncludeTime,
   getShowHabitsInAgenda,
+  getUseClientCompletionTime,
   setDefaultDoneState as saveDefaultDoneState,
   setQuickScheduleIncludeTime as saveQuickScheduleIncludeTime,
   setShowHabitsInAgenda as saveShowHabitsInAgenda,
+  setUseClientCompletionTime as saveUseClientCompletionTime,
 } from "@/services/settings";
 import React, {
   createContext,
@@ -22,6 +24,8 @@ interface SettingsContextType {
   setShowHabitsInAgenda: (value: boolean) => Promise<void>;
   defaultDoneState: string | null;
   setDefaultDoneState: (value: string | null) => Promise<void>;
+  useClientCompletionTime: boolean;
+  setUseClientCompletionTime: (value: boolean) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -36,6 +40,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [defaultDoneState, setDefaultDoneStateState] = useState<string | null>(
     null,
   );
+  const [useClientCompletionTime, setUseClientCompletionTimeState] =
+    useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -43,12 +49,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       getQuickScheduleIncludeTime(),
       getShowHabitsInAgenda(),
       getDefaultDoneState(),
-    ]).then(([quickScheduleValue, showHabitsValue, defaultDoneValue]) => {
-      setQuickScheduleIncludeTimeState(quickScheduleValue);
-      setShowHabitsInAgendaState(showHabitsValue);
-      setDefaultDoneStateState(defaultDoneValue);
-      setIsLoading(false);
-    });
+      getUseClientCompletionTime(),
+    ]).then(
+      ([
+        quickScheduleValue,
+        showHabitsValue,
+        defaultDoneValue,
+        useClientCompletionTimeValue,
+      ]) => {
+        setQuickScheduleIncludeTimeState(quickScheduleValue);
+        setShowHabitsInAgendaState(showHabitsValue);
+        setDefaultDoneStateState(defaultDoneValue);
+        setUseClientCompletionTimeState(useClientCompletionTimeValue);
+        setIsLoading(false);
+      },
+    );
   }, []);
 
   const setQuickScheduleIncludeTime = useCallback(async (value: boolean) => {
@@ -66,6 +81,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await saveDefaultDoneState(value);
   }, []);
 
+  const setUseClientCompletionTime = useCallback(async (value: boolean) => {
+    setUseClientCompletionTimeState(value);
+    await saveUseClientCompletionTime(value);
+  }, []);
+
   return (
     <SettingsContext.Provider
       value={{
@@ -75,6 +95,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setShowHabitsInAgenda,
         defaultDoneState,
         setDefaultDoneState,
+        useClientCompletionTime,
+        setUseClientCompletionTime,
         isLoading,
       }}
     >

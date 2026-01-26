@@ -4,11 +4,11 @@ import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { HabitStatusGraphEntry, MiniGraphEntry, Todo } from "@/services/api";
+import { formatLocalDate } from "@/utils/dateFormatting";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import { formatLocalDate } from "@/utils/dateFormatting";
 import React, {
   useCallback,
   useEffect,

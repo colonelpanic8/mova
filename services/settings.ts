@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const QUICK_SCHEDULE_INCLUDE_TIME_KEY = "quick_schedule_include_time";
 const SHOW_HABITS_IN_AGENDA_KEY = "show_habits_in_agenda";
 const DEFAULT_DONE_STATE_KEY = "default_done_state";
+const USE_CLIENT_COMPLETION_TIME_KEY = "use_client_completion_time";
 
 export async function getQuickScheduleIncludeTime(): Promise<boolean> {
   const value = await AsyncStorage.getItem(QUICK_SCHEDULE_INCLUDE_TIME_KEY);
@@ -41,4 +42,19 @@ export async function setDefaultDoneState(state: string | null): Promise<void> {
   } else {
     await AsyncStorage.removeItem(DEFAULT_DONE_STATE_KEY);
   }
+}
+
+export async function getUseClientCompletionTime(): Promise<boolean> {
+  const value = await AsyncStorage.getItem(USE_CLIENT_COMPLETION_TIME_KEY);
+  // Default to true (enabled by default)
+  return value !== "false";
+}
+
+export async function setUseClientCompletionTime(
+  enabled: boolean,
+): Promise<void> {
+  await AsyncStorage.setItem(
+    USE_CLIENT_COMPLETION_TIME_KEY,
+    enabled ? "true" : "false",
+  );
 }

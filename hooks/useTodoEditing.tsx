@@ -8,7 +8,7 @@ import {
   TodoStatesResponse,
   TodoUpdates,
 } from "@/services/api";
-import { formatLocalDate } from "@/utils/dateFormatting";
+import { formatLocalDate, formatLocalDateTime } from "@/utils/dateFormatting";
 import { dateToTimestamp, timestampToDate } from "@/utils/timestampConversion";
 import { getTodoKey } from "@/utils/todoKey";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -83,7 +83,7 @@ export function useTodoEditing(
   const api = useApi();
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
-  const { quickScheduleIncludeTime } = useSettings();
+  const { quickScheduleIncludeTime, useClientCompletionTime } = useSettings();
 
   // Edit modal state
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -328,9 +328,13 @@ export function useTodoEditing(
       closeEditModal();
 
       try {
-        const overrideDateStr = overrideDate
-          ? formatLocalDate(overrideDate)
-          : undefined;
+        // Use override date if provided, otherwise use current datetime if setting enabled
+        let overrideDateStr: string | undefined;
+        if (overrideDate) {
+          overrideDateStr = formatLocalDate(overrideDate);
+        } else if (useClientCompletionTime) {
+          overrideDateStr = formatLocalDateTime(new Date());
+        }
         const result = await api.setTodoState(
           editingTodo,
           newState,
@@ -370,7 +374,14 @@ export function useTodoEditing(
         });
       }
     },
-    [api, editingTodo, onTodoUpdated, closeEditModal, triggerRefresh],
+    [
+      api,
+      editingTodo,
+      onTodoUpdated,
+      closeEditModal,
+      triggerRefresh,
+      useClientCompletionTime,
+    ],
   );
 
   const quickComplete = useCallback(
@@ -382,9 +393,13 @@ export function useTodoEditing(
       setCompletingIds((prev) => new Set(prev).add(key));
 
       try {
-        const overrideDateStr = overrideDate
-          ? formatLocalDate(overrideDate)
-          : undefined;
+        // Use override date if provided, otherwise use current datetime if setting enabled
+        let overrideDateStr: string | undefined;
+        if (overrideDate) {
+          overrideDateStr = formatLocalDate(overrideDate);
+        } else if (useClientCompletionTime) {
+          overrideDateStr = formatLocalDateTime(new Date());
+        }
         const result = await api.setTodoState(todo, state, overrideDateStr);
 
         if (result.status === "completed") {
@@ -420,7 +435,13 @@ export function useTodoEditing(
         });
       }
     },
-    [api, onTodoUpdated, triggerRefresh, swipeableRefs],
+    [
+      api,
+      onTodoUpdated,
+      triggerRefresh,
+      swipeableRefs,
+      useClientCompletionTime,
+    ],
   );
 
   const handleDeleteTodo = useCallback(
