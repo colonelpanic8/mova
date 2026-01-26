@@ -5,7 +5,7 @@ import {
   getLastSyncTime,
   getNotificationsEnabled,
   getScheduledNotificationCount,
-  scheduleNotificationsForTodos,
+  scheduleNotificationsFromServer,
 } from "@/services/notifications";
 import { useCallback, useEffect, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
@@ -25,11 +25,8 @@ export function useNotificationSync() {
 
     setIsSyncing(true);
     try {
-      const response = await api.getAllTodos();
-      const count = await scheduleNotificationsForTodos(
-        response.todos,
-        response.defaults,
-      );
+      const response = await api.getNotifications();
+      const count = await scheduleNotificationsFromServer(response);
 
       setScheduledCount(count);
       setLastSync(new Date());
