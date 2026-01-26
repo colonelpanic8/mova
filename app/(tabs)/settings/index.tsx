@@ -41,6 +41,8 @@ export default function SettingsScreen() {
     setShowHabitsInAgenda,
     defaultDoneState,
     setDefaultDoneState,
+    useClientCompletionTime,
+    setUseClientCompletionTime,
   } = useSettings();
   const { templates, todoStates } = useTemplates();
   const theme = useTheme();
@@ -300,6 +302,17 @@ export default function SettingsScreen() {
             <Switch
               value={showHabitsInAgenda}
               onValueChange={setShowHabitsInAgenda}
+            />
+          )}
+        />
+        <List.Item
+          title="Use Client Completion Time"
+          description="Send local time when completing tasks"
+          left={(props) => <List.Icon {...props} icon="clock-check" />}
+          right={() => (
+            <Switch
+              value={useClientCompletionTime}
+              onValueChange={setUseClientCompletionTime}
             />
           )}
         />

@@ -1,8 +1,10 @@
 # Changelog
 
-## [5.9.1]
+## [5.10.0]
 
+- feat: add client-side completion timestamp option
 - fix: habit date picker not working on web platform
+- fix: bundle JavaScript in CI before building debug APK
 
 ## [5.4.0]
 
