@@ -298,7 +298,7 @@ export class TestApiClient {
   }
 
   async getCustomViews() {
-    return this.get<{ views: Array<{ key: string; name: string }> }>(
+    return this.get<{ views: { key: string; name: string }[] }>(
       "/custom-views",
     );
   }
