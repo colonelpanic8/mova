@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.13.0]
+
+- fix: scheduled/deadline time not saved from edit view on web
+- fix: quick schedule no longer asks for unnecessary confirmation
+- fix: quick schedule respects global time setting
+
 ## [5.10.3]
 
 - style: apply code style improvements
