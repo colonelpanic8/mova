@@ -212,12 +212,20 @@ export function HabitGraph({
     );
   };
 
+  // Calculate the total width of the cells row for proper centering
+  const rowWidth = cellLayouts.size === miniGraph.length
+    ? (() => {
+        const lastLayout = cellLayouts.get(miniGraph.length - 1);
+        return lastLayout ? lastLayout.x + lastLayout.width : 0;
+      })()
+    : 0;
+
   return (
     <View style={styles.outerContainer} testID="habit-graph">
       <View style={[styles.row, expanded && styles.expandedContainer]}>
         {miniGraph.map((entry, index) => renderCell(entry, index))}
       </View>
-      {windowBars.length > 0 && (
+      {windowBars.length > 0 && rowWidth > 0 && (
         <View style={styles.windowBarsContainer}>
           {windowBars.map((bar, index) => {
             const { specStatus } = bar!;
@@ -225,7 +233,7 @@ export function HabitGraph({
             const isConforming = specStatus.conformingRatio >= specStatus.conformingValue;
 
             return (
-              <View key={index} style={styles.windowBarRow}>
+              <View key={index} style={[styles.windowBarRow, { width: rowWidth, alignSelf: "center" }]}>
                 <View
                   style={[
                     styles.windowBar,
