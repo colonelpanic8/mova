@@ -49,6 +49,30 @@ export function timestampToFormString(ts: Timestamp | null): string {
 }
 
 /**
+ * Parse a form string into date and time parts.
+ * Handles both "T" separator (ISO format) and space separator (web inputs).
+ *
+ * @param dateStr - Date string in YYYY-MM-DD, YYYY-MM-DDTHH:MM, or "YYYY-MM-DD HH:MM" format
+ * @returns Object with datePart and timePart (empty strings if not present)
+ */
+export function parseFormString(
+  dateStr: string | undefined,
+): { datePart: string; timePart: string } {
+  if (!dateStr) return { datePart: "", timePart: "" };
+
+  const separator = dateStr.includes("T") ? "T" : " ";
+  const parts = dateStr.split(separator);
+  const datePart = parts[0] || "";
+  const timePart = parts[1] || "";
+
+  // Only return time if it looks like a valid time (HH:MM format)
+  if (timePart && timePart.match(/^\d{2}:\d{2}/)) {
+    return { datePart, timePart };
+  }
+  return { datePart, timePart: "" };
+}
+
+/**
  * Convert a form string + optional repeater to a Timestamp object
  *
  * @param dateStr - Date string in YYYY-MM-DD or YYYY-MM-DDTHH:MM format
@@ -60,14 +84,12 @@ export function formStringToTimestamp(
   repeater: Repeater | null,
 ): Timestamp | null {
   if (!dateStr) return null;
-  const ts: Timestamp = { date: "" };
 
-  if (dateStr.includes("T")) {
-    const [date, time] = dateStr.split("T");
-    ts.date = date;
-    ts.time = time;
-  } else {
-    ts.date = dateStr;
+  const { datePart, timePart } = parseFormString(dateStr);
+  const ts: Timestamp = { date: datePart };
+
+  if (timePart) {
+    ts.time = timePart;
   }
 
   if (repeater) {

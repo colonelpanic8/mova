@@ -5,6 +5,7 @@ import {
   formatLocalDate,
   formatLocalDateTime,
 } from "@/utils/dateFormatting";
+import { parseFormString } from "@/utils/timestampConversion";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -14,7 +15,7 @@ import { Button, IconButton, Switch, Text, useTheme } from "react-native-paper";
 
 function formatDateTimeForApi(date: Date, includeTime: boolean): string {
   if (includeTime) {
-    return formatLocalDateTime(date).replace(" ", " "); // YYYY-MM-DD HH:MM format
+    return formatLocalDateTime(date).replace(" ", "T"); // YYYY-MM-DDTHH:MM format
   }
   return formatLocalDate(date);
 }
@@ -124,19 +125,8 @@ export function DateFieldWithQuickActions({
 
   const fieldColor = getActionColor(colorKey);
 
-  // Parse value into date and time parts, handling both "T" and " " separators
-  const parseValue = (
-    val: string | undefined,
-  ): { datePart: string; timePart: string } => {
-    if (!val) return { datePart: "", timePart: "" };
-    // Handle both "T" separator (from timestampToFormString) and " " separator
-    const separator = val.includes("T") ? "T" : " ";
-    const parts = val.split(separator);
-    return { datePart: parts[0] || "", timePart: parts[1] || "" };
-  };
-
   if (Platform.OS === "web") {
-    const { datePart, timePart } = parseValue(value);
+    const { datePart, timePart } = parseFormString(value);
 
     return (
       <View style={styles.fieldContainer}>
@@ -166,7 +156,7 @@ export function DateFieldWithQuickActions({
               if (e.target.value) {
                 // Keep existing time if there was one
                 const newValue = timePart
-                  ? `${e.target.value} ${timePart}`
+                  ? `${e.target.value}T${timePart}`
                   : e.target.value;
                 onChange(newValue);
               }
@@ -187,7 +177,7 @@ export function DateFieldWithQuickActions({
               onChange={(e) => {
                 const currentDatePart = datePart || formatLocalDate(new Date());
                 if (e.target.value) {
-                  onChange(`${currentDatePart} ${e.target.value}`);
+                  onChange(`${currentDatePart}T${e.target.value}`);
                 } else {
                   // Time cleared, just keep date
                   onChange(currentDatePart);
