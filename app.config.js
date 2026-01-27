@@ -3,7 +3,7 @@ const packageJson = require("./package.json");
 
 function getGitInfo() {
   try {
-    const hash = execSync("git rev-parse --short HEAD", {
+    const hash = execSync("git rev-parse HEAD", {
       encoding: "utf8",
     }).trim();
     const isDirty =
