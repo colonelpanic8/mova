@@ -69,9 +69,9 @@ const CELL_GAP = 3;
 const GRAPH_PADDING = 6; // outerContainer padding
 const ITEM_PADDING = 12; // HabitItem container padding
 
-// Default maximums
-const MAX_PRECEDING = 14;
-const MAX_FOLLOWING = 14;
+// Default maximums - request plenty from API, display will show what fits
+const MAX_PRECEDING = 21;
+const MAX_FOLLOWING = 21;
 
 function calculateCellCount(screenWidth: number): {
   preceding: number;
@@ -86,13 +86,10 @@ function calculateCellCount(screenWidth: number): {
     (availableWidth + CELL_GAP) / (CELL_WIDTH + CELL_GAP),
   );
 
-  // Cap at the maximum total
-  const totalMax = MAX_PRECEDING + MAX_FOLLOWING;
-  const totalCells = Math.min(cellsFit, totalMax);
-
-  // Prioritize following cells, then allocate rest to preceding
-  const following = Math.min(MAX_FOLLOWING, Math.floor(totalCells / 2));
-  const preceding = Math.min(MAX_PRECEDING, totalCells - following);
+  // Split evenly between preceding and following, maximizing total cells shown
+  const half = Math.floor(cellsFit / 2);
+  const preceding = Math.min(MAX_PRECEDING, half);
+  const following = Math.min(MAX_FOLLOWING, cellsFit - preceding);
 
   return { preceding, following };
 }
