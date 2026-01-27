@@ -1,8 +1,8 @@
 import { useHabitConfig } from "@/context/HabitConfigContext";
-import { MiniGraphEntry } from "@/services/api";
+import { MiniGraphEntry, WindowSpecStatus } from "@/services/api";
 import { getHabitCellColor } from "@/utils/habitColors";
-import React from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { LayoutChangeEvent, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 interface HabitGraphProps {
@@ -10,6 +10,7 @@ interface HabitGraphProps {
   expanded?: boolean;
   onCellPress?: (entry: MiniGraphEntry) => void;
   nextRequiredDate?: string;
+  windowSpecsStatus?: WindowSpecStatus[];
 }
 
 interface GraphCellProps {
@@ -24,6 +25,49 @@ interface GraphCellProps {
     nextRequired: string;
   };
   onPress?: () => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
+}
+
+// Convert a duration record to days
+function durationToDays(duration: Record<string, number>): number {
+  let days = 0;
+  if (duration.days) days += duration.days;
+  if (duration.weeks) days += duration.weeks * 7;
+  if (duration.months) days += duration.months * 30;
+  if (duration.years) days += duration.years * 365;
+  return days;
+}
+
+// Format duration for display
+function formatDuration(duration: Record<string, number>): string {
+  const parts: string[] = [];
+  if (duration.years) {
+    parts.push(duration.years === 1 ? "year" : `${duration.years}y`);
+  }
+  if (duration.months) {
+    parts.push(duration.months === 1 ? "month" : `${duration.months}mo`);
+  }
+  if (duration.weeks) {
+    parts.push(duration.weeks === 1 ? "week" : `${duration.weeks}w`);
+  }
+  if (duration.days) {
+    parts.push(duration.days === 1 ? "day" : `${duration.days}d`);
+  }
+  return parts.join(" ") || "?";
+}
+
+// Calculate the start of a backward-looking window ending at the given date
+function getWindowStart(date: Date, duration: Record<string, number>): Date {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  const days = durationToDays(duration);
+  result.setDate(result.getDate() - days + 1);
+  return result;
+}
+
+interface CellLayout {
+  x: number;
+  width: number;
 }
 
 function GraphCell({
@@ -34,6 +78,7 @@ function GraphCell({
   colors,
   glyphs,
   onPress,
+  onLayout,
 }: GraphCellProps) {
   const theme = useTheme();
   const backgroundColor = getHabitCellColor(entry.conformingRatio, colors);
@@ -58,6 +103,7 @@ function GraphCell({
   return (
     <Pressable
       onPress={onPress}
+      onLayout={onLayout}
       style={({ pressed }) => [
         styles.cell,
         { backgroundColor },
@@ -83,8 +129,20 @@ export function HabitGraph({
   expanded = false,
   onCellPress,
   nextRequiredDate,
+  windowSpecsStatus,
 }: HabitGraphProps) {
+  const theme = useTheme();
   const { colors, glyphs } = useHabitConfig();
+  const [cellLayouts, setCellLayouts] = useState<Map<number, CellLayout>>(new Map());
+
+  const handleCellLayout = useCallback((index: number, event: LayoutChangeEvent) => {
+    const { x, width } = event.nativeEvent.layout;
+    setCellLayouts(prev => {
+      const next = new Map(prev);
+      next.set(index, { x, width });
+      return next;
+    });
+  }, []);
 
   if (!miniGraph || miniGraph.length === 0) {
     return null;
@@ -96,6 +154,44 @@ export function HabitGraph({
   );
   const effectiveTodayIndex =
     todayIndex >= 0 ? todayIndex : miniGraph.length - 1;
+
+  // Parse dates for window calculations
+  const parsedDates = miniGraph.map((e) => new Date(e.date + "T00:00:00"));
+  const todayDate = parsedDates[effectiveTodayIndex] || new Date();
+
+  // Calculate window bars based on actual cell layouts and windowSpecsStatus
+  const windowBars = windowSpecsStatus && cellLayouts.size === miniGraph.length
+    ? [...windowSpecsStatus]
+        .sort((a, b) => durationToDays(a.duration) - durationToDays(b.duration))
+        .map((specStatus) => {
+          const windowStart = getWindowStart(todayDate, specStatus.duration);
+          const windowEnd = todayDate;
+
+          let startCellIndex = -1;
+          let endCellIndex = -1;
+
+          for (let i = 0; i < parsedDates.length; i++) {
+            const cellDate = parsedDates[i];
+            if (cellDate >= windowStart && cellDate <= windowEnd) {
+              if (startCellIndex === -1) startCellIndex = i;
+              endCellIndex = i;
+            }
+          }
+
+          if (startCellIndex === -1) return null;
+
+          const startLayout = cellLayouts.get(startCellIndex);
+          const endLayout = cellLayouts.get(endCellIndex);
+          if (!startLayout || !endLayout) return null;
+
+          const left = startLayout.x;
+          const right = endLayout.x + endLayout.width;
+          const width = right - left;
+
+          return { specStatus, left, width, startCellIndex, endCellIndex };
+        })
+        .filter(Boolean)
+    : [];
 
   const renderCell = (entry: MiniGraphEntry, index: number) => {
     const isToday = index === effectiveTodayIndex;
@@ -111,6 +207,7 @@ export function HabitGraph({
         colors={colors}
         glyphs={glyphs}
         onPress={onCellPress ? () => onCellPress(entry) : undefined}
+        onLayout={(e) => handleCellLayout(index, e)}
       />
     );
   };
@@ -120,6 +217,49 @@ export function HabitGraph({
       <View style={[styles.row, expanded && styles.expandedContainer]}>
         {miniGraph.map((entry, index) => renderCell(entry, index))}
       </View>
+      {windowBars.length > 0 && (
+        <View style={styles.windowBarsContainer}>
+          {windowBars.map((bar, index) => {
+            const { specStatus } = bar!;
+            const barColor = getHabitCellColor(specStatus.conformingRatio, colors);
+            const isConforming = specStatus.conformingRatio >= specStatus.conformingValue;
+
+            return (
+              <View key={index} style={styles.windowBarRow}>
+                <View
+                  style={[
+                    styles.windowBar,
+                    {
+                      left: bar!.left,
+                      width: bar!.width,
+                      backgroundColor: barColor,
+                      borderColor: barColor,
+                    },
+                  ]}
+                >
+                  <Text style={styles.windowBarText} numberOfLines={1}>
+                    <Text style={{ color: isConforming ? "#FFFFFF" : "#FFCCCC", fontWeight: "700" }}>
+                      {specStatus.completionsInWindow}
+                    </Text>
+                    <Text style={{ color: "rgba(255,255,255,0.6)" }}>/</Text>
+                    <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
+                      {specStatus.targetRepetitions}
+                    </Text>
+                    <Text style={{ color: "rgba(255,255,255,0.6)" }}> for </Text>
+                    <Text style={{ color: isConforming ? "#FFFFFF" : "#FFCCCC", fontWeight: "700" }}>
+                      {(specStatus.conformingRatio * 100).toFixed(1)}%
+                    </Text>
+                    <Text style={{ color: "rgba(255,255,255,0.6)" }}> in </Text>
+                    <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
+                      {formatDuration(specStatus.duration)}
+                    </Text>
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }
@@ -187,6 +327,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
     includeFontPadding: false,
     textAlignVertical: "center",
+  },
+  windowBarsContainer: {
+    marginTop: 6,
+    gap: 4,
+  },
+  windowBarRow: {
+    height: 18,
+    position: "relative",
+  },
+  windowBar: {
+    position: "absolute",
+    height: 18,
+    borderRadius: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  windowBarText: {
+    fontSize: 10,
+    fontWeight: "500",
   },
 });
 

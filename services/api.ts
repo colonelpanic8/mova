@@ -68,12 +68,24 @@ export interface MiniGraphEntry {
   completionNeededToday?: boolean;
 }
 
+export interface WindowSpecStatus {
+  conformingRatio: number;
+  completionsInWindow: number;
+  targetRepetitions: number;
+  duration: Record<string, number>;
+  conformingValue: number;
+  windowStart: string;
+  windowEnd: string;
+}
+
 export interface HabitSummary {
   conformingRatio: number;
+  aggregatedConformingRatio?: number;
   completionNeededToday: boolean;
   nextRequiredInterval: string;
   completionsInWindow: number;
   targetRepetitions: number;
+  windowSpecsStatus?: WindowSpecStatus[];
   miniGraph: MiniGraphEntry[];
 }
 
@@ -181,6 +193,7 @@ export interface CompleteTodoResponse {
 
 export interface TodoUpdates {
   new_title?: string;
+  new_state?: string;
   scheduled?: Timestamp | null;
   deadline?: Timestamp | null;
   priority?: string | null;
