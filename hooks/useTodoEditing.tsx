@@ -331,7 +331,10 @@ export function useTodoEditing(
         // Use override date if provided, otherwise use current datetime if setting enabled
         let overrideDateStr: string | undefined;
         if (overrideDate) {
-          overrideDateStr = formatLocalDate(overrideDate);
+          // Set time to noon to clearly place the completion on the specified date
+          const noonDate = new Date(overrideDate);
+          noonDate.setHours(12, 0, 0, 0);
+          overrideDateStr = formatLocalDateTime(noonDate);
         } else if (useClientCompletionTime) {
           overrideDateStr = formatLocalDateTime(new Date());
         }
@@ -396,7 +399,10 @@ export function useTodoEditing(
         // Use override date if provided, otherwise use current datetime if setting enabled
         let overrideDateStr: string | undefined;
         if (overrideDate) {
-          overrideDateStr = formatLocalDate(overrideDate);
+          // Set time to noon to clearly place the completion on the specified date
+          const noonDate = new Date(overrideDate);
+          noonDate.setHours(12, 0, 0, 0);
+          overrideDateStr = formatLocalDateTime(noonDate);
         } else if (useClientCompletionTime) {
           overrideDateStr = formatLocalDateTime(new Date());
         }
