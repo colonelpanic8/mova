@@ -33,7 +33,7 @@ describe("OrgAgendaApi", () => {
       const result = await api.getAllTodos();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://test-api.local/get-all-todos",
+        expect.stringMatching(/^http:\/\/test-api\.local\/get-all-todos\?_t=\d+$/),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: expect.stringContaining("Basic"),
@@ -83,7 +83,7 @@ describe("OrgAgendaApi", () => {
       const result = await api.getNotifications();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://test-api.local/notifications",
+        expect.stringMatching(/^http:\/\/test-api\.local\/notifications\?_t=\d+$/),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: expect.stringContaining("Basic"),
@@ -107,7 +107,7 @@ describe("OrgAgendaApi", () => {
       const result = await api.capture("default", { Title: "New Todo" });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://test-api.local/capture",
+        expect.stringMatching(/^http:\/\/test-api\.local\/capture\?_t=\d+$/),
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
@@ -220,7 +220,9 @@ describe("OrgAgendaApi", () => {
       const result = await api.getAgenda("day");
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://test-api.local/agenda?span=day",
+        expect.stringMatching(
+          /^http:\/\/test-api\.local\/agenda\?span=day&_t=\d+$/,
+        ),
         expect.any(Object),
       );
       expect(result.span).toBe("day");
@@ -237,7 +239,9 @@ describe("OrgAgendaApi", () => {
       await api.getAgenda("week");
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://test-api.local/agenda?span=week",
+        expect.stringMatching(
+          /^http:\/\/test-api\.local\/agenda\?span=week&_t=\d+$/,
+        ),
         expect.any(Object),
       );
     });
@@ -569,7 +573,9 @@ describe("OrgAgendaApi", () => {
       const result = await api.getCategoryTypes();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://test-api.local/category-types",
+        expect.stringMatching(
+          /^http:\/\/test-api\.local\/category-types\?_t=\d+$/,
+        ),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: expect.stringContaining("Basic"),
@@ -597,7 +603,9 @@ describe("OrgAgendaApi", () => {
       const result = await api.getCategories("projects");
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://test-api.local/categories?type=projects",
+        expect.stringMatching(
+          /^http:\/\/test-api\.local\/categories\?type=projects&_t=\d+$/,
+        ),
         expect.any(Object),
       );
       expect(result.categories).toEqual(["alpha", "beta"]);
@@ -623,7 +631,9 @@ describe("OrgAgendaApi", () => {
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://test-api.local/category-capture",
+        expect.stringMatching(
+          /^http:\/\/test-api\.local\/category-capture\?_t=\d+$/,
+        ),
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
