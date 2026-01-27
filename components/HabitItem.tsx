@@ -63,36 +63,12 @@ export interface HabitItemProps {
   todo: Todo;
 }
 
-// Cell sizing constants (must match HabitGraph styles)
+// Layout constants from HabitGraph and HabitItem styles
 const CELL_WIDTH = 24;
+const TODAY_CELL_EXTRA = 4; // Today cell is 28 instead of 24
 const CELL_GAP = 3;
-const GRAPH_PADDING = 6; // outerContainer padding
-const ITEM_PADDING = 12; // HabitItem container padding
-
-// Default maximums - request plenty from API, display will show what fits
-const MAX_PRECEDING = 21;
-const MAX_FOLLOWING = 21;
-
-function calculateCellCount(screenWidth: number): {
-  preceding: number;
-  following: number;
-} {
-  // Available width for cells: screen - item padding (both sides) - graph padding (both sides)
-  const availableWidth = screenWidth - ITEM_PADDING * 2 - GRAPH_PADDING * 2;
-
-  // How many cells fit: (availableWidth + gap) / (cellWidth + gap)
-  // We add gap because gaps are between cells, not after the last one
-  const cellsFit = Math.floor(
-    (availableWidth + CELL_GAP) / (CELL_WIDTH + CELL_GAP),
-  );
-
-  // Split evenly between preceding and following, maximizing total cells shown
-  const half = Math.floor(cellsFit / 2);
-  const preceding = Math.min(MAX_PRECEDING, half);
-  const following = Math.min(MAX_FOLLOWING, cellsFit - preceding);
-
-  return { preceding, following };
-}
+const GRAPH_OUTER_PADDING = 6; // HabitGraph outerContainer padding (each side)
+const ITEM_CONTAINER_PADDING = 12; // HabitItem container padding (each side)
 
 export function HabitItem({ todo }: HabitItemProps) {
   const theme = useTheme();
@@ -114,11 +90,32 @@ export function HabitItem({ todo }: HabitItemProps) {
   const isCompleting = completingIds.has(key);
   const wasCompletingRef = useRef(false);
 
-  // Calculate how many cells fit in the display
+  // Calculate how many cells can fit based on screen width
   const { preceding, following } = useMemo(() => {
-    const result = calculateCellCount(screenWidth);
-    console.log("Cell count calculation:", { screenWidth, ...result });
-    return result;
+    // Available width for cells after accounting for all padding
+    const availableWidth =
+      screenWidth - ITEM_CONTAINER_PADDING * 2 - GRAPH_OUTER_PADDING * 2;
+
+    // Calculate max cells that fit (accounting for today's larger cell)
+    // Each cell slot is cellWidth + gap, except last one doesn't need gap
+    // Formula: n * CELL_WIDTH + (n-1) * CELL_GAP + TODAY_CELL_EXTRA <= availableWidth
+    // Simplify: n * (CELL_WIDTH + CELL_GAP) - CELL_GAP + TODAY_CELL_EXTRA <= availableWidth
+    // n <= (availableWidth + CELL_GAP - TODAY_CELL_EXTRA) / (CELL_WIDTH + CELL_GAP)
+    const maxCells = Math.floor(
+      (availableWidth + CELL_GAP - TODAY_CELL_EXTRA) / (CELL_WIDTH + CELL_GAP),
+    );
+
+    // Split cells evenly between past (including today) and future
+    // Give slightly more to past since that's the primary view
+    const pastCells = Math.ceil(maxCells / 2);
+    const futureCells = Math.floor(maxCells / 2);
+
+    // preceding is past cells minus today (which is always shown)
+    // Cap at reasonable values to avoid overwhelming the server
+    const preceding = Math.min(14, Math.max(1, pastCells - 1));
+    const following = Math.min(14, Math.max(1, futureCells));
+
+    return { preceding, following };
   }, [screenWidth]);
 
   // Fetch habit status for graph data
@@ -137,8 +134,6 @@ export function HabitItem({ todo }: HabitItemProps) {
       .then((status) => {
         if (status.graph) {
           setGraphData(transformGraphData(status.graph));
-        } else {
-          console.log("Habit status returned no graph:", status);
         }
       })
       .catch((err: Error) => {
