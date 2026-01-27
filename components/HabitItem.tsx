@@ -3,7 +3,12 @@ import { useApi } from "@/context/ApiContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
-import { HabitStatusGraphEntry, MiniGraphEntry, Todo } from "@/services/api";
+import {
+  HabitStatus,
+  HabitStatusGraphEntry,
+  MiniGraphEntry,
+  Todo,
+} from "@/services/api";
 import { formatLocalDate } from "@/utils/dateFormatting";
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -61,6 +66,8 @@ function formatNextRequired(dateString: string | undefined): string {
 
 export interface HabitItemProps {
   todo: Todo;
+  habitStatus?: HabitStatus;
+  onRefreshNeeded?: () => void;
 }
 
 // Layout constants from HabitGraph and HabitItem styles
@@ -70,7 +77,11 @@ const CELL_GAP = 3;
 const GRAPH_OUTER_PADDING = 6; // HabitGraph outerContainer padding (each side)
 const ITEM_CONTAINER_PADDING = 12; // HabitItem container padding (each side)
 
-export function HabitItem({ todo }: HabitItemProps) {
+export function HabitItem({
+  todo,
+  habitStatus,
+  onRefreshNeeded,
+}: HabitItemProps) {
   const theme = useTheme();
   const router = useRouter();
   const api = useApi();
@@ -81,7 +92,9 @@ export function HabitItem({ todo }: HabitItemProps) {
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [graphData, setGraphData] = useState<MiniGraphEntry[] | null>(null);
+  const [localGraphData, setLocalGraphData] = useState<MiniGraphEntry[] | null>(
+    null,
+  );
   const [graphLoading, setGraphLoading] = useState(false);
   const [confirmEntry, setConfirmEntry] = useState<MiniGraphEntry | null>(null);
   const [isUncompleting, setIsUncompleting] = useState(false);
@@ -89,6 +102,14 @@ export function HabitItem({ todo }: HabitItemProps) {
   const key = todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
   const isCompleting = completingIds.has(key);
   const wasCompletingRef = useRef(false);
+
+  // Use pre-fetched habitStatus if available, otherwise use local state
+  const graphData = useMemo(() => {
+    if (habitStatus?.graph) {
+      return transformGraphData(habitStatus.graph);
+    }
+    return localGraphData;
+  }, [habitStatus, localGraphData]);
 
   // Calculate how many cells can fit based on screen width
   const { preceding, following } = useMemo(() => {
@@ -118,8 +139,14 @@ export function HabitItem({ todo }: HabitItemProps) {
     return { preceding, following };
   }, [screenWidth]);
 
-  // Fetch habit status for graph data
+  // Fetch habit status for graph data (only if not pre-fetched)
   const fetchGraphData = useCallback(() => {
+    // If we have pre-fetched data, trigger parent refresh instead
+    if (habitStatus && onRefreshNeeded) {
+      onRefreshNeeded();
+      return;
+    }
+
     if (!todo.id || !api) {
       console.log("Cannot fetch habit status: missing id or api", {
         id: todo.id,
@@ -133,7 +160,7 @@ export function HabitItem({ todo }: HabitItemProps) {
       .getHabitStatus(todo.id, preceding, following)
       .then((status) => {
         if (status.graph) {
-          setGraphData(transformGraphData(status.graph));
+          setLocalGraphData(transformGraphData(status.graph));
         }
       })
       .catch((err: Error) => {
@@ -142,12 +169,14 @@ export function HabitItem({ todo }: HabitItemProps) {
       .finally(() => {
         setGraphLoading(false);
       });
-  }, [todo.id, api, preceding, following]);
+  }, [todo.id, api, preceding, following, habitStatus, onRefreshNeeded]);
 
-  // Initial fetch
+  // Initial fetch (only if no pre-fetched data)
   useEffect(() => {
-    fetchGraphData();
-  }, [fetchGraphData]);
+    if (!habitStatus) {
+      fetchGraphData();
+    }
+  }, [fetchGraphData, habitStatus]);
 
   // Refresh graph after completion finishes
   useEffect(() => {

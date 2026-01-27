@@ -3,10 +3,23 @@ import { useApi } from "@/context/ApiContext";
 import { useHabitConfig } from "@/context/HabitConfigContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
-import { Todo } from "@/services/api";
+import { HabitStatus, Todo } from "@/services/api";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import {
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Card, Text, useTheme } from "react-native-paper";
+
+// Layout constants (must match HabitItem)
+const CELL_WIDTH = 24;
+const TODAY_CELL_EXTRA = 4;
+const CELL_GAP = 3;
+const GRAPH_OUTER_PADDING = 6;
+const ITEM_CONTAINER_PADDING = 12;
 
 interface HabitStats {
   remainingToday: number;
@@ -59,9 +72,27 @@ export default function HabitsScreen() {
   const api = useApi();
   const { config } = useHabitConfig();
   const { mutationVersion } = useMutation();
+  const { width: screenWidth } = useWindowDimensions();
   const [habits, setHabits] = useState<Todo[]>([]);
+  const [habitStatusMap, setHabitStatusMap] = useState<
+    Map<string, HabitStatus>
+  >(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [, setError] = useState<string | null>(null);
+
+  // Calculate preceding/following based on screen width (same logic as HabitItem)
+  const { preceding, following } = useMemo(() => {
+    const availableWidth =
+      screenWidth - ITEM_CONTAINER_PADDING * 2 - GRAPH_OUTER_PADDING * 2;
+    const maxCells = Math.floor(
+      (availableWidth + CELL_GAP - TODAY_CELL_EXTRA) / (CELL_WIDTH + CELL_GAP),
+    );
+    const pastCells = Math.ceil(maxCells / 2);
+    const futureCells = Math.floor(maxCells / 2);
+    const preceding = Math.min(14, Math.max(1, pastCells - 1));
+    const following = Math.min(14, Math.max(1, futureCells));
+    return { preceding, following };
+  }, [screenWidth]);
 
   const loadHabits = useCallback(async () => {
     if (!api) return;
@@ -69,18 +100,37 @@ export default function HabitsScreen() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.getAllTodos();
-      const habitTodos = response.todos.filter(
+      // Fetch todos and all habit statuses in parallel
+      const [todosResponse, habitStatusesResponse] = await Promise.all([
+        api.getAllTodos(),
+        api.getAllHabitStatuses(preceding, following),
+      ]);
+
+      const habitTodos = todosResponse.todos.filter(
         (todo) => todo.isWindowHabit || todo.properties?.STYLE === "habit",
       );
       setHabits(habitTodos);
+
+      // Build a map of habit id -> status for quick lookup
+      const statusMap = new Map<string, HabitStatus>();
+      if (
+        habitStatusesResponse.status === "ok" &&
+        habitStatusesResponse.habits
+      ) {
+        for (const status of habitStatusesResponse.habits) {
+          if (status.id) {
+            statusMap.set(status.id, status);
+          }
+        }
+      }
+      setHabitStatusMap(statusMap);
     } catch (err) {
       console.error("Failed to load habits:", err);
       setError("Failed to load habits");
     } finally {
       setIsLoading(false);
     }
-  }, [api]);
+  }, [api, preceding, following]);
 
   useEffect(() => {
     loadHabits();
@@ -101,8 +151,14 @@ export default function HabitsScreen() {
   }, [habits]);
 
   const renderItem = useCallback(
-    ({ item }: { item: Todo }) => <HabitItem todo={item} />,
-    [],
+    ({ item }: { item: Todo }) => (
+      <HabitItem
+        todo={item}
+        habitStatus={item.id ? habitStatusMap.get(item.id) : undefined}
+        onRefreshNeeded={loadHabits}
+      />
+    ),
+    [habitStatusMap, loadHabits],
   );
 
   const keyExtractor = useCallback(
