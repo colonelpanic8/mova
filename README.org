@@ -1,0 +1,269 @@
+* Mova
+:PROPERTIES:
+:CUSTOM_ID: mova
+:END:
+A mobile client for [[https://github.com/colonelpanic8/org-agenda-api][org-agenda-api]] - access and manage your Emacs org-mode tasks from Android and iOS.
+
+** Overview
+:PROPERTIES:
+:CUSTOM_ID: overview
+:END:
+Mova is a React Native/Expo application that connects to an org-agenda-api server, providing a native mobile interface for:
+
+- Viewing your daily agenda with scheduled items and deadlines
+- Capturing new tasks using org-mode capture templates
+- Searching across all your TODO items
+- Running custom agenda views
+- Receiving notifications for upcoming tasks
+
+** Relationship to org-agenda-api
+:PROPERTIES:
+:CUSTOM_ID: relationship-to-org-agenda-api
+:END:
+Mova is the mobile frontend for [[https://github.com/colonelpanic8/org-agenda-api][org-agenda-api]], a JSON HTTP API that exposes org-mode data from GNU Emacs. The architecture:
+
+#+begin_src mermaid :file architecture.png
+flowchart TB
+    subgraph Docker["Docker Container"]
+        subgraph Emacs
+            httpd["simple-httpd<br/>(HTTP server)"]
+            api["org-agenda-api<br/>(elisp)"]
+            org["org-mode"]
+            httpd --> api --> org
+        end
+        repo["Git Repository<br/>(.org files on disk)"]
+        sync["git-sync-rs"]
+        org <--> repo
+        sync <--> repo
+    end
+    remote["Remote Git"]
+    mova["Mova<br/>(this app)"]
+
+    sync <--> remote
+    mova <-->|HTTP/JSON| httpd
+#+end_src
+
+#+RESULTS:
+[[file:architecture.png]]
+
+- *org-agenda-api* is an elisp package that runs inside Emacs, translating org-mode data into JSON HTTP responses
+- *simple-httpd* provides the HTTP server functionality within Emacs
+- *org-mode* reads and writes =.org= files from the git repository on disk
+- *git-sync-rs* keeps the local git repository synchronized with a remote
+- *Mova* connects to the server using HTTP Basic Auth to provide a native mobile experience
+
+You need a running org-agenda-api instance for Mova to connect to. See the [[https://github.com/colonelpanic8/org-agenda-api][org-agenda-api README]] for setup instructions.
+
+** Features
+:PROPERTIES:
+:CUSTOM_ID: features
+:END:
+*** Agenda View
+:PROPERTIES:
+:CUSTOM_ID: agenda-view
+:END:
+- Daily agenda with date navigation
+- Shows scheduled items, deadlines, and overdue tasks
+- Pull-to-refresh synchronization
+- Inline task completion and editing
+
+*** Capture
+:PROPERTIES:
+:CUSTOM_ID: capture
+:END:
+- Template-based task capture using your org-mode capture templates
+- Dynamic form fields (text, dates, tags) defined by templates
+- Priority and TODO state selection
+- Scheduled/deadline date pickers
+- Remembers your last-used template
+
+*** Search
+:PROPERTIES:
+:CUSTOM_ID: search
+:END:
+- Full-text search across all TODO items
+- Searches title, tags, and TODO state
+- Real-time filtering
+
+*** Custom Views
+:PROPERTIES:
+:CUSTOM_ID: custom-views
+:END:
+- Access your custom org-agenda commands
+- Dynamic view rendering from server-defined views
+
+*** Android Widget
+:PROPERTIES:
+:CUSTOM_ID: android-widget
+:END:
+- Quick Capture widget for home screen
+- Capture tasks without opening the app
+- Configurable template per widget instance
+
+*** Notifications
+:PROPERTIES:
+:CUSTOM_ID: notifications
+:END:
+- Background sync for upcoming tasks
+- Configurable notification intervals
+- Scheduled and deadline reminders
+
+** Getting Started
+:PROPERTIES:
+:CUSTOM_ID: getting-started
+:END:
+*** Prerequisites
+:PROPERTIES:
+:CUSTOM_ID: prerequisites
+:END:
+- Node.js 18+
+- Yarn or npm
+- A running [[https://github.com/colonelpanic8/org-agenda-api][org-agenda-api]] server
+- For development: Android Studio (Android) or Xcode (iOS)
+
+*** Installation
+:PROPERTIES:
+:CUSTOM_ID: installation
+:END:
+#+begin_src sh
+# Clone the repository
+git clone https://github.com/colonelpanic8/mova
+cd mova
+
+# Install dependencies
+yarn install
+
+# Start the development server
+yarn start
+#+end_src
+
+*** Running the App
+:PROPERTIES:
+:CUSTOM_ID: running-the-app
+:END:
+#+begin_src sh
+# Android
+yarn android
+
+# iOS
+yarn ios
+
+# Or use Expo Go for quick testing
+npx expo start
+#+end_src
+
+*** Connecting to org-agenda-api
+:PROPERTIES:
+:CUSTOM_ID: connecting-to-org-agenda-api
+:END:
+1. Launch Mova
+2. Enter your org-agenda-api server URL (e.g., =https://your-server.com=)
+3. Enter your username and password
+4. Tap Login
+
+** Development
+:PROPERTIES:
+:CUSTOM_ID: development
+:END:
+*** Project Structure
+:PROPERTIES:
+:CUSTOM_ID: project-structure
+:END:
+#+begin_example
+mova/
+├── app/                    # Expo Router screens
+│   ├── (tabs)/             # Main tab navigation
+│   │   ├── index.tsx       # Agenda screen
+│   │   ├── capture.tsx     # Capture screen
+│   │   ├── search.tsx      # Search screen
+│   │   ├── views.tsx       # Custom views
+│   │   └── settings/       # Settings screens
+│   └── login.tsx           # Login screen
+├── services/               # API client and background tasks
+│   ├── api.ts              # org-agenda-api client
+│   ├── backgroundSync.ts   # Background task registration
+│   └── notifications.ts    # Push notifications
+├── components/             # Reusable UI components
+├── context/                # React context providers
+├── hooks/                  # Custom React hooks
+├── widgets/                # Android widget implementation
+└── tests/                  # Jest unit/integration tests
+#+end_example
+
+*** Commands
+:PROPERTIES:
+:CUSTOM_ID: commands
+:END:
+#+begin_src sh
+yarn start          # Start Expo dev server
+yarn android        # Run on Android
+yarn ios            # Run on iOS
+yarn test           # Run Jest tests
+yarn typecheck      # TypeScript validation
+yarn lint           # ESLint check
+yarn e2e:android    # Run Detox E2E tests
+#+end_src
+
+*** Testing
+:PROPERTIES:
+:CUSTOM_ID: testing
+:END:
+#+begin_src sh
+# Unit tests
+yarn test
+
+# E2E tests (requires Android emulator)
+yarn e2e:build:android
+yarn e2e:android
+#+end_src
+
+** Tech Stack
+:PROPERTIES:
+:CUSTOM_ID: tech-stack
+:END:
+- *React Native* + *Expo* - Cross-platform mobile framework
+- *Expo Router* - File-based navigation
+- *React Native Paper* - Material Design 3 components
+- *TypeScript* - Type safety
+- *Jest* + *Detox* - Testing
+
+** Configuration
+:PROPERTIES:
+:CUSTOM_ID: configuration
+:END:
+*** Capture Templates
+:PROPERTIES:
+:CUSTOM_ID: capture-templates
+:END:
+Capture templates are defined in your Emacs org-mode configuration and exposed via the org-agenda-api =/capture-templates= endpoint. Mova automatically fetches and renders forms based on your template definitions.
+
+Example template structure from org-agenda-api:
+
+#+begin_src json
+{
+  "todo": {
+    "name": "Todo",
+    "prompts": [
+      { "name": "title", "type": "string", "required": true },
+      { "name": "scheduled", "type": "date", "required": false },
+      { "name": "tags", "type": "tags", "required": false }
+    ]
+  }
+}
+#+end_src
+
+*** Notifications
+:PROPERTIES:
+:CUSTOM_ID: notifications-1
+:END:
+Configure notification preferences in Settings:
+
+- Enable/disable notifications
+- Set reminder intervals (e.g., 15 minutes before)
+- Background sync frequency (default: 15 minutes)
+
+** License
+:PROPERTIES:
+:CUSTOM_ID: license
+:END:
+GPL v3
