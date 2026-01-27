@@ -262,7 +262,7 @@ export default function EditScreen() {
       isError: true,
     });
     setRemindDialogVisible(false);
-  }, [originalTodo, remindDateTime]);
+  }, [remindDateTime]);
 
   return (
     <View

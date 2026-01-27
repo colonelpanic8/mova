@@ -131,7 +131,6 @@ export function HabitGraph({
   nextRequiredDate,
   windowSpecsStatus,
 }: HabitGraphProps) {
-  const theme = useTheme();
   const { colors, glyphs } = useHabitConfig();
   const [cellLayouts, setCellLayouts] = useState<Map<number, CellLayout>>(new Map());
 
