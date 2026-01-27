@@ -243,11 +243,11 @@
         "org-window-habit": "org-window-habit"
       },
       "locked": {
-        "lastModified": 1769494594,
-        "narHash": "sha256-S6Y54xotMvXmbeFEmHG8jSuFLBFdlwAUVafrlXmRle8=",
+        "lastModified": 1769498450,
+        "narHash": "sha256-+PWS/33C3MSOmfus27g63iXHJDm6L3FW6zM4mihwQ1c=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "f0865244519c313db3833960d7efb68216638499",
+        "rev": "bb328acf6670375caf900bbe99bcdfd5a8994980",
         "type": "github"
       },
       "original": {
@@ -291,11 +291,11 @@
     "org-window-habit": {
       "flake": false,
       "locked": {
-        "lastModified": 1769406502,
-        "narHash": "sha256-Q8L/i/2kSoAo79lcAV3wfFmCXo8kPwcKJa1kqjCgBvI=",
+        "lastModified": 1769496193,
+        "narHash": "sha256-eSgTY/ogDJCcVuGlcPGlxGo8Gm4lyFtbLt9wgG0njEU=",
         "owner": "colonelpanic8",
         "repo": "org-window-habit",
-        "rev": "8da4e63735118f5b971a0f2e095e7b2f0b8189ee",
+        "rev": "7f8f2a7fb56df4f73fb115d1821aae2a6efd8926",
         "type": "github"
       },
       "original": {
