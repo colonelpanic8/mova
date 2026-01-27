@@ -88,12 +88,7 @@ export default function AgendaScreen() {
   const doneStates = useMemo(() => todoStates?.done ?? [], [todoStates?.done]);
   const isCompleted = useCallback(
     (entry: Todo & { completedAt?: string | null }) =>
-      entry.completedAt ||
-      doneStates.includes(entry.todo) ||
-      // For habits: if it's a window habit and completionNeededToday is false,
-      // it means the habit was already completed for today
-      (entry.isWindowHabit &&
-        entry.habitSummary?.completionNeededToday === false),
+      entry.completedAt || doneStates.includes(entry.todo),
     [doneStates],
   );
   const activeEntries = sortEntriesForListView(
