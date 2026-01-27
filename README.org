@@ -25,6 +25,7 @@ Mova is the mobile frontend for [[https://github.com/colonelpanic8/org-agenda-ap
 #+begin_src mermaid :file architecture.png
 flowchart TB
     subgraph Docker["Docker Container"]
+        nginx["nginx<br/>(HTTP Basic Auth)"]
         subgraph Emacs
             httpd["simple-httpd<br/>(HTTP server)"]
             api["org-agenda-api<br/>(elisp)"]
@@ -33,6 +34,7 @@ flowchart TB
         end
         repo["Git Repository<br/>(.org files on disk)"]
         sync["git-sync-rs"]
+        nginx --> httpd
         org <--> repo
         sync <--> repo
     end
@@ -40,17 +42,18 @@ flowchart TB
     mova["Mova<br/>(this app)"]
 
     sync <--> remote
-    mova <-->|HTTP/JSON| httpd
+    mova <-->|HTTP/JSON| nginx
 #+end_src
 
 #+RESULTS:
 [[file:architecture.png]]
 
-- *org-agenda-api* is an elisp package that runs inside Emacs, translating org-mode data into JSON HTTP responses
+- *nginx* handles HTTP Basic Auth and proxies requests to Emacs
 - *simple-httpd* provides the HTTP server functionality within Emacs
+- *org-agenda-api* is an elisp package that runs inside Emacs, translating org-mode data into JSON HTTP responses
 - *org-mode* reads and writes =.org= files from the git repository on disk
 - *git-sync-rs* keeps the local git repository synchronized with a remote
-- *Mova* connects to the server using HTTP Basic Auth to provide a native mobile experience
+- *Mova* connects to nginx via HTTP Basic Auth to provide a native mobile experience
 
 You need a running org-agenda-api instance for Mova to connect to. See the [[https://github.com/colonelpanic8/org-agenda-api][org-agenda-api README]] for setup instructions.
 
