@@ -77,6 +77,51 @@ function getTimestampTypeIcon(timestampType?: string): string {
   }
 }
 
+interface RelativeInfoParts {
+  offset: string;
+  timestampType: string;
+  eventTime: string;
+  isDayWide: boolean;
+}
+
+function getRelativeInfoParts(notification: ScheduledNotificationInfo): RelativeInfoParts | null {
+  // Handle day-wide notifications
+  if (notification.type === "day-wide") {
+    const dateToUse = notification.eventTime || notification.scheduledTime;
+    const dateStr = dateToUse.toLocaleDateString([], {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    return {
+      offset: "",
+      timestampType: notification.timestampType || "",
+      eventTime: dateStr,
+      isDayWide: true,
+    };
+  }
+
+  // Handle relative notifications
+  if (notification.minutesBefore === undefined || !notification.eventTime) {
+    return null;
+  }
+
+  const mins = notification.minutesBefore;
+  const offsetText =
+    mins === 0
+      ? "at"
+      : mins < 60
+        ? `${mins}m before`
+        : `${Math.floor(mins / 60)}h${mins % 60 ? `${mins % 60}m` : ""} before`;
+
+  return {
+    offset: offsetText,
+    timestampType: notification.timestampType || "event",
+    eventTime: formatFullDateTime(notification.eventTime),
+    isDayWide: false,
+  };
+}
+
 export default function NotificationsScreen() {
   const theme = useTheme();
   const [notifications, setNotifications] = useState<
@@ -228,6 +273,30 @@ export default function NotificationsScreen() {
                       </Chip>
                     )}
                   </View>
+                  {(() => {
+                    const parts = getRelativeInfoParts(notification);
+                    if (!parts) return null;
+                    if (parts.isDayWide) {
+                      return (
+                        <Text variant="bodySmall" style={{ marginTop: 4 }}>
+                          <Text style={{ color: theme.colors.tertiary }}>Day-wide</Text>
+                          {parts.timestampType && (
+                            <Text style={{ color: theme.colors.outline }}> {parts.timestampType}</Text>
+                          )}
+                          <Text style={{ color: theme.colors.outline }}> for </Text>
+                          <Text style={{ color: theme.colors.primary }}>{parts.eventTime}</Text>
+                        </Text>
+                      );
+                    }
+                    return (
+                      <Text variant="bodySmall" style={{ marginTop: 4 }}>
+                        <Text style={{ color: theme.colors.primary }}>{parts.offset}</Text>
+                        <Text style={{ color: theme.colors.outline }}> </Text>
+                        <Text style={{ color: theme.colors.tertiary }}>{parts.timestampType}</Text>
+                        <Text style={{ color: theme.colors.outline }}> @ {parts.eventTime}</Text>
+                      </Text>
+                    );
+                  })()}
                   <View style={styles.timeRow}>
                     <Text
                       variant="labelMedium"

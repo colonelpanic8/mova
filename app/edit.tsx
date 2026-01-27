@@ -116,14 +116,15 @@ export default function EditScreen() {
     if (!api) return;
     setIsSaving(true);
     try {
-      // Check if state changed
-      const stateChanged = todoState !== originalTodo.todo;
-
       // Build updates object
       const updates: TodoUpdates = {};
 
       if (title !== (originalTodo.title || "")) {
         updates.new_title = title;
+      }
+
+      if (todoState !== originalTodo.todo) {
+        updates.new_state = todoState;
       }
 
       // Check if scheduled or its repeater changed
@@ -167,27 +168,13 @@ export default function EditScreen() {
         updates.tags = tags.length > 0 ? tags : null;
       }
 
-      // Apply updates if any
+      // Apply all updates in a single request
       if (Object.keys(updates).length > 0) {
         const result = await api.updateTodo(originalTodo, updates);
         if (result.status !== "updated") {
           setSnackbar({
             visible: true,
             message: result.message || "Failed to update",
-            isError: true,
-          });
-          setIsSaving(false);
-          return;
-        }
-      }
-
-      // Handle state change separately
-      if (stateChanged) {
-        const stateResult = await api.setTodoState(originalTodo, todoState);
-        if (stateResult.status !== "completed") {
-          setSnackbar({
-            visible: true,
-            message: stateResult.message || "Failed to change state",
             isError: true,
           });
           setIsSaving(false);
