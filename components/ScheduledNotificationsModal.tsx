@@ -81,7 +81,9 @@ export function ScheduledNotificationsModal({
     return parts.join(" · ");
   };
 
-  const formatRelativeInfo = (item: ScheduledNotificationInfo): string | null => {
+  const formatRelativeInfo = (
+    item: ScheduledNotificationInfo,
+  ): string | null => {
     // Handle day-wide notifications
     if (item.type === "day-wide" && item.eventTime) {
       const dateStr = item.eventTime.toLocaleDateString([], {

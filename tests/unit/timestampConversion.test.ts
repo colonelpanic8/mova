@@ -9,7 +9,10 @@ import {
 describe("timestampConversion", () => {
   describe("parseFormString", () => {
     it("returns empty parts for undefined", () => {
-      expect(parseFormString(undefined)).toEqual({ datePart: "", timePart: "" });
+      expect(parseFormString(undefined)).toEqual({
+        datePart: "",
+        timePart: "",
+      });
     });
 
     it("returns empty parts for empty string", () => {

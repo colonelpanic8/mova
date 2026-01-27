@@ -808,7 +808,9 @@ export function useTodoEditing(
                 onChange={(e) => {
                   if (e.target.value && editingTodo) {
                     const fieldName =
-                      editModalType === "scheduleTime" ? "scheduled" : "deadline";
+                      editModalType === "scheduleTime"
+                        ? "scheduled"
+                        : "deadline";
                     const [hours, minutes] = e.target.value
                       .split(":")
                       .map(Number);

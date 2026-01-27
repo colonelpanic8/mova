@@ -55,9 +55,10 @@ export function timestampToFormString(ts: Timestamp | null): string {
  * @param dateStr - Date string in YYYY-MM-DD, YYYY-MM-DDTHH:MM, or "YYYY-MM-DD HH:MM" format
  * @returns Object with datePart and timePart (empty strings if not present)
  */
-export function parseFormString(
-  dateStr: string | undefined,
-): { datePart: string; timePart: string } {
+export function parseFormString(dateStr: string | undefined): {
+  datePart: string;
+  timePart: string;
+} {
   if (!dateStr) return { datePart: "", timePart: "" };
 
   const separator = dateStr.includes("T") ? "T" : " ";

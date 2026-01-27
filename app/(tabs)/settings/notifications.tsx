@@ -84,7 +84,9 @@ interface RelativeInfoParts {
   isDayWide: boolean;
 }
 
-function getRelativeInfoParts(notification: ScheduledNotificationInfo): RelativeInfoParts | null {
+function getRelativeInfoParts(
+  notification: ScheduledNotificationInfo,
+): RelativeInfoParts | null {
   // Handle day-wide notifications
   if (notification.type === "day-wide") {
     const dateToUse = notification.eventTime || notification.scheduledTime;
@@ -279,21 +281,38 @@ export default function NotificationsScreen() {
                     if (parts.isDayWide) {
                       return (
                         <Text variant="bodySmall" style={{ marginTop: 4 }}>
-                          <Text style={{ color: theme.colors.tertiary }}>Day-wide</Text>
+                          <Text style={{ color: theme.colors.tertiary }}>
+                            Day-wide
+                          </Text>
                           {parts.timestampType && (
-                            <Text style={{ color: theme.colors.outline }}> {parts.timestampType}</Text>
+                            <Text style={{ color: theme.colors.outline }}>
+                              {" "}
+                              {parts.timestampType}
+                            </Text>
                           )}
-                          <Text style={{ color: theme.colors.outline }}> for </Text>
-                          <Text style={{ color: theme.colors.primary }}>{parts.eventTime}</Text>
+                          <Text style={{ color: theme.colors.outline }}>
+                            {" "}
+                            for{" "}
+                          </Text>
+                          <Text style={{ color: theme.colors.primary }}>
+                            {parts.eventTime}
+                          </Text>
                         </Text>
                       );
                     }
                     return (
                       <Text variant="bodySmall" style={{ marginTop: 4 }}>
-                        <Text style={{ color: theme.colors.primary }}>{parts.offset}</Text>
+                        <Text style={{ color: theme.colors.primary }}>
+                          {parts.offset}
+                        </Text>
                         <Text style={{ color: theme.colors.outline }}> </Text>
-                        <Text style={{ color: theme.colors.tertiary }}>{parts.timestampType}</Text>
-                        <Text style={{ color: theme.colors.outline }}> @ {parts.eventTime}</Text>
+                        <Text style={{ color: theme.colors.tertiary }}>
+                          {parts.timestampType}
+                        </Text>
+                        <Text style={{ color: theme.colors.outline }}>
+                          {" "}
+                          @ {parts.eventTime}
+                        </Text>
                       </Text>
                     );
                   })()}

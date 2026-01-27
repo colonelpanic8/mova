@@ -2,7 +2,13 @@ import { useHabitConfig } from "@/context/HabitConfigContext";
 import { MiniGraphEntry, WindowSpecStatus } from "@/services/api";
 import { getHabitCellColor } from "@/utils/habitColors";
 import React, { useCallback, useState } from "react";
-import { LayoutChangeEvent, Platform, Pressable, StyleSheet, View } from "react-native";
+import {
+  LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 interface HabitGraphProps {
@@ -132,16 +138,21 @@ export function HabitGraph({
   windowSpecsStatus,
 }: HabitGraphProps) {
   const { colors, glyphs } = useHabitConfig();
-  const [cellLayouts, setCellLayouts] = useState<Map<number, CellLayout>>(new Map());
+  const [cellLayouts, setCellLayouts] = useState<Map<number, CellLayout>>(
+    new Map(),
+  );
 
-  const handleCellLayout = useCallback((index: number, event: LayoutChangeEvent) => {
-    const { x, width } = event.nativeEvent.layout;
-    setCellLayouts(prev => {
-      const next = new Map(prev);
-      next.set(index, { x, width });
-      return next;
-    });
-  }, []);
+  const handleCellLayout = useCallback(
+    (index: number, event: LayoutChangeEvent) => {
+      const { x, width } = event.nativeEvent.layout;
+      setCellLayouts((prev) => {
+        const next = new Map(prev);
+        next.set(index, { x, width });
+        return next;
+      });
+    },
+    [],
+  );
 
   if (!miniGraph || miniGraph.length === 0) {
     return null;
@@ -159,38 +170,41 @@ export function HabitGraph({
   const todayDate = parsedDates[effectiveTodayIndex] || new Date();
 
   // Calculate window bars based on actual cell layouts and windowSpecsStatus
-  const windowBars = windowSpecsStatus && cellLayouts.size === miniGraph.length
-    ? [...windowSpecsStatus]
-        .sort((a, b) => durationToDays(a.duration) - durationToDays(b.duration))
-        .map((specStatus) => {
-          const windowStart = getWindowStart(todayDate, specStatus.duration);
-          const windowEnd = todayDate;
+  const windowBars =
+    windowSpecsStatus && cellLayouts.size === miniGraph.length
+      ? [...windowSpecsStatus]
+          .sort(
+            (a, b) => durationToDays(a.duration) - durationToDays(b.duration),
+          )
+          .map((specStatus) => {
+            const windowStart = getWindowStart(todayDate, specStatus.duration);
+            const windowEnd = todayDate;
 
-          let startCellIndex = -1;
-          let endCellIndex = -1;
+            let startCellIndex = -1;
+            let endCellIndex = -1;
 
-          for (let i = 0; i < parsedDates.length; i++) {
-            const cellDate = parsedDates[i];
-            if (cellDate >= windowStart && cellDate <= windowEnd) {
-              if (startCellIndex === -1) startCellIndex = i;
-              endCellIndex = i;
+            for (let i = 0; i < parsedDates.length; i++) {
+              const cellDate = parsedDates[i];
+              if (cellDate >= windowStart && cellDate <= windowEnd) {
+                if (startCellIndex === -1) startCellIndex = i;
+                endCellIndex = i;
+              }
             }
-          }
 
-          if (startCellIndex === -1) return null;
+            if (startCellIndex === -1) return null;
 
-          const startLayout = cellLayouts.get(startCellIndex);
-          const endLayout = cellLayouts.get(endCellIndex);
-          if (!startLayout || !endLayout) return null;
+            const startLayout = cellLayouts.get(startCellIndex);
+            const endLayout = cellLayouts.get(endCellIndex);
+            if (!startLayout || !endLayout) return null;
 
-          const left = startLayout.x;
-          const right = endLayout.x + endLayout.width;
-          const width = right - left;
+            const left = startLayout.x;
+            const right = endLayout.x + endLayout.width;
+            const width = right - left;
 
-          return { specStatus, left, width, startCellIndex, endCellIndex };
-        })
-        .filter(Boolean)
-    : [];
+            return { specStatus, left, width, startCellIndex, endCellIndex };
+          })
+          .filter(Boolean)
+      : [];
 
   const renderCell = (entry: MiniGraphEntry, index: number) => {
     const isToday = index === effectiveTodayIndex;
@@ -212,12 +226,13 @@ export function HabitGraph({
   };
 
   // Calculate the total width of the cells row for proper centering
-  const rowWidth = cellLayouts.size === miniGraph.length
-    ? (() => {
-        const lastLayout = cellLayouts.get(miniGraph.length - 1);
-        return lastLayout ? lastLayout.x + lastLayout.width : 0;
-      })()
-    : 0;
+  const rowWidth =
+    cellLayouts.size === miniGraph.length
+      ? (() => {
+          const lastLayout = cellLayouts.get(miniGraph.length - 1);
+          return lastLayout ? lastLayout.x + lastLayout.width : 0;
+        })()
+      : 0;
 
   return (
     <View style={styles.outerContainer} testID="habit-graph">
@@ -228,11 +243,21 @@ export function HabitGraph({
         <View style={styles.windowBarsContainer}>
           {windowBars.map((bar, index) => {
             const { specStatus } = bar!;
-            const barColor = getHabitCellColor(specStatus.conformingRatio, colors);
-            const isConforming = specStatus.conformingRatio >= specStatus.conformingValue;
+            const barColor = getHabitCellColor(
+              specStatus.conformingRatio,
+              colors,
+            );
+            const isConforming =
+              specStatus.conformingRatio >= specStatus.conformingValue;
 
             return (
-              <View key={index} style={[styles.windowBarRow, { width: rowWidth, alignSelf: "center" }]}>
+              <View
+                key={index}
+                style={[
+                  styles.windowBarRow,
+                  { width: rowWidth, alignSelf: "center" },
+                ]}
+              >
                 <View
                   style={[
                     styles.windowBar,
@@ -245,15 +270,28 @@ export function HabitGraph({
                   ]}
                 >
                   <Text style={styles.windowBarText} numberOfLines={1}>
-                    <Text style={{ color: isConforming ? "#FFFFFF" : "#FFCCCC", fontWeight: "700" }}>
+                    <Text
+                      style={{
+                        color: isConforming ? "#FFFFFF" : "#FFCCCC",
+                        fontWeight: "700",
+                      }}
+                    >
                       {specStatus.completionsInWindow}
                     </Text>
                     <Text style={{ color: "rgba(255,255,255,0.6)" }}>/</Text>
                     <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
                       {specStatus.targetRepetitions}
                     </Text>
-                    <Text style={{ color: "rgba(255,255,255,0.6)" }}> for </Text>
-                    <Text style={{ color: isConforming ? "#FFFFFF" : "#FFCCCC", fontWeight: "700" }}>
+                    <Text style={{ color: "rgba(255,255,255,0.6)" }}>
+                      {" "}
+                      for{" "}
+                    </Text>
+                    <Text
+                      style={{
+                        color: isConforming ? "#FFFFFF" : "#FFCCCC",
+                        fontWeight: "700",
+                      }}
+                    >
                       {(specStatus.conformingRatio * 100).toFixed(1)}%
                     </Text>
                     <Text style={{ color: "rgba(255,255,255,0.6)" }}> in </Text>
