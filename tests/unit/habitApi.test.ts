@@ -30,7 +30,7 @@ describe("Habit API methods", () => {
       const result = await api.getHabitConfig();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8080/habit-config",
+        expect.stringMatching(/^http:\/\/localhost:8080\/habit-config\?_t=\d+$/),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: expect.any(String),
@@ -58,7 +58,9 @@ describe("Habit API methods", () => {
       const result = await api.getHabitStatus("habit-123");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8080/habit-status?id=habit-123",
+        expect.stringMatching(
+          /^http:\/\/localhost:8080\/habit-status\?id=habit-123&_t=\d+$/,
+        ),
         expect.any(Object),
       );
       expect(result.id).toBe("habit-123");
@@ -73,7 +75,9 @@ describe("Habit API methods", () => {
       await api.getHabitStatus("habit-123", 10, 5);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8080/habit-status?id=habit-123&preceding=10&following=5",
+        expect.stringMatching(
+          /^http:\/\/localhost:8080\/habit-status\?id=habit-123&preceding=10&following=5&_t=\d+$/,
+        ),
         expect.any(Object),
       );
     });
