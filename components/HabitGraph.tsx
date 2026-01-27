@@ -240,7 +240,7 @@ export function HabitGraph({
         {miniGraph.map((entry, index) => renderCell(entry, index))}
       </View>
       {windowBars.length > 0 && rowWidth > 0 && (
-        <View style={styles.windowBarsContainer}>
+        <View style={[styles.windowBarsContainer, { width: rowWidth }]}>
           {windowBars.map((bar, index) => {
             const { specStatus } = bar!;
             const barColor = getHabitCellColor(
@@ -251,13 +251,7 @@ export function HabitGraph({
               specStatus.conformingRatio >= specStatus.conformingValue;
 
             return (
-              <View
-                key={index}
-                style={[
-                  styles.windowBarRow,
-                  { width: rowWidth, alignSelf: "center" },
-                ]}
-              >
+              <View key={index} style={styles.windowBarRow}>
                 <View
                   style={[
                     styles.windowBar,
@@ -314,11 +308,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(155, 77, 184, 0.15)", // Mova purple with transparency
     padding: 6,
     borderRadius: 8,
+    alignItems: "center",
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 3,
   },
   expandedContainer: {
