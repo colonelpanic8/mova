@@ -30,7 +30,9 @@ describe("Habit API methods", () => {
       const result = await api.getHabitConfig();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringMatching(/^http:\/\/localhost:8080\/habit-config\?_t=\d+$/),
+        expect.stringMatching(
+          /^http:\/\/localhost:8080\/habit-config\?_t=\d+$/,
+        ),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: expect.any(String),
