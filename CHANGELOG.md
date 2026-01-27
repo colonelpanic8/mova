@@ -1,5 +1,15 @@
 # Changelog
 
+## [5.14.1]
+
+- fix: center window bars properly in habit graph
+
+## [5.14.0]
+
+- feat: improved habit window visualization with completion stats
+- feat: show relative notification info with colored timestamps
+- fix: combine state changes with other updates in single request
+
 ## [5.13.0]
 
 - fix: scheduled/deadline time not saved from edit view on web
