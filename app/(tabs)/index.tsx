@@ -6,7 +6,13 @@ import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
-import { AgendaResponse, Todo, TodoStatesResponse } from "@/services/api";
+import {
+  AgendaResponse,
+  HabitStatus,
+  MiniGraphEntry,
+  Todo,
+  TodoStatesResponse,
+} from "@/services/api";
 import {
   formatLocalDate as formatDateForApi,
   formatDateForDisplay,
@@ -75,6 +81,9 @@ export default function AgendaScreen() {
     isPastDay(new Date()),
   );
   const [viewMode, setViewMode] = useState<"list" | "schedule">("list");
+  const [habitStatusMap, setHabitStatusMap] = useState<Map<string, HabitStatus>>(
+    new Map(),
+  );
   const api = useApi();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
@@ -86,16 +95,85 @@ export default function AgendaScreen() {
   // Apply filters to agenda entries and split into active/completed
   const filteredEntries = agenda ? filterTodos(agenda.entries, filters) : [];
   const doneStates = useMemo(() => todoStates?.done ?? [], [todoStates?.done]);
-  const isCompleted = useCallback(
-    (entry: Todo & { completedAt?: string | null }) =>
-      entry.completedAt || doneStates.includes(entry.todo),
-    [doneStates],
+
+  // Check if a habit was completed today using habit status graph
+  const isHabitCompletedToday = useCallback(
+    (entry: Todo): boolean => {
+      // First check the habit status map for the graph data
+      if (entry.id) {
+        const habitStatus = habitStatusMap.get(entry.id);
+        if (habitStatus?.graph?.length) {
+          // Find today's entry (status === "present")
+          const todayEntry = habitStatus.graph.find((e) => e.status === "present");
+          if (todayEntry) {
+            return todayEntry.completionCount > 0;
+          }
+        }
+      }
+      // Fall back to entry's miniGraph if available
+      const miniGraph = entry.habitSummary?.miniGraph;
+      if (miniGraph?.length) {
+        const todayEntry = miniGraph.find(
+          (e: MiniGraphEntry) => e.completionNeededToday !== undefined,
+        );
+        if (todayEntry) {
+          return todayEntry.completed;
+        }
+      }
+      // Last fallback: if completionNeededToday is false, assume completed
+      return entry.habitSummary?.completionNeededToday === false;
+    },
+    [habitStatusMap],
   );
+
+  // Check if a habit needs completion today
+  const habitNeedsCompletionToday = useCallback(
+    (entry: Todo): boolean => {
+      // First check the habit status map
+      if (entry.id) {
+        const habitStatus = habitStatusMap.get(entry.id);
+        if (habitStatus?.currentState) {
+          return habitStatus.currentState.completionNeededToday ?? false;
+        }
+      }
+      // Fall back to habitSummary
+      return entry.habitSummary?.completionNeededToday ?? false;
+    },
+    [habitStatusMap],
+  );
+
+  const isCompleted = useCallback(
+    (entry: Todo & { completedAt?: string | null }) => {
+      const isHabit = entry.isWindowHabit || entry.properties?.STYLE === "habit";
+      if (isHabit) {
+        return isHabitCompletedToday(entry);
+      }
+      return entry.completedAt || doneStates.includes(entry.todo);
+    },
+    [doneStates, isHabitCompletedToday],
+  );
+
+  // Filter out habits that don't need completion and weren't completed
+  const shouldShowInAgenda = useCallback(
+    (entry: Todo & { completedAt?: string | null }): boolean => {
+      const isHabit = entry.isWindowHabit || entry.properties?.STYLE === "habit";
+      if (isHabit) {
+        const completedToday = isHabitCompletedToday(entry);
+        const needsCompletion = habitNeedsCompletionToday(entry);
+        // Show if: needs completion today OR was completed today
+        return needsCompletion || completedToday;
+      }
+      return true; // Non-habits always show
+    },
+    [isHabitCompletedToday, habitNeedsCompletionToday],
+  );
+
+  const visibleEntries = filteredEntries.filter(shouldShowInAgenda);
   const activeEntries = sortEntriesForListView(
-    filteredEntries.filter((entry) => !isCompleted(entry)),
+    visibleEntries.filter((entry) => !isCompleted(entry)),
   );
   const completedEntries = sortEntriesForListView(
-    filteredEntries.filter((entry) => isCompleted(entry)),
+    visibleEntries.filter((entry) => isCompleted(entry)),
   );
 
   const handleTodoUpdated = useCallback(
@@ -143,13 +221,25 @@ export default function AgendaScreen() {
         const dateString = formatDateForApi(date);
         const todayString = formatDateForApi(new Date());
         const includeOverdue = dateString <= todayString;
-        const [agendaData, statesData] = await Promise.all([
-          api.getAgenda("day", dateString, includeOverdue, includeCompleted),
-          api.getTodoStates().catch(() => null),
-        ]);
+        const [agendaData, statesData, habitStatusesResponse] =
+          await Promise.all([
+            api.getAgenda("day", dateString, includeOverdue, includeCompleted),
+            api.getTodoStates().catch(() => null),
+            api.getAllHabitStatuses(14, 14).catch(() => null),
+          ]);
         setAgenda(agendaData);
         if (statesData) {
           setTodoStates(statesData);
+        }
+        // Build a map of habit id -> status for quick lookup
+        if (habitStatusesResponse?.status === "ok" && habitStatusesResponse.habits) {
+          const statusMap = new Map<string, HabitStatus>();
+          for (const status of habitStatusesResponse.habits) {
+            if (status.id) {
+              statusMap.set(status.id, status);
+            }
+          }
+          setHabitStatusMap(statusMap);
         }
         setError(null);
       } catch (err) {
@@ -334,7 +424,8 @@ export default function AgendaScreen() {
 
         <FilterBar testID="agendaFilterBar" />
 
-        {filteredEntries.length === 0 ? (
+        {activeEntries.length === 0 &&
+        (!showCompleted || completedEntries.length === 0) ? (
           <View testID="agendaEmptyView" style={styles.centered}>
             <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
               No items for today
@@ -342,7 +433,7 @@ export default function AgendaScreen() {
           </View>
         ) : viewMode === "schedule" ? (
           <DayScheduleView
-            entries={filteredEntries}
+            entries={showCompleted ? visibleEntries : activeEntries}
             doneStates={doneStates}
             refreshing={refreshing}
             onRefresh={onRefresh}
@@ -354,7 +445,7 @@ export default function AgendaScreen() {
               ...(activeEntries.length > 0
                 ? [{ key: "active", data: activeEntries }]
                 : []),
-              ...(completedEntries.length > 0
+              ...(showCompleted && completedEntries.length > 0
                 ? [
                     {
                       key: "completed",
