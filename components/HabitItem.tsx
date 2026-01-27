@@ -71,7 +71,7 @@ const ITEM_PADDING = 12; // HabitItem container padding
 
 // Default maximums
 const MAX_PRECEDING = 14;
-const MAX_FOLLOWING = 5;
+const MAX_FOLLOWING = 14;
 
 function calculateCellCount(screenWidth: number): {
   preceding: number;
@@ -86,13 +86,12 @@ function calculateCellCount(screenWidth: number): {
     (availableWidth + CELL_GAP) / (CELL_WIDTH + CELL_GAP),
   );
 
-  // Cap at the maximum total (14 + 5 = 19)
+  // Cap at the maximum total
   const totalMax = MAX_PRECEDING + MAX_FOLLOWING;
   const totalCells = Math.min(cellsFit, totalMax);
 
-  // Allocate to preceding and following, prioritizing preceding
-  // Keep the same ratio: 14:5 ~= 74% preceding, 26% following
-  const following = Math.min(MAX_FOLLOWING, Math.floor(totalCells * 0.26));
+  // Prioritize following cells, then allocate rest to preceding
+  const following = Math.min(MAX_FOLLOWING, Math.floor(totalCells / 2));
   const preceding = Math.min(MAX_PRECEDING, totalCells - following);
 
   return { preceding, following };

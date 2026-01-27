@@ -20,7 +20,7 @@ interface HabitConfigContextType {
 const DEFAULT_GLYPHS = {
   completionNeededToday: "\u2610", // ☐
   completed: "\u2713", // ✓
-  nextRequired: "\u25B6", // ▶
+  nextRequired: "\u2610", // ☐ (same as completionNeededToday - indicates where next repetition is needed)
 };
 
 const HabitConfigContext = createContext<HabitConfigContextType | undefined>(

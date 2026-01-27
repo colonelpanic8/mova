@@ -155,6 +155,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 3,
   },
   futureRow: {
