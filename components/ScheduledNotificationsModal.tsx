@@ -73,26 +73,41 @@ export function ScheduledNotificationsModal({
   const formatReason = (item: ScheduledNotificationInfo): string => {
     const parts: string[] = [];
 
-    // Add minutes before info if available
-    if (item.minutesBefore !== undefined) {
-      const offsetText =
-        item.minutesBefore === 0
-          ? "at event time"
-          : item.minutesBefore < 60
-            ? `${item.minutesBefore} min before`
-            : `${Math.floor(item.minutesBefore / 60)}h ${item.minutesBefore % 60 ? `${item.minutesBefore % 60}m ` : ""}before`;
-      parts.push(offsetText);
-    }
-
     // Add type info if available
     if (item.type) {
       parts.push(item.type);
     }
-    if (item.timestampType) {
-      parts.push(item.timestampType);
+
+    return parts.join(" · ");
+  };
+
+  const formatRelativeInfo = (item: ScheduledNotificationInfo): string | null => {
+    // Handle day-wide notifications
+    if (item.type === "day-wide" && item.eventTime) {
+      const dateStr = item.eventTime.toLocaleDateString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      return `Day-wide for ${dateStr}`;
     }
 
-    return parts.join(" \u00b7 ");
+    // Handle relative notifications
+    if (item.minutesBefore === undefined || !item.eventTime) {
+      return null;
+    }
+
+    const offsetText =
+      item.minutesBefore === 0
+        ? "At"
+        : item.minutesBefore < 60
+          ? `${item.minutesBefore} min before`
+          : `${Math.floor(item.minutesBefore / 60)}h${item.minutesBefore % 60 ? ` ${item.minutesBefore % 60}m` : ""} before`;
+
+    const timestampLabel = item.timestampType || "event";
+    const eventTimeStr = formatTime(item.eventTime);
+
+    return `${offsetText} ${timestampLabel} (${eventTimeStr})`;
   };
 
   const renderNotification = ({
@@ -101,6 +116,7 @@ export function ScheduledNotificationsModal({
     item: ScheduledNotificationInfo;
   }) => {
     const reason = formatReason(item);
+    const relativeInfo = formatRelativeInfo(item);
     return (
       <View style={styles.notificationItem}>
         <View style={styles.notificationHeader}>
@@ -127,20 +143,20 @@ export function ScheduledNotificationsModal({
         >
           {formatTime(item.scheduledTime)}
         </Text>
+        {relativeInfo && (
+          <Text
+            variant="labelSmall"
+            style={[styles.relativeInfo, { color: theme.colors.tertiary }]}
+          >
+            {relativeInfo}
+          </Text>
+        )}
         {reason && (
           <Text
             variant="labelSmall"
             style={[styles.reason, { color: theme.colors.outline }]}
           >
             {reason}
-          </Text>
-        )}
-        {item.eventTime && (
-          <Text
-            variant="labelSmall"
-            style={[styles.eventTime, { color: theme.colors.tertiary }]}
-          >
-            Event: {formatTime(item.eventTime)}
           </Text>
         )}
       </View>
@@ -237,10 +253,10 @@ const styles = StyleSheet.create({
   triggerTime: {
     marginTop: 2,
   },
-  reason: {
+  relativeInfo: {
     marginTop: 4,
   },
-  eventTime: {
+  reason: {
     marginTop: 2,
   },
   closeButton: {
