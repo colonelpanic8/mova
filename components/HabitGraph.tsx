@@ -16,6 +16,7 @@ interface GraphCellProps {
   entry: MiniGraphEntry;
   isToday: boolean;
   isNextRequired: boolean;
+  isTodayOrFuture: boolean;
   colors: { conforming: string; notConforming: string };
   glyphs: {
     completionNeededToday: string;
@@ -29,6 +30,7 @@ function GraphCell({
   entry,
   isToday,
   isNextRequired,
+  isTodayOrFuture,
   colors,
   glyphs,
   onPress,
@@ -48,7 +50,8 @@ function GraphCell({
     }
   } else if (entry.completed) {
     glyph = glyphs.completed;
-  } else if (isNextRequired) {
+  } else if (isNextRequired && isTodayOrFuture) {
+    // Only show next required icon on today or future dates, not past
     glyph = glyphs.nextRequired;
   }
 
@@ -101,17 +104,24 @@ export function HabitGraph({
     entry: MiniGraphEntry,
     index: number,
     isInPast: boolean,
-  ) => (
-    <GraphCell
-      key={entry.date}
-      entry={entry}
-      isToday={isInPast && index === pastEntries.length - 1}
-      isNextRequired={entry.date === nextRequiredDate}
-      colors={colors}
-      glyphs={glyphs}
-      onPress={onCellPress ? () => onCellPress(entry) : undefined}
-    />
-  );
+  ) => {
+    const isToday = isInPast && index === pastEntries.length - 1;
+    // isTodayOrFuture: true if it's today (last item in pastEntries) or in futureEntries
+    const isTodayOrFuture = isToday || !isInPast;
+
+    return (
+      <GraphCell
+        key={entry.date}
+        entry={entry}
+        isToday={isToday}
+        isNextRequired={entry.date === nextRequiredDate}
+        isTodayOrFuture={isTodayOrFuture}
+        colors={colors}
+        glyphs={glyphs}
+        onPress={onCellPress ? () => onCellPress(entry) : undefined}
+      />
+    );
+  };
 
   return (
     <View style={styles.outerContainer} testID="habit-graph">
