@@ -33,7 +33,9 @@ describe("OrgAgendaApi", () => {
       const result = await api.getAllTodos();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringMatching(/^http:\/\/test-api\.local\/get-all-todos\?_t=\d+$/),
+        expect.stringMatching(
+          /^http:\/\/test-api\.local\/get-all-todos\?_t=\d+$/,
+        ),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: expect.stringContaining("Basic"),
@@ -83,7 +85,9 @@ describe("OrgAgendaApi", () => {
       const result = await api.getNotifications();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringMatching(/^http:\/\/test-api\.local\/notifications\?_t=\d+$/),
+        expect.stringMatching(
+          /^http:\/\/test-api\.local\/notifications\?_t=\d+$/,
+        ),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: expect.stringContaining("Basic"),
