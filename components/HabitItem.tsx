@@ -115,14 +115,21 @@ export function HabitItem({ todo }: HabitItemProps) {
   const wasCompletingRef = useRef(false);
 
   // Calculate how many cells fit in the display
-  const { preceding, following } = useMemo(
-    () => calculateCellCount(screenWidth),
-    [screenWidth],
-  );
+  const { preceding, following } = useMemo(() => {
+    const result = calculateCellCount(screenWidth);
+    console.log("Cell count calculation:", { screenWidth, ...result });
+    return result;
+  }, [screenWidth]);
 
   // Fetch habit status for graph data
   const fetchGraphData = useCallback(() => {
-    if (!todo.id || !api) return;
+    if (!todo.id || !api) {
+      console.log("Cannot fetch habit status: missing id or api", {
+        id: todo.id,
+        hasApi: !!api,
+      });
+      return;
+    }
 
     setGraphLoading(true);
     api
@@ -130,6 +137,8 @@ export function HabitItem({ todo }: HabitItemProps) {
       .then((status) => {
         if (status.graph) {
           setGraphData(transformGraphData(status.graph));
+        } else {
+          console.log("Habit status returned no graph:", status);
         }
       })
       .catch((err: Error) => {
