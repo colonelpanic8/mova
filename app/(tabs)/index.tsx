@@ -81,9 +81,9 @@ export default function AgendaScreen() {
     isPastDay(new Date()),
   );
   const [viewMode, setViewMode] = useState<"list" | "schedule">("list");
-  const [habitStatusMap, setHabitStatusMap] = useState<Map<string, HabitStatus>>(
-    new Map(),
-  );
+  const [habitStatusMap, setHabitStatusMap] = useState<
+    Map<string, HabitStatus>
+  >(new Map());
   const api = useApi();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
@@ -104,7 +104,9 @@ export default function AgendaScreen() {
         const habitStatus = habitStatusMap.get(entry.id);
         if (habitStatus?.graph?.length) {
           // Find today's entry (status === "present")
-          const todayEntry = habitStatus.graph.find((e) => e.status === "present");
+          const todayEntry = habitStatus.graph.find(
+            (e) => e.status === "present",
+          );
           if (todayEntry) {
             return todayEntry.completionCount > 0;
           }
@@ -144,7 +146,8 @@ export default function AgendaScreen() {
 
   const isCompleted = useCallback(
     (entry: Todo & { completedAt?: string | null }) => {
-      const isHabit = entry.isWindowHabit || entry.properties?.STYLE === "habit";
+      const isHabit =
+        entry.isWindowHabit || entry.properties?.STYLE === "habit";
       if (isHabit) {
         return isHabitCompletedToday(entry);
       }
@@ -156,7 +159,8 @@ export default function AgendaScreen() {
   // Filter out habits that don't need completion and weren't completed
   const shouldShowInAgenda = useCallback(
     (entry: Todo & { completedAt?: string | null }): boolean => {
-      const isHabit = entry.isWindowHabit || entry.properties?.STYLE === "habit";
+      const isHabit =
+        entry.isWindowHabit || entry.properties?.STYLE === "habit";
       if (isHabit) {
         const completedToday = isHabitCompletedToday(entry);
         const needsCompletion = habitNeedsCompletionToday(entry);
@@ -232,7 +236,10 @@ export default function AgendaScreen() {
           setTodoStates(statesData);
         }
         // Build a map of habit id -> status for quick lookup
-        if (habitStatusesResponse?.status === "ok" && habitStatusesResponse.habits) {
+        if (
+          habitStatusesResponse?.status === "ok" &&
+          habitStatusesResponse.habits
+        ) {
           const statusMap = new Map<string, HabitStatus>();
           for (const status of habitStatusesResponse.habits) {
             if (status.id) {
