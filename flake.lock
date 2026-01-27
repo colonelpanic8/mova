@@ -243,11 +243,11 @@
         "org-window-habit": "org-window-habit"
       },
       "locked": {
-        "lastModified": 1769492198,
-        "narHash": "sha256-47xbqWb/u7NQC+y8A3C3AHtsrNPYot/VR7viyYg/Tvg=",
+        "lastModified": 1769493115,
+        "narHash": "sha256-ZgoSmIIq8EjffZWo5dI/pQMeR+TjMqMcfHgwn6tT7ac=",
         "owner": "colonelpanic8",
         "repo": "org-agenda-api",
-        "rev": "048bec05ebfe0d54b9969440388aa53f76a756e8",
+        "rev": "1a7f3f1d4b4229467d853508f3c9cf3a2bf0b0c3",
         "type": "github"
       },
       "original": {
