@@ -127,6 +127,11 @@ export interface HabitStatus {
   graph: HabitStatusGraphEntry[];
 }
 
+export interface AllHabitStatusesResponse {
+  status: string;
+  habits: HabitStatus[];
+}
+
 export interface NotificationDefaults {
   notifyBefore: number[];
 }
@@ -607,6 +612,23 @@ export class OrgAgendaApi {
       params.append("following", following.toString());
     }
     return this.request<HabitStatus>(`/habit-status?${params.toString()}`);
+  }
+
+  async getAllHabitStatuses(
+    preceding?: number,
+    following?: number,
+  ): Promise<AllHabitStatusesResponse> {
+    const params = new URLSearchParams();
+    if (preceding !== undefined) {
+      params.append("preceding", preceding.toString());
+    }
+    if (following !== undefined) {
+      params.append("following", following.toString());
+    }
+    const query = params.toString();
+    return this.request<AllHabitStatusesResponse>(
+      `/all-habit-statuses${query ? `?${query}` : ""}`,
+    );
   }
 }
 
