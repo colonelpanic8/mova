@@ -46,6 +46,73 @@ function transformGraphData(graph: HabitStatusGraphEntry[]): MiniGraphEntry[] {
   }));
 }
 
+// Normalize graph data to ensure "today" appears at a consistent position
+// This pads newer habits with "no data" cells and truncates older habits
+function normalizeGraphData(
+  graphData: MiniGraphEntry[],
+  preceding: number,
+  following: number,
+): MiniGraphEntry[] {
+  if (!graphData || graphData.length === 0) {
+    return graphData;
+  }
+
+  // Find today's index (entry with completionNeededToday defined)
+  const todayIndex = graphData.findIndex(
+    (e) => e.completionNeededToday !== undefined,
+  );
+  if (todayIndex === -1) {
+    return graphData;
+  }
+
+  // Calculate how many days before/after today we have
+  const daysBeforeToday = todayIndex;
+  const daysAfterToday = graphData.length - todayIndex - 1;
+
+  let result = graphData;
+
+  // Truncate if we have more days before today than needed
+  if (daysBeforeToday > preceding) {
+    const startIndex = daysBeforeToday - preceding;
+    result = result.slice(startIndex);
+  }
+
+  // Truncate if we have more days after today than needed
+  if (daysAfterToday > following) {
+    const newTodayIndex = result.findIndex(
+      (e) => e.completionNeededToday !== undefined,
+    );
+    result = result.slice(0, newTodayIndex + following + 1);
+  }
+
+  // Recalculate today index after truncation
+  const newTodayIndex = result.findIndex(
+    (e) => e.completionNeededToday !== undefined,
+  );
+  const newDaysBeforeToday = newTodayIndex;
+
+  // Pad if we have fewer days before today than needed
+  if (newDaysBeforeToday < preceding) {
+    const daysToAdd = preceding - newDaysBeforeToday;
+    const firstDate = new Date(result[0].date + "T00:00:00");
+
+    const placeholderEntries: MiniGraphEntry[] = [];
+    for (let i = daysToAdd; i > 0; i--) {
+      const placeholderDate = new Date(firstDate);
+      placeholderDate.setDate(placeholderDate.getDate() - i);
+      const dateStr = placeholderDate.toISOString().split("T")[0];
+      placeholderEntries.push({
+        date: dateStr,
+        conformingRatio: -1, // Special value to indicate "no data"
+        completed: false,
+      });
+    }
+    result = [...placeholderEntries, ...result];
+  }
+
+  return result;
+}
+
 function formatNextRequired(dateString: string | undefined): string {
   if (!dateString) return "";
 
@@ -103,14 +170,6 @@ export function HabitItem({
   const isCompleting = completingIds.has(key);
   const wasCompletingRef = useRef(false);
 
-  // Use pre-fetched habitStatus if available, otherwise use local state
-  const graphData = useMemo(() => {
-    if (habitStatus?.graph) {
-      return transformGraphData(habitStatus.graph);
-    }
-    return localGraphData;
-  }, [habitStatus, localGraphData]);
-
   // Calculate how many cells can fit based on screen width
   const { preceding, following } = useMemo(() => {
     // Available width for cells after accounting for all padding
@@ -138,6 +197,21 @@ export function HabitItem({
 
     return { preceding, following };
   }, [screenWidth]);
+
+  // Use pre-fetched habitStatus if available, otherwise use local state
+  // Pad the data to ensure consistent "today" positioning
+  const graphData = useMemo(() => {
+    let data: MiniGraphEntry[] | null = null;
+    if (habitStatus?.graph) {
+      data = transformGraphData(habitStatus.graph);
+    } else {
+      data = localGraphData;
+    }
+    if (data) {
+      return normalizeGraphData(data, preceding, following);
+    }
+    return null;
+  }, [habitStatus, localGraphData, preceding, following]);
 
   // Fetch habit status for graph data (only if not pre-fetched)
   const fetchGraphData = useCallback(() => {
