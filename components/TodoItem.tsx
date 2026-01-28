@@ -1,6 +1,8 @@
 import { HabitGraph } from "@/components/HabitGraph";
 import { StatePill } from "@/components/StatePill";
 import { useColorPalette } from "@/context/ColorPaletteContext";
+import { useSettings } from "@/context/SettingsContext";
+import { useTemplates } from "@/context/TemplatesContext";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
 import { PriorityLevel } from "@/types/colors";
@@ -53,7 +55,17 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
     openDeadlineModal,
     openPriorityModal,
     openDeleteConfirm,
+    quickComplete,
   } = useTodoEditingContext();
+  const { defaultDoneState } = useSettings();
+  const { todoStates } = useTemplates();
+
+  // Compute effective default done state
+  const effectiveDoneState = useMemo(() => {
+    if (defaultDoneState) return defaultDoneState;
+    if (!todoStates?.done?.length) return "DONE";
+    return todoStates.done.includes("DONE") ? "DONE" : todoStates.done[0];
+  }, [defaultDoneState, todoStates]);
 
   const internalRef = useRef<Swipeable>(null);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -104,6 +116,13 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
   const quickActions = useMemo(
     () => [
       {
+        key: "complete",
+        label: "Done",
+        icon: "check",
+        colorKey: "complete" as const,
+        onPress: () => quickComplete(todo, effectiveDoneState),
+      },
+      {
         key: "today",
         label: "Today",
         icon: "calendar-today",
@@ -143,6 +162,8 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
     [
       todo,
       theme.colors.error,
+      effectiveDoneState,
+      quickComplete,
       scheduleToday,
       scheduleTomorrow,
       openScheduleModal,

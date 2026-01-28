@@ -70,6 +70,7 @@ export default function ColorSettingsScreen() {
     return Array.from(allStates);
   }, [orgTodoStates, getConfiguredTodoStates]);
   const actionButtons: { key: ActionButtonType; label: string }[] = [
+    { key: "complete", label: "Complete" },
     { key: "today", label: "Today" },
     { key: "tomorrow", label: "Tomorrow" },
     { key: "schedule", label: "Schedule" },
