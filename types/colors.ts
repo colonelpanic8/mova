@@ -44,13 +44,19 @@ export const PRESET_COLORS = [
 ] as const;
 
 // Action button types
-export type ActionButtonType = "tomorrow" | "today" | "schedule" | "deadline";
+export type ActionButtonType =
+  | "complete"
+  | "tomorrow"
+  | "today"
+  | "schedule"
+  | "deadline";
 
 // Priority levels
 export type PriorityLevel = "A" | "B" | "C" | "D" | "E";
 
 // Action button color configuration
 export interface ActionButtonColorConfig {
+  complete: ColorValue;
   tomorrow: ColorValue;
   today: ColorValue;
   schedule: ColorValue;
@@ -99,6 +105,7 @@ export const DEFAULT_COLOR_PALETTE: ColorPaletteConfig = {
     DEFAULT: "theme:secondary",
   },
   actionColors: {
+    complete: "#4CAF50",
     tomorrow: "theme:secondary",
     today: "theme:primary",
     schedule: "theme:tertiary",
