@@ -84,6 +84,7 @@ jest.mock("expo-router", () => ({
 const mockApi = {
   getAgenda: jest.fn(),
   getTodoStates: jest.fn(),
+  getAllHabitStatuses: jest.fn(),
 };
 
 // Mock data
@@ -94,15 +95,14 @@ const mockAgendaEntries = [
     todo: "TODO",
     tags: ["work", "meeting"],
     level: 1,
-    scheduled: "2024-06-15T09:00:00",
+    scheduled: { date: "2024-06-15", time: "09:00" },
     deadline: null,
     priority: null,
     file: "/test/work.org",
     pos: 100,
     olpath: null,
     notifyBefore: null,
-    type: "scheduled",
-    time: "09:00",
+    agendaLine: "Scheduled:  TODO Morning standup",
   },
   {
     id: "2",
@@ -111,14 +111,13 @@ const mockAgendaEntries = [
     tags: ["work"],
     level: 1,
     scheduled: null,
-    deadline: "2024-06-15T17:00:00",
+    deadline: { date: "2024-06-15", time: "17:00" },
     priority: "A",
     file: "/test/work.org",
     pos: 200,
     olpath: null,
     notifyBefore: null,
-    type: "deadline",
-    time: "17:00",
+    agendaLine: "Deadline:   NEXT [#A] Submit report",
   },
   {
     id: "3",
@@ -126,15 +125,15 @@ const mockAgendaEntries = [
     todo: "DONE",
     tags: null,
     level: 1,
-    scheduled: "2024-06-15T10:00:00",
+    scheduled: { date: "2024-06-15", time: "10:00" },
     deadline: null,
     priority: null,
     file: "/test/inbox.org",
     pos: 300,
     olpath: null,
     notifyBefore: null,
-    type: "scheduled",
-    time: "10:00",
+    agendaLine: "Scheduled:  DONE Completed task",
+    completedAt: "2024-06-15T10:30:00",
   },
 ];
 
@@ -159,12 +158,17 @@ beforeEach(() => {
   // Reset mock API methods
   mockApi.getAgenda.mockReset();
   mockApi.getTodoStates.mockReset();
+  mockApi.getAllHabitStatuses.mockReset();
 
   // Set default mock implementations
   mockApi.getAgenda.mockResolvedValue(mockAgendaResponse);
   mockApi.getTodoStates.mockResolvedValue({
     active: ["TODO", "NEXT", "WAITING"],
     done: ["DONE", "CANCELLED"],
+  });
+  mockApi.getAllHabitStatuses.mockResolvedValue({
+    status: "ok",
+    habits: [],
   });
 
   (useApi as jest.Mock).mockReturnValue(mockApi);
@@ -200,11 +204,12 @@ describe("AgendaScreen", () => {
       expect(getByTestId("agendaScreen")).toBeTruthy();
     });
 
+    // Active entries (TODO/NEXT) should be visible
     await waitFor(() => {
       expect(getByText("Morning standup")).toBeTruthy();
       expect(getByText("Submit report")).toBeTruthy();
-      expect(getByText("Completed task")).toBeTruthy();
     });
+    // Completed entries are hidden by default when viewing today's date
   });
 
   it("should render todo states for entries", async () => {
@@ -214,11 +219,10 @@ describe("AgendaScreen", () => {
       expect(getByText("Morning standup")).toBeTruthy();
     });
 
-    // Check todo states are rendered
+    // Check active todo states are rendered (DONE items are hidden by default for today)
     await waitFor(() => {
       expect(getByText("TODO")).toBeTruthy();
       expect(getByText("NEXT")).toBeTruthy();
-      expect(getByText("DONE")).toBeTruthy();
     });
   });
 
