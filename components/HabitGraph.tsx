@@ -87,38 +87,49 @@ function GraphCell({
   onLayout,
 }: GraphCellProps) {
   const theme = useTheme();
-  const backgroundColor = getHabitCellColor(entry.conformingRatio, colors);
+  // conformingRatio of -1 indicates "no data" (habit didn't exist yet)
+  const isNoData = entry.conformingRatio === -1;
+  const backgroundColor = isNoData
+    ? "rgba(150, 150, 150, 0.3)"
+    : getHabitCellColor(entry.conformingRatio, colors);
 
   // Extract day number from date string (YYYY-MM-DD)
   const dayNumber = parseInt(entry.date.split("-")[2], 10);
 
+  // Don't show glyphs for "no data" cells
   let glyph = "";
-  if (isToday || entry.completionNeededToday) {
-    if (entry.completed) {
+  if (!isNoData) {
+    if (isToday || entry.completionNeededToday) {
+      if (entry.completed) {
+        glyph = glyphs.completed;
+      } else if (entry.completionNeededToday) {
+        glyph = glyphs.completionNeededToday;
+      }
+    } else if (entry.completed) {
       glyph = glyphs.completed;
-    } else if (entry.completionNeededToday) {
-      glyph = glyphs.completionNeededToday;
+    } else if (isNextRequired && (isToday || isFuture)) {
+      // Only show next required icon on today or future dates, not past
+      glyph = glyphs.nextRequired;
     }
-  } else if (entry.completed) {
-    glyph = glyphs.completed;
-  } else if (isNextRequired && (isToday || isFuture)) {
-    // Only show next required icon on today or future dates, not past
-    glyph = glyphs.nextRequired;
   }
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={isNoData ? undefined : onPress}
       onLayout={onLayout}
       style={({ pressed }) => [
         styles.cell,
         { backgroundColor },
         isToday && [styles.todayCell, { borderColor: theme.colors.primary }],
         isFuture && styles.futureCell,
-        pressed && styles.cellPressed,
+        isNoData && styles.noDataCell,
+        pressed && !isNoData && styles.cellPressed,
       ]}
     >
-      <Text style={styles.dayNumber} numberOfLines={1}>
+      <Text
+        style={[styles.dayNumber, isNoData && styles.noDataDayNumber]}
+        numberOfLines={1}
+      >
         {dayNumber}
       </Text>
       {glyph ? (
@@ -344,6 +355,12 @@ const styles = StyleSheet.create({
   },
   futureCell: {
     opacity: 0.4,
+  },
+  noDataCell: {
+    opacity: 0.5,
+  },
+  noDataDayNumber: {
+    color: "rgba(255, 255, 255, 0.6)",
   },
   cellPressed: {
     opacity: 0.6,
