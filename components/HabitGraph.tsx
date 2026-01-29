@@ -62,15 +62,6 @@ function formatDuration(duration: Record<string, number>): string {
   return parts.join(" ") || "?";
 }
 
-// Calculate the start of a backward-looking window ending at the given date
-function getWindowStart(date: Date, duration: Record<string, number>): Date {
-  const result = new Date(date);
-  result.setHours(0, 0, 0, 0);
-  const days = durationToDays(duration);
-  result.setDate(result.getDate() - days + 1);
-  return result;
-}
-
 interface CellLayout {
   x: number;
   width: number;
@@ -178,7 +169,6 @@ export function HabitGraph({
 
   // Parse dates for window calculations
   const parsedDates = miniGraph.map((e) => new Date(e.date + "T00:00:00"));
-  const todayDate = parsedDates[effectiveTodayIndex] || new Date();
 
   // Calculate window bars based on actual cell layouts and windowSpecsStatus
   const windowBars =
@@ -188,15 +178,18 @@ export function HabitGraph({
             (a, b) => durationToDays(a.duration) - durationToDays(b.duration),
           )
           .map((specStatus) => {
-            const windowStart = getWindowStart(todayDate, specStatus.duration);
-            const windowEnd = todayDate;
+            // Use backend-provided window boundaries instead of recalculating
+            const windowStart = new Date(specStatus.windowStart);
+            const windowEnd = new Date(specStatus.windowEnd);
 
             let startCellIndex = -1;
             let endCellIndex = -1;
 
             for (let i = 0; i < parsedDates.length; i++) {
               const cellDate = parsedDates[i];
-              if (cellDate >= windowStart && cellDate <= windowEnd) {
+              // windowEnd is exclusive (assessment-end = midnight of next day)
+              // so use < instead of <= to exclude the next day's cell
+              if (cellDate >= windowStart && cellDate < windowEnd) {
                 if (startCellIndex === -1) startCellIndex = i;
                 endCellIndex = i;
               }
