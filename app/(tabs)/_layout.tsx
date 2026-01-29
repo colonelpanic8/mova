@@ -171,7 +171,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Day",
+          title: "Agenda",
           tabBarButtonTestID: "tabAgenda",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
@@ -185,15 +185,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="week"
         options={{
-          title: "Week",
-          tabBarButtonTestID: "tabWeek",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="calendar-week"
-              size={size}
-              color={color}
-            />
-          ),
+          href: null, // Hide from tab bar
         }}
       />
       <Tabs.Screen

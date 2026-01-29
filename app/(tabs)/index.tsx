@@ -7,8 +7,10 @@ import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
+  AgendaEntry,
   HabitStatus,
   MiniGraphEntry,
+  MultiDayAgendaResponse,
   SingleDayAgendaResponse,
   Todo,
   TodoStatesResponse,
@@ -47,6 +49,53 @@ import {
 } from "react-native-paper";
 
 /**
+ * Get the start of the week (Sunday) for a given date.
+ */
+function getWeekStart(date: Date): Date {
+  const result = new Date(date);
+  const dayOfWeek = result.getDay();
+  result.setDate(result.getDate() - dayOfWeek);
+  return result;
+}
+
+/**
+ * Format a week date range for display.
+ */
+function formatWeekRange(startDate: string, endDate: string): string {
+  const start = new Date(startDate + "T00:00:00");
+  const end = new Date(endDate + "T00:00:00");
+  const startStr = start.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  const endStr = end.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  return `${startStr} - ${endStr}`;
+}
+
+/**
+ * Format a date for week view section headers.
+ */
+function formatWeekDayHeader(dateString: string): string {
+  const date = new Date(dateString + "T00:00:00");
+  return date.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+interface WeekDaySection {
+  key: string;
+  title: string;
+  dateString: string;
+  isToday: boolean;
+  data: AgendaEntry[];
+}
+
+/**
  * Sort entries for list view: habits without a scheduled time go to the bottom,
  * grouped together. Regular tasks and habits with scheduled times stay at the top
  * in their original order.
@@ -80,7 +129,10 @@ export default function AgendaScreen() {
   const [showCompleted, setShowCompleted] = useState<boolean>(() =>
     isPastDay(new Date()),
   );
-  const [viewMode, setViewMode] = useState<"list" | "schedule">("list");
+  const [viewMode, setViewMode] = useState<"list" | "schedule" | "week">(
+    "list",
+  );
+  const [weekData, setWeekData] = useState<MultiDayAgendaResponse | null>(null);
   const [habitStatusMap, setHabitStatusMap] = useState<
     Map<string, HabitStatus>
   >(new Map());
@@ -180,8 +232,36 @@ export default function AgendaScreen() {
     visibleEntries.filter((entry) => isCompleted(entry)),
   );
 
+  // Build sections for week view
+  const weekSections: WeekDaySection[] = useMemo(() => {
+    if (!weekData?.days) return [];
+
+    const todayString = formatDateForApi(new Date());
+
+    return Object.entries(weekData.days)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([dateString, entries]) => {
+        const filtered = filterTodos(entries, filters);
+        const displayEntries = showCompleted
+          ? filtered
+          : filtered.filter(
+              (e) => !e.completedAt && !doneStates.includes(e.todo),
+            );
+
+        return {
+          key: dateString,
+          title: formatWeekDayHeader(dateString),
+          dateString,
+          isToday: dateString === todayString,
+          data: displayEntries,
+        };
+      })
+      .filter((section) => section.data.length > 0 || section.isToday);
+  }, [weekData, filters, showCompleted, doneStates]);
+
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
+      // Update day agenda
       setAgenda((prev) => {
         if (!prev) return prev;
 
@@ -210,6 +290,22 @@ export default function AgendaScreen() {
               : entry,
           ),
         };
+      });
+
+      // Update week agenda
+      setWeekData((prev) => {
+        if (!prev) return prev;
+
+        const newDays = { ...prev.days };
+        for (const [dateStr, entries] of Object.entries(newDays)) {
+          newDays[dateStr] = entries.map((entry) =>
+            getTodoKey(entry) === getTodoKey(todo)
+              ? { ...entry, ...updates }
+              : entry,
+          );
+        }
+
+        return { ...prev, days: newDays };
       });
     },
     [selectedDate],
@@ -257,14 +353,47 @@ export default function AgendaScreen() {
     [api],
   );
 
+  const fetchWeekAgenda = useCallback(
+    async (date: Date, includeCompleted: boolean) => {
+      if (!api) {
+        return;
+      }
+
+      try {
+        const weekStart = getWeekStart(date);
+        const dateString = formatDateForApi(weekStart);
+        const [weekAgendaData, statesData] = await Promise.all([
+          api.getAgenda("week", dateString, true, includeCompleted),
+          api.getTodoStates().catch(() => null),
+        ]);
+        setWeekData(weekAgendaData);
+        if (statesData) {
+          setTodoStates(statesData);
+        }
+        setError(null);
+      } catch (err) {
+        console.error("Failed to load week agenda:", err);
+        setError("Failed to load week agenda");
+      }
+    },
+    [api],
+  );
+
   // Reset showCompleted when date changes
   useEffect(() => {
     setShowCompleted(isPastDay(selectedDate));
   }, [selectedDate]);
 
+  // Fetch data based on view mode
   useEffect(() => {
-    fetchAgenda(selectedDate, showCompleted).finally(() => setLoading(false));
-  }, [fetchAgenda, selectedDate, showCompleted]);
+    if (viewMode === "week") {
+      fetchWeekAgenda(selectedDate, showCompleted).finally(() =>
+        setLoading(false),
+      );
+    } else {
+      fetchAgenda(selectedDate, showCompleted).finally(() => setLoading(false));
+    }
+  }, [fetchAgenda, fetchWeekAgenda, selectedDate, showCompleted, viewMode]);
 
   // Refetch when mutations happen elsewhere
   useEffect(() => {
@@ -272,25 +401,43 @@ export default function AgendaScreen() {
       isInitialMount.current = false;
       return;
     }
-    fetchAgenda(selectedDate, showCompleted);
+    if (viewMode === "week") {
+      fetchWeekAgenda(selectedDate, showCompleted);
+    } else {
+      fetchAgenda(selectedDate, showCompleted);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutationVersion]);
 
-  const goToPreviousDay = useCallback(() => {
+  const goToPrevious = useCallback(() => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - 1);
+    newDate.setDate(newDate.getDate() - (viewMode === "week" ? 7 : 1));
     setSelectedDate(newDate);
-  }, [selectedDate]);
+  }, [selectedDate, viewMode]);
 
-  const goToNextDay = useCallback(() => {
+  const goToNext = useCallback(() => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + 1);
+    newDate.setDate(newDate.getDate() + (viewMode === "week" ? 7 : 1));
     setSelectedDate(newDate);
-  }, [selectedDate]);
+  }, [selectedDate, viewMode]);
 
   const goToToday = useCallback(() => {
     setSelectedDate(new Date());
   }, []);
+
+  const cycleViewMode = useCallback(() => {
+    setViewMode((prev) => {
+      if (prev === "list") return "schedule";
+      if (prev === "schedule") return "week";
+      return "list";
+    });
+  }, []);
+
+  const getViewModeIcon = () => {
+    if (viewMode === "list") return "clock-outline";
+    if (viewMode === "schedule") return "calendar-week";
+    return "view-list";
+  };
 
   const onDateChange = useCallback(
     (event: DateTimePickerEvent, date?: Date) => {
@@ -304,9 +451,13 @@ export default function AgendaScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchAgenda(selectedDate, showCompleted);
+    if (viewMode === "week") {
+      await fetchWeekAgenda(selectedDate, showCompleted);
+    } else {
+      await fetchAgenda(selectedDate, showCompleted);
+    }
     setRefreshing(false);
-  }, [fetchAgenda, selectedDate, showCompleted]);
+  }, [fetchAgenda, fetchWeekAgenda, selectedDate, showCompleted, viewMode]);
 
   if (loading) {
     return (
@@ -366,7 +517,7 @@ export default function AgendaScreen() {
           <View style={styles.dateNavigation}>
             <IconButton
               icon="chevron-left"
-              onPress={goToPreviousDay}
+              onPress={goToPrevious}
               testID="agendaPrevDay"
             />
             <TouchableOpacity
@@ -379,14 +530,16 @@ export default function AgendaScreen() {
                 variant="titleMedium"
                 style={styles.dateText}
               >
-                {agenda?.date
-                  ? formatDateForDisplay(agenda.date, useCompactDate)
-                  : ""}
+                {viewMode === "week" && weekData
+                  ? formatWeekRange(weekData.startDate, weekData.endDate)
+                  : agenda?.date
+                    ? formatDateForDisplay(agenda.date, useCompactDate)
+                    : ""}
               </Text>
             </TouchableOpacity>
             <IconButton
               icon="chevron-right"
-              onPress={goToNextDay}
+              onPress={goToNext}
               testID="agendaNextDay"
             />
             <IconButton
@@ -395,10 +548,8 @@ export default function AgendaScreen() {
               testID="agendaShowCompletedToggle"
             />
             <IconButton
-              icon={viewMode === "schedule" ? "view-list" : "clock-outline"}
-              onPress={() =>
-                setViewMode(viewMode === "list" ? "schedule" : "list")
-              }
+              icon={getViewModeIcon()}
+              onPress={cycleViewMode}
               testID="agendaViewModeToggle"
             />
             <IconButton
@@ -431,8 +582,67 @@ export default function AgendaScreen() {
 
         <FilterBar testID="agendaFilterBar" />
 
-        {activeEntries.length === 0 &&
-        (!showCompleted || completedEntries.length === 0) ? (
+        {viewMode === "week" ? (
+          weekSections.length === 0 ? (
+            <View testID="agendaEmptyView" style={styles.centered}>
+              <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
+                No items this week
+              </Text>
+            </View>
+          ) : (
+            <SectionList
+              testID="weekList"
+              sections={weekSections}
+              keyExtractor={(item) => getTodoKey(item)}
+              renderItem={({ item }) => {
+                const completed =
+                  item.completedAt || doneStates.includes(item.todo);
+                return <TodoItem todo={item} opacity={completed ? 0.6 : 1} />;
+              }}
+              renderSectionHeader={({ section }) => (
+                <View
+                  style={[
+                    styles.weekSectionHeader,
+                    {
+                      backgroundColor: section.isToday
+                        ? theme.colors.primaryContainer
+                        : theme.colors.surfaceVariant,
+                    },
+                  ]}
+                >
+                  <Text
+                    variant="titleSmall"
+                    style={{
+                      color: section.isToday
+                        ? theme.colors.onPrimaryContainer
+                        : theme.colors.onSurfaceVariant,
+                      fontWeight: section.isToday ? "bold" : "normal",
+                    }}
+                  >
+                    {section.title}
+                    {section.isToday && " (Today)"}
+                  </Text>
+                  <Text
+                    variant="labelSmall"
+                    style={{
+                      color: section.isToday
+                        ? theme.colors.onPrimaryContainer
+                        : theme.colors.outline,
+                    }}
+                  >
+                    {section.data.length} item
+                    {section.data.length !== 1 && "s"}
+                  </Text>
+                </View>
+              )}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+              stickySectionHeadersEnabled={true}
+            />
+          )
+        ) : activeEntries.length === 0 &&
+          (!showCompleted || completedEntries.length === 0) ? (
           <View testID="agendaEmptyView" style={styles.centered}>
             <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
               No items for today
@@ -541,5 +751,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#e0e0e0",
+  },
+  weekSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
 });
