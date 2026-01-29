@@ -7,9 +7,9 @@ import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
-  AgendaResponse,
   HabitStatus,
   MiniGraphEntry,
+  SingleDayAgendaResponse,
   Todo,
   TodoStatesResponse,
 } from "@/services/api";
@@ -70,7 +70,7 @@ function sortEntriesForListView(entries: Todo[]): Todo[] {
 }
 
 export default function AgendaScreen() {
-  const [agenda, setAgenda] = useState<AgendaResponse | null>(null);
+  const [agenda, setAgenda] = useState<SingleDayAgendaResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
