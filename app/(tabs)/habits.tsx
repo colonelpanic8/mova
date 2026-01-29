@@ -25,6 +25,7 @@ interface HabitStats {
   remainingToday: number;
   totalHabits: number;
   onTrack: number;
+  averageConforming: number;
 }
 
 function HabitStatsCard({ stats }: { stats: HabitStats }) {
@@ -60,6 +61,21 @@ function HabitStatsCard({ stats }: { stats: HabitStats }) {
             style={{ color: theme.colors.onSurfaceVariant }}
           >
             on track
+          </Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text
+            variant="headlineMedium"
+            style={{ color: theme.colors.secondary }}
+          >
+            {(stats.averageConforming * 100).toFixed(0)}%
+          </Text>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            avg conforming
           </Text>
         </View>
       </Card.Content>
@@ -143,10 +159,19 @@ export default function HabitsScreen() {
     const onTrack = habits.filter(
       (h) => (h.habitSummary?.conformingRatio ?? 0) >= 1.0,
     ).length;
+    const conformingRatios = habits
+      .map((h) => h.habitSummary?.conformingRatio)
+      .filter((r): r is number => r !== undefined);
+    const averageConforming =
+      conformingRatios.length > 0
+        ? conformingRatios.reduce((sum, r) => sum + r, 0) /
+          conformingRatios.length
+        : 0;
     return {
       remainingToday,
       totalHabits: habits.length,
       onTrack,
+      averageConforming,
     };
   }, [habits]);
 
