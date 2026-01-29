@@ -55,9 +55,18 @@ export interface Todo {
   habitSummary?: HabitSummary;
 }
 
+export type DateRelevance =
+  | "scheduled"
+  | "deadline"
+  | "overdue"
+  | "habit_required"
+  | "completed";
+
 export interface AgendaEntry extends Todo {
   agendaLine: string;
   completedAt?: string | null;
+  dateRelevance?: DateRelevance;
+  habitCompletedOnQueryDate?: boolean;
 }
 
 // Habit types
@@ -177,11 +186,23 @@ export interface GetAllTodosResponse {
   todos: Todo[];
 }
 
-export interface AgendaResponse {
-  span: string;
+// Single-day agenda response (span=day)
+export interface SingleDayAgendaResponse {
+  span: "day";
   date: string;
   entries: AgendaEntry[];
 }
+
+// Multi-day agenda response (span=week or custom date range)
+export interface MultiDayAgendaResponse {
+  span: "week" | "custom";
+  startDate: string;
+  endDate: string;
+  today: string;
+  days: Record<string, AgendaEntry[]>;
+}
+
+export type AgendaResponse = SingleDayAgendaResponse | MultiDayAgendaResponse;
 
 export interface CompleteTodoResponse {
   status: string;
@@ -421,10 +442,28 @@ export class OrgAgendaApi {
   }
 
   async getAgenda(
+    span: "day",
+    date?: string,
+    includeOverdue?: boolean,
+    includeCompleted?: boolean,
+  ): Promise<SingleDayAgendaResponse>;
+  async getAgenda(
+    span: "week",
+    date?: string,
+    includeOverdue?: boolean,
+    includeCompleted?: boolean,
+    endDate?: string,
+    today?: string,
+    overdueBehavior?: "original" | "today" | "both",
+  ): Promise<MultiDayAgendaResponse>;
+  async getAgenda(
     span: "day" | "week" = "day",
     date?: string,
     includeOverdue?: boolean,
     includeCompleted?: boolean,
+    endDate?: string,
+    today?: string,
+    overdueBehavior?: "original" | "today" | "both",
   ): Promise<AgendaResponse> {
     const params = new URLSearchParams({ span });
     if (date) {
@@ -435,6 +474,15 @@ export class OrgAgendaApi {
     }
     if (includeCompleted) {
       params.append("include_completed", "true");
+    }
+    if (endDate) {
+      params.append("end_date", endDate);
+    }
+    if (today) {
+      params.append("today", today);
+    }
+    if (overdueBehavior) {
+      params.append("overdue_behavior", overdueBehavior);
     }
     return this.request<AgendaResponse>(`/agenda?${params.toString()}`);
   }
