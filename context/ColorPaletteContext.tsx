@@ -60,6 +60,8 @@ interface ColorPaletteContextType {
     key: keyof HabitColorConfig,
     color: ColorValue,
   ) => Promise<void>;
+  setCategoryColor: (category: string, color: ColorValue) => Promise<void>;
+  clearCategoryColor: (category: string) => Promise<void>;
   randomizeTodoStateColors: (states: string[]) => Promise<void>;
   resetToDefaults: () => Promise<void>;
 }
@@ -270,6 +272,32 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     [config],
   );
 
+  const setCategoryColor = useCallback(
+    async (category: string, color: ColorValue) => {
+      const newConfig = {
+        ...config,
+        categoryColors: {
+          ...config.categoryColors,
+          [category]: color,
+        },
+      };
+      await saveConfig(newConfig);
+    },
+    [config],
+  );
+
+  const clearCategoryColor = useCallback(
+    async (category: string) => {
+      const { [category]: _, ...rest } = config.categoryColors;
+      const newConfig = {
+        ...config,
+        categoryColors: rest,
+      };
+      await saveConfig(newConfig);
+    },
+    [config],
+  );
+
   const randomizeTodoStateColors = useCallback(
     async (states: string[]) => {
       const newTodoStateColors = { ...config.todoStateColors };
@@ -309,6 +337,8 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
         setActionColor,
         setPriorityColor,
         setHabitColor,
+        setCategoryColor,
+        clearCategoryColor,
         randomizeTodoStateColors,
         resetToDefaults,
       }}
