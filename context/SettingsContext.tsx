@@ -1,9 +1,11 @@
 import {
   getDefaultDoneState,
+  getGroupByCategory,
   getQuickScheduleIncludeTime,
   getShowHabitsInAgenda,
   getUseClientCompletionTime,
   setDefaultDoneState as saveDefaultDoneState,
+  setGroupByCategory as saveGroupByCategory,
   setQuickScheduleIncludeTime as saveQuickScheduleIncludeTime,
   setShowHabitsInAgenda as saveShowHabitsInAgenda,
   setUseClientCompletionTime as saveUseClientCompletionTime,
@@ -26,6 +28,8 @@ interface SettingsContextType {
   setDefaultDoneState: (value: string | null) => Promise<void>;
   useClientCompletionTime: boolean;
   setUseClientCompletionTime: (value: boolean) => Promise<void>;
+  groupByCategory: boolean;
+  setGroupByCategory: (value: boolean) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -42,6 +46,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
   const [useClientCompletionTime, setUseClientCompletionTimeState] =
     useState(true);
+  const [groupByCategory, setGroupByCategoryState] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -50,17 +55,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       getShowHabitsInAgenda(),
       getDefaultDoneState(),
       getUseClientCompletionTime(),
+      getGroupByCategory(),
     ]).then(
       ([
         quickScheduleValue,
         showHabitsValue,
         defaultDoneValue,
         useClientCompletionTimeValue,
+        groupByCategoryValue,
       ]) => {
         setQuickScheduleIncludeTimeState(quickScheduleValue);
         setShowHabitsInAgendaState(showHabitsValue);
         setDefaultDoneStateState(defaultDoneValue);
         setUseClientCompletionTimeState(useClientCompletionTimeValue);
+        setGroupByCategoryState(groupByCategoryValue);
         setIsLoading(false);
       },
     );
@@ -86,6 +94,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await saveUseClientCompletionTime(value);
   }, []);
 
+  const setGroupByCategory = useCallback(async (value: boolean) => {
+    setGroupByCategoryState(value);
+    await saveGroupByCategory(value);
+  }, []);
+
   return (
     <SettingsContext.Provider
       value={{
@@ -97,6 +110,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setDefaultDoneState,
         useClientCompletionTime,
         setUseClientCompletionTime,
+        groupByCategory,
+        setGroupByCategory,
         isLoading,
       }}
     >
