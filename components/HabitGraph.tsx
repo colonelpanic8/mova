@@ -87,27 +87,25 @@ function getIntervalDays(entry: MiniGraphEntry): number {
   return Math.max(1, days);
 }
 
-// Base cell width
-const BASE_CELL_WIDTH = 24;
+// Cell gap between cells
+const CELL_GAP = 3;
 
-// Calculate cell width based on interval duration
-function getCellWidth(intervalDays: number, isToday: boolean): number {
-  let width: number;
-  if (intervalDays <= 14) {
-    // For intervals up to 2 weeks, scale proportionally
-    width = BASE_CELL_WIDTH * intervalDays;
+// Get cell weight multiplier based on interval duration
+// These are relative weights, not absolute pixels
+function getCellWeight(intervalDays: number): number {
+  if (intervalDays === 1) {
+    return 1; // Daily: base weight
+  } else if (intervalDays <= 7) {
+    return 2; // Weekly: 2x weight
+  } else if (intervalDays <= 14) {
+    return 2.5; // Biweekly: 2.5x weight
   } else if (intervalDays <= 31) {
-    // Monthly intervals: 2.5x base width
-    width = BASE_CELL_WIDTH * 2.5;
+    return 2.5; // Monthly: 2.5x weight
+  } else if (intervalDays <= 93) {
+    return 2.5; // Quarterly: 2.5x weight
   } else {
-    // Longer intervals: 3x base width
-    width = BASE_CELL_WIDTH * 3;
+    return 3; // Longer intervals: 3x weight
   }
-  // Add extra width for today cell
-  if (isToday) {
-    width += 4;
-  }
-  return width;
 }
 
 // Month abbreviations
@@ -251,6 +249,11 @@ export function HabitGraph({
   const [cellLayouts, setCellLayouts] = useState<Map<number, CellLayout>>(
     new Map(),
   );
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+
+  const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {
+    setContainerWidth(event.nativeEvent.layout.width);
+  }, []);
 
   const handleCellLayout = useCallback(
     (index: number, event: LayoutChangeEvent) => {
@@ -275,8 +278,28 @@ export function HabitGraph({
   const effectiveTodayIndex =
     todayIndex >= 0 ? todayIndex : miniGraph.length - 1;
 
+  // Calculate cell weights and total weight
+  const cellWeights = miniGraph.map((entry) => {
+    const intervalDays = getIntervalDays(entry);
+    return getCellWeight(intervalDays);
+  });
+  const totalWeight = cellWeights.reduce((sum, w) => sum + w, 0);
+  const totalGaps = (miniGraph.length - 1) * CELL_GAP;
+
+  // Calculate base unit width from container
+  // Available width = container width - padding (12px) - gaps between cells
+  const availableWidth = containerWidth - 12 - totalGaps;
+  const baseUnitWidth = containerWidth > 0 ? availableWidth / totalWeight : 0;
+
+  // Calculate actual cell widths
+  const cellWidths = cellWeights.map((weight, index) => {
+    const isToday = index === effectiveTodayIndex;
+    // Add small extra width for today cell border
+    return baseUnitWidth * weight + (isToday ? 4 : 0);
+  });
+
   // Parse dates for window calculations
-  const parsedDates = miniGraph.map((e) => new Date(e.date + "T00:00:00"));
+  const parsedDates = miniGraph.map((e) => parseDate(e.date));
 
   // Calculate window bars based on actual cell layouts and windowSpecsStatus
   const windowBars =
@@ -322,7 +345,7 @@ export function HabitGraph({
     const isToday = index === effectiveTodayIndex;
     const isFuture = index > effectiveTodayIndex;
     const intervalDays = getIntervalDays(entry);
-    const cellWidth = getCellWidth(intervalDays, isToday);
+    const cellWidth = cellWidths[index];
     const cellLabel = getCellLabel(entry, intervalDays);
 
     return (
@@ -342,7 +365,7 @@ export function HabitGraph({
     );
   };
 
-  // Calculate the total width of the cells row for proper centering
+  // Calculate the total width of the cells row for window bars
   const rowWidth =
     cellLayouts.size === miniGraph.length
       ? (() => {
@@ -352,10 +375,16 @@ export function HabitGraph({
       : 0;
 
   return (
-    <View style={styles.outerContainer} testID="habit-graph">
-      <View style={[styles.row, expanded && styles.expandedContainer]}>
-        {miniGraph.map((entry, index) => renderCell(entry, index))}
-      </View>
+    <View
+      style={styles.outerContainer}
+      testID="habit-graph"
+      onLayout={handleContainerLayout}
+    >
+      {containerWidth > 0 && (
+        <View style={[styles.row, expanded && styles.expandedContainer]}>
+          {miniGraph.map((entry, index) => renderCell(entry, index))}
+        </View>
+      )}
       {windowBars.length > 0 && rowWidth > 0 && (
         <View style={[styles.windowBarsContainer, { width: rowWidth }]}>
           {windowBars.map((bar, index) => {
