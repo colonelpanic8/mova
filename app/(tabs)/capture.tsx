@@ -391,7 +391,7 @@ export default function CaptureScreen() {
         captureValues.priority = optionalFields.priority;
       if (optionalFields.tags?.length) captureValues.tags = optionalFields.tags;
       if (optionalFields.todo && optionalFields.todo !== "TODO")
-        captureValues.todo = optionalFields.todo;
+        captureValues.state = optionalFields.todo;
 
       let result;
       if (selection.type === "template") {
