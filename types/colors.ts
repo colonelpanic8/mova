@@ -88,6 +88,8 @@ export interface ColorPaletteConfig {
   priorityColors: PriorityColorConfig;
   // Habit graph colors
   habitColors: HabitColorConfig;
+  // Category colors (category name -> color)
+  categoryColors: Record<string, ColorValue>;
   // Version for migration purposes
   version: number;
 }
@@ -122,6 +124,7 @@ export const DEFAULT_COLOR_PALETTE: ColorPaletteConfig = {
     conforming: "#00B0FF", // Bright blue
     notConforming: "#F44336", // Red
   },
+  categoryColors: {},
 };
 
 // Theme color options for the color picker
