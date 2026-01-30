@@ -16,6 +16,7 @@ import {
   HabitColorConfig,
   PriorityLevel,
 } from "@/types/colors";
+import { getAutoColorForCategory } from "@/utils/categoryColors";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -34,6 +35,7 @@ type EditingItem =
   | { type: "action"; action: ActionButtonType }
   | { type: "priority"; level: PriorityLevel }
   | { type: "habit"; key: keyof HabitColorConfig }
+  | { type: "category"; category: string }
   | null;
 
 export default function ColorSettingsScreen() {
@@ -45,15 +47,19 @@ export default function ColorSettingsScreen() {
     getActionColor,
     getPriorityColor,
     getHabitColors,
+    getCategoryColor,
     getConfiguredTodoStates,
     setTodoStateColor,
     setActionColor,
     setPriorityColor,
     setHabitColor,
+    setCategoryColor,
+    clearCategoryColor,
     randomizeTodoStateColors,
     resetToDefaults,
   } = useColorPalette();
-  const { todoStates: orgTodoStates } = useTemplates();
+  const { todoStates: orgTodoStates, filterOptions } = useTemplates();
+  const categories = filterOptions?.categories ?? [];
 
   const [editingItem, setEditingItem] = useState<EditingItem>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -99,6 +105,8 @@ export default function ColorSettingsScreen() {
       await setPriorityColor(editingItem.level, color);
     } else if (editingItem.type === "habit") {
       await setHabitColor(editingItem.key, color);
+    } else if (editingItem.type === "category") {
+      await setCategoryColor(editingItem.category, color);
     }
     setEditingItem(null);
   };
@@ -122,6 +130,11 @@ export default function ColorSettingsScreen() {
       return config.priorityColors[editingItem.level];
     } else if (editingItem.type === "habit") {
       return config.habitColors[editingItem.key];
+    } else if (editingItem.type === "category") {
+      return (
+        config.categoryColors[editingItem.category] ||
+        getAutoColorForCategory(editingItem.category)
+      );
     }
     return "#000000";
   };
@@ -139,6 +152,8 @@ export default function ColorSettingsScreen() {
     } else if (editingItem.type === "habit") {
       const habit = habitColorItems.find((h) => h.key === editingItem.key);
       return `Color for ${habit?.label || editingItem.key}`;
+    } else if (editingItem.type === "category") {
+      return `Color for ${editingItem.category}`;
     }
     return "Select Color";
   };
@@ -233,6 +248,40 @@ export default function ColorSettingsScreen() {
             />
           ))}
         </List.Section>
+
+        {categories.length > 0 && (
+          <List.Section>
+            <List.Subheader>Category Colors</List.Subheader>
+            {categories.map((category) => {
+              const hasCustomColor = !!config.categoryColors[category];
+              return (
+                <List.Item
+                  key={category}
+                  title={category}
+                  description={hasCustomColor ? "Custom" : "Auto"}
+                  left={() => (
+                    <ColorSwatch color={getCategoryColor(category)} />
+                  )}
+                  onPress={() => setEditingItem({ type: "category", category })}
+                  style={styles.listItem}
+                  right={
+                    hasCustomColor
+                      ? () => (
+                          <Button
+                            mode="text"
+                            compact
+                            onPress={() => clearCategoryColor(category)}
+                          >
+                            Reset
+                          </Button>
+                        )
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </List.Section>
+        )}
 
         <View style={styles.footer}>
           <Button
