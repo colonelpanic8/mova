@@ -38,6 +38,8 @@ import {
 function transformGraphData(graph: HabitStatusGraphEntry[]): MiniGraphEntry[] {
   return graph.map((entry) => ({
     date: entry.date,
+    assessmentStart: entry.assessmentStart,
+    assessmentEnd: entry.assessmentEnd,
     // Past cells show actual status (with completions that happened)
     // Present/future cells show status without that day's completions
     // (so user can see if they need to complete today/upcoming)
