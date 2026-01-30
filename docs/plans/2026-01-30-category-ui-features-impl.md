@@ -13,6 +13,7 @@
 ## Task 1: Create Category Colors Utility
 
 **Files:**
+
 - Create: `utils/categoryColors.ts`
 
 **Step 1: Create the utility file**
@@ -58,6 +59,7 @@ git commit -m "feat: add category color palette and auto-assignment utility"
 ## Task 2: Update ColorPaletteConfig Type
 
 **Files:**
+
 - Modify: `types/colors.ts`
 
 **Step 1: Add categoryColors field to ColorPaletteConfig interface**
@@ -87,6 +89,7 @@ git commit -m "feat: add categoryColors to ColorPaletteConfig type"
 ## Task 3: Update ColorPaletteContext for Category Colors
 
 **Files:**
+
 - Modify: `context/ColorPaletteContext.tsx`
 
 **Step 1: Add categoryColors to DEFAULT_CONFIG**
@@ -110,7 +113,7 @@ const getCategoryColor = useCallback(
     }
     return getAutoColorForCategory(category);
   },
-  [config.categoryColors, resolveColor]
+  [config.categoryColors, resolveColor],
 );
 ```
 
@@ -148,6 +151,7 @@ git commit -m "feat: add getCategoryColor to ColorPaletteContext"
 ## Task 4: Add groupByCategory Setting
 
 **Files:**
+
 - Modify: `services/settings.ts`
 - Modify: `context/SettingsContext.tsx`
 
@@ -228,6 +232,7 @@ git commit -m "feat: add groupByCategory setting to SettingsContext"
 ## Task 5: Add Category Colors Section to Colors Settings
 
 **Files:**
+
 - Modify: `app/(tabs)/settings/colors.tsx`
 
 **Step 1: Import FilterContext for categories list**
@@ -332,6 +337,7 @@ git commit -m "feat: add Category Colors section to colors settings"
 ## Task 6: Add Group by Category Toggle to Settings
 
 **Files:**
+
 - Modify: `app/(tabs)/settings/index.tsx`
 
 **Step 1: Import groupByCategory from SettingsContext**
@@ -339,7 +345,7 @@ git commit -m "feat: add Category Colors section to colors settings"
 Update the useSettings destructuring:
 
 ```typescript
-const { groupByCategory, setGroupByCategory, /* ...existing */ } = useSettings();
+const { groupByCategory, setGroupByCategory /* ...existing */ } = useSettings();
 ```
 
 **Step 2: Add toggle in Display section**
@@ -374,25 +380,26 @@ git commit -m "feat: add Group by Category toggle to settings"
 ## Task 7: Implement Category Grouping in Agenda
 
 **Files:**
+
 - Modify: `app/(tabs)/index.tsx`
 
 **Step 1: Import groupByCategory from SettingsContext**
 
 ```typescript
-const { groupByCategory, /* ...existing */ } = useSettings();
+const { groupByCategory /* ...existing */ } = useSettings();
 ```
 
 **Step 2: Import getCategoryColor from ColorPaletteContext**
 
 ```typescript
-const { getCategoryColor, /* ...existing */ } = useColorPalette();
+const { getCategoryColor /* ...existing */ } = useColorPalette();
 ```
 
 **Step 3: Add collapsed state for category headers**
 
 ```typescript
 const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
-  new Set()
+  new Set(),
 );
 ```
 
@@ -446,7 +453,7 @@ const groupItemsByCategory = useCallback(
 
     return result;
   },
-  [groupByCategory, getCategoryColor, collapsedCategories]
+  [groupByCategory, getCategoryColor, collapsedCategories],
 );
 ```
 
@@ -568,6 +575,7 @@ yarn validate
 **Step 2: Fix any issues**
 
 If prettier fails:
+
 ```bash
 yarn prettier:fix
 ```

@@ -66,8 +66,5 @@ export async function getGroupByCategory(): Promise<boolean> {
 }
 
 export async function setGroupByCategory(enabled: boolean): Promise<void> {
-  await AsyncStorage.setItem(
-    GROUP_BY_CATEGORY_KEY,
-    enabled ? "true" : "false",
-  );
+  await AsyncStorage.setItem(GROUP_BY_CATEGORY_KEY, enabled ? "true" : "false");
 }

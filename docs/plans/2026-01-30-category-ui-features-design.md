@@ -3,6 +3,7 @@
 ## Overview
 
 Add two category-related UI features:
+
 1. Toggle to group agenda items by category (with collapsible sub-headers)
 2. Category colors with auto-assignment and user overrides
 
@@ -36,6 +37,7 @@ Completed
 ### Implementation Approach
 
 Flatten the structure rather than nested SectionList:
+
 - Category headers become regular list items with `type: 'category-header'`
 - Items belonging to collapsed categories are filtered out from render
 - Simpler than nested lists and matches common React Native patterns
@@ -43,6 +45,7 @@ Flatten the structure rather than nested SectionList:
 ### Storage
 
 New setting in `services/settings.ts`:
+
 - Key: `mova_group_by_category`
 - Default: `false`
 - Exposed via `SettingsContext` as `groupByCategory` / `setGroupByCategory`
@@ -76,8 +79,9 @@ Hash-based assignment ensures same category always gets same color:
 
 ```typescript
 function getAutoColorForCategory(category: string): string {
-  const hash = category.toLowerCase()
-    .split('')
+  const hash = category
+    .toLowerCase()
+    .split("")
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return CATEGORY_COLOR_PALETTE[hash % CATEGORY_COLOR_PALETTE.length];
 }
@@ -90,14 +94,18 @@ Users can override specific category colors in the Colors settings screen. Overr
 ```typescript
 interface ColorPaletteConfig {
   // ... existing fields
-  categoryColors: Record<string, ColorValue>;  // category name → color override
+  categoryColors: Record<string, ColorValue>; // category name → color override
 }
 ```
 
 ### Resolution Logic
 
 ```typescript
-function getCategoryColor(category: string, overrides: Record<string, ColorValue>, theme): string {
+function getCategoryColor(
+  category: string,
+  overrides: Record<string, ColorValue>,
+  theme,
+): string {
   if (overrides[category]) {
     return resolveColor(overrides[category], theme);
   }
@@ -108,6 +116,7 @@ function getCategoryColor(category: string, overrides: Record<string, ColorValue
 ### Colors Settings UI
 
 New "Category Colors" section in `settings/colors.tsx`:
+
 - List populated from categories discovered via `/filter-options` API
 - Shows current color (auto or override) with colored square
 - Tapping opens color picker (same as other color settings)
@@ -116,9 +125,11 @@ New "Category Colors" section in `settings/colors.tsx`:
 ## Files to Modify
 
 ### New Files
+
 - `utils/categoryColors.ts` - palette, hash function, resolution logic
 
 ### Modified Files
+
 - `types/colors.ts` - add `categoryColors` to `ColorPaletteConfig`
 - `context/ColorPaletteContext.tsx` - handle `categoryColors` in load/save/defaults
 - `services/settings.ts` - add `groupByCategory` storage functions

@@ -16,7 +16,6 @@ import {
   isThemeReference,
   PriorityLevel,
 } from "@/types/colors";
-import { getAutoColorForCategory } from "../utils/categoryColors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
@@ -27,6 +26,7 @@ import React, {
   useState,
 } from "react";
 import { useTheme } from "react-native-paper";
+import { getAutoColorForCategory } from "../utils/categoryColors";
 
 const STORAGE_KEY = "mova_color_palette";
 
