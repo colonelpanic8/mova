@@ -16,6 +16,7 @@ import {
   isThemeReference,
   PriorityLevel,
 } from "@/types/colors";
+import { getAutoColorForCategory } from "../utils/categoryColors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
@@ -39,6 +40,7 @@ interface ColorPaletteContextType {
   getActionColor: (action: ActionButtonType) => string;
   getPriorityColor: (priority: PriorityLevel) => string;
   getHabitColors: () => { conforming: string; notConforming: string };
+  getCategoryColor: (category: string) => string;
 
   // Get all configured todo states (for settings UI)
   getConfiguredTodoStates: () => string[];
@@ -178,6 +180,17 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     };
   }, [config, resolveColor]);
 
+  const getCategoryColor = useCallback(
+    (category: string): string => {
+      const override = config.categoryColors[category];
+      if (override) {
+        return resolveColor(override);
+      }
+      return getAutoColorForCategory(category);
+    },
+    [config.categoryColors, resolveColor],
+  );
+
   const getConfiguredTodoStates = useCallback((): string[] => {
     return Object.keys(config.todoStateColors).filter(
       (key) => key !== "DEFAULT",
@@ -289,6 +302,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
         getActionColor,
         getPriorityColor,
         getHabitColors,
+        getCategoryColor,
         getConfiguredTodoStates,
         setTodoStateColor,
         removeTodoStateColor,
