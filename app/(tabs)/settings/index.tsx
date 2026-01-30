@@ -43,6 +43,8 @@ export default function SettingsScreen() {
     setDefaultDoneState,
     useClientCompletionTime,
     setUseClientCompletionTime,
+    groupByCategory,
+    setGroupByCategory,
   } = useSettings();
   const { templates, todoStates } = useTemplates();
   const theme = useTheme();
@@ -302,6 +304,17 @@ export default function SettingsScreen() {
             <Switch
               value={showHabitsInAgenda}
               onValueChange={setShowHabitsInAgenda}
+            />
+          )}
+        />
+        <List.Item
+          title="Group by Category"
+          description="Group agenda items by category"
+          left={(props) => <List.Icon {...props} icon="folder-outline" />}
+          right={() => (
+            <Switch
+              value={groupByCategory}
+              onValueChange={setGroupByCategory}
             />
           )}
         />
