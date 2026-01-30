@@ -3,8 +3,10 @@ import { FilterBar } from "@/components/FilterBar";
 import { HabitItem } from "@/components/HabitItem";
 import { TodoItem, getTodoKey } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
+import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
+import { useSettings } from "@/context/SettingsContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
   AgendaEntry,
@@ -43,6 +45,7 @@ import {
 } from "react-native";
 import {
   ActivityIndicator,
+  Icon,
   IconButton,
   Text,
   useTheme,
@@ -95,14 +98,23 @@ interface WeekDaySection {
   data: AgendaEntry[];
 }
 
+interface CategoryHeader {
+  type: "category-header";
+  category: string;
+  count: number;
+  color: string;
+}
+
+type AgendaListItem = AgendaEntry | CategoryHeader;
+
 /**
  * Sort entries for list view: habits without a scheduled time go to the bottom,
  * grouped together. Regular tasks and habits with scheduled times stay at the top
  * in their original order.
  */
-function sortEntriesForListView(entries: Todo[]): Todo[] {
-  const regularItems: Todo[] = [];
-  const habitsWithoutTime: Todo[] = [];
+function sortEntriesForListView<T extends Todo>(entries: T[]): T[] {
+  const regularItems: T[] = [];
+  const habitsWithoutTime: T[] = [];
 
   for (const entry of entries) {
     const isHabit = entry.isWindowHabit || entry.properties?.STYLE === "habit";
@@ -136,10 +148,15 @@ export default function AgendaScreen() {
   const [habitStatusMap, setHabitStatusMap] = useState<
     Map<string, HabitStatus>
   >(new Map());
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
+    new Set(),
+  );
   const api = useApi();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
+  const { groupByCategory } = useSettings();
+  const { getCategoryColor } = useColorPalette();
   const isInitialMount = useRef(true);
   const { width } = useWindowDimensions();
   const useCompactDate = width < 400;
@@ -230,6 +247,52 @@ export default function AgendaScreen() {
   );
   const completedEntries = sortEntriesForListView(
     visibleEntries.filter((entry) => isCompleted(entry)),
+  );
+
+  const toggleCategoryCollapse = useCallback((categoryKey: string) => {
+    setCollapsedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryKey)) {
+        next.delete(categoryKey);
+      } else {
+        next.add(categoryKey);
+      }
+      return next;
+    });
+  }, []);
+
+  const groupItemsByCategory = useCallback(
+    (items: AgendaEntry[]): AgendaListItem[] => {
+      if (!groupByCategory) return items;
+
+      const categoryMap = new Map<string, AgendaEntry[]>();
+      items.forEach((item) => {
+        const category = item.category || "Uncategorized";
+        if (!categoryMap.has(category)) {
+          categoryMap.set(category, []);
+        }
+        categoryMap.get(category)!.push(item);
+      });
+
+      const result: AgendaListItem[] = [];
+      Array.from(categoryMap.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .forEach(([category, categoryItems]) => {
+          result.push({
+            type: "category-header",
+            category,
+            count: categoryItems.length,
+            color: getCategoryColor(category),
+          });
+          const categoryKey = `category:${category}`;
+          if (!collapsedCategories.has(categoryKey)) {
+            result.push(...categoryItems);
+          }
+        });
+
+      return result;
+    },
+    [groupByCategory, getCategoryColor, collapsedCategories],
   );
 
   // Build sections for week view
@@ -656,32 +719,87 @@ export default function AgendaScreen() {
             onRefresh={onRefresh}
           />
         ) : (
-          <SectionList
+          <SectionList<AgendaListItem>
             testID="agendaList"
             sections={[
               ...(activeEntries.length > 0
-                ? [{ key: "active", data: activeEntries }]
+                ? [
+                    {
+                      key: "active",
+                      data: groupItemsByCategory(activeEntries),
+                    },
+                  ]
                 : []),
               ...(showCompleted && completedEntries.length > 0
                 ? [
                     {
                       key: "completed",
                       title: "Completed",
-                      data: completedEntries,
+                      data: groupItemsByCategory(completedEntries),
                     },
                   ]
                 : []),
             ]}
-            keyExtractor={(item) => getTodoKey(item)}
+            keyExtractor={(item) =>
+              "type" in item && item.type === "category-header"
+                ? `header-${item.category}`
+                : getTodoKey(item as AgendaEntry)
+            }
             renderItem={({ item, section }) => {
+              // Handle category headers
+              if ("type" in item && item.type === "category-header") {
+                const categoryKey = `category:${item.category}`;
+                const isCollapsed = collapsedCategories.has(categoryKey);
+                return (
+                  <TouchableOpacity
+                    onPress={() => toggleCategoryCollapse(categoryKey)}
+                    style={[
+                      styles.categoryHeader,
+                      {
+                        borderLeftColor: item.color,
+                        backgroundColor: theme.colors.surface,
+                      },
+                    ]}
+                    testID={`categoryHeader-${item.category}`}
+                  >
+                    <View style={styles.categoryHeaderLeft}>
+                      <Icon
+                        source={isCollapsed ? "chevron-right" : "chevron-down"}
+                        size={20}
+                        color={theme.colors.onSurface}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryHeaderText,
+                          { color: theme.colors.onSurface },
+                        ]}
+                      >
+                        {item.category}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.categoryHeaderCount,
+                        { color: theme.colors.onSurfaceVariant },
+                      ]}
+                    >
+                      {item.count}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }
+
+              // Handle regular items
+              const todoItem = item as AgendaEntry;
               const isHabit =
-                item.isWindowHabit || item.properties?.STYLE === "habit";
+                todoItem.isWindowHabit ||
+                todoItem.properties?.STYLE === "habit";
               if (isHabit) {
-                return <HabitItem todo={item} />;
+                return <HabitItem todo={todoItem} />;
               }
               return (
                 <TodoItem
-                  todo={item}
+                  todo={todoItem}
                   opacity={section.key === "completed" ? 0.6 : 1}
                 />
               );
@@ -758,5 +876,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 10,
+  },
+  categoryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderLeftWidth: 4,
+  },
+  categoryHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  categoryHeaderText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  categoryHeaderCount: {
+    fontSize: 12,
   },
 });
