@@ -4,6 +4,7 @@ const QUICK_SCHEDULE_INCLUDE_TIME_KEY = "quick_schedule_include_time";
 const SHOW_HABITS_IN_AGENDA_KEY = "show_habits_in_agenda";
 const DEFAULT_DONE_STATE_KEY = "default_done_state";
 const USE_CLIENT_COMPLETION_TIME_KEY = "use_client_completion_time";
+const GROUP_BY_CATEGORY_KEY = "mova_group_by_category";
 
 export async function getQuickScheduleIncludeTime(): Promise<boolean> {
   const value = await AsyncStorage.getItem(QUICK_SCHEDULE_INCLUDE_TIME_KEY);
@@ -55,6 +56,18 @@ export async function setUseClientCompletionTime(
 ): Promise<void> {
   await AsyncStorage.setItem(
     USE_CLIENT_COMPLETION_TIME_KEY,
+    enabled ? "true" : "false",
+  );
+}
+
+export async function getGroupByCategory(): Promise<boolean> {
+  const value = await AsyncStorage.getItem(GROUP_BY_CATEGORY_KEY);
+  return value === "true";
+}
+
+export async function setGroupByCategory(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(
+    GROUP_BY_CATEGORY_KEY,
     enabled ? "true" : "false",
   );
 }
