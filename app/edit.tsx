@@ -124,7 +124,7 @@ export default function EditScreen() {
       }
 
       if (todoState !== originalTodo.todo) {
-        updates.new_state = todoState;
+        updates.state = todoState;
       }
 
       // Check if scheduled or its repeater changed

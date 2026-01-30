@@ -214,7 +214,7 @@ export interface CompleteTodoResponse {
 
 export interface TodoUpdates {
   new_title?: string;
-  new_state?: string;
+  state?: string; // Backend expects "state", not "new_state"
   scheduled?: Timestamp | null;
   deadline?: Timestamp | null;
   priority?: string | null;
