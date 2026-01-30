@@ -72,6 +72,8 @@ export interface AgendaEntry extends Todo {
 // Habit types
 export interface MiniGraphEntry {
   date: string;
+  assessmentStart?: string;
+  assessmentEnd?: string;
   conformingRatio: number;
   completed: boolean;
   completionNeededToday?: boolean;

@@ -32,6 +32,8 @@ interface GraphCellProps {
   };
   onPress?: () => void;
   onLayout?: (event: LayoutChangeEvent) => void;
+  cellWidth: number;
+  cellLabel: string;
 }
 
 // Convert a duration record to days
@@ -62,6 +64,105 @@ function formatDuration(duration: Record<string, number>): string {
   return parts.join(" ") || "?";
 }
 
+// Parse a date string that might or might not have a time portion
+function parseDate(dateStr: string): Date {
+  // If it already has a T (time portion), use as-is
+  if (dateStr.includes("T")) {
+    return new Date(dateStr);
+  }
+  // Otherwise add midnight time to ensure correct local date
+  return new Date(dateStr + "T00:00:00");
+}
+
+// Calculate interval duration in days from assessment period
+function getIntervalDays(entry: MiniGraphEntry): number {
+  if (!entry.assessmentStart || !entry.assessmentEnd) return 1;
+  const start = parseDate(entry.assessmentStart);
+  const end = parseDate(entry.assessmentEnd);
+  // Handle invalid dates
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 1;
+  const days = Math.round(
+    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return Math.max(1, days);
+}
+
+// Base cell width
+const BASE_CELL_WIDTH = 24;
+
+// Calculate cell width based on interval duration
+function getCellWidth(intervalDays: number, isToday: boolean): number {
+  let width: number;
+  if (intervalDays <= 14) {
+    // For intervals up to 2 weeks, scale proportionally
+    width = BASE_CELL_WIDTH * intervalDays;
+  } else if (intervalDays <= 31) {
+    // Monthly intervals: 2.5x base width
+    width = BASE_CELL_WIDTH * 2.5;
+  } else {
+    // Longer intervals: 3x base width
+    width = BASE_CELL_WIDTH * 3;
+  }
+  // Add extra width for today cell
+  if (isToday) {
+    width += 4;
+  }
+  return width;
+}
+
+// Month abbreviations
+const MONTH_ABBREVS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+// Format cell label based on interval type
+function getCellLabel(entry: MiniGraphEntry, intervalDays: number): string {
+  // Handle missing entry or date
+  if (!entry?.date) {
+    return "?";
+  }
+
+  const startDateStr = entry.assessmentStart || entry.date;
+  const startDate = parseDate(startDateStr);
+
+  // Check for invalid date
+  if (isNaN(startDate.getTime())) {
+    return "?";
+  }
+
+  if (intervalDays === 1) {
+    // Daily: just show day number
+    return String(startDate.getDate());
+  } else if (intervalDays <= 14) {
+    // Up to 2 weeks: show day range "16-22"
+    const endDateStr = entry.assessmentEnd || startDateStr;
+    const endDate = parseDate(endDateStr);
+    // assessmentEnd is exclusive, so subtract 1 day for display
+    const displayEnd = new Date(endDate);
+    displayEnd.setDate(displayEnd.getDate() - 1);
+    const startDay = startDate.getDate();
+    const endDay = displayEnd.getDate();
+    if (startDay === endDay) {
+      return String(startDay);
+    }
+    return `${startDay}-${endDay}`;
+  } else {
+    // Monthly or longer: show month abbreviation
+    return MONTH_ABBREVS[startDate.getMonth()];
+  }
+}
+
 interface CellLayout {
   x: number;
   width: number;
@@ -76,6 +177,8 @@ function GraphCell({
   glyphs,
   onPress,
   onLayout,
+  cellWidth,
+  cellLabel,
 }: GraphCellProps) {
   const theme = useTheme();
   // conformingRatio of -1 indicates "no data" (habit didn't exist yet)
@@ -83,9 +186,6 @@ function GraphCell({
   const backgroundColor = isNoData
     ? "rgba(150, 150, 150, 0.3)"
     : getHabitCellColor(entry.conformingRatio, colors);
-
-  // Extract day number from date string (YYYY-MM-DD)
-  const dayNumber = parseInt(entry.date.split("-")[2], 10);
 
   // Don't show glyphs for "no data" cells
   let glyph = "";
@@ -104,13 +204,17 @@ function GraphCell({
     }
   }
 
+  // Calculate font size based on label length and cell width
+  const labelLen = cellLabel?.length ?? 0;
+  const labelFontSize = labelLen > 3 ? 9 : labelLen > 2 ? 10 : 11;
+
   return (
     <Pressable
       onPress={isNoData ? undefined : onPress}
       onLayout={onLayout}
       style={({ pressed }) => [
         styles.cell,
-        { backgroundColor },
+        { backgroundColor, width: cellWidth, height: 24 },
         isToday && [styles.todayCell, { borderColor: theme.colors.primary }],
         isFuture && styles.futureCell,
         isNoData && styles.noDataCell,
@@ -118,10 +222,14 @@ function GraphCell({
       ]}
     >
       <Text
-        style={[styles.dayNumber, isNoData && styles.noDataDayNumber]}
+        style={[
+          styles.dayNumber,
+          { fontSize: labelFontSize },
+          isNoData && styles.noDataDayNumber,
+        ]}
         numberOfLines={1}
       >
-        {dayNumber}
+        {cellLabel ?? "?"}
       </Text>
       {glyph ? (
         <Text style={styles.glyph} numberOfLines={1}>
@@ -213,6 +321,9 @@ export function HabitGraph({
   const renderCell = (entry: MiniGraphEntry, index: number) => {
     const isToday = index === effectiveTodayIndex;
     const isFuture = index > effectiveTodayIndex;
+    const intervalDays = getIntervalDays(entry);
+    const cellWidth = getCellWidth(intervalDays, isToday);
+    const cellLabel = getCellLabel(entry, intervalDays);
 
     return (
       <GraphCell
@@ -225,6 +336,8 @@ export function HabitGraph({
         glyphs={glyphs}
         onPress={onCellPress ? () => onCellPress(entry) : undefined}
         onLayout={(e) => handleCellLayout(index, e)}
+        cellWidth={cellWidth}
+        cellLabel={cellLabel}
       />
     );
   };
@@ -312,7 +425,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(155, 77, 184, 0.15)", // Mova purple with transparency
     padding: 6,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: "flex-end", // Right-align so "today" appears consistently
   },
   row: {
     flexDirection: "row",
@@ -323,7 +436,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   cell: {
-    width: 24,
+    // width is set dynamically based on interval
     height: 24,
     borderRadius: 4,
     justifyContent: "center",
@@ -341,7 +454,7 @@ const styles = StyleSheet.create({
     }),
   },
   todayCell: {
-    width: 28,
+    // width is set dynamically, just add border
     height: 28,
     borderWidth: 2,
     borderRadius: 5,
@@ -359,7 +472,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   dayNumber: {
-    fontSize: 11,
+    // fontSize is set dynamically based on label length
     fontWeight: "600",
     color: "#FFFFFF",
     textAlign: "center",
