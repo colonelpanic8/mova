@@ -278,32 +278,82 @@ export function HabitGraph({
   const effectiveTodayIndex =
     todayIndex >= 0 ? todayIndex : miniGraph.length - 1;
 
-  // Calculate cell weights and total weight
-  const cellWeights = miniGraph.map((entry) => {
+  // Fixed position for "today" - 80% from left edge
+  // This ensures all habit graphs have "today" aligned at the same horizontal position
+  const TODAY_POSITION = 0.8;
+  const MIN_BASE_UNIT = 20; // Minimum width for a 1-weight cell
+
+  // Calculate cell weights for all entries
+  const allCellWeights = miniGraph.map((entry) => {
     const intervalDays = getIntervalDays(entry);
     return getCellWeight(intervalDays);
   });
-  const totalWeight = cellWeights.reduce((sum, w) => sum + w, 0);
-  const totalGaps = (miniGraph.length - 1) * CELL_GAP;
 
-  // Calculate base unit width from container
-  // Available width = container width - padding (12px) - gaps between cells
-  const availableWidth = containerWidth - 12 - totalGaps;
-  const baseUnitWidth = containerWidth > 0 ? availableWidth / totalWeight : 0;
+  // Available width (container - padding)
+  const availableWidth = containerWidth - 12;
+
+  // Width available before "today" and after "today"
+  const widthBeforeToday = availableWidth * TODAY_POSITION;
+  const widthAfterToday = availableWidth * (1 - TODAY_POSITION);
+
+  // Determine which cells to show
+  let startIndex = 0;
+  let endIndex = miniGraph.length - 1;
+
+  if (containerWidth > 0) {
+    // Calculate how many cells fit before today (going backwards)
+    let usedWidthBefore = 0;
+    const todayWeight = allCellWeights[effectiveTodayIndex];
+    const todayCellWidth = MIN_BASE_UNIT * todayWeight + 4; // +4 for today border
+    const halfTodayWidth = todayCellWidth / 2;
+
+    // Start from cell before today, work backwards
+    for (let i = effectiveTodayIndex - 1; i >= 0; i--) {
+      const cellWidth = MIN_BASE_UNIT * allCellWeights[i] + CELL_GAP;
+      if (usedWidthBefore + cellWidth > widthBeforeToday - halfTodayWidth) {
+        startIndex = i + 1;
+        break;
+      }
+      usedWidthBefore += cellWidth;
+    }
+
+    // Calculate how many cells fit after today (going forwards)
+    let usedWidthAfter = 0;
+    for (let i = effectiveTodayIndex + 1; i < miniGraph.length; i++) {
+      const cellWidth = MIN_BASE_UNIT * allCellWeights[i] + CELL_GAP;
+      if (usedWidthAfter + cellWidth > widthAfterToday - halfTodayWidth) {
+        endIndex = i - 1;
+        break;
+      }
+      usedWidthAfter += cellWidth;
+    }
+  }
+
+  // Slice to visible cells
+  const visibleGraph = miniGraph.slice(startIndex, endIndex + 1);
+  const visibleWeights = allCellWeights.slice(startIndex, endIndex + 1);
+  const visibleTodayIndex = effectiveTodayIndex - startIndex;
+
+  // Now calculate actual cell widths to fill the container
+  const totalVisibleWeight = visibleWeights.reduce((sum, w) => sum + w, 0);
+  const totalVisibleGaps = Math.max(0, visibleGraph.length - 1) * CELL_GAP;
+  const baseUnitWidth =
+    containerWidth > 0
+      ? (availableWidth - totalVisibleGaps) / totalVisibleWeight
+      : 0;
 
   // Calculate actual cell widths
-  const cellWidths = cellWeights.map((weight, index) => {
-    const isToday = index === effectiveTodayIndex;
-    // Add small extra width for today cell border
+  const cellWidths = visibleWeights.map((weight, index) => {
+    const isToday = index === visibleTodayIndex;
     return baseUnitWidth * weight + (isToday ? 4 : 0);
   });
 
-  // Parse dates for window calculations
-  const parsedDates = miniGraph.map((e) => parseDate(e.date));
+  // Parse dates for window calculations (using visible graph)
+  const parsedDates = visibleGraph.map((e) => parseDate(e.date));
 
   // Calculate window bars based on actual cell layouts and windowSpecsStatus
   const windowBars =
-    windowSpecsStatus && cellLayouts.size === miniGraph.length
+    windowSpecsStatus && cellLayouts.size === visibleGraph.length
       ? [...windowSpecsStatus]
           .sort(
             (a, b) => durationToDays(a.duration) - durationToDays(b.duration),
@@ -342,8 +392,8 @@ export function HabitGraph({
       : [];
 
   const renderCell = (entry: MiniGraphEntry, index: number) => {
-    const isToday = index === effectiveTodayIndex;
-    const isFuture = index > effectiveTodayIndex;
+    const isToday = index === visibleTodayIndex;
+    const isFuture = index > visibleTodayIndex;
     const intervalDays = getIntervalDays(entry);
     const cellWidth = cellWidths[index];
     const cellLabel = getCellLabel(entry, intervalDays);
@@ -367,9 +417,9 @@ export function HabitGraph({
 
   // Calculate the total width of the cells row for window bars
   const rowWidth =
-    cellLayouts.size === miniGraph.length
+    cellLayouts.size === visibleGraph.length
       ? (() => {
-          const lastLayout = cellLayouts.get(miniGraph.length - 1);
+          const lastLayout = cellLayouts.get(visibleGraph.length - 1);
           return lastLayout ? lastLayout.x + lastLayout.width : 0;
         })()
       : 0;
@@ -382,7 +432,7 @@ export function HabitGraph({
     >
       {containerWidth > 0 && (
         <View style={[styles.row, expanded && styles.expandedContainer]}>
-          {miniGraph.map((entry, index) => renderCell(entry, index))}
+          {visibleGraph.map((entry, index) => renderCell(entry, index))}
         </View>
       )}
       {windowBars.length > 0 && rowWidth > 0 && (
