@@ -11,7 +11,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import {
   CategoryType,
   Repeater,
@@ -241,7 +240,6 @@ export default function CaptureScreen() {
   }>({});
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
-  const keyboardHeight = useKeyboardHeight();
 
   // Load default template when templates become available
   useEffect(() => {
@@ -516,10 +514,7 @@ export default function CaptureScreen() {
       <KeyboardAwareContainer style={styles.formContainer}>
         <ScrollView
           style={styles.formContainer}
-          contentContainerStyle={[
-            styles.formContent,
-            { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 16 : 16 },
-          ]}
+          contentContainerStyle={styles.formContent}
           keyboardShouldPersistTaps="handled"
         >
           {/* Category field for category type captures */}
