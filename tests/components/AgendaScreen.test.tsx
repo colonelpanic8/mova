@@ -67,6 +67,12 @@ jest.mock("../../context/SettingsContext", () => ({
   useSettings: () => ({
     quickScheduleIncludeTime: false,
     setQuickScheduleIncludeTime: jest.fn(),
+    groupByCategory: false,
+    setGroupByCategory: jest.fn(),
+    multiDayRangeLength: 7,
+    setMultiDayRangeLength: jest.fn(),
+    multiDayPastDays: 1,
+    setMultiDayPastDays: jest.fn(),
     isLoading: false,
   }),
 }));
@@ -137,10 +143,16 @@ const mockAgendaEntries = [
   },
 ];
 
+// Mock response uses multi-day format since frontend now uses multi-day endpoint
+// even for single-day view to get prospective habit scheduling
 const mockAgendaResponse = {
-  span: "day",
-  date: "2024-06-15",
-  entries: mockAgendaEntries,
+  span: "week",
+  startDate: "2024-06-15",
+  endDate: "2024-06-15",
+  today: "2024-06-15",
+  days: {
+    "2024-06-15": mockAgendaEntries,
+  },
 };
 
 // Setup mocks
@@ -161,7 +173,27 @@ beforeEach(() => {
   mockApi.getAllHabitStatuses.mockReset();
 
   // Set default mock implementations
-  mockApi.getAgenda.mockResolvedValue(mockAgendaResponse);
+  // Use mockImplementation to return entries for whatever date is requested
+  mockApi.getAgenda.mockImplementation(
+    (
+      _span: string,
+      startDate: string,
+      _includeOverdue: boolean,
+      _includeCompleted: boolean,
+      endDate?: string,
+    ) => {
+      const date = startDate || "2024-06-15";
+      return Promise.resolve({
+        span: "week",
+        startDate: date,
+        endDate: endDate || date,
+        today: date,
+        days: {
+          [date]: mockAgendaEntries,
+        },
+      });
+    },
+  );
   mockApi.getTodoStates.mockResolvedValue({
     active: ["TODO", "NEXT", "WAITING"],
     done: ["DONE", "CANCELLED"],
@@ -241,11 +273,26 @@ describe("AgendaScreen", () => {
   });
 
   it("should show empty state when no entries", async () => {
-    mockApi.getAgenda.mockResolvedValue({
-      span: "day",
-      date: "2024-06-15",
-      entries: [],
-    });
+    mockApi.getAgenda.mockImplementation(
+      (
+        _span: string,
+        startDate: string,
+        _includeOverdue: boolean,
+        _includeCompleted: boolean,
+        endDate?: string,
+      ) => {
+        const date = startDate || "2024-06-15";
+        return Promise.resolve({
+          span: "week",
+          startDate: date,
+          endDate: endDate || date,
+          today: date,
+          days: {
+            [date]: [],
+          },
+        });
+      },
+    );
 
     const { getByText, getByTestId } = renderScreen(<AgendaScreen />);
 
@@ -273,11 +320,13 @@ describe("AgendaScreen", () => {
       expect(getByTestId("agendaScreen")).toBeTruthy();
     });
 
+    // Now uses multi-day endpoint with same start/end date for prospective habits
     expect(mockApi.getAgenda).toHaveBeenCalledWith(
-      "day",
+      "week",
       expect.any(String),
       expect.any(Boolean),
       expect.any(Boolean),
+      expect.any(String), // endDate (same as startDate)
     );
   });
 
