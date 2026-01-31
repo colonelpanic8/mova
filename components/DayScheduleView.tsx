@@ -1,4 +1,3 @@
-import { HabitItem } from "@/components/HabitItem";
 import { StatePill } from "@/components/StatePill";
 import { getTodoKey } from "@/components/TodoItem";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
@@ -255,39 +254,6 @@ export function DayScheduleView({
         ) : undefined
       }
     >
-      {/* Untimed entries section */}
-      {untimedEntries.length > 0 && (
-        <View style={styles.untimedSection}>
-          <View
-            style={[
-              styles.untimedHeader,
-              { backgroundColor: theme.colors.surfaceVariant },
-            ]}
-          >
-            <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              All Day / No Time
-            </Text>
-          </View>
-          {untimedEntries.map((entry) => {
-            const isHabit =
-              entry.isWindowHabit || entry.properties?.STYLE === "habit";
-            if (isHabit) {
-              return <HabitItem key={getTodoKey(entry)} todo={entry} />;
-            }
-            return (
-              <CompactTodoItem
-                key={getTodoKey(entry)}
-                todo={entry}
-                opacity={1}
-              />
-            );
-          })}
-        </View>
-      )}
-
       {/* Timeline section */}
       <View style={[styles.timeline, { height: totalHeight }]}>
         {/* Hour markers and grid lines */}
@@ -350,9 +316,6 @@ export function DayScheduleView({
           const isCompleted =
             entry.completedAt || doneStates.includes(entry.todo);
 
-          const isHabit =
-            entry.isWindowHabit || entry.properties?.STYLE === "habit";
-
           return (
             <View
               key={getTodoKey(entry)}
@@ -365,15 +328,33 @@ export function DayScheduleView({
                 },
               ]}
             >
-              {isHabit ? (
-                <HabitItem todo={entry} />
-              ) : (
-                <CompactTodoItem todo={entry} opacity={isCompleted ? 0.6 : 1} />
-              )}
+              <CompactTodoItem todo={entry} opacity={isCompleted ? 0.6 : 1} />
             </View>
           );
         })}
       </View>
+
+      {/* Untimed entries section - shown after the timeline */}
+      {untimedEntries.length > 0 && (
+        <View style={styles.untimedSection}>
+          <View
+            style={[
+              styles.untimedHeader,
+              { backgroundColor: theme.colors.surfaceVariant },
+            ]}
+          >
+            <Text
+              variant="labelMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              All Day / No Time
+            </Text>
+          </View>
+          {untimedEntries.map((entry) => (
+            <CompactTodoItem key={getTodoKey(entry)} todo={entry} opacity={1} />
+          ))}
+        </View>
+      )}
 
       {/* Empty state for timed section */}
       {positionedEntries.length === 0 && untimedEntries.length === 0 && (
@@ -392,7 +373,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   untimedSection: {
-    marginBottom: 8,
+    marginTop: 16,
   },
   untimedHeader: {
     paddingHorizontal: 12,
