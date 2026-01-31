@@ -51,17 +51,6 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-
-/**
- * Get the start of the week (Sunday) for a given date.
- */
-function getWeekStart(date: Date): Date {
-  const result = new Date(date);
-  const dayOfWeek = result.getDay();
-  result.setDate(result.getDate() - dayOfWeek);
-  return result;
-}
-
 /**
  * Get the default range start date based on settings.
  * Start = today - pastDays
