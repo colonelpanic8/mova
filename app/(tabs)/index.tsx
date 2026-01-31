@@ -323,7 +323,7 @@ export default function AgendaScreen() {
 
       const categoryMap = new Map<string, AgendaEntry[]>();
       items.forEach((item) => {
-        const category = item.category || "Uncategorized";
+        const category = item.effectiveCategory || "Uncategorized";
         if (!categoryMap.has(category)) {
           categoryMap.set(category, []);
         }
