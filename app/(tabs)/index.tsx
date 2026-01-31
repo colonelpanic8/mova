@@ -331,13 +331,60 @@ export default function AgendaScreen() {
 
     const todayString = formatDateForApi(new Date());
 
+    // Build a map of date -> habits that need completion on that date
+    const prospectiveHabitsByDate = new Map<string, AgendaEntry[]>();
+    habitStatusMap.forEach((status) => {
+      status.graph?.forEach((graphEntry) => {
+        if (graphEntry.completionExpectedToday) {
+          const dateStr = graphEntry.date;
+          if (!prospectiveHabitsByDate.has(dateStr)) {
+            prospectiveHabitsByDate.set(dateStr, []);
+          }
+          // Create a synthetic AgendaEntry for this habit on this date
+          const syntheticEntry: AgendaEntry = {
+            id: status.id,
+            title: status.title,
+            isWindowHabit: true,
+            agendaLine: status.title,
+            file: null,
+            pos: null,
+            level: 1,
+            todo: "TODO",
+            tags: null,
+            scheduled: null,
+            deadline: null,
+            priority: null,
+            olpath: null,
+            notifyBefore: null,
+            category: null,
+            effectiveCategory: null,
+            habitSummary: status.currentState,
+          };
+          prospectiveHabitsByDate.get(dateStr)!.push(syntheticEntry);
+        }
+      });
+    });
+
     return Object.entries(weekData.days)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([dateString, entries]) => {
         const filtered = filterTodos(entries, filters);
+
+        // Get prospective habits for this date
+        const prospectiveHabits = prospectiveHabitsByDate.get(dateString) || [];
+
+        // Merge prospective habits with existing entries, avoiding duplicates
+        const existingIds = new Set(
+          filtered.filter((e) => e.id).map((e) => e.id),
+        );
+        const newHabits = prospectiveHabits.filter(
+          (h) => !existingIds.has(h.id),
+        );
+        const mergedEntries = [...filtered, ...newHabits];
+
         const displayEntries = showCompleted
-          ? filtered
-          : filtered.filter((e) => {
+          ? mergedEntries
+          : mergedEntries.filter((e) => {
               const isHabit =
                 e.isWindowHabit || e.properties?.STYLE === "habit";
               if (isHabit) {
@@ -356,7 +403,14 @@ export default function AgendaScreen() {
         };
       })
       .filter((section) => section.data.length > 0 || section.isToday);
-  }, [weekData, filters, showCompleted, doneStates, isHabitCompletedOnDate]);
+  }, [
+    weekData,
+    filters,
+    showCompleted,
+    doneStates,
+    isHabitCompletedOnDate,
+    habitStatusMap,
+  ]);
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
@@ -461,13 +515,28 @@ export default function AgendaScreen() {
       try {
         const weekStart = getWeekStart(date);
         const dateString = formatDateForApi(weekStart);
-        const [weekAgendaData, statesData] = await Promise.all([
-          api.getAgenda("week", dateString, true, includeCompleted),
-          api.getTodoStates().catch(() => null),
-        ]);
+        const [weekAgendaData, statesData, habitStatusesResponse] =
+          await Promise.all([
+            api.getAgenda("week", dateString, true, includeCompleted),
+            api.getTodoStates().catch(() => null),
+            api.getAllHabitStatuses(14, 14).catch(() => null),
+          ]);
         setWeekData(weekAgendaData);
         if (statesData) {
           setTodoStates(statesData);
+        }
+        // Build a map of habit id -> status for quick lookup
+        if (
+          habitStatusesResponse?.status === "ok" &&
+          habitStatusesResponse.habits
+        ) {
+          const statusMap = new Map<string, HabitStatus>();
+          for (const status of habitStatusesResponse.habits) {
+            if (status.id) {
+              statusMap.set(status.id, status);
+            }
+          }
+          setHabitStatusMap(statusMap);
         }
         setError(null);
       } catch (err) {
