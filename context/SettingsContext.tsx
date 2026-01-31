@@ -1,11 +1,15 @@
 import {
   getDefaultDoneState,
   getGroupByCategory,
+  getMultiDayPastDays,
+  getMultiDayRangeLength,
   getQuickScheduleIncludeTime,
   getShowHabitsInAgenda,
   getUseClientCompletionTime,
   setDefaultDoneState as saveDefaultDoneState,
   setGroupByCategory as saveGroupByCategory,
+  setMultiDayPastDays as saveMultiDayPastDays,
+  setMultiDayRangeLength as saveMultiDayRangeLength,
   setQuickScheduleIncludeTime as saveQuickScheduleIncludeTime,
   setShowHabitsInAgenda as saveShowHabitsInAgenda,
   setUseClientCompletionTime as saveUseClientCompletionTime,
@@ -30,6 +34,10 @@ interface SettingsContextType {
   setUseClientCompletionTime: (value: boolean) => Promise<void>;
   groupByCategory: boolean;
   setGroupByCategory: (value: boolean) => Promise<void>;
+  multiDayRangeLength: number;
+  setMultiDayRangeLength: (value: number) => Promise<void>;
+  multiDayPastDays: number;
+  setMultiDayPastDays: (value: number) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -47,6 +55,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [useClientCompletionTime, setUseClientCompletionTimeState] =
     useState(true);
   const [groupByCategory, setGroupByCategoryState] = useState(false);
+  const [multiDayRangeLength, setMultiDayRangeLengthState] = useState(7);
+  const [multiDayPastDays, setMultiDayPastDaysState] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -56,6 +66,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       getDefaultDoneState(),
       getUseClientCompletionTime(),
       getGroupByCategory(),
+      getMultiDayRangeLength(),
+      getMultiDayPastDays(),
     ]).then(
       ([
         quickScheduleValue,
@@ -63,12 +75,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         defaultDoneValue,
         useClientCompletionTimeValue,
         groupByCategoryValue,
+        multiDayRangeLengthValue,
+        multiDayPastDaysValue,
       ]) => {
         setQuickScheduleIncludeTimeState(quickScheduleValue);
         setShowHabitsInAgendaState(showHabitsValue);
         setDefaultDoneStateState(defaultDoneValue);
         setUseClientCompletionTimeState(useClientCompletionTimeValue);
         setGroupByCategoryState(groupByCategoryValue);
+        setMultiDayRangeLengthState(multiDayRangeLengthValue);
+        setMultiDayPastDaysState(multiDayPastDaysValue);
         setIsLoading(false);
       },
     );
@@ -99,6 +115,24 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await saveGroupByCategory(value);
   }, []);
 
+  const setMultiDayRangeLength = useCallback(async (value: number) => {
+    setMultiDayRangeLengthState(value);
+    await saveMultiDayRangeLength(value);
+    // Auto-cap pastDays if it exceeds new range
+    if (multiDayPastDays >= value) {
+      const cappedPastDays = Math.max(0, value - 1);
+      setMultiDayPastDaysState(cappedPastDays);
+      await saveMultiDayPastDays(cappedPastDays);
+    }
+  }, [multiDayPastDays]);
+
+  const setMultiDayPastDays = useCallback(async (value: number) => {
+    // Ensure pastDays doesn't exceed rangeLength - 1
+    const cappedValue = Math.min(value, multiDayRangeLength - 1);
+    setMultiDayPastDaysState(cappedValue);
+    await saveMultiDayPastDays(cappedValue);
+  }, [multiDayRangeLength]);
+
   return (
     <SettingsContext.Provider
       value={{
@@ -112,6 +146,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setUseClientCompletionTime,
         groupByCategory,
         setGroupByCategory,
+        multiDayRangeLength,
+        setMultiDayRangeLength,
+        multiDayPastDays,
+        setMultiDayPastDays,
         isLoading,
       }}
     >
