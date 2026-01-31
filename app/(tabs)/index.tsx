@@ -83,9 +83,9 @@ function getRangeEnd(startDate: Date, rangeLength: number): Date {
 }
 
 /**
- * Format a week date range for display.
+ * Format a date range for display.
  */
-function formatWeekRange(startDate: string, endDate: string): string {
+function formatDateRange(startDate: string, endDate: string): string {
   const start = new Date(startDate + "T00:00:00");
   const end = new Date(endDate + "T00:00:00");
   const startStr = start.toLocaleDateString(undefined, {
@@ -100,9 +100,9 @@ function formatWeekRange(startDate: string, endDate: string): string {
 }
 
 /**
- * Format a date for week view section headers.
+ * Format a date for multi-day view section headers.
  */
-function formatWeekDayHeader(dateString: string): string {
+function formatMultiDayHeader(dateString: string): string {
   const date = new Date(dateString + "T00:00:00");
   return date.toLocaleDateString(undefined, {
     weekday: "short",
@@ -111,7 +111,7 @@ function formatWeekDayHeader(dateString: string): string {
   });
 }
 
-interface WeekDaySection {
+interface MultiDaySectionItem {
   key: string;
   title: string;
   dateString: string;
@@ -166,7 +166,7 @@ export default function AgendaScreen() {
     "list",
   );
   const [viewModeMenuVisible, setViewModeMenuVisible] = useState(false);
-  const [weekData, setWeekData] = useState<MultiDayAgendaResponse | null>(null);
+  const [multiDayData, setMultiDayData] = useState<MultiDayAgendaResponse | null>(null);
   const [habitStatusMap, setHabitStatusMap] = useState<
     Map<string, HabitStatus>
   >(new Map());
@@ -358,9 +358,9 @@ export default function AgendaScreen() {
     [groupByCategory, getCategoryColor, collapsedCategories],
   );
 
-  // Build sections for week view
-  const weekSections: WeekDaySection[] = useMemo(() => {
-    if (!weekData?.days) return [];
+  // Build sections for multi-day view
+  const multiDaySections: MultiDaySectionItem[] = useMemo(() => {
+    if (!multiDayData?.days) return [];
 
     const todayString = formatDateForApi(new Date());
 
@@ -398,7 +398,7 @@ export default function AgendaScreen() {
       });
     });
 
-    return Object.entries(weekData.days)
+    return Object.entries(multiDayData.days)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([dateString, entries]) => {
         const filtered = filterTodos(entries, filters);
@@ -429,7 +429,7 @@ export default function AgendaScreen() {
 
         return {
           key: dateString,
-          title: formatWeekDayHeader(dateString),
+          title: formatMultiDayHeader(dateString),
           dateString,
           isToday: dateString === todayString,
           data: displayEntries,
@@ -437,7 +437,7 @@ export default function AgendaScreen() {
       })
       .filter((section) => section.data.length > 0 || section.isToday);
   }, [
-    weekData,
+    multiDayData,
     filters,
     showCompleted,
     doneStates,
@@ -478,8 +478,8 @@ export default function AgendaScreen() {
         };
       });
 
-      // Update week agenda
-      setWeekData((prev) => {
+      // Update multi-day agenda
+      setMultiDayData((prev) => {
         if (!prev) return prev;
 
         const newDays = { ...prev.days };
@@ -555,7 +555,7 @@ export default function AgendaScreen() {
             api.getTodoStates().catch(() => null),
             api.getAllHabitStatuses(14, 14).catch(() => null),
           ]);
-        setWeekData(multiDayAgendaData);
+        setMultiDayData(multiDayAgendaData);
         if (statesData) {
           setTodoStates(statesData);
         }
@@ -728,8 +728,8 @@ export default function AgendaScreen() {
                 variant="titleMedium"
                 style={styles.dateText}
               >
-                {viewMode === "multiday" && weekData
-                  ? formatWeekRange(weekData.startDate, weekData.endDate)
+                {viewMode === "multiday" && multiDayData
+                  ? formatDateRange(multiDayData.startDate, multiDayData.endDate)
                   : agenda?.date
                     ? formatDateForDisplay(agenda.date, useCompactDate)
                     : ""}
@@ -815,16 +815,16 @@ export default function AgendaScreen() {
         <FilterBar testID="agendaFilterBar" />
 
         {viewMode === "multiday" ? (
-          weekSections.length === 0 ? (
+          multiDaySections.length === 0 ? (
             <View testID="agendaEmptyView" style={styles.centered}>
               <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
-                No items this week
+                No items in this range
               </Text>
             </View>
           ) : (
             <SectionList
-              testID="weekList"
-              sections={weekSections}
+              testID="multiDayList"
+              sections={multiDaySections}
               keyExtractor={(item) => getTodoKey(item)}
               renderItem={({ item, section }) => {
                 const isHabit =
@@ -837,7 +837,7 @@ export default function AgendaScreen() {
               renderSectionHeader={({ section }) => (
                 <View
                   style={[
-                    styles.weekSectionHeader,
+                    styles.multiDaySectionHeader,
                     {
                       backgroundColor: section.isToday
                         ? theme.colors.primaryContainer
@@ -1042,7 +1042,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#e0e0e0",
   },
-  weekSectionHeader: {
+  multiDaySectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
