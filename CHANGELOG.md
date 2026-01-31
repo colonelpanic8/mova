@@ -2,6 +2,10 @@
 
 ## [5.18.0]
 
+- feat: configurable Multi-day view (replaces fixed Week view)
+- feat: add Range Length setting (2-14 days) for multi-day view
+- feat: add Days Before Today setting for multi-day view start offset
+- feat: "Go to Today" resets to configured default range
 - feat: show habits on future dates in week view using prospective scheduling
 - feat: display habits as compact items in schedule view (matching regular items)
 - feat: move untimed entries to appear after timeline in schedule view

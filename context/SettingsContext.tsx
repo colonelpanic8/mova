@@ -115,23 +115,29 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await saveGroupByCategory(value);
   }, []);
 
-  const setMultiDayRangeLength = useCallback(async (value: number) => {
-    setMultiDayRangeLengthState(value);
-    await saveMultiDayRangeLength(value);
-    // Auto-cap pastDays if it exceeds new range
-    if (multiDayPastDays >= value) {
-      const cappedPastDays = Math.max(0, value - 1);
-      setMultiDayPastDaysState(cappedPastDays);
-      await saveMultiDayPastDays(cappedPastDays);
-    }
-  }, [multiDayPastDays]);
+  const setMultiDayRangeLength = useCallback(
+    async (value: number) => {
+      setMultiDayRangeLengthState(value);
+      await saveMultiDayRangeLength(value);
+      // Auto-cap pastDays if it exceeds new range
+      if (multiDayPastDays >= value) {
+        const cappedPastDays = Math.max(0, value - 1);
+        setMultiDayPastDaysState(cappedPastDays);
+        await saveMultiDayPastDays(cappedPastDays);
+      }
+    },
+    [multiDayPastDays],
+  );
 
-  const setMultiDayPastDays = useCallback(async (value: number) => {
-    // Ensure pastDays doesn't exceed rangeLength - 1
-    const cappedValue = Math.min(value, multiDayRangeLength - 1);
-    setMultiDayPastDaysState(cappedValue);
-    await saveMultiDayPastDays(cappedValue);
-  }, [multiDayRangeLength]);
+  const setMultiDayPastDays = useCallback(
+    async (value: number) => {
+      // Ensure pastDays doesn't exceed rangeLength - 1
+      const cappedValue = Math.min(value, multiDayRangeLength - 1);
+      setMultiDayPastDaysState(cappedValue);
+      await saveMultiDayPastDays(cappedValue);
+    },
+    [multiDayRangeLength],
+  );
 
   return (
     <SettingsContext.Provider
