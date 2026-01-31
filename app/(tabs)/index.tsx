@@ -142,7 +142,7 @@ export default function AgendaScreen() {
   const [showCompleted, setShowCompleted] = useState<boolean>(() =>
     isPastDay(new Date()),
   );
-  const [viewMode, setViewMode] = useState<"list" | "schedule" | "week">(
+  const [viewMode, setViewMode] = useState<"list" | "schedule" | "multiday">(
     "list",
   );
   const [viewModeMenuVisible, setViewModeMenuVisible] = useState(false);
@@ -221,8 +221,8 @@ export default function AgendaScreen() {
           return todayEntry.completed;
         }
       }
-      // Last fallback: if completionNeededToday is false, assume completed
-      return entry.habitSummary?.completionNeededToday === false;
+      // Cannot determine completion status, default to not completed
+      return false;
     },
     [habitStatusMap],
   );
@@ -248,19 +248,32 @@ export default function AgendaScreen() {
       const isHabit =
         entry.isWindowHabit || entry.properties?.STYLE === "habit";
       if (isHabit) {
-        return isHabitCompletedToday(entry);
+        // Check completion for the selected date, not just today
+        const selectedDateString = formatDateForApi(selectedDate);
+        return isHabitCompletedOnDate(entry, selectedDateString);
       }
       return entry.completedAt || doneStates.includes(entry.todo);
     },
-    [doneStates, isHabitCompletedToday],
+    [doneStates, isHabitCompletedOnDate, selectedDate],
   );
 
   // Filter out habits that don't need completion and weren't completed
+  // Note: For future dates, habits returned by API are scheduled for that date, so show them
   const shouldShowInAgenda = useCallback(
     (entry: Todo & { completedAt?: string | null }): boolean => {
       const isHabit =
         entry.isWindowHabit || entry.properties?.STYLE === "habit";
       if (isHabit) {
+        const todayString = formatDateForApi(new Date());
+        const selectedDateString = formatDateForApi(selectedDate);
+
+        // For future dates, show habits that are in the API response
+        // (they're returned because they're scheduled/deadline for that date)
+        if (selectedDateString > todayString) {
+          return true;
+        }
+
+        // For today, apply the usual logic
         const completedToday = isHabitCompletedToday(entry);
         const needsCompletion = habitNeedsCompletionToday(entry);
         // Show if: needs completion today OR was completed today
@@ -268,7 +281,7 @@ export default function AgendaScreen() {
       }
       return true; // Non-habits always show
     },
-    [isHabitCompletedToday, habitNeedsCompletionToday],
+    [isHabitCompletedToday, habitNeedsCompletionToday, selectedDate],
   );
 
   const visibleEntries = filteredEntries.filter(shouldShowInAgenda);
@@ -554,7 +567,7 @@ export default function AgendaScreen() {
 
   // Fetch data based on view mode
   useEffect(() => {
-    if (viewMode === "week") {
+    if (viewMode === "multiday") {
       fetchWeekAgenda(selectedDate, showCompleted).finally(() =>
         setLoading(false),
       );
@@ -569,7 +582,7 @@ export default function AgendaScreen() {
       isInitialMount.current = false;
       return;
     }
-    if (viewMode === "week") {
+    if (viewMode === "multiday") {
       fetchWeekAgenda(selectedDate, showCompleted);
     } else {
       fetchAgenda(selectedDate, showCompleted);
@@ -579,13 +592,13 @@ export default function AgendaScreen() {
 
   const goToPrevious = useCallback(() => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - (viewMode === "week" ? 7 : 1));
+    newDate.setDate(newDate.getDate() - (viewMode === "multiday" ? 7 : 1));
     setSelectedDate(newDate);
   }, [selectedDate, viewMode]);
 
   const goToNext = useCallback(() => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + (viewMode === "week" ? 7 : 1));
+    newDate.setDate(newDate.getDate() + (viewMode === "multiday" ? 7 : 1));
     setSelectedDate(newDate);
   }, [selectedDate, viewMode]);
 
@@ -596,7 +609,7 @@ export default function AgendaScreen() {
   const getViewModeIcon = () => {
     if (viewMode === "list") return "view-list";
     if (viewMode === "schedule") return "clock-outline";
-    return "calendar-week";
+    return "calendar-range";
   };
 
   const onDateChange = useCallback(
@@ -611,7 +624,7 @@ export default function AgendaScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (viewMode === "week") {
+    if (viewMode === "multiday") {
       await fetchWeekAgenda(selectedDate, showCompleted);
     } else {
       await fetchAgenda(selectedDate, showCompleted);
@@ -690,7 +703,7 @@ export default function AgendaScreen() {
                 variant="titleMedium"
                 style={styles.dateText}
               >
-                {viewMode === "week" && weekData
+                {viewMode === "multiday" && weekData
                   ? formatWeekRange(weekData.startDate, weekData.endDate)
                   : agenda?.date
                     ? formatDateForDisplay(agenda.date, useCompactDate)
@@ -737,13 +750,13 @@ export default function AgendaScreen() {
                 testID="viewModeSchedule"
               />
               <Menu.Item
-                leadingIcon="calendar-week"
+                leadingIcon="calendar-range"
                 onPress={() => {
-                  setViewMode("week");
+                  setViewMode("multiday");
                   setViewModeMenuVisible(false);
                 }}
-                title="Week"
-                testID="viewModeWeek"
+                title="Multi-day"
+                testID="viewModeMultiday"
               />
             </Menu>
             <IconButton
@@ -776,7 +789,7 @@ export default function AgendaScreen() {
 
         <FilterBar testID="agendaFilterBar" />
 
-        {viewMode === "week" ? (
+        {viewMode === "multiday" ? (
           weekSections.length === 0 ? (
             <View testID="agendaEmptyView" style={styles.centered}>
               <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
@@ -788,9 +801,12 @@ export default function AgendaScreen() {
               testID="weekList"
               sections={weekSections}
               keyExtractor={(item) => getTodoKey(item)}
-              renderItem={({ item }) => {
-                const completed =
-                  item.completedAt || doneStates.includes(item.todo);
+              renderItem={({ item, section }) => {
+                const isHabit =
+                  item.isWindowHabit || item.properties?.STYLE === "habit";
+                const completed = isHabit
+                  ? isHabitCompletedOnDate(item, section.dateString)
+                  : item.completedAt || doneStates.includes(item.todo);
                 return <TodoItem todo={item} opacity={completed ? 0.6 : 1} />;
               }}
               renderSectionHeader={({ section }) => (
