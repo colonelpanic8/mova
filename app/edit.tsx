@@ -9,6 +9,7 @@ import { useApi } from "@/context/ApiContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { Repeater, Todo, TodoUpdates } from "@/services/api";
 import {
   formStringToTimestamp,
@@ -33,6 +34,7 @@ export default function EditScreen() {
   const theme = useTheme();
   const router = useRouter();
   const api = useApi();
+  const keyboardHeight = useKeyboardHeight();
   const { triggerRefresh } = useMutation();
   const { quickScheduleIncludeTime } = useSettings();
   const { filterOptions } = useTemplates();
@@ -283,7 +285,10 @@ export default function EditScreen() {
       <KeyboardAwareContainer style={styles.scrollView}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 16 : 16 },
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           {/* Read-only category display */}
