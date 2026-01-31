@@ -47,6 +47,7 @@ import {
   ActivityIndicator,
   Icon,
   IconButton,
+  Menu,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -144,6 +145,7 @@ export default function AgendaScreen() {
   const [viewMode, setViewMode] = useState<"list" | "schedule" | "week">(
     "list",
   );
+  const [viewModeMenuVisible, setViewModeMenuVisible] = useState(false);
   const [weekData, setWeekData] = useState<MultiDayAgendaResponse | null>(null);
   const [habitStatusMap, setHabitStatusMap] = useState<
     Map<string, HabitStatus>
@@ -488,18 +490,10 @@ export default function AgendaScreen() {
     setSelectedDate(new Date());
   }, []);
 
-  const cycleViewMode = useCallback(() => {
-    setViewMode((prev) => {
-      if (prev === "list") return "schedule";
-      if (prev === "schedule") return "week";
-      return "list";
-    });
-  }, []);
-
   const getViewModeIcon = () => {
-    if (viewMode === "list") return "clock-outline";
-    if (viewMode === "schedule") return "calendar-week";
-    return "view-list";
+    if (viewMode === "list") return "view-list";
+    if (viewMode === "schedule") return "clock-outline";
+    return "calendar-week";
   };
 
   const onDateChange = useCallback(
@@ -610,11 +604,45 @@ export default function AgendaScreen() {
               onPress={() => setShowCompleted(!showCompleted)}
               testID="agendaShowCompletedToggle"
             />
-            <IconButton
-              icon={getViewModeIcon()}
-              onPress={cycleViewMode}
-              testID="agendaViewModeToggle"
-            />
+            <Menu
+              visible={viewModeMenuVisible}
+              onDismiss={() => setViewModeMenuVisible(false)}
+              anchor={
+                <IconButton
+                  icon={getViewModeIcon()}
+                  onPress={() => setViewModeMenuVisible(true)}
+                  testID="agendaViewModeToggle"
+                />
+              }
+            >
+              <Menu.Item
+                leadingIcon="view-list"
+                onPress={() => {
+                  setViewMode("list");
+                  setViewModeMenuVisible(false);
+                }}
+                title="List"
+                testID="viewModeList"
+              />
+              <Menu.Item
+                leadingIcon="clock-outline"
+                onPress={() => {
+                  setViewMode("schedule");
+                  setViewModeMenuVisible(false);
+                }}
+                title="Schedule"
+                testID="viewModeSchedule"
+              />
+              <Menu.Item
+                leadingIcon="calendar-week"
+                onPress={() => {
+                  setViewMode("week");
+                  setViewModeMenuVisible(false);
+                }}
+                title="Week"
+                testID="viewModeWeek"
+              />
+            </Menu>
             <IconButton
               icon="refresh"
               onPress={onRefresh}
