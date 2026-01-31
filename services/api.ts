@@ -302,6 +302,17 @@ export interface CustomView {
   name: string;
 }
 
+export interface ExposedFunction {
+  id: string;
+  name: string;
+}
+
+export interface CallFunctionResponse {
+  status: string;
+  function?: string;
+  message?: string;
+}
+
 export interface CustomViewsResponse {
   views: CustomView[];
 }
@@ -344,6 +355,7 @@ export interface MetadataResponse {
   customViews: CustomViewsResponse | null;
   categoryTypes: CategoryTypesResponse | null;
   habitConfig: HabitConfig | null;
+  exposedFunctions: ExposedFunction[] | null;
   errors: string[];
 }
 
@@ -690,6 +702,13 @@ export class OrgAgendaApi {
     return this.request<AllHabitStatusesResponse>(
       `/all-habit-statuses${query ? `?${query}` : ""}`,
     );
+  }
+
+  async callFunction(functionId: string): Promise<CallFunctionResponse> {
+    return this.request<CallFunctionResponse>("/call-function", {
+      method: "POST",
+      body: JSON.stringify({ function: functionId }),
+    });
   }
 }
 
