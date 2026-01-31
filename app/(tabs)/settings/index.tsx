@@ -2,6 +2,7 @@ import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
+import { useMutation } from "@/context/MutationContext";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import { AgendaFilesResponse, VersionResponse } from "@/services/api";
 import {
@@ -54,7 +55,8 @@ export default function SettingsScreen() {
   } = useSettings();
 
   const multiDayFutureDays = multiDayRangeLength - multiDayPastDays - 1;
-  const { templates, todoStates } = useTemplates();
+  const { templates, todoStates, exposedFunctions } = useTemplates();
+  const { triggerRefresh } = useMutation();
   const theme = useTheme();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
@@ -72,6 +74,7 @@ export default function SettingsScreen() {
     useNotificationSync();
   const [templateMenuVisible, setTemplateMenuVisible] = useState(false);
   const [doneStateMenuVisible, setDoneStateMenuVisible] = useState(false);
+  const [callingFunction, setCallingFunction] = useState<string | null>(null);
 
   const activeServer = useMemo(
     () => savedServers.find((s) => s.id === activeServerId),
@@ -118,6 +121,23 @@ export default function SettingsScreen() {
       }
     },
     [activeServerId, updateServer],
+  );
+
+  const handleCallFunction = useCallback(
+    async (functionId: string) => {
+      if (!api) return;
+      setCallingFunction(functionId);
+      try {
+        await api.callFunction(functionId);
+        // Trigger refresh since the function may have modified data
+        triggerRefresh();
+      } catch (error) {
+        console.error("Failed to call function:", error);
+      } finally {
+        setCallingFunction(null);
+      }
+    },
+    [api, triggerRefresh],
   );
 
   // Mova version info from Expo Constants
@@ -397,6 +417,31 @@ export default function SettingsScreen() {
       </List.Section>
 
       <Divider />
+
+      {exposedFunctions && exposedFunctions.length > 0 && (
+        <>
+          <List.Section>
+            <List.Subheader>Server Functions</List.Subheader>
+            {exposedFunctions.map((func) => (
+              <List.Item
+                key={func.id}
+                title={func.name}
+                description={func.id}
+                left={(props) => <List.Icon {...props} icon="function" />}
+                onPress={() => handleCallFunction(func.id)}
+                right={() =>
+                  callingFunction === func.id ? (
+                    <ActivityIndicator size="small" />
+                  ) : (
+                    <IconButton icon="play" size={20} onPress={() => handleCallFunction(func.id)} />
+                  )
+                }
+              />
+            ))}
+          </List.Section>
+          <Divider />
+        </>
+      )}
 
       <List.Section>
         <List.Subheader>Multi-day View</List.Subheader>

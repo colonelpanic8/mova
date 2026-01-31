@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   CategoryType,
   CustomViewsResponse,
+  ExposedFunction,
   FilterOptionsResponse,
   HabitConfig,
   TemplatesResponse,
@@ -24,6 +25,7 @@ interface TemplatesContextType {
   todoStates: TodoStatesResponse | null;
   customViews: CustomViewsResponse | null;
   habitConfig: HabitConfig | null;
+  exposedFunctions: ExposedFunction[] | null;
   isLoading: boolean;
   error: string | null;
   reloadTemplates: () => Promise<void>;
@@ -45,6 +47,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     null,
   );
   const [habitConfig, setHabitConfig] = useState<HabitConfig | null>(null);
+  const [exposedFunctions, setExposedFunctions] = useState<ExposedFunction[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
@@ -73,6 +76,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       setCustomViews(metadata.customViews);
       setCategoryTypes(metadata.categoryTypes?.types ?? null);
       setHabitConfig(metadata.habitConfig);
+      setExposedFunctions(metadata.exposedFunctions ?? null);
 
       // Set error if templates failed (critical)
       if (!metadata.templates) {
@@ -138,6 +142,9 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         console.warn("Failed to fetch habit config:", habitConfigResult.reason);
         setHabitConfig({ status: "ok", enabled: false });
       }
+
+      // exposedFunctions not available in fallback mode (no individual endpoint)
+      setExposedFunctions(null);
     }
 
     setIsLoading(false);
@@ -154,6 +161,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       setTodoStates(null);
       setCustomViews(null);
       setHabitConfig(null);
+      setExposedFunctions(null);
     }
   }, [isAuthenticated, reloadTemplates]);
 
@@ -166,6 +174,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         todoStates,
         customViews,
         habitConfig,
+        exposedFunctions,
         isLoading,
         error,
         reloadTemplates,
