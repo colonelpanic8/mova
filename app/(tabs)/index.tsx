@@ -63,6 +63,26 @@ function getWeekStart(date: Date): Date {
 }
 
 /**
+ * Get the default range start date based on settings.
+ * Start = today - pastDays
+ */
+function getDefaultRangeStart(today: Date, pastDays: number): Date {
+  const result = new Date(today);
+  result.setDate(result.getDate() - pastDays);
+  return result;
+}
+
+/**
+ * Get the range end date based on start and length.
+ * End = start + rangeLength - 1
+ */
+function getRangeEnd(startDate: Date, rangeLength: number): Date {
+  const result = new Date(startDate);
+  result.setDate(result.getDate() + rangeLength - 1);
+  return result;
+}
+
+/**
  * Format a week date range for display.
  */
 function formatWeekRange(startDate: string, endDate: string): string {
@@ -157,7 +177,7 @@ export default function AgendaScreen() {
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
-  const { groupByCategory } = useSettings();
+  const { groupByCategory, multiDayRangeLength, multiDayPastDays } = useSettings();
   const { getCategoryColor } = useColorPalette();
   const isInitialMount = useRef(true);
   const { width } = useWindowDimensions();
@@ -519,22 +539,23 @@ export default function AgendaScreen() {
     [api],
   );
 
-  const fetchWeekAgenda = useCallback(
-    async (date: Date, includeCompleted: boolean) => {
+  const fetchMultiDayAgenda = useCallback(
+    async (startDate: Date, rangeLength: number, includeCompleted: boolean) => {
       if (!api) {
         return;
       }
 
       try {
-        const weekStart = getWeekStart(date);
-        const dateString = formatDateForApi(weekStart);
-        const [weekAgendaData, statesData, habitStatusesResponse] =
+        const startDateString = formatDateForApi(startDate);
+        const endDate = getRangeEnd(startDate, rangeLength);
+        const endDateString = formatDateForApi(endDate);
+        const [multiDayAgendaData, statesData, habitStatusesResponse] =
           await Promise.all([
-            api.getAgenda("week", dateString, true, includeCompleted),
+            api.getAgenda("week", startDateString, true, includeCompleted, endDateString),
             api.getTodoStates().catch(() => null),
             api.getAllHabitStatuses(14, 14).catch(() => null),
           ]);
-        setWeekData(weekAgendaData);
+        setWeekData(multiDayAgendaData);
         if (statesData) {
           setTodoStates(statesData);
         }
@@ -553,8 +574,8 @@ export default function AgendaScreen() {
         }
         setError(null);
       } catch (err) {
-        console.error("Failed to load week agenda:", err);
-        setError("Failed to load week agenda");
+        console.error("Failed to load multi-day agenda:", err);
+        setError("Failed to load multi-day agenda");
       }
     },
     [api],
@@ -568,13 +589,13 @@ export default function AgendaScreen() {
   // Fetch data based on view mode
   useEffect(() => {
     if (viewMode === "multiday") {
-      fetchWeekAgenda(selectedDate, showCompleted).finally(() =>
+      fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted).finally(() =>
         setLoading(false),
       );
     } else {
       fetchAgenda(selectedDate, showCompleted).finally(() => setLoading(false));
     }
-  }, [fetchAgenda, fetchWeekAgenda, selectedDate, showCompleted, viewMode]);
+  }, [fetchAgenda, fetchMultiDayAgenda, selectedDate, showCompleted, viewMode, multiDayRangeLength]);
 
   // Refetch when mutations happen elsewhere
   useEffect(() => {
@@ -583,7 +604,7 @@ export default function AgendaScreen() {
       return;
     }
     if (viewMode === "multiday") {
-      fetchWeekAgenda(selectedDate, showCompleted);
+      fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
     } else {
       fetchAgenda(selectedDate, showCompleted);
     }
@@ -592,19 +613,23 @@ export default function AgendaScreen() {
 
   const goToPrevious = useCallback(() => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - (viewMode === "multiday" ? 7 : 1));
+    newDate.setDate(newDate.getDate() - (viewMode === "multiday" ? multiDayRangeLength : 1));
     setSelectedDate(newDate);
-  }, [selectedDate, viewMode]);
+  }, [selectedDate, viewMode, multiDayRangeLength]);
 
   const goToNext = useCallback(() => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + (viewMode === "multiday" ? 7 : 1));
+    newDate.setDate(newDate.getDate() + (viewMode === "multiday" ? multiDayRangeLength : 1));
     setSelectedDate(newDate);
-  }, [selectedDate, viewMode]);
+  }, [selectedDate, viewMode, multiDayRangeLength]);
 
   const goToToday = useCallback(() => {
-    setSelectedDate(new Date());
-  }, []);
+    if (viewMode === "multiday") {
+      setSelectedDate(getDefaultRangeStart(new Date(), multiDayPastDays));
+    } else {
+      setSelectedDate(new Date());
+    }
+  }, [viewMode, multiDayPastDays]);
 
   const getViewModeIcon = () => {
     if (viewMode === "list") return "view-list";
@@ -625,12 +650,12 @@ export default function AgendaScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     if (viewMode === "multiday") {
-      await fetchWeekAgenda(selectedDate, showCompleted);
+      await fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
     } else {
       await fetchAgenda(selectedDate, showCompleted);
     }
     setRefreshing(false);
-  }, [fetchAgenda, fetchWeekAgenda, selectedDate, showCompleted, viewMode]);
+  }, [fetchAgenda, fetchMultiDayAgenda, selectedDate, showCompleted, viewMode, multiDayRangeLength]);
 
   if (loading) {
     return (
