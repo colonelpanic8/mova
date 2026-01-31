@@ -13,6 +13,7 @@
 ### Task 1: Add Settings Storage Functions
 
 **Files:**
+
 - Modify: `services/settings.ts:1-71`
 
 **Step 1: Add storage key constants**
@@ -66,6 +67,7 @@ git commit -m "feat: add storage functions for multi-day view settings"
 ### Task 2: Add Settings to Context
 
 **Files:**
+
 - Modify: `context/SettingsContext.tsx:1-130`
 
 **Step 1: Add imports**
@@ -120,8 +122,8 @@ interface SettingsContextType {
 Add after `groupByCategory` state (line 49):
 
 ```typescript
-  const [multiDayRangeLength, setMultiDayRangeLengthState] = useState(7);
-  const [multiDayPastDays, setMultiDayPastDaysState] = useState(1);
+const [multiDayRangeLength, setMultiDayRangeLengthState] = useState(7);
+const [multiDayPastDays, setMultiDayPastDaysState] = useState(1);
 ```
 
 **Step 4: Update useEffect to load settings**
@@ -129,36 +131,36 @@ Add after `groupByCategory` state (line 49):
 Update the `Promise.all` in useEffect (lines 53-75) to include new settings:
 
 ```typescript
-  useEffect(() => {
-    Promise.all([
-      getQuickScheduleIncludeTime(),
-      getShowHabitsInAgenda(),
-      getDefaultDoneState(),
-      getUseClientCompletionTime(),
-      getGroupByCategory(),
-      getMultiDayRangeLength(),
-      getMultiDayPastDays(),
-    ]).then(
-      ([
-        quickScheduleValue,
-        showHabitsValue,
-        defaultDoneValue,
-        useClientCompletionTimeValue,
-        groupByCategoryValue,
-        multiDayRangeLengthValue,
-        multiDayPastDaysValue,
-      ]) => {
-        setQuickScheduleIncludeTimeState(quickScheduleValue);
-        setShowHabitsInAgendaState(showHabitsValue);
-        setDefaultDoneStateState(defaultDoneValue);
-        setUseClientCompletionTimeState(useClientCompletionTimeValue);
-        setGroupByCategoryState(groupByCategoryValue);
-        setMultiDayRangeLengthState(multiDayRangeLengthValue);
-        setMultiDayPastDaysState(multiDayPastDaysValue);
-        setIsLoading(false);
-      },
-    );
-  }, []);
+useEffect(() => {
+  Promise.all([
+    getQuickScheduleIncludeTime(),
+    getShowHabitsInAgenda(),
+    getDefaultDoneState(),
+    getUseClientCompletionTime(),
+    getGroupByCategory(),
+    getMultiDayRangeLength(),
+    getMultiDayPastDays(),
+  ]).then(
+    ([
+      quickScheduleValue,
+      showHabitsValue,
+      defaultDoneValue,
+      useClientCompletionTimeValue,
+      groupByCategoryValue,
+      multiDayRangeLengthValue,
+      multiDayPastDaysValue,
+    ]) => {
+      setQuickScheduleIncludeTimeState(quickScheduleValue);
+      setShowHabitsInAgendaState(showHabitsValue);
+      setDefaultDoneStateState(defaultDoneValue);
+      setUseClientCompletionTimeState(useClientCompletionTimeValue);
+      setGroupByCategoryState(groupByCategoryValue);
+      setMultiDayRangeLengthState(multiDayRangeLengthValue);
+      setMultiDayPastDaysState(multiDayPastDaysValue);
+      setIsLoading(false);
+    },
+  );
+}, []);
 ```
 
 **Step 5: Add setter callbacks**
@@ -166,7 +168,8 @@ Update the `Promise.all` in useEffect (lines 53-75) to include new settings:
 Add after `setGroupByCategory` callback (after line 100):
 
 ```typescript
-  const setMultiDayRangeLength = useCallback(async (value: number) => {
+const setMultiDayRangeLength = useCallback(
+  async (value: number) => {
     setMultiDayRangeLengthState(value);
     await saveMultiDayRangeLength(value);
     // Auto-cap pastDays if it exceeds new range
@@ -175,14 +178,19 @@ Add after `setGroupByCategory` callback (after line 100):
       setMultiDayPastDaysState(cappedPastDays);
       await saveMultiDayPastDays(cappedPastDays);
     }
-  }, [multiDayPastDays]);
+  },
+  [multiDayPastDays],
+);
 
-  const setMultiDayPastDays = useCallback(async (value: number) => {
+const setMultiDayPastDays = useCallback(
+  async (value: number) => {
     // Ensure pastDays doesn't exceed rangeLength - 1
     const cappedValue = Math.min(value, multiDayRangeLength - 1);
     setMultiDayPastDaysState(cappedValue);
     await saveMultiDayPastDays(cappedValue);
-  }, [multiDayRangeLength]);
+  },
+  [multiDayRangeLength],
+);
 ```
 
 **Step 6: Add to Provider value**
@@ -221,6 +229,7 @@ git commit -m "feat: add multi-day view settings to context"
 ### Task 3: Add Settings UI
 
 **Files:**
+
 - Modify: `app/(tabs)/settings/index.tsx:26-389`
 
 **Step 1: Destructure new settings**
@@ -228,22 +237,22 @@ git commit -m "feat: add multi-day view settings to context"
 Update the `useSettings()` destructure (lines 38-48) to include new settings:
 
 ```typescript
-  const {
-    quickScheduleIncludeTime,
-    setQuickScheduleIncludeTime,
-    showHabitsInAgenda,
-    setShowHabitsInAgenda,
-    defaultDoneState,
-    setDefaultDoneState,
-    useClientCompletionTime,
-    setUseClientCompletionTime,
-    groupByCategory,
-    setGroupByCategory,
-    multiDayRangeLength,
-    setMultiDayRangeLength,
-    multiDayPastDays,
-    setMultiDayPastDays,
-  } = useSettings();
+const {
+  quickScheduleIncludeTime,
+  setQuickScheduleIncludeTime,
+  showHabitsInAgenda,
+  setShowHabitsInAgenda,
+  defaultDoneState,
+  setDefaultDoneState,
+  useClientCompletionTime,
+  setUseClientCompletionTime,
+  groupByCategory,
+  setGroupByCategory,
+  multiDayRangeLength,
+  setMultiDayRangeLength,
+  multiDayPastDays,
+  setMultiDayPastDays,
+} = useSettings();
 ```
 
 **Step 2: Add computed future days**
@@ -251,7 +260,7 @@ Update the `useSettings()` destructure (lines 38-48) to include new settings:
 Add after the `useSettings` destructure:
 
 ```typescript
-  const multiDayFutureDays = multiDayRangeLength - multiDayPastDays - 1;
+const multiDayFutureDays = multiDayRangeLength - multiDayPastDays - 1;
 ```
 
 **Step 3: Add Multi-day View settings section**
@@ -370,6 +379,7 @@ git commit -m "feat: add multi-day view settings UI with steppers"
 ### Task 4: Update Agenda Screen - View Mode Rename
 
 **Files:**
+
 - Modify: `app/(tabs)/index.tsx`
 
 **Step 1: Update viewMode type**
@@ -377,9 +387,9 @@ git commit -m "feat: add multi-day view settings UI with steppers"
 Change line 145 from `"week"` to `"multiday"`:
 
 ```typescript
-  const [viewMode, setViewMode] = useState<"list" | "schedule" | "multiday">(
-    "list",
-  );
+const [viewMode, setViewMode] = useState<"list" | "schedule" | "multiday">(
+  "list",
+);
 ```
 
 **Step 2: Update getViewModeIcon**
@@ -387,11 +397,11 @@ Change line 145 from `"week"` to `"multiday"`:
 Update the function (lines 596-600):
 
 ```typescript
-  const getViewModeIcon = () => {
-    if (viewMode === "list") return "view-list";
-    if (viewMode === "schedule") return "clock-outline";
-    return "calendar-range";
-  };
+const getViewModeIcon = () => {
+  if (viewMode === "list") return "view-list";
+  if (viewMode === "schedule") return "clock-outline";
+  return "calendar-range";
+};
 ```
 
 **Step 3: Update menu item**
@@ -413,6 +423,7 @@ Update the Week menu item (lines 739-747) to Multi-day:
 **Step 4: Update all "week" references in viewMode checks**
 
 Replace all instances of `viewMode === "week"` with `viewMode === "multiday"` throughout the file. There are approximately 6 occurrences:
+
 - Line 557: `if (viewMode === "week")`
 - Line 572: `if (viewMode === "week")`
 - Line 582: `viewMode === "week" ? 7 : 1`
@@ -433,6 +444,7 @@ git commit -m "refactor: rename week view to multiday view"
 ### Task 5: Update Agenda Screen - Date Calculations
 
 **Files:**
+
 - Modify: `app/(tabs)/index.tsx`
 
 **Step 1: Import useSettings**
@@ -448,7 +460,8 @@ import { useSettings } from "@/context/SettingsContext";
 Add after the existing `useSettings` destructure (around line 160):
 
 ```typescript
-  const { groupByCategory, multiDayRangeLength, multiDayPastDays } = useSettings();
+const { groupByCategory, multiDayRangeLength, multiDayPastDays } =
+  useSettings();
 ```
 
 (Update the existing line that only destructures `groupByCategory`)
@@ -484,46 +497,52 @@ function getRangeEnd(startDate: Date, rangeLength: number): Date {
 Update the `fetchWeekAgenda` function (lines 509-548) to use settings:
 
 ```typescript
-  const fetchMultiDayAgenda = useCallback(
-    async (startDate: Date, rangeLength: number, includeCompleted: boolean) => {
-      if (!api) {
-        return;
-      }
+const fetchMultiDayAgenda = useCallback(
+  async (startDate: Date, rangeLength: number, includeCompleted: boolean) => {
+    if (!api) {
+      return;
+    }
 
-      try {
-        const startDateString = formatDateForApi(startDate);
-        const endDate = getRangeEnd(startDate, rangeLength);
-        const endDateString = formatDateForApi(endDate);
-        const [multiDayAgendaData, statesData, habitStatusesResponse] =
-          await Promise.all([
-            api.getAgenda("custom", startDateString, true, includeCompleted, endDateString),
-            api.getTodoStates().catch(() => null),
-            api.getAllHabitStatuses(14, 14).catch(() => null),
-          ]);
-        setWeekData(multiDayAgendaData);
-        if (statesData) {
-          setTodoStates(statesData);
-        }
-        if (
-          habitStatusesResponse?.status === "ok" &&
-          habitStatusesResponse.habits
-        ) {
-          const statusMap = new Map<string, HabitStatus>();
-          for (const status of habitStatusesResponse.habits) {
-            if (status.id) {
-              statusMap.set(status.id, status);
-            }
-          }
-          setHabitStatusMap(statusMap);
-        }
-        setError(null);
-      } catch (err) {
-        console.error("Failed to load multi-day agenda:", err);
-        setError("Failed to load multi-day agenda");
+    try {
+      const startDateString = formatDateForApi(startDate);
+      const endDate = getRangeEnd(startDate, rangeLength);
+      const endDateString = formatDateForApi(endDate);
+      const [multiDayAgendaData, statesData, habitStatusesResponse] =
+        await Promise.all([
+          api.getAgenda(
+            "custom",
+            startDateString,
+            true,
+            includeCompleted,
+            endDateString,
+          ),
+          api.getTodoStates().catch(() => null),
+          api.getAllHabitStatuses(14, 14).catch(() => null),
+        ]);
+      setWeekData(multiDayAgendaData);
+      if (statesData) {
+        setTodoStates(statesData);
       }
-    },
-    [api],
-  );
+      if (
+        habitStatusesResponse?.status === "ok" &&
+        habitStatusesResponse.habits
+      ) {
+        const statusMap = new Map<string, HabitStatus>();
+        for (const status of habitStatusesResponse.habits) {
+          if (status.id) {
+            statusMap.set(status.id, status);
+          }
+        }
+        setHabitStatusMap(statusMap);
+      }
+      setError(null);
+    } catch (err) {
+      console.error("Failed to load multi-day agenda:", err);
+      setError("Failed to load multi-day agenda");
+    }
+  },
+  [api],
+);
 ```
 
 **Step 5: Update navigation to use rangeLength**
@@ -531,21 +550,25 @@ Update the `fetchWeekAgenda` function (lines 509-548) to use settings:
 Update `goToPrevious` (lines 580-584):
 
 ```typescript
-  const goToPrevious = useCallback(() => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - (viewMode === "multiday" ? multiDayRangeLength : 1));
-    setSelectedDate(newDate);
-  }, [selectedDate, viewMode, multiDayRangeLength]);
+const goToPrevious = useCallback(() => {
+  const newDate = new Date(selectedDate);
+  newDate.setDate(
+    newDate.getDate() - (viewMode === "multiday" ? multiDayRangeLength : 1),
+  );
+  setSelectedDate(newDate);
+}, [selectedDate, viewMode, multiDayRangeLength]);
 ```
 
 Update `goToNext` (lines 586-590):
 
 ```typescript
-  const goToNext = useCallback(() => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + (viewMode === "multiday" ? multiDayRangeLength : 1));
-    setSelectedDate(newDate);
-  }, [selectedDate, viewMode, multiDayRangeLength]);
+const goToNext = useCallback(() => {
+  const newDate = new Date(selectedDate);
+  newDate.setDate(
+    newDate.getDate() + (viewMode === "multiday" ? multiDayRangeLength : 1),
+  );
+  setSelectedDate(newDate);
+}, [selectedDate, viewMode, multiDayRangeLength]);
 ```
 
 **Step 6: Update goToToday to use default range**
@@ -553,13 +576,13 @@ Update `goToNext` (lines 586-590):
 Update `goToToday` (lines 592-594):
 
 ```typescript
-  const goToToday = useCallback(() => {
-    if (viewMode === "multiday") {
-      setSelectedDate(getDefaultRangeStart(new Date(), multiDayPastDays));
-    } else {
-      setSelectedDate(new Date());
-    }
-  }, [viewMode, multiDayPastDays]);
+const goToToday = useCallback(() => {
+  if (viewMode === "multiday") {
+    setSelectedDate(getDefaultRangeStart(new Date(), multiDayPastDays));
+  } else {
+    setSelectedDate(new Date());
+  }
+}, [viewMode, multiDayPastDays]);
 ```
 
 **Step 7: Update useEffect calls to use new function**
@@ -567,45 +590,61 @@ Update `goToToday` (lines 592-594):
 Update the data fetching useEffect (lines 556-564):
 
 ```typescript
-  useEffect(() => {
-    if (viewMode === "multiday") {
-      fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted).finally(() =>
-        setLoading(false),
-      );
-    } else {
-      fetchAgenda(selectedDate, showCompleted).finally(() => setLoading(false));
-    }
-  }, [fetchAgenda, fetchMultiDayAgenda, selectedDate, showCompleted, viewMode, multiDayRangeLength]);
+useEffect(() => {
+  if (viewMode === "multiday") {
+    fetchMultiDayAgenda(
+      selectedDate,
+      multiDayRangeLength,
+      showCompleted,
+    ).finally(() => setLoading(false));
+  } else {
+    fetchAgenda(selectedDate, showCompleted).finally(() => setLoading(false));
+  }
+}, [
+  fetchAgenda,
+  fetchMultiDayAgenda,
+  selectedDate,
+  showCompleted,
+  viewMode,
+  multiDayRangeLength,
+]);
 ```
 
 Update the mutation refetch useEffect (lines 567-578):
 
 ```typescript
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    if (viewMode === "multiday") {
-      fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
-    } else {
-      fetchAgenda(selectedDate, showCompleted);
-    }
-  }, [mutationVersion]);
+useEffect(() => {
+  if (isInitialMount.current) {
+    isInitialMount.current = false;
+    return;
+  }
+  if (viewMode === "multiday") {
+    fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
+  } else {
+    fetchAgenda(selectedDate, showCompleted);
+  }
+}, [mutationVersion]);
 ```
 
 Update the refresh handler (lines 612-620):
 
 ```typescript
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    if (viewMode === "multiday") {
-      await fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
-    } else {
-      await fetchAgenda(selectedDate, showCompleted);
-    }
-    setRefreshing(false);
-  }, [fetchAgenda, fetchMultiDayAgenda, selectedDate, showCompleted, viewMode, multiDayRangeLength]);
+const onRefresh = useCallback(async () => {
+  setRefreshing(true);
+  if (viewMode === "multiday") {
+    await fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
+  } else {
+    await fetchAgenda(selectedDate, showCompleted);
+  }
+  setRefreshing(false);
+}, [
+  fetchAgenda,
+  fetchMultiDayAgenda,
+  selectedDate,
+  showCompleted,
+  viewMode,
+  multiDayRangeLength,
+]);
 ```
 
 **Step 8: Commit**
@@ -620,6 +659,7 @@ git commit -m "feat: implement configurable multi-day range calculations"
 ### Task 6: Update Date Picker Behavior
 
 **Files:**
+
 - Modify: `app/(tabs)/index.tsx`
 
 **Step 1: Update onDateChange to set start date directly**
@@ -627,17 +667,14 @@ git commit -m "feat: implement configurable multi-day range calculations"
 Update the `onDateChange` callback (lines 602-610):
 
 ```typescript
-  const onDateChange = useCallback(
-    (event: DateTimePickerEvent, date?: Date) => {
-      setShowDatePicker(Platform.OS === "ios");
-      if (date) {
-        // In multiday mode, selected date becomes the range start
-        // In other modes, it's just the selected date
-        setSelectedDate(date);
-      }
-    },
-    [],
-  );
+const onDateChange = useCallback((event: DateTimePickerEvent, date?: Date) => {
+  setShowDatePicker(Platform.OS === "ios");
+  if (date) {
+    // In multiday mode, selected date becomes the range start
+    // In other modes, it's just the selected date
+    setSelectedDate(date);
+  }
+}, []);
 ```
 
 (This is actually unchanged - the logic is already correct since we're setting `selectedDate` directly, and the fetch functions now use it as the start date)
@@ -658,6 +695,7 @@ git commit -m "feat: date picker selects range start in multiday mode"
 ### Task 7: Rename weekSections and Related Variables
 
 **Files:**
+
 - Modify: `app/(tabs)/index.tsx`
 
 **Step 1: Rename weekSections to multiDaySections**
@@ -747,9 +785,9 @@ git commit -m "feat: complete multi-day view implementation
 
 ## Summary of Files Changed
 
-| File | Changes |
-|------|---------|
-| `services/settings.ts` | Add storage functions for new settings |
-| `context/SettingsContext.tsx` | Add settings to context with validation |
-| `app/(tabs)/settings/index.tsx` | Add Multi-day View settings section with steppers |
-| `app/(tabs)/index.tsx` | Rename week→multiday, implement configurable range |
+| File                            | Changes                                            |
+| ------------------------------- | -------------------------------------------------- |
+| `services/settings.ts`          | Add storage functions for new settings             |
+| `context/SettingsContext.tsx`   | Add settings to context with validation            |
+| `app/(tabs)/settings/index.tsx` | Add Multi-day View settings section with steppers  |
+| `app/(tabs)/index.tsx`          | Rename week→multiday, implement configurable range |

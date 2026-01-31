@@ -59,10 +59,18 @@ export function KeyboardAwareContainer({
     );
   }
 
-  // Native platforms (iOS/Android)
+  // Android: The AndroidManifest.xml has windowSoftInputMode="adjustResize"
+  // which means the system automatically resizes the window when the keyboard
+  // appears. Using KeyboardAvoidingView on top of this causes conflicts and
+  // prevents proper scrolling. Just use a plain View and let the system handle it.
+  if (Platform.OS === "android") {
+    return <View style={[styles.container, style]}>{children}</View>;
+  }
+
+  // iOS: Use KeyboardAvoidingView with padding behavior
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       style={[styles.container, style]}
       keyboardVerticalOffset={keyboardVerticalOffset}
     >

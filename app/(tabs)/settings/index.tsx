@@ -446,7 +446,7 @@ export default function SettingsScreen() {
                 size={20}
                 onPress={() =>
                   setMultiDayPastDays(
-                    Math.min(multiDayRangeLength - 1, multiDayPastDays + 1)
+                    Math.min(multiDayRangeLength - 1, multiDayPastDays + 1),
                   )
                 }
                 disabled={multiDayPastDays >= multiDayRangeLength - 1}
