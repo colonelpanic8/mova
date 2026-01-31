@@ -167,6 +167,34 @@ export default function AgendaScreen() {
   const filteredEntries = agenda ? filterTodos(agenda.entries, filters) : [];
   const doneStates = useMemo(() => todoStates?.done ?? [], [todoStates?.done]);
 
+  // Check if a habit was completed on a specific date using habit status graph
+  const isHabitCompletedOnDate = useCallback(
+    (entry: Todo, dateString: string): boolean => {
+      // First check the habit status map for the graph data
+      if (entry.id) {
+        const habitStatus = habitStatusMap.get(entry.id);
+        if (habitStatus?.graph?.length) {
+          const dateEntry = habitStatus.graph.find((e) => e.date === dateString);
+          if (dateEntry) {
+            return dateEntry.completionCount > 0;
+          }
+        }
+      }
+      // Fall back to entry's miniGraph if available
+      const miniGraph = entry.habitSummary?.miniGraph;
+      if (miniGraph?.length) {
+        const dateEntry = miniGraph.find(
+          (e: MiniGraphEntry) => e.date === dateString,
+        );
+        if (dateEntry) {
+          return dateEntry.completed;
+        }
+      }
+      return false;
+    },
+    [habitStatusMap],
+  );
+
   // Check if a habit was completed today using habit status graph
   const isHabitCompletedToday = useCallback(
     (entry: Todo): boolean => {
@@ -309,9 +337,15 @@ export default function AgendaScreen() {
         const filtered = filterTodos(entries, filters);
         const displayEntries = showCompleted
           ? filtered
-          : filtered.filter(
-              (e) => !e.completedAt && !doneStates.includes(e.todo),
-            );
+          : filtered.filter((e) => {
+              const isHabit =
+                e.isWindowHabit || e.properties?.STYLE === "habit";
+              if (isHabit) {
+                // For habits, check completion using miniGraph/habitStatusMap
+                return !isHabitCompletedOnDate(e, dateString);
+              }
+              return !e.completedAt && !doneStates.includes(e.todo);
+            });
 
         return {
           key: dateString,
@@ -322,7 +356,7 @@ export default function AgendaScreen() {
         };
       })
       .filter((section) => section.data.length > 0 || section.isToday);
-  }, [weekData, filters, showCompleted, doneStates]);
+  }, [weekData, filters, showCompleted, doneStates, isHabitCompletedOnDate]);
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
