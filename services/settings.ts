@@ -5,6 +5,8 @@ const SHOW_HABITS_IN_AGENDA_KEY = "show_habits_in_agenda";
 const DEFAULT_DONE_STATE_KEY = "default_done_state";
 const USE_CLIENT_COMPLETION_TIME_KEY = "use_client_completion_time";
 const GROUP_BY_CATEGORY_KEY = "mova_group_by_category";
+const MULTIDAY_RANGE_LENGTH_KEY = "mova_multiday_range_length";
+const MULTIDAY_PAST_DAYS_KEY = "mova_multiday_past_days";
 
 export async function getQuickScheduleIncludeTime(): Promise<boolean> {
   const value = await AsyncStorage.getItem(QUICK_SCHEDULE_INCLUDE_TIME_KEY);
@@ -67,4 +69,22 @@ export async function getGroupByCategory(): Promise<boolean> {
 
 export async function setGroupByCategory(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(GROUP_BY_CATEGORY_KEY, enabled ? "true" : "false");
+}
+
+export async function getMultiDayRangeLength(): Promise<number> {
+  const value = await AsyncStorage.getItem(MULTIDAY_RANGE_LENGTH_KEY);
+  return value ? parseInt(value, 10) : 7; // Default: 7 days
+}
+
+export async function setMultiDayRangeLength(days: number): Promise<void> {
+  await AsyncStorage.setItem(MULTIDAY_RANGE_LENGTH_KEY, days.toString());
+}
+
+export async function getMultiDayPastDays(): Promise<number> {
+  const value = await AsyncStorage.getItem(MULTIDAY_PAST_DAYS_KEY);
+  return value ? parseInt(value, 10) : 1; // Default: 1 day of past
+}
+
+export async function setMultiDayPastDays(days: number): Promise<void> {
+  await AsyncStorage.setItem(MULTIDAY_PAST_DAYS_KEY, days.toString());
 }
