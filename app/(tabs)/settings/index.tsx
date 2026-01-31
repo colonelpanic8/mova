@@ -17,9 +17,11 @@ import {
   ActivityIndicator,
   Button,
   Divider,
+  IconButton,
   List,
   Menu,
   Switch,
+  Text,
   useTheme,
 } from "react-native-paper";
 
@@ -45,7 +47,13 @@ export default function SettingsScreen() {
     setUseClientCompletionTime,
     groupByCategory,
     setGroupByCategory,
+    multiDayRangeLength,
+    setMultiDayRangeLength,
+    multiDayPastDays,
+    setMultiDayPastDays,
   } = useSettings();
+
+  const multiDayFutureDays = multiDayRangeLength - multiDayPastDays - 1;
   const { templates, todoStates } = useTemplates();
   const theme = useTheme();
   const router = useRouter();
@@ -390,6 +398,71 @@ export default function SettingsScreen() {
 
       <Divider />
 
+      <List.Section>
+        <List.Subheader>Multi-day View</List.Subheader>
+        <List.Item
+          title="Range Length"
+          description={`${multiDayRangeLength} days total`}
+          left={(props) => <List.Icon {...props} icon="calendar-range" />}
+          right={() => (
+            <View style={styles.stepperContainer}>
+              <IconButton
+                icon="minus"
+                size={20}
+                onPress={() =>
+                  setMultiDayRangeLength(Math.max(2, multiDayRangeLength - 1))
+                }
+                disabled={multiDayRangeLength <= 2}
+              />
+              <Text style={styles.stepperValue}>{multiDayRangeLength}</Text>
+              <IconButton
+                icon="plus"
+                size={20}
+                onPress={() =>
+                  setMultiDayRangeLength(Math.min(14, multiDayRangeLength + 1))
+                }
+                disabled={multiDayRangeLength >= 14}
+              />
+            </View>
+          )}
+        />
+        <List.Item
+          title="Days Before Today"
+          description={`Show ${multiDayPastDays} day${multiDayPastDays !== 1 ? "s" : ""} of past`}
+          left={(props) => <List.Icon {...props} icon="history" />}
+          right={() => (
+            <View style={styles.stepperContainer}>
+              <IconButton
+                icon="minus"
+                size={20}
+                onPress={() =>
+                  setMultiDayPastDays(Math.max(0, multiDayPastDays - 1))
+                }
+                disabled={multiDayPastDays <= 0}
+              />
+              <Text style={styles.stepperValue}>{multiDayPastDays}</Text>
+              <IconButton
+                icon="plus"
+                size={20}
+                onPress={() =>
+                  setMultiDayPastDays(
+                    Math.min(multiDayRangeLength - 1, multiDayPastDays + 1)
+                  )
+                }
+                disabled={multiDayPastDays >= multiDayRangeLength - 1}
+              />
+            </View>
+          )}
+        />
+        <List.Item
+          title="Days After Today"
+          description={`${multiDayFutureDays} day${multiDayFutureDays !== 1 ? "s" : ""} (computed)`}
+          left={(props) => <List.Icon {...props} icon="calendar-arrow-right" />}
+        />
+      </List.Section>
+
+      <Divider />
+
       {agendaFiles && agendaFiles.files.length > 0 && (
         <>
           <List.Section>
@@ -465,5 +538,14 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     borderColor: "transparent",
+  },
+  stepperContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  stepperValue: {
+    minWidth: 24,
+    textAlign: "center",
+    fontSize: 16,
   },
 });
