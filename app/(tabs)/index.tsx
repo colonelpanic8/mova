@@ -155,7 +155,8 @@ export default function AgendaScreen() {
     "list",
   );
   const [viewModeMenuVisible, setViewModeMenuVisible] = useState(false);
-  const [multiDayData, setMultiDayData] = useState<MultiDayAgendaResponse | null>(null);
+  const [multiDayData, setMultiDayData] =
+    useState<MultiDayAgendaResponse | null>(null);
   const [habitStatusMap, setHabitStatusMap] = useState<
     Map<string, HabitStatus>
   >(new Map());
@@ -166,7 +167,8 @@ export default function AgendaScreen() {
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
-  const { groupByCategory, multiDayRangeLength, multiDayPastDays } = useSettings();
+  const { groupByCategory, multiDayRangeLength, multiDayPastDays } =
+    useSettings();
   const { getCategoryColor } = useColorPalette();
   const isInitialMount = useRef(true);
   const { width } = useWindowDimensions();
@@ -183,7 +185,9 @@ export default function AgendaScreen() {
       if (entry.id) {
         const habitStatus = habitStatusMap.get(entry.id);
         if (habitStatus?.graph?.length) {
-          const dateEntry = habitStatus.graph.find((e) => e.date === dateString);
+          const dateEntry = habitStatus.graph.find(
+            (e) => e.date === dateString,
+          );
           if (dateEntry) {
             return dateEntry.completionCount > 0;
           }
@@ -496,12 +500,28 @@ export default function AgendaScreen() {
         const dateString = formatDateForApi(date);
         const todayString = formatDateForApi(new Date());
         const includeOverdue = dateString <= todayString;
-        const [agendaData, statesData, habitStatusesResponse] =
+        // Use multi-day endpoint even for single day to get prospective habit scheduling
+        // The multi-day endpoint uses org-window-habit-get-future-required-intervals
+        // which projects future required completion dates for habits
+        const [multiDayData, statesData, habitStatusesResponse] =
           await Promise.all([
-            api.getAgenda("day", dateString, includeOverdue, includeCompleted),
+            api.getAgenda(
+              "week",
+              dateString,
+              includeOverdue,
+              includeCompleted,
+              dateString,
+            ),
             api.getTodoStates().catch(() => null),
             api.getAllHabitStatuses(14, 14).catch(() => null),
           ]);
+        // Convert multi-day response to single-day format
+        const entries = multiDayData.days[dateString] || [];
+        const agendaData: SingleDayAgendaResponse = {
+          span: "day",
+          date: dateString,
+          entries,
+        };
         setAgenda(agendaData);
         if (statesData) {
           setTodoStates(statesData);
@@ -540,7 +560,13 @@ export default function AgendaScreen() {
         const endDateString = formatDateForApi(endDate);
         const [multiDayAgendaData, statesData, habitStatusesResponse] =
           await Promise.all([
-            api.getAgenda("week", startDateString, true, includeCompleted, endDateString),
+            api.getAgenda(
+              "week",
+              startDateString,
+              true,
+              includeCompleted,
+              endDateString,
+            ),
             api.getTodoStates().catch(() => null),
             api.getAllHabitStatuses(14, 14).catch(() => null),
           ]);
@@ -578,13 +604,22 @@ export default function AgendaScreen() {
   // Fetch data based on view mode
   useEffect(() => {
     if (viewMode === "multiday") {
-      fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted).finally(() =>
-        setLoading(false),
-      );
+      fetchMultiDayAgenda(
+        selectedDate,
+        multiDayRangeLength,
+        showCompleted,
+      ).finally(() => setLoading(false));
     } else {
       fetchAgenda(selectedDate, showCompleted).finally(() => setLoading(false));
     }
-  }, [fetchAgenda, fetchMultiDayAgenda, selectedDate, showCompleted, viewMode, multiDayRangeLength]);
+  }, [
+    fetchAgenda,
+    fetchMultiDayAgenda,
+    selectedDate,
+    showCompleted,
+    viewMode,
+    multiDayRangeLength,
+  ]);
 
   // Refetch when mutations happen elsewhere
   useEffect(() => {
@@ -602,13 +637,17 @@ export default function AgendaScreen() {
 
   const goToPrevious = useCallback(() => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - (viewMode === "multiday" ? multiDayRangeLength : 1));
+    newDate.setDate(
+      newDate.getDate() - (viewMode === "multiday" ? multiDayRangeLength : 1),
+    );
     setSelectedDate(newDate);
   }, [selectedDate, viewMode, multiDayRangeLength]);
 
   const goToNext = useCallback(() => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + (viewMode === "multiday" ? multiDayRangeLength : 1));
+    newDate.setDate(
+      newDate.getDate() + (viewMode === "multiday" ? multiDayRangeLength : 1),
+    );
     setSelectedDate(newDate);
   }, [selectedDate, viewMode, multiDayRangeLength]);
 
@@ -639,12 +678,23 @@ export default function AgendaScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     if (viewMode === "multiday") {
-      await fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
+      await fetchMultiDayAgenda(
+        selectedDate,
+        multiDayRangeLength,
+        showCompleted,
+      );
     } else {
       await fetchAgenda(selectedDate, showCompleted);
     }
     setRefreshing(false);
-  }, [fetchAgenda, fetchMultiDayAgenda, selectedDate, showCompleted, viewMode, multiDayRangeLength]);
+  }, [
+    fetchAgenda,
+    fetchMultiDayAgenda,
+    selectedDate,
+    showCompleted,
+    viewMode,
+    multiDayRangeLength,
+  ]);
 
   if (loading) {
     return (
@@ -718,7 +768,10 @@ export default function AgendaScreen() {
                 style={styles.dateText}
               >
                 {viewMode === "multiday" && multiDayData
-                  ? formatDateRange(multiDayData.startDate, multiDayData.endDate)
+                  ? formatDateRange(
+                      multiDayData.startDate,
+                      multiDayData.endDate,
+                    )
                   : agenda?.date
                     ? formatDateForDisplay(agenda.date, useCompactDate)
                     : ""}
