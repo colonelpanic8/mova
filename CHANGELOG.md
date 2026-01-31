@@ -1,5 +1,24 @@
 # Changelog
 
+## [5.18.0]
+
+- feat: show habits on future dates in week view using prospective scheduling
+- feat: display habits as compact items in schedule view (matching regular items)
+- feat: move untimed entries to appear after timeline in schedule view
+- feat: use multi-day API endpoint for single-day view to get prospective habit data
+- fix: habits not showing on future dates in day view
+- fix: incorrect habit completion status check on future dates
+- fix: week view using wrong completion check for habit opacity
+
+## [5.17.0]
+
+- feat: replace view mode toggle button with dropdown menu
+- feat: implement category grouping with collapsible headers in agenda
+- feat: add Group by Category toggle to settings
+- feat: add Category Colors section to colors settings
+- feat: add automatic category color assignment
+- fix: use habit-specific completion logic in week view filtering
+
 ## [5.14.1]
 
 - fix: center window bars properly in habit graph

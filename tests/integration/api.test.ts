@@ -241,7 +241,8 @@ describe("org-agenda-api integration tests", () => {
       );
 
       expect(updatedTodo).toBeTruthy();
-      expect(updatedTodo.scheduled).toBe(dateString);
+      // API returns Timestamp objects, not strings
+      expect(updatedTodo.scheduled?.date).toBe(dateString);
     });
 
     it("should persist deadline date after update", async () => {
@@ -282,7 +283,8 @@ describe("org-agenda-api integration tests", () => {
       );
 
       expect(updatedTodo).toBeTruthy();
-      expect(updatedTodo.deadline).toBe(dateString);
+      // API returns Timestamp objects, not strings
+      expect(updatedTodo.deadline?.date).toBe(dateString);
     });
   });
 
@@ -436,7 +438,8 @@ describe("org-agenda-api integration tests", () => {
 
       expect(updatedTodo).toBeTruthy();
       // CRITICAL: The scheduled date should now be set
-      expect(updatedTodo.scheduled).toBe(dateString);
+      // API returns Timestamp objects, not strings
+      expect(updatedTodo.scheduled?.date).toBe(dateString);
     }, 30000); // 30 second timeout for cache operations
   });
 
