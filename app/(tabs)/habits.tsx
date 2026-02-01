@@ -1,4 +1,5 @@
 import { HabitItem } from "@/components/HabitItem";
+import { ScreenContainer } from "@/components/ScreenContainer";
 import { useApi } from "@/context/ApiContext";
 import { useHabitConfig } from "@/context/HabitConfigContext";
 import { useMutation } from "@/context/MutationContext";
@@ -203,21 +204,17 @@ export default function HabitsScreen() {
 
   if (configLoading) {
     return (
-      <View
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
+      <ScreenContainer>
         <View style={styles.emptyState}>
           <ActivityIndicator size="large" />
         </View>
-      </View>
+      </ScreenContainer>
     );
   }
 
   if (!config?.enabled) {
     return (
-      <View
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
+      <ScreenContainer>
         <View style={styles.emptyState}>
           <Text
             variant="bodyLarge"
@@ -235,15 +232,13 @@ export default function HabitsScreen() {
             Refresh Configuration
           </Button>
         </View>
-      </View>
+      </ScreenContainer>
     );
   }
 
   return (
     <TodoEditingProvider>
-      <View
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
+      <ScreenContainer>
         <FlatList
           data={habits}
           renderItem={renderItem}
@@ -266,7 +261,7 @@ export default function HabitsScreen() {
           }
           contentContainerStyle={styles.listContent}
         />
-      </View>
+      </ScreenContainer>
     </TodoEditingProvider>
   );
 }

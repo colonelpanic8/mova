@@ -5,7 +5,6 @@ import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Animated,
-  Image,
   Keyboard,
   KeyboardEvent,
   Platform,
@@ -13,17 +12,6 @@ import {
   View,
 } from "react-native";
 import { useTheme } from "react-native-paper";
-
-// Header logo component
-function HeaderLogo() {
-  return (
-    <Image
-      source={require("@/assets/images/mova-header.png")}
-      style={{ height: 36, width: 108 }}
-      resizeMode="contain"
-    />
-  );
-}
 
 // Hidden routes that shouldn't appear in tab bar
 const HIDDEN_ROUTES = new Set<string>([]);
@@ -160,12 +148,9 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.outline,
-        headerStyle: {
-          backgroundColor: theme.colors.surface,
-        },
-        headerTintColor: theme.colors.onSurface,
-        headerTitle: () => <HeaderLogo />,
-        headerTitleAlign: "center",
+        // Native headers disabled - using custom ScreenHeader component instead
+        // to fix Android edge-to-edge keyboard pushing header issue
+        headerShown: false,
       }}
     >
       <Tabs.Screen
@@ -230,7 +215,6 @@ export default function TabLayout() {
         name="capture"
         options={{
           title: "Capture",
-          headerShown: false, // Disable native header to fix keyboard pushing header on Android
           tabBarButtonTestID: "tabCapture",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
