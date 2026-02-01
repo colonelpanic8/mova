@@ -1,4 +1,5 @@
 import { FilterBar } from "@/components/FilterBar";
+import { ScreenContainer } from "@/components/ScreenContainer";
 import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
@@ -109,12 +110,11 @@ export default function SearchScreen() {
 
   if (loading) {
     return (
-      <View
-        testID="searchLoadingView"
-        style={[styles.centered, { backgroundColor: theme.colors.background }]}
-      >
-        <ActivityIndicator testID="searchLoadingIndicator" size="large" />
-      </View>
+      <ScreenContainer>
+        <View testID="searchLoadingView" style={styles.centered}>
+          <ActivityIndicator testID="searchLoadingIndicator" size="large" />
+        </View>
+      </ScreenContainer>
     );
   }
 
@@ -123,10 +123,7 @@ export default function SearchScreen() {
       onTodoUpdated={handleTodoUpdated}
       todoStates={todoStates}
     >
-      <View
-        testID="searchScreen"
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
+      <ScreenContainer testID="searchScreen">
         <View style={styles.searchContainer}>
           <Searchbar
             testID="searchInput"
@@ -178,7 +175,7 @@ export default function SearchScreen() {
             }
           />
         )}
-      </View>
+      </ScreenContainer>
     </TodoEditingProvider>
   );
 }

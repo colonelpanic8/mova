@@ -1,4 +1,5 @@
 import { FilterBar } from "@/components/FilterBar";
+import { ScreenContainer } from "@/components/ScreenContainer";
 import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
@@ -143,36 +144,33 @@ export default function ViewsScreen() {
 
   if (loading) {
     return (
-      <View
-        testID="viewsLoadingView"
-        style={[styles.centered, { backgroundColor: theme.colors.background }]}
-      >
-        <ActivityIndicator testID="viewsLoadingIndicator" size="large" />
-      </View>
+      <ScreenContainer>
+        <View testID="viewsLoadingView" style={styles.centered}>
+          <ActivityIndicator testID="viewsLoadingIndicator" size="large" />
+        </View>
+      </ScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <ScrollView
-        testID="viewsErrorView"
-        contentContainerStyle={[
-          styles.centered,
-          { backgroundColor: theme.colors.background, flexGrow: 1 },
-        ]}
-        style={{ backgroundColor: theme.colors.background }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <Text
-          testID="viewsErrorText"
-          variant="bodyLarge"
-          style={{ color: theme.colors.error }}
+      <ScreenContainer>
+        <ScrollView
+          testID="viewsErrorView"
+          contentContainerStyle={[styles.centered, { flexGrow: 1 }]}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
-          {error}
-        </Text>
-      </ScrollView>
+          <Text
+            testID="viewsErrorText"
+            variant="bodyLarge"
+            style={{ color: theme.colors.error }}
+          >
+            {error}
+          </Text>
+        </ScrollView>
+      </ScreenContainer>
     );
   }
 
@@ -183,13 +181,7 @@ export default function ViewsScreen() {
         onTodoUpdated={handleTodoUpdated}
         todoStates={todoStates}
       >
-        <View
-          testID="viewEntriesScreen"
-          style={[
-            styles.container,
-            { backgroundColor: theme.colors.background },
-          ]}
-        >
+        <ScreenContainer testID="viewEntriesScreen">
           <View
             style={[
               styles.header,
@@ -231,17 +223,14 @@ export default function ViewsScreen() {
               }
             />
           )}
-        </View>
+        </ScreenContainer>
       </TodoEditingProvider>
     );
   }
 
   // Show view list
   return (
-    <View
-      testID="viewsListScreen"
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <ScreenContainer testID="viewsListScreen">
       <View
         style={[
           styles.header,
@@ -296,7 +285,7 @@ export default function ViewsScreen() {
           }
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 

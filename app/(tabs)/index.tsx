@@ -1,6 +1,7 @@
 import { DayScheduleView } from "@/components/DayScheduleView";
 import { FilterBar } from "@/components/FilterBar";
 import { HabitItem } from "@/components/HabitItem";
+import { ScreenContainer } from "@/components/ScreenContainer";
 import { TodoItem, getTodoKey } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
 import { useColorPalette } from "@/context/ColorPaletteContext";
@@ -831,10 +832,7 @@ export default function AgendaScreen() {
       onTodoUpdated={handleTodoUpdated}
       todoStates={todoStates}
     >
-      <View
-        testID="agendaScreen"
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
+      <ScreenContainer testID="agendaScreen">
         <View style={styles.header}>
           <View style={styles.dateNavigation}>
             <IconButton
@@ -1126,7 +1124,7 @@ export default function AgendaScreen() {
             stickySectionHeadersEnabled={false}
           />
         )}
-      </View>
+      </ScreenContainer>
     </TodoEditingProvider>
   );
 }

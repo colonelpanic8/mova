@@ -5,6 +5,7 @@ import {
 } from "@/components/capture";
 import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { RepeaterPicker } from "@/components/RepeaterPicker";
+import { ScreenContainer } from "@/components/ScreenContainer";
 import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
@@ -26,8 +27,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Image, Platform, ScrollView, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -214,7 +214,6 @@ export default function CaptureScreen() {
   } = useTemplates();
   const { savedServers, activeServerId } = useAuth();
   const { quickScheduleIncludeTime } = useSettings();
-  const insets = useSafeAreaInsets();
 
   const activeServer = useMemo(
     () => savedServers.find((s) => s.id === activeServerId),
@@ -446,26 +445,7 @@ export default function CaptureScreen() {
   const templateKeys = templates ? Object.keys(templates) : [];
 
   return (
-    <View
-      testID="captureScreen"
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      {/* Custom header for Android edge-to-edge keyboard handling */}
-      <View
-        style={[
-          styles.customHeader,
-          {
-            paddingTop: insets.top,
-            backgroundColor: theme.colors.surface,
-          },
-        ]}
-      >
-        <Image
-          source={require("@/assets/images/mova-header.png")}
-          style={styles.headerLogo}
-          resizeMode="contain"
-        />
-      </View>
+    <ScreenContainer testID="captureScreen">
       <View style={styles.header}>
         <Menu
           visible={menuVisible}
@@ -639,23 +619,13 @@ export default function CaptureScreen() {
       >
         {message?.text}
       </Snackbar>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  customHeader: {
-    alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 10,
-    paddingHorizontal: 16,
-  },
-  headerLogo: {
-    height: 36,
-    width: 108,
   },
   centered: {
     flex: 1,

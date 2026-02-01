@@ -72,30 +72,32 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const theme = getTheme(colorScheme);
+  // Handle "unspecified" from SDK 55+ by treating it as null (system default)
+  const normalizedScheme = colorScheme === "unspecified" ? null : colorScheme;
+  const theme = getTheme(normalizedScheme);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <ColorPaletteProvider>
-        <PaperProvider theme={theme}>
-          <SettingsProvider>
-            <MutationProvider>
-              <AuthProvider>
-                <ApiProvider>
-                  <TemplatesProvider>
-                    <HabitConfigProvider>
-                      <FilterProvider>
-                        <RootLayoutNav />
-                      </FilterProvider>
-                    </HabitConfigProvider>
-                  </TemplatesProvider>
-                </ApiProvider>
-              </AuthProvider>
-            </MutationProvider>
-          </SettingsProvider>
-        </PaperProvider>
-      </ColorPaletteProvider>
+          <PaperProvider theme={theme}>
+            <SettingsProvider>
+              <MutationProvider>
+                <AuthProvider>
+                  <ApiProvider>
+                    <TemplatesProvider>
+                      <HabitConfigProvider>
+                        <FilterProvider>
+                          <RootLayoutNav />
+                        </FilterProvider>
+                      </HabitConfigProvider>
+                    </TemplatesProvider>
+                  </ApiProvider>
+                </AuthProvider>
+              </MutationProvider>
+            </SettingsProvider>
+          </PaperProvider>
+        </ColorPaletteProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>
   );

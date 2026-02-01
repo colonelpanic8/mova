@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
-  KeyboardAvoidingView as RNKeyboardAvoidingView,
   Platform,
+  KeyboardAvoidingView as RNKeyboardAvoidingView,
   StyleProp,
   StyleSheet,
   View,
