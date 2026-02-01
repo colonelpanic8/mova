@@ -59,18 +59,14 @@ export function KeyboardAwareContainer({
     );
   }
 
-  // Android: The AndroidManifest.xml has windowSoftInputMode="adjustResize"
-  // which means the system automatically resizes the window when the keyboard
-  // appears. Using KeyboardAvoidingView on top of this causes conflicts and
-  // prevents proper scrolling. Just use a plain View and let the system handle it.
-  if (Platform.OS === "android") {
-    return <View style={[styles.container, style]}>{children}</View>;
-  }
-
-  // iOS: Use KeyboardAvoidingView with padding behavior
+  // Mobile: Use KeyboardAvoidingView
+  // - iOS: "padding" behavior works best
+  // - Android with edge-to-edge (Expo SDK 53+): "height" behavior needed
+  //   because windowSoftInputMode no longer works reliably
+  // See: https://github.com/expo/expo/issues/36685
   return (
     <KeyboardAvoidingView
-      behavior="padding"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={[styles.container, style]}
       keyboardVerticalOffset={keyboardVerticalOffset}
     >
