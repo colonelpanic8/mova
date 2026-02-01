@@ -20,14 +20,21 @@ describe("Login Screen", () => {
   });
 
   it("should show error when submitting empty fields", async () => {
+    // Dismiss any keyboard that might be open
+    await device.pressBack();
     await element(by.id("connectButton")).tap();
     await expect(element(by.text("All fields are required"))).toBeVisible();
   });
 
   it("should allow typing in all fields", async () => {
     await element(by.id("serverUrlInput")).typeText(TEST_API_URL);
+    // Dismiss keyboard before typing in next field to avoid overlap issues
+    await device.pressBack();
     await element(by.id("usernameInput")).typeText(TEST_USERNAME);
+    await device.pressBack();
     await element(by.id("passwordInput")).typeText(TEST_PASSWORD);
+    // Dismiss keyboard before checking button visibility
+    await device.pressBack();
 
     // Verify the connect button is still visible and tappable
     await expect(element(by.id("connectButton"))).toBeVisible();
@@ -35,11 +42,13 @@ describe("Login Screen", () => {
 
   it("should successfully login with test credentials and navigate to agenda", async () => {
     await element(by.id("serverUrlInput")).typeText(TEST_API_URL);
+    await device.pressBack();
     await element(by.id("usernameInput")).typeText(TEST_USERNAME);
+    await device.pressBack();
     await element(by.id("passwordInput")).typeText(TEST_PASSWORD);
 
     // Dismiss keyboard
-    await element(by.id("passwordInput")).tapReturnKey();
+    await device.pressBack();
 
     // Wait for keyboard to dismiss
     await new Promise((resolve) => setTimeout(resolve, 500));
