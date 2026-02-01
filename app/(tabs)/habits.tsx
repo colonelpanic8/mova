@@ -12,7 +12,13 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Card, Text, useTheme } from "react-native-paper";
+import {
+  ActivityIndicator,
+  Button,
+  Card,
+  Text,
+  useTheme,
+} from "react-native-paper";
 
 // Layout constants (must match HabitItem)
 const CELL_WIDTH = 24;
@@ -86,7 +92,11 @@ function HabitStatsCard({ stats }: { stats: HabitStats }) {
 export default function HabitsScreen() {
   const theme = useTheme();
   const api = useApi();
-  const { config } = useHabitConfig();
+  const {
+    config,
+    isLoading: configLoading,
+    refetch: refetchConfig,
+  } = useHabitConfig();
   const { mutationVersion } = useMutation();
   const { width: screenWidth } = useWindowDimensions();
   const [habits, setHabits] = useState<Todo[]>([]);
@@ -191,6 +201,18 @@ export default function HabitsScreen() {
     [],
   );
 
+  if (configLoading) {
+    return (
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" />
+        </View>
+      </View>
+    );
+  }
+
   if (!config?.enabled) {
     return (
       <View
@@ -205,10 +227,13 @@ export default function HabitsScreen() {
           </Text>
           <Text
             variant="bodySmall"
-            style={{ color: theme.colors.onSurfaceVariant }}
+            style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}
           >
             Enable org-window-habit-mode in Emacs to use this feature.
           </Text>
+          <Button mode="outlined" onPress={refetchConfig} icon="refresh">
+            Refresh Configuration
+          </Button>
         </View>
       </View>
     );
