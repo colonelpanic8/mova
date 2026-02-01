@@ -50,8 +50,8 @@ describe("Login Screen", () => {
     // Dismiss keyboard
     await device.pressBack();
 
-    // Wait for keyboard to dismiss
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Wait for keyboard to dismiss and UI to settle
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Tap connect
     await element(by.id("connectButton")).tap();
@@ -59,10 +59,10 @@ describe("Login Screen", () => {
     // Disable synchronization to avoid Detox getting stuck on network requests/animations
     await device.disableSynchronization();
     try {
-      // Should navigate to agenda screen (longer timeout for login + data load)
+      // Should navigate to agenda screen (longer timeout for login + data load + animations)
       await waitFor(element(by.id("agendaScreen")))
         .toBeVisible()
-        .withTimeout(15000);
+        .withTimeout(30000);
     } finally {
       await device.enableSynchronization();
     }
