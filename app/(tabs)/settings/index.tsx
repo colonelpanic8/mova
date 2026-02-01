@@ -1,8 +1,8 @@
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
+import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import { useMutation } from "@/context/MutationContext";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import { AgendaFilesResponse, VersionResponse } from "@/services/api";
 import {
@@ -433,7 +433,11 @@ export default function SettingsScreen() {
                   callingFunction === func.id ? (
                     <ActivityIndicator size="small" />
                   ) : (
-                    <IconButton icon="play" size={20} onPress={() => handleCallFunction(func.id)} />
+                    <IconButton
+                      icon="play"
+                      size={20}
+                      onPress={() => handleCallFunction(func.id)}
+                    />
                   )
                 }
               />

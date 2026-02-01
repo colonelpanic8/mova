@@ -47,7 +47,9 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     null,
   );
   const [habitConfig, setHabitConfig] = useState<HabitConfig | null>(null);
-  const [exposedFunctions, setExposedFunctions] = useState<ExposedFunction[] | null>(null);
+  const [exposedFunctions, setExposedFunctions] = useState<
+    ExposedFunction[] | null
+  >(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
