@@ -230,6 +230,7 @@ export default function TabLayout() {
         name="capture"
         options={{
           title: "Capture",
+          headerShown: false, // Disable native header to fix keyboard pushing header on Android
           tabBarButtonTestID: "tabCapture",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons

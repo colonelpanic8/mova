@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
-  KeyboardAvoidingView,
+  KeyboardAvoidingView as RNKeyboardAvoidingView,
   Platform,
   StyleProp,
   StyleSheet,
   View,
   ViewStyle,
 } from "react-native";
+import { KeyboardAvoidingView as KCKeyboardAvoidingView } from "react-native-keyboard-controller";
 
 interface KeyboardAwareContainerProps {
   children: React.ReactNode;
@@ -59,19 +60,30 @@ export function KeyboardAwareContainer({
     );
   }
 
-  // Mobile: Use KeyboardAvoidingView
-  // - iOS: "padding" behavior works best
-  // - Android with edge-to-edge (Expo SDK 53+): "height" behavior needed
-  //   because windowSoftInputMode no longer works reliably
+  // iOS: Use standard KeyboardAvoidingView with padding
+  if (Platform.OS === "ios") {
+    return (
+      <RNKeyboardAvoidingView
+        behavior="padding"
+        style={[styles.container, style]}
+        keyboardVerticalOffset={keyboardVerticalOffset}
+      >
+        {children}
+      </RNKeyboardAvoidingView>
+    );
+  }
+
+  // Android: Use react-native-keyboard-controller for edge-to-edge support
+  // The standard KeyboardAvoidingView doesn't work well with edge-to-edge mode
   // See: https://github.com/expo/expo/issues/36685
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <KCKeyboardAvoidingView
+      behavior="padding"
       style={[styles.container, style]}
       keyboardVerticalOffset={keyboardVerticalOffset}
     >
       {children}
-    </KeyboardAvoidingView>
+    </KCKeyboardAvoidingView>
   );
 }
 

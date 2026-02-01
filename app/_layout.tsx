@@ -13,6 +13,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { ActivityIndicator, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
 
@@ -75,7 +76,8 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ColorPaletteProvider>
+      <KeyboardProvider>
+        <ColorPaletteProvider>
         <PaperProvider theme={theme}>
           <SettingsProvider>
             <MutationProvider>
@@ -94,6 +96,7 @@ export default function RootLayout() {
           </SettingsProvider>
         </PaperProvider>
       </ColorPaletteProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }
