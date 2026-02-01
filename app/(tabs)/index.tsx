@@ -175,8 +175,66 @@ export default function AgendaScreen() {
   const useCompactDate = width < 400;
 
   // Apply filters to agenda entries and split into active/completed
-  const filteredEntries = agenda ? filterTodos(agenda.entries, filters) : [];
+  const baseFilteredEntries = agenda
+    ? filterTodos(agenda.entries, filters)
+    : [];
   const doneStates = useMemo(() => todoStates?.done ?? [], [todoStates?.done]);
+
+  // Add synthetic entries for completed habits that aren't in the API response
+  // (because their scheduled date moved forward after completion)
+  const filteredEntries = useMemo(() => {
+    const selectedDateString = formatDateForApi(selectedDate);
+    const existingIds = new Set(
+      baseFilteredEntries.filter((e) => e.id).map((e) => e.id),
+    );
+
+    const completedHabitsToAdd: AgendaEntry[] = [];
+    habitStatusMap.forEach((status) => {
+      // Skip if already in the entries
+      if (existingIds.has(status.id)) return;
+
+      // Check if this habit was completed on the selected date
+      // First try the graph data
+      const graphEntry = status.graph?.find(
+        (e) => e.date === selectedDateString,
+      );
+      let wasCompletedOnDate = graphEntry && graphEntry.completionCount > 0;
+
+      // Also check doneTimes array for completions on this date
+      // (handles case where graph doesn't include entry for dates after habit was rescheduled)
+      if (!wasCompletedOnDate && status.doneTimes?.length) {
+        wasCompletedOnDate = status.doneTimes.some((doneTime) => {
+          // doneTimes are ISO timestamps - extract date portion
+          const doneDate = doneTime.split("T")[0];
+          return doneDate === selectedDateString;
+        });
+      }
+
+      if (wasCompletedOnDate) {
+        completedHabitsToAdd.push({
+          id: status.id,
+          title: status.title,
+          isWindowHabit: true,
+          agendaLine: status.title,
+          file: null,
+          pos: null,
+          level: 1,
+          todo: "DONE",
+          tags: null,
+          scheduled: null,
+          deadline: null,
+          priority: null,
+          olpath: null,
+          notifyBefore: null,
+          category: null,
+          effectiveCategory: null,
+          habitSummary: status.currentState,
+        });
+      }
+    });
+
+    return [...baseFilteredEntries, ...completedHabitsToAdd];
+  }, [baseFilteredEntries, habitStatusMap, selectedDate]);
 
   // Check if a habit was completed on a specific date using habit status graph
   const isHabitCompletedOnDate = useCallback(
@@ -357,36 +415,53 @@ export default function AgendaScreen() {
 
     const todayString = formatDateForApi(new Date());
 
-    // Build a map of date -> habits that need completion on that date
+    // Build maps of date -> habits for prospective and completed habits
     const prospectiveHabitsByDate = new Map<string, AgendaEntry[]>();
+    const completedHabitsByDate = new Map<string, AgendaEntry[]>();
+
     habitStatusMap.forEach((status) => {
       status.graph?.forEach((graphEntry) => {
+        const dateStr = graphEntry.date;
+
+        // Create a synthetic AgendaEntry for this habit on this date
+        const createSyntheticEntry = (todo: string): AgendaEntry => ({
+          id: status.id,
+          title: status.title,
+          isWindowHabit: true,
+          agendaLine: status.title,
+          file: null,
+          pos: null,
+          level: 1,
+          todo,
+          tags: null,
+          scheduled: null,
+          deadline: null,
+          priority: null,
+          olpath: null,
+          notifyBefore: null,
+          category: null,
+          effectiveCategory: null,
+          habitSummary: status.currentState,
+        });
+
+        // Track prospective habits (need completion on this date)
         if (graphEntry.completionExpectedToday) {
-          const dateStr = graphEntry.date;
           if (!prospectiveHabitsByDate.has(dateStr)) {
             prospectiveHabitsByDate.set(dateStr, []);
           }
-          // Create a synthetic AgendaEntry for this habit on this date
-          const syntheticEntry: AgendaEntry = {
-            id: status.id,
-            title: status.title,
-            isWindowHabit: true,
-            agendaLine: status.title,
-            file: null,
-            pos: null,
-            level: 1,
-            todo: "TODO",
-            tags: null,
-            scheduled: null,
-            deadline: null,
-            priority: null,
-            olpath: null,
-            notifyBefore: null,
-            category: null,
-            effectiveCategory: null,
-            habitSummary: status.currentState,
-          };
-          prospectiveHabitsByDate.get(dateStr)!.push(syntheticEntry);
+          prospectiveHabitsByDate
+            .get(dateStr)!
+            .push(createSyntheticEntry("TODO"));
+        }
+
+        // Track completed habits (completed on this date)
+        if (graphEntry.completionCount > 0) {
+          if (!completedHabitsByDate.has(dateStr)) {
+            completedHabitsByDate.set(dateStr, []);
+          }
+          completedHabitsByDate
+            .get(dateStr)!
+            .push(createSyntheticEntry("DONE"));
         }
       });
     });
@@ -396,17 +471,27 @@ export default function AgendaScreen() {
       .map(([dateString, entries]) => {
         const filtered = filterTodos(entries, filters);
 
-        // Get prospective habits for this date
+        // Get prospective and completed habits for this date
         const prospectiveHabits = prospectiveHabitsByDate.get(dateString) || [];
+        const completedHabits = completedHabitsByDate.get(dateString) || [];
 
-        // Merge prospective habits with existing entries, avoiding duplicates
+        // Merge habits with existing entries, avoiding duplicates
         const existingIds = new Set(
           filtered.filter((e) => e.id).map((e) => e.id),
         );
-        const newHabits = prospectiveHabits.filter(
+        const newProspectiveHabits = prospectiveHabits.filter(
           (h) => !existingIds.has(h.id),
         );
-        const mergedEntries = [...filtered, ...newHabits];
+        // Add prospective habits to the set to avoid duplicating with completed
+        newProspectiveHabits.forEach((h) => existingIds.add(h.id));
+        const newCompletedHabits = completedHabits.filter(
+          (h) => !existingIds.has(h.id),
+        );
+        const mergedEntries = [
+          ...filtered,
+          ...newProspectiveHabits,
+          ...newCompletedHabits,
+        ];
 
         const displayEntries = showCompleted
           ? mergedEntries
