@@ -328,66 +328,72 @@ export default function LoginScreen() {
     );
   };
 
+  const scrollViewContent = (
+    <View style={styles.content}>
+      <Text variant="bodyMedium" style={styles.subtitle}>
+        Connect to your org-agenda-api server
+      </Text>
+
+      {renderSavedServers()}
+
+      {renderServerField()}
+
+      <TextInput
+        testID="usernameInput"
+        label="Username"
+        value={username}
+        onChangeText={setUsername}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.otherInput}
+        mode="outlined"
+      />
+
+      <PasswordInput
+        testID="passwordInput"
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        style={styles.otherInput}
+        mode="outlined"
+      />
+
+      <Button
+        testID="connectButton"
+        mode="contained"
+        onPress={handleLogin}
+        loading={loading}
+        disabled={loading || switchingServerId !== null}
+        style={styles.button}
+      >
+        Connect
+      </Button>
+
+      <View style={styles.logoContainer}>
+        <Image
+          source={require("@/assets/images/mova.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+
+      <Text variant="bodySmall" style={styles.versionText}>
+        Mova v{Constants.expoConfig?.version} (
+        {Constants.expoConfig?.extra?.gitCommit})
+      </Text>
+    </View>
+  );
+
   return (
     <KeyboardAwareContainer
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={{ backgroundColor: theme.colors.background }}
     >
       <ScrollView
+        style={styles.container}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.content}>
-          <View style={styles.logoContainer}>
-            <Image
-              source={require("@/assets/images/mova.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </View>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Connect to your org-agenda-api server
-          </Text>
-
-          {renderSavedServers()}
-
-          {renderServerField()}
-
-          <TextInput
-            testID="usernameInput"
-            label="Username"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={styles.otherInput}
-            mode="outlined"
-          />
-
-          <PasswordInput
-            testID="passwordInput"
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            style={styles.otherInput}
-            mode="outlined"
-          />
-
-          <Button
-            testID="connectButton"
-            mode="contained"
-            onPress={handleLogin}
-            loading={loading}
-            disabled={loading || switchingServerId !== null}
-            style={styles.button}
-          >
-            Connect
-          </Button>
-
-          <Text variant="bodySmall" style={styles.versionText}>
-            Mova v{Constants.expoConfig?.version} (
-            {Constants.expoConfig?.extra?.gitCommit})
-          </Text>
-        </View>
+        {scrollViewContent}
       </ScrollView>
 
       <Snackbar
@@ -411,6 +417,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 40,
   },
   content: {
     flex: 1,
@@ -418,8 +425,10 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     flex: 1,
+    minHeight: 150,
     justifyContent: "center",
-    marginBottom: 16,
+    alignItems: "center",
+    marginTop: 32,
   },
   logo: {
     width: "100%",
@@ -427,6 +436,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     textAlign: "center",
+    marginTop: 16,
     marginBottom: 24,
     opacity: 0.7,
   },
