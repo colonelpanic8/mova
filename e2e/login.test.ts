@@ -40,6 +40,40 @@ describe("Login Screen", () => {
     await expect(element(by.id("connectButton"))).toBeVisible();
   });
 
+  it("should keep connect button accessible when keyboard is open", async () => {
+    // Fill in the server URL first
+    await element(by.id("serverUrlInput")).typeText(TEST_API_URL);
+    await device.pressBack();
+
+    // Fill in username
+    await element(by.id("usernameInput")).typeText(TEST_USERNAME);
+    await device.pressBack();
+
+    // Tap on password field to open keyboard
+    await element(by.id("passwordInput")).tap();
+    await element(by.id("passwordInput")).typeText(TEST_PASSWORD);
+
+    // With keyboard open, the connect button should still be visible/scrollable
+    // The KeyboardAwareContainer should adjust the view
+    await waitFor(element(by.id("connectButton")))
+      .toBeVisible()
+      .withTimeout(5000);
+
+    // Should be able to tap the button without dismissing keyboard first
+    await element(by.id("connectButton")).tap();
+
+    // Should either login or show error - just verify the button was tappable
+    await device.disableSynchronization();
+    try {
+      // Wait to see if we navigate or get an error message
+      await waitFor(element(by.id("agendaScreen")))
+        .toBeVisible()
+        .withTimeout(30000);
+    } finally {
+      await device.enableSynchronization();
+    }
+  });
+
   it("should successfully login with test credentials and navigate to agenda", async () => {
     await element(by.id("serverUrlInput")).typeText(TEST_API_URL);
     await device.pressBack();
