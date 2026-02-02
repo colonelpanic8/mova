@@ -644,6 +644,7 @@ export default function AgendaScreen() {
         const startDateString = formatDateForApi(startDate);
         const endDate = getRangeEnd(startDate, rangeLength);
         const endDateString = formatDateForApi(endDate);
+        const todayString = formatDateForApi(new Date());
         const [multiDayAgendaData, statesData, habitStatusesResponse] =
           await Promise.all([
             api.getAgenda(
@@ -652,6 +653,8 @@ export default function AgendaScreen() {
               true,
               includeCompleted,
               endDateString,
+              todayString,
+              "today", // Show overdue tasks only on today, not every future day
             ),
             api.getTodoStates().catch(() => null),
             api.getAllHabitStatuses(14, 14).catch(() => null),
