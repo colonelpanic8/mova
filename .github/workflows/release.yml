@@ -53,6 +53,10 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Fix Hermes compiler permissions
+        run: |
+          chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc || true
+
       - name: Build APK
         run: |
           cd android
