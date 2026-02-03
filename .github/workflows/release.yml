@@ -57,11 +57,17 @@ jobs:
         run: |
           # Find and make all hermesc binaries executable
           find node_modules -name "hermesc" -type f -exec chmod +x {} \;
+          # Create symlink from old path to new location if needed
+          OLD_PATH="node_modules/react-native/sdks/hermesc"
+          NEW_PATH="node_modules/hermes-compiler/hermesc"
+          if [ ! -d "$OLD_PATH" ] && [ -d "$NEW_PATH" ]; then
+            mkdir -p "$(dirname $OLD_PATH)"
+            ln -s "$(cd $(dirname $OLD_PATH) && pwd)/../hermes-compiler/hermesc" "$OLD_PATH"
+            echo "Created symlink: $OLD_PATH -> $NEW_PATH"
+          fi
           # Verify it works
-          HERMESC=$(find node_modules -path "*/linux64-bin/hermesc" -type f | head -1)
-          if [ -n "$HERMESC" ]; then
-            echo "Found hermesc at: $HERMESC"
-            "$HERMESC" --version || echo "hermesc failed to run"
+          if [ -f "$OLD_PATH/linux64-bin/hermesc" ]; then
+            "$OLD_PATH/linux64-bin/hermesc" --version || echo "hermesc failed to run"
           fi
 
       - name: Build APK
