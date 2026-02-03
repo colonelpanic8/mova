@@ -57,17 +57,29 @@ jobs:
         run: |
           # Find and make all hermesc binaries executable
           find node_modules -name "hermesc" -type f -exec chmod +x {} \;
+
           # Create symlink from old path to new location if needed
           OLD_PATH="node_modules/react-native/sdks/hermesc"
           NEW_PATH="node_modules/hermes-compiler/hermesc"
           if [ ! -d "$OLD_PATH" ] && [ -d "$NEW_PATH" ]; then
             mkdir -p "$(dirname $OLD_PATH)"
-            ln -s "$(cd $(dirname $OLD_PATH) && pwd)/../hermes-compiler/hermesc" "$OLD_PATH"
-            echo "Created symlink: $OLD_PATH -> $NEW_PATH"
+            # Use absolute path for symlink
+            ln -s "$(realpath $NEW_PATH)" "$OLD_PATH"
+            echo "Created symlink: $OLD_PATH -> $(realpath $NEW_PATH)"
           fi
-          # Verify it works
-          if [ -f "$OLD_PATH/linux64-bin/hermesc" ]; then
-            "$OLD_PATH/linux64-bin/hermesc" --version || echo "hermesc failed to run"
+
+          # Debug info
+          echo "=== Checking hermesc ==="
+          ls -la "$OLD_PATH/linux64-bin/" || echo "Directory not found"
+          ls -la "$NEW_PATH/linux64-bin/" || echo "New path not found"
+
+          # Test execution
+          HERMESC="$NEW_PATH/linux64-bin/hermesc"
+          if [ -f "$HERMESC" ]; then
+            echo "Testing hermesc directly..."
+            file "$HERMESC"
+            ldd "$HERMESC" 2>&1 || true
+            "$HERMESC" --version 2>&1 || echo "Direct execution failed"
           fi
 
       - name: Build APK
