@@ -55,16 +55,13 @@ jobs:
 
       - name: Fix Hermes compiler permissions
         run: |
-          HERMESC_PATH="node_modules/react-native/sdks/hermesc/linux64-bin/hermesc"
-          if [ -f "$HERMESC_PATH" ]; then
-            chmod +x "$HERMESC_PATH"
-            echo "hermesc exists, checking if it runs..."
-            file "$HERMESC_PATH"
-            ldd "$HERMESC_PATH" || true
-            "$HERMESC_PATH" --version || echo "hermesc failed to run"
-          else
-            echo "hermesc not found at $HERMESC_PATH"
-            find node_modules -name "hermesc" -type f 2>/dev/null || echo "No hermesc found anywhere"
+          # Find and make all hermesc binaries executable
+          find node_modules -name "hermesc" -type f -exec chmod +x {} \;
+          # Verify it works
+          HERMESC=$(find node_modules -path "*/linux64-bin/hermesc" -type f | head -1)
+          if [ -n "$HERMESC" ]; then
+            echo "Found hermesc at: $HERMESC"
+            "$HERMESC" --version || echo "hermesc failed to run"
           fi
 
       - name: Build APK
