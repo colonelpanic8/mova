@@ -1,0 +1,4 @@
+# frozen_string_literal: true
+
+team_name("Railbird LLC")
+itc_team_name("Railbird LLC")
