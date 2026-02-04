@@ -31,8 +31,21 @@ yarn-error.*
 
 # local env files
 .env*.local
+.envrc.override
+.envrc.local
 
 # typescript
 *.tsbuildinfo
 
 app-example
+
+# Ruby/Bundler
+vendor/bundle/
+.bundle/
+
+# Fastlane
+builds/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
