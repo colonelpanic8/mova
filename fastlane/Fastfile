@@ -1,0 +1,217 @@
+# -*- mode: ruby -*-
+# frozen_string_literal: true
+
+require 'semantic'
+
+$repository_path = File.expand_path('..', __dir__)
+$package_json_location = File.join($repository_path, 'package.json')
+xcodeproj = File.join($repository_path, 'ios/mova.xcodeproj')
+workspace = File.join($repository_path, 'ios/mova.xcworkspace')
+$keychain_name = 'mova'
+$require_keychain_create = false
+team_id = 'K86D8LK4W6'
+app_identifier = 'com.colonelpanic.mova'
+username = 'ivan@railbird.ai'
+archive_output_directory = File.join($repository_path, 'builds')
+password = ENV['MATCH_KEYCHAIN_PASSWORD']
+api_key_location = ENV['RB_SECRET_APP_STORE_API_KEY']
+
+$package_json = read_json(json_path: $package_json_location)
+
+# Initialize buildNumber if not present
+$package_json[:buildNumber] ||= '1'
+
+def save_package_json
+  write_json(file_path: $package_json_location, hash: $package_json)
+  sh('npx', 'prettier', $package_json_location, '--write')
+end
+
+def bump_build_number_in_hash
+  current_build_number = $package_json[:buildNumber]
+  $package_json[:buildNumber] = (current_build_number.to_i + 1).to_s
+end
+
+desc 'Synchronize ios version numbers with package.json'
+lane :sync do
+  display_version = $package_json[:version]
+  build_number = $package_json[:buildNumber]
+  increment_version_number_in_xcodeproj(
+    version_number: display_version,
+    xcodeproj: xcodeproj
+  )
+  increment_build_number_in_xcodeproj(
+    build_number: build_number,
+    xcodeproj: xcodeproj
+  )
+end
+
+desc 'Bump semantic version'
+lane :bump_files do |options|
+  options[:bump_type] ||= 'patch'
+  bump_type = options[:bump_type].to_sym
+  display_version = $package_json[:version]
+  version = Semantic::Version.new display_version
+  version = version.increment!(bump_type.to_sym)
+  $package_json[:version] = version.to_s
+  bump_build_number_in_hash
+  save_package_json
+  sync
+end
+
+desc 'Bump, commit and tag'
+lane :bump do |options|
+  bump_files options
+  tag_name = "v#{$package_json[:version]}"
+  commit_version_bump(
+    message: tag_name,
+    xcodeproj: xcodeproj,
+    include: [$package_json_location]
+  )
+  add_git_tag(tag: tag_name)
+end
+
+desc 'Bump build number only if needed'
+lane :bump_build_number do
+  build_number = latest_testflight_build_number(
+    version: $package_json[:version],
+    team_id: team_id,
+    username: username,
+    app_identifier: app_identifier
+  )
+  loop do
+    json_build_number = $package_json[:buildNumber].to_i
+    break if json_build_number > build_number
+
+    bump_build_number_in_hash
+  end
+  save_package_json
+  sync
+end
+
+# iOS Build
+
+lane :connect_api_key do
+  app_store_connect_api_key(
+    key_id: 'RN2A3428AU',
+    issuer_id: '31fb4750-1220-4f0a-bcf2-14b6ff3a2e86',
+    key_filepath: api_key_location,
+    duration: 1200,
+    in_house: false
+  )
+end
+
+lane :create_mova_keychain do
+  create_keychain(
+    path: File.join($repository_path, $keychain_name),
+    password: password,
+    require_create: $require_keychain_create,
+    unlock: true,
+    lock_when_sleeps: false,
+    add_to_search_list: true,
+    timeout: 0,
+    default_keychain: true
+  )
+  sh('security list-keychains')
+end
+
+desc 'Set up api key, create keychain and match'
+lane :configure_ios do
+  connect_api_key
+  create_mova_keychain
+  match(
+    keychain_name: File.join($repository_path, $keychain_name),
+    keychain_password: password,
+    git_url: 'ssh://gitea@dev.railbird.ai:1123/railbird/ios-certificates.git',
+    type: 'appstore',
+    app_identifier: app_identifier,
+    username: username,
+    generate_apple_certs: false,
+    include_all_certificates: true
+  )
+  sh('security list-keychains')
+end
+
+def make_archive_name
+  display_version = $package_json[:version]
+  build_number = $package_json[:buildNumber]
+  "v#{display_version}_#{build_number}.ipa"
+end
+
+desc 'Build without signing (for testing)'
+lane :build do
+  sync
+  build_ios_app(
+    scheme: 'mova',
+    configuration: 'Release',
+    workspace: workspace,
+    skip_codesigning: true,
+    skip_archive: true,
+    destination: 'generic/platform=iOS',
+    xcargs: 'CODE_SIGNING_ALLOWED=NO',
+    verbose: true
+  )
+end
+
+desc 'Build an ios archive'
+lane :archive do
+  configure_ios
+
+  UI.important 'Keychain search list:'
+  sh('security list-keychains')
+  sh('security default-keychain')
+
+  build_ios_app(
+    scheme: 'mova',
+    configuration: 'Release',
+    output_directory: archive_output_directory,
+    output_name: make_archive_name,
+    workspace: workspace,
+    skip_profile_detection: true,
+    export_xcargs: '-allowProvisioningUpdates',
+    xcargs: '-allowProvisioningUpdates',
+    export_method: 'app-store',
+    export_team_id: team_id,
+    export_options: {
+      provisioningProfiles: {
+        app_identifier => "match AppStore #{app_identifier}"
+      },
+      ITSAppUsesNonExemptEncryption: false
+    },
+    verbose: true
+  )
+end
+
+def with_ci_cleanup
+  yield
+rescue StandardError => e
+  UI.error("An error occurred during the build process: #{e}")
+  raise e
+ensure
+  clean_build_artifacts(exclude_pattern: '.*.ipa')
+  clear_derived_data
+  begin
+    delete_keychain(name: File.join($repository_path, $keychain_name))
+  rescue => e
+    puts "Unable to delete keychain #{e.class}: #{e.message}"
+  end
+end
+
+desc 'Testflight latest'
+lane :testflight_latest do
+  connect_api_key
+  ipa = "#{archive_output_directory}/#{make_archive_name}"
+  upload_to_testflight(
+    ipa: ipa,
+    skip_waiting_for_build_processing: true,
+    uses_non_exempt_encryption: false
+  )
+end
+
+desc 'ci_runner'
+lane :ci_archive do
+  $keychain_name = (0...8).map { rand(65..90).chr }.join
+  $require_keychain_create = true
+  with_ci_cleanup do
+    archive
+  end
+end

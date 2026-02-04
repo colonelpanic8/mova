@@ -1,0 +1,13 @@
+# frozen_string_literal: true
+
+git_url("ssh://gitea@dev.railbird.ai:1123/railbird/ios-certificates.git")
+
+storage_mode("git")
+
+type("appstore")
+
+app_identifier("com.colonelpanic.mova")
+
+username("ivan@railbird.ai")
+
+team_id("K86D8LK4W6")

@@ -87,22 +87,29 @@
         };
         ios = (pkgs.mkShell.override {stdenv = pkgs.stdenvNoCC;}) {
           disallowedRequisites = [pkgs.xcbuild pkgs.xcbuild.xcrun];
-          buildInputs = sharedDeps ++ [pkgs.cocoapods];
+          buildInputs = sharedDeps ++ [pkgs.cocoapods pkgs.ruby pkgs.bundler];
           LC_ALL = "en_US.UTF-8";
           LANG = "en_US.UTF-8";
           shellHook = ''
             unset DEVELOPER_DIR
-            export PATH="$PWD/node_modules/.bin:$PATH"
+            export PATH="$PWD/node_modules/.bin:$PWD/vendor/bundle/bin:$PATH"
             export ORG_AGENDA_API_DIR="${org-agenda-api}"
+            export BUNDLE_PATH="$PWD/vendor/bundle"
+            export GEM_HOME="$PWD/vendor/bundle"
             echo "Mova iOS dev shell"
             echo "  node: $(node --version)"
             echo "  yarn: $(yarn --version)"
+            echo "  ruby: $(ruby --version)"
             echo ""
             echo "Commands:"
             echo "  yarn start       - Start Expo dev server"
             echo "  yarn ios         - Run on iOS"
             echo "  yarn web         - Run in browser"
             echo "  just --list      - Show all just commands"
+            echo ""
+            echo "Fastlane:"
+            echo "  bundle install   - Install fastlane dependencies"
+            echo "  bundle exec fastlane archive - Build iOS archive"
           '';
         };
         default = pkgs.mkShell {
