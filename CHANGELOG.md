@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.19.2]
+
+- fix: show habits completed on the selected date in agenda view
+
 ## [5.18.0]
 
 - feat: configurable Multi-day view (replaces fixed Week view)
