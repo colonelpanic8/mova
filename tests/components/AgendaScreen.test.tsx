@@ -9,7 +9,7 @@
  * - Date navigation
  */
 
-import { render, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
@@ -26,6 +26,9 @@ import AgendaScreen from "../../app/(tabs)/index";
 jest.mock("../../services/api");
 jest.mock("../../context/AuthContext");
 jest.mock("../../context/ApiContext");
+jest.mock("../../components/HabitGraph", () => ({
+  HabitGraph: () => null,
+}));
 jest.mock("../../context/ColorPaletteContext", () => ({
   useColorPalette: () => ({
     getTodoStateColor: (keyword: string) => "#888888",
@@ -73,6 +76,8 @@ jest.mock("../../context/SettingsContext", () => ({
     setMultiDayRangeLength: jest.fn(),
     multiDayPastDays: 1,
     setMultiDayPastDays: jest.fn(),
+    showHabitsInAgenda: true,
+    setShowHabitsInAgenda: jest.fn(),
     isLoading: false,
   }),
 }));
@@ -91,6 +96,7 @@ const mockApi = {
   getAgenda: jest.fn(),
   getTodoStates: jest.fn(),
   getAllHabitStatuses: jest.fn(),
+  getHabitStatus: jest.fn(),
 };
 
 // Mock data
@@ -171,6 +177,7 @@ beforeEach(() => {
   mockApi.getAgenda.mockReset();
   mockApi.getTodoStates.mockReset();
   mockApi.getAllHabitStatuses.mockReset();
+  mockApi.getHabitStatus.mockReset();
 
   // Set default mock implementations
   // Use mockImplementation to return entries for whatever date is requested
@@ -201,6 +208,29 @@ beforeEach(() => {
   mockApi.getAllHabitStatuses.mockResolvedValue({
     status: "ok",
     habits: [],
+  });
+  mockApi.getHabitStatus.mockResolvedValue({
+    status: "ok",
+    id: "habit-1",
+    title: "Habit",
+    habit: {
+      assessmentInterval: { days: 1 },
+      rescheduleInterval: { days: 1 },
+      rescheduleThreshold: 1,
+      maxRepetitionsPerInterval: 1,
+      startTime: "2024-01-01T00:00:00",
+      windowSpecs: [],
+    },
+    currentState: {
+      conformingRatio: 1,
+      completionNeededToday: false,
+      nextRequiredInterval: "2024-06-16",
+      completionsInWindow: 0,
+      targetRepetitions: 1,
+      miniGraph: [],
+    },
+    doneTimes: [],
+    graph: [],
   });
 
   (useApi as jest.Mock).mockReturnValue(mockApi);
@@ -379,5 +409,82 @@ describe("AgendaScreen Data Processing", () => {
     await waitFor(() => {
       expect(getByText(/^D:/)).toBeTruthy();
     });
+  });
+
+  it("shows completed habits for past dates based on habit status graph", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2024-06-16T12:00:00"));
+
+    try {
+      mockApi.getAgenda.mockImplementation(
+        (
+          _span: string,
+          startDate: string,
+          _includeOverdue: boolean,
+          _includeCompleted: boolean,
+          endDate?: string,
+        ) =>
+          Promise.resolve({
+            span: "week",
+            startDate,
+            endDate: endDate || startDate,
+            today: "2024-06-16",
+            days: {
+              [startDate]: [],
+            },
+          }),
+      );
+
+      mockApi.getAllHabitStatuses.mockResolvedValue({
+        status: "ok",
+        habits: [
+          {
+            status: "ok",
+            id: "habit-1",
+            title: "Floss",
+            habit: {
+              assessmentInterval: { days: 1 },
+              rescheduleInterval: { days: 1 },
+              rescheduleThreshold: 1,
+              maxRepetitionsPerInterval: 1,
+              startTime: "2024-01-01T00:00:00",
+              windowSpecs: [],
+            },
+            currentState: {
+              conformingRatio: 1,
+              completionNeededToday: false,
+              nextRequiredInterval: "2024-06-16",
+              completionsInWindow: 1,
+              targetRepetitions: 1,
+              miniGraph: [],
+            },
+            doneTimes: [],
+            graph: [
+              {
+                date: "2024-06-15",
+                assessmentStart: "2024-06-15T00:00:00",
+                assessmentEnd: "2024-06-16T00:00:00",
+                conformingRatioWithout: 1,
+                conformingRatioWith: 1,
+                completionCount: 1,
+                status: "past",
+                completionExpectedToday: false,
+              },
+            ],
+          },
+        ],
+      });
+
+      const { getByTestId, findByText } = renderScreen(<AgendaScreen />);
+
+      await waitFor(() => {
+        expect(getByTestId("agendaScreen")).toBeTruthy();
+      });
+
+      fireEvent.press(getByTestId("agendaPrevDay"));
+
+      expect(await findByText("Floss")).toBeTruthy();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

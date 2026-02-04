@@ -267,50 +267,32 @@ export default function AgendaScreen() {
     [habitStatusMap],
   );
 
-  // Check if a habit was completed today using habit status graph
-  const isHabitCompletedToday = useCallback(
-    (entry: Todo): boolean => {
-      // First check the habit status map for the graph data
+  // Check if a habit needs completion on a specific date
+  const habitNeedsCompletionOnDate = useCallback(
+    (entry: Todo, dateString: string): boolean => {
+      // First check the habit status map for graph data
       if (entry.id) {
         const habitStatus = habitStatusMap.get(entry.id);
         if (habitStatus?.graph?.length) {
-          // Find today's entry (status === "present")
-          const todayEntry = habitStatus.graph.find(
-            (e) => e.status === "present",
+          const dateEntry = habitStatus.graph.find(
+            (e) => e.date === dateString,
           );
-          if (todayEntry) {
-            return todayEntry.completionCount > 0;
+          if (dateEntry) {
+            return dateEntry.completionExpectedToday ?? false;
           }
         }
       }
       // Fall back to entry's miniGraph if available
       const miniGraph = entry.habitSummary?.miniGraph;
       if (miniGraph?.length) {
-        const todayEntry = miniGraph.find(
-          (e: MiniGraphEntry) => e.completionNeededToday !== undefined,
+        const dateEntry = miniGraph.find(
+          (e: MiniGraphEntry) => e.date === dateString,
         );
-        if (todayEntry) {
-          return todayEntry.completed;
+        if (dateEntry) {
+          return dateEntry.completionNeededToday ?? false;
         }
       }
-      // Cannot determine completion status, default to not completed
       return false;
-    },
-    [habitStatusMap],
-  );
-
-  // Check if a habit needs completion today
-  const habitNeedsCompletionToday = useCallback(
-    (entry: Todo): boolean => {
-      // First check the habit status map
-      if (entry.id) {
-        const habitStatus = habitStatusMap.get(entry.id);
-        if (habitStatus?.currentState) {
-          return habitStatus.currentState.completionNeededToday ?? false;
-        }
-      }
-      // Fall back to habitSummary
-      return entry.habitSummary?.completionNeededToday ?? false;
     },
     [habitStatusMap],
   );
@@ -345,15 +327,20 @@ export default function AgendaScreen() {
           return true;
         }
 
-        // For today, apply the usual logic
-        const completedToday = isHabitCompletedToday(entry);
-        const needsCompletion = habitNeedsCompletionToday(entry);
-        // Show if: needs completion today OR was completed today
-        return needsCompletion || completedToday;
+        const completedOnSelectedDate = isHabitCompletedOnDate(
+          entry,
+          selectedDateString,
+        );
+        const needsCompletionOnSelectedDate = habitNeedsCompletionOnDate(
+          entry,
+          selectedDateString,
+        );
+        // Show if: needs completion on selected date OR was completed on selected date
+        return completedOnSelectedDate || needsCompletionOnSelectedDate;
       }
       return true; // Non-habits always show
     },
-    [isHabitCompletedToday, habitNeedsCompletionToday, selectedDate],
+    [habitNeedsCompletionOnDate, isHabitCompletedOnDate, selectedDate],
   );
 
   const visibleEntries = filteredEntries.filter(shouldShowInAgenda);
