@@ -54,4 +54,14 @@ app-example
 
 # Worktrees
 .worktrees/
-.worktrees/
+
+# Ruby/Bundler
+vendor/bundle/
+.bundle/
+
+# Fastlane
+builds/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
