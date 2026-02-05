@@ -19,15 +19,7 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane sync
 ```
 
-Synchronize all version numbers
-
-### synchronize_ios_version
-
-```sh
-[bundle exec] fastlane synchronize_ios_version
-```
-
-Synchronize ios versions numbers with app.json
+Synchronize ios version numbers with package.json
 
 ### bump_files
 
