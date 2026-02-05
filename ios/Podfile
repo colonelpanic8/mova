@@ -60,5 +60,16 @@ target 'mova' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+
+    # Disable Swift 6 strict concurrency for Expo modules (canary compatibility)
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
+        # Force Swift 5 mode to avoid Swift 6 concurrency errors
+        if target.name.start_with?('Expo') || target.name == 'ExpoModulesCore'
+          config.build_settings['SWIFT_VERSION'] = '5.0'
+        end
+      end
+    end
   end
 end
