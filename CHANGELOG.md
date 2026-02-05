@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.19.3]
+
+- fix: restore Android build with React Native 0.81 host wiring
+
 ## [5.19.2]
 
 - fix: show habits completed on the selected date in agenda view
