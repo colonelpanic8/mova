@@ -1,5 +1,6 @@
 import { HabitItem } from "@/components/HabitItem";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { getTodoKey } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
 import { useHabitConfig } from "@/context/HabitConfigContext";
 import { useMutation } from "@/context/MutationContext";
@@ -201,10 +202,7 @@ export default function HabitsScreen() {
     [habitStatusMap, loadHabits],
   );
 
-  const keyExtractor = useCallback(
-    (item: Todo) => item.id || `${item.file}:${item.pos}`,
-    [],
-  );
+  const keyExtractor = useCallback((item: Todo) => getTodoKey(item), []);
 
   if (configLoading) {
     return (
