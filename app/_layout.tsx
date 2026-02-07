@@ -72,8 +72,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  // Handle "unspecified" from SDK 55+ by treating it as null (system default)
-  const normalizedScheme = colorScheme === "unspecified" ? null : colorScheme;
+  // Treat any unexpected/unknown value as "system default" (null).
+  // Some platforms/versions may report "unspecified", but RN's typings don't include it.
+  const normalizedScheme =
+    colorScheme === "dark" || colorScheme === "light" ? colorScheme : null;
   const theme = getTheme(normalizedScheme);
 
   return (

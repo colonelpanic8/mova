@@ -51,6 +51,9 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     ExposedFunction[] | null
   >(null);
   const [isLoading, setIsLoading] = useState(false);
+  // Consumers often need to distinguish "not loaded yet" from "loaded but empty/disabled".
+  // This prevents false-negative UI states during the initial async fetch.
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
   const api = useApi();
@@ -142,14 +145,17 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         setHabitConfig(habitConfigResult.value);
       } else {
         console.warn("Failed to fetch habit config:", habitConfigResult.reason);
-        setHabitConfig({ status: "ok", enabled: false });
+        // Don't treat a fetch failure as a definitive "disabled" signal.
+        // This avoids false negatives when the server is slow/transiently failing.
+        setHabitConfig(null);
       }
 
       // exposedFunctions not available in fallback mode (no individual endpoint)
       setExposedFunctions(null);
+    } finally {
+      setIsLoading(false);
+      setHasLoadedOnce(true);
     }
-
-    setIsLoading(false);
   }, [api]);
 
   useEffect(() => {
@@ -164,6 +170,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       setCustomViews(null);
       setHabitConfig(null);
       setExposedFunctions(null);
+      setHasLoadedOnce(false);
     }
   }, [isAuthenticated, reloadTemplates]);
 
@@ -177,7 +184,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         customViews,
         habitConfig,
         exposedFunctions,
-        isLoading,
+        isLoading: isLoading || (isAuthenticated && !hasLoadedOnce),
         error,
         reloadTemplates,
       }}
