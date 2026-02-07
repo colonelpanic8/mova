@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.19.4]
+
+- fix: habits view can show false "not enabled" or empty list during startup
+
 ## [5.19.3]
 
 - fix: restore Android build with React Native 0.81 host wiring
