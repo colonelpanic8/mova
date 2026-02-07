@@ -15,6 +15,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -57,18 +58,21 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
   const api = useApi();
+  const requestIdRef = useRef(0);
 
   const reloadTemplates = useCallback(async () => {
     if (!api) {
       return;
     }
 
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
 
     try {
       // Use the unified /metadata endpoint for all app metadata
       const metadata = await api.getMetadata();
+      if (requestId !== requestIdRef.current) return;
 
       // Log any errors from the backend
       if (metadata.errors && metadata.errors.length > 0) {
@@ -102,6 +106,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         api.getCategoryTypes(),
         api.getHabitConfig(),
       ]);
+      if (requestId !== requestIdRef.current) return;
 
       const [
         templatesResult,
@@ -153,8 +158,10 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       // exposedFunctions not available in fallback mode (no individual endpoint)
       setExposedFunctions(null);
     } finally {
-      setIsLoading(false);
-      setHasLoadedOnce(true);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+        setHasLoadedOnce(true);
+      }
     }
   }, [api]);
 
@@ -171,6 +178,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       setHabitConfig(null);
       setExposedFunctions(null);
       setHasLoadedOnce(false);
+      setIsLoading(false);
     }
   }, [isAuthenticated, reloadTemplates]);
 
