@@ -1,5 +1,4 @@
-fastlane documentation
-----
+## fastlane documentation
 
 # Installation
 
@@ -51,15 +50,11 @@ Bump build number only if needed
 [bundle exec] fastlane connect_api_key
 ```
 
-
-
 ### create_mova_keychain
 
 ```sh
 [bundle exec] fastlane create_mova_keychain
 ```
-
-
 
 ### configure_ios
 
@@ -101,7 +96,7 @@ Testflight latest
 
 ci_runner
 
-----
+---
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
 

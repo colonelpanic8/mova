@@ -176,9 +176,10 @@ export default function AgendaScreen() {
   const useCompactDate = width < 400;
 
   // Apply filters to agenda entries and split into active/completed
-  const baseFilteredEntries = agenda
-    ? filterTodos(agenda.entries, filters)
-    : [];
+  const baseFilteredEntries = useMemo(
+    () => (agenda ? filterTodos(agenda.entries, filters) : []),
+    [agenda, filters],
+  );
   const doneStates = useMemo(() => todoStates?.done ?? [], [todoStates?.done]);
 
   // Add synthetic entries for completed habits that aren't in the API response
