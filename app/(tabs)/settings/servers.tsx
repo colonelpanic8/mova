@@ -57,7 +57,8 @@ export default function ServersScreen() {
   };
 
   const handleEdit = (server: SavedServer) => {
-    setEditingServer({ ...server });
+    // Password is stored securely; don't prefill it into UI.
+    setEditingServer({ ...server, password: "" });
     setDialogMode("edit");
     setDialogVisible(true);
   };
@@ -94,12 +95,16 @@ export default function ServersScreen() {
   const handleSave = async () => {
     if (!editingServer) return;
 
-    if (
-      !editingServer.apiUrl ||
-      !editingServer.username ||
-      !editingServer.password
-    ) {
-      Alert.alert("Error", "Server URL, username, and password are required");
+    if (!editingServer.apiUrl || !editingServer.username) {
+      Alert.alert("Error", "Server URL and username are required");
+      return;
+    }
+
+    const needsPassword =
+      dialogMode === "add" ||
+      (!editingServer.hasPassword && !editingServer.password);
+    if (needsPassword && !editingServer.password) {
+      Alert.alert("Error", "Password is required");
       return;
     }
 
@@ -110,7 +115,7 @@ export default function ServersScreen() {
         const success = await login(
           editingServer.apiUrl,
           editingServer.username,
-          editingServer.password,
+          editingServer.password || "",
           true, // save to server list
         );
         if (success) {
@@ -124,12 +129,15 @@ export default function ServersScreen() {
         }
       } else if (editingServer.id) {
         // Editing existing server
-        await updateServer(editingServer.id, {
+        const updates: Partial<SavedServerInput> = {
           nickname: editingServer.nickname,
           apiUrl: editingServer.apiUrl,
           username: editingServer.username,
-          password: editingServer.password,
-        });
+          ...(editingServer.password
+            ? { password: editingServer.password }
+            : {}),
+        };
+        await updateServer(editingServer.id, updates);
         setDialogVisible(false);
         setEditingServer(null);
       }

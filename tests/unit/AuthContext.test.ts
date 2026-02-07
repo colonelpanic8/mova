@@ -32,7 +32,7 @@ describe("AuthContext multi-server", () => {
         id: "1",
         apiUrl: "https://test.com",
         username: "user",
-        password: "pass",
+        hasPassword: true,
       },
     ]);
 

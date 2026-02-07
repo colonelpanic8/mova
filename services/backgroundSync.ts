@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getStoredCredentials } from "@/utils/authStorage";
 import { AppState, Platform } from "react-native";
 
 const BACKGROUND_SYNC_TASK = "MOVA_BACKGROUND_SYNC";
@@ -9,23 +9,7 @@ const isHeadlessContext = () => {
   return AppState.currentState === null || AppState.currentState === undefined;
 };
 
-// Storage keys for credentials (must match AuthContext STORAGE_KEYS)
-const API_URL_KEY = "mova_api_url";
-const USERNAME_KEY = "mova_username";
-const PASSWORD_KEY = "mova_password";
-
-async function getStoredCredentials(): Promise<{
-  apiUrl: string | null;
-  username: string | null;
-  password: string | null;
-}> {
-  const [apiUrl, username, password] = await Promise.all([
-    AsyncStorage.getItem(API_URL_KEY),
-    AsyncStorage.getItem(USERNAME_KEY),
-    AsyncStorage.getItem(PASSWORD_KEY),
-  ]);
-  return { apiUrl, username, password };
-}
+// Credentials are stored via utils/authStorage (secure store + legacy migration).
 
 // Lazy-load expo modules to avoid issues in headless widget context
 let BackgroundFetch: typeof import("expo-background-fetch") | null = null;
