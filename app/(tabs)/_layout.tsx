@@ -119,7 +119,14 @@ function CustomTabBar(props: BottomTabBarProps) {
                 accessibilityRole="button"
                 accessibilityState={isFocused ? { selected: true } : {}}
                 accessibilityLabel={options.tabBarAccessibilityLabel}
-                testID={(options as any).tabBarButtonTestID}
+                testID={(() => {
+                  const o = options as unknown as {
+                    tabBarButtonTestID?: unknown;
+                  };
+                  return typeof o.tabBarButtonTestID === "string"
+                    ? o.tabBarButtonTestID
+                    : undefined;
+                })()}
                 onPress={onPress}
                 onLongPress={onLongPress}
                 style={{
