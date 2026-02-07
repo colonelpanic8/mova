@@ -127,10 +127,14 @@ export default function HabitsScreen() {
     setIsLoading(true);
     setError(null);
     try {
-      // Fetch todos and all habit statuses in parallel
+      // Fetch todos and statuses in parallel, but don't let a status failure
+      // blank the entire habits list.
       const [todosResponse, habitStatusesResponse] = await Promise.all([
         api.getAllTodos(),
-        api.getAllHabitStatuses(preceding, following),
+        api.getAllHabitStatuses(preceding, following).catch((err) => {
+          console.warn("Failed to load habit statuses:", err);
+          return null;
+        }),
       ]);
 
       const habitTodos = todosResponse.todos.filter(
@@ -139,18 +143,18 @@ export default function HabitsScreen() {
       setHabits(habitTodos);
 
       // Build a map of habit id -> status for quick lookup
-      const statusMap = new Map<string, HabitStatus>();
       if (
-        habitStatusesResponse.status === "ok" &&
+        habitStatusesResponse?.status === "ok" &&
         habitStatusesResponse.habits
       ) {
+        const statusMap = new Map<string, HabitStatus>();
         for (const status of habitStatusesResponse.habits) {
           if (status.id) {
             statusMap.set(status.id, status);
           }
         }
+        setHabitStatusMap(statusMap);
       }
-      setHabitStatusMap(statusMap);
     } catch (err) {
       console.error("Failed to load habits:", err);
       setError("Failed to load habits");
@@ -161,7 +165,7 @@ export default function HabitsScreen() {
 
   useEffect(() => {
     loadHabits();
-  }, [loadHabits, mutationVersion]);
+  }, [loadHabits, mutationVersion, config?.enabled]);
 
   const stats = useMemo((): HabitStats => {
     const remainingToday = habits.filter(
@@ -207,6 +211,30 @@ export default function HabitsScreen() {
       <ScreenContainer>
         <View style={styles.emptyState}>
           <ActivityIndicator size="large" />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (!config) {
+    return (
+      <ScreenContainer>
+        <View style={styles.emptyState}>
+          <Text
+            variant="bodyLarge"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            Habits configuration is unavailable.
+          </Text>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}
+          >
+            This is often transient during startup. Pull to refresh or tap below.
+          </Text>
+          <Button mode="outlined" onPress={refetchConfig} icon="refresh">
+            Refresh Configuration
+          </Button>
         </View>
       </ScreenContainer>
     );
