@@ -14,6 +14,12 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
   removeItem: jest.fn(),
 }));
 
+jest.mock("../../utils/secretStore", () => ({
+  getSecret: jest.fn(),
+  setSecret: jest.fn(),
+  deleteSecret: jest.fn(),
+}));
+
 describe("serverStorage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,20 +44,34 @@ describe("serverStorage", () => {
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
         JSON.stringify(mockServers),
       );
+      const { getSecret, setSecret } = jest.requireMock(
+        "../../utils/secretStore",
+      );
+      (getSecret as jest.Mock).mockResolvedValue("pass1");
       const servers = await getSavedServers();
-      expect(servers).toEqual(mockServers);
+      expect(setSecret).toHaveBeenCalled();
+      expect(servers).toEqual([
+        {
+          id: "1",
+          apiUrl: "https://server1.com",
+          username: "user1",
+          hasPassword: true,
+        },
+      ]);
     });
   });
 
   describe("saveServer", () => {
     it("should add new server with generated id", async () => {
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+      const { setSecret } = jest.requireMock("../../utils/secretStore");
       const server = await saveServer({
         apiUrl: "https://new.com",
         username: "user",
         password: "pass",
       });
       expect(server.id).toBeDefined();
+      expect(setSecret).toHaveBeenCalled();
       expect(AsyncStorage.setItem).toHaveBeenCalled();
     });
   });
@@ -69,10 +89,19 @@ describe("serverStorage", () => {
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
         JSON.stringify(mockServers),
       );
+      const { getSecret } = jest.requireMock("../../utils/secretStore");
+      (getSecret as jest.Mock).mockResolvedValue("pass1");
       await updateServer("1", { nickname: "My Server" });
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
         "mova_saved_servers",
-        JSON.stringify([{ ...mockServers[0], nickname: "My Server" }]),
+        JSON.stringify([
+          {
+            id: "1",
+            apiUrl: "https://server1.com",
+            username: "user1",
+            nickname: "My Server",
+          },
+        ]),
       );
     });
   });
@@ -96,10 +125,21 @@ describe("serverStorage", () => {
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
         JSON.stringify(mockServers),
       );
+      const { getSecret, deleteSecret } = jest.requireMock(
+        "../../utils/secretStore",
+      );
+      (getSecret as jest.Mock).mockResolvedValue("pass");
       await deleteServer("1");
+      expect(deleteSecret).toHaveBeenCalled();
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
         "mova_saved_servers",
-        JSON.stringify([mockServers[1]]),
+        JSON.stringify([
+          {
+            id: "2",
+            apiUrl: "https://server2.com",
+            username: "user2",
+          },
+        ]),
       );
     });
   });
