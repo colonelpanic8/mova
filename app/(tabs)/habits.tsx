@@ -230,7 +230,8 @@ export default function HabitsScreen() {
             variant="bodySmall"
             style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}
           >
-            This is often transient during startup. Pull to refresh or tap below.
+            This is often transient during startup. Pull to refresh or tap
+            below.
           </Text>
           <Button mode="outlined" onPress={refetchConfig} icon="refresh">
             Refresh Configuration
