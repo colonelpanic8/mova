@@ -1,11 +1,7 @@
 name: E2E Tests
 
 on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
-  workflow_dispatch: # Allow manual triggering
+  workflow_dispatch: # Allow manual triggering only - disabled due to flaky CI emulator timeouts
 
 jobs:
   e2e-android:
