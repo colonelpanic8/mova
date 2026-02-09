@@ -128,10 +128,7 @@ function GraphCell({
     >
       {showDiagonal && diagonalColor && (
         <View
-          style={[
-            styles.diagonalOverlay,
-            { borderRightColor: diagonalColor },
-          ]}
+          style={[styles.diagonalOverlay, { borderRightColor: diagonalColor }]}
         />
       )}
       <Text
