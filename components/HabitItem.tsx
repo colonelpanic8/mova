@@ -38,17 +38,23 @@ import {
 function transformGraphData(graph: HabitStatusGraphEntry[]): MiniGraphEntry[] {
   return graph.map((entry) => ({
     date: entry.date,
-    // Past cells show actual status (with completions that happened)
-    // Present/future cells show status without that day's completions
+    // Past cells and present cells with completions show actual status
+    // Present/future cells without completions show the "without" ratio
     // (so user can see if they need to complete today/upcoming)
     conformingRatio:
-      entry.status === "past"
+      entry.status === "past" || entry.completionCount > 0
         ? entry.conformingRatioWith
         : entry.conformingRatioWithout,
     completed: entry.completionCount > 0,
     ...(entry.status === "present" && {
       completionNeededToday: entry.completionExpectedToday,
     }),
+    // For uncompleted present-day entries, include the "with" ratio
+    // so the cell can render a diagonal split showing both colors
+    ...(entry.status === "present" &&
+      entry.completionCount === 0 && {
+        conformingRatioWith: entry.conformingRatioWith,
+      }),
   }));
 }
 

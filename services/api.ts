@@ -75,6 +75,7 @@ export interface MiniGraphEntry {
   conformingRatio: number;
   completed: boolean;
   completionNeededToday?: boolean;
+  conformingRatioWith?: number;
 }
 
 export interface WindowSpecStatus {

@@ -84,6 +84,15 @@ function GraphCell({
     ? "rgba(150, 150, 150, 0.3)"
     : getHabitCellColor(entry.conformingRatio, colors);
 
+  // Show diagonal split for uncompleted today cells with different with/without ratios
+  const showDiagonal =
+    !isNoData &&
+    entry.conformingRatioWith !== undefined &&
+    entry.conformingRatioWith !== entry.conformingRatio;
+  const diagonalColor = showDiagonal
+    ? getHabitCellColor(entry.conformingRatioWith!, colors)
+    : null;
+
   // Extract day number from date string (YYYY-MM-DD)
   const dayNumber = parseInt(entry.date.split("-")[2], 10);
 
@@ -117,6 +126,14 @@ function GraphCell({
         pressed && !isNoData && styles.cellPressed,
       ]}
     >
+      {showDiagonal && diagonalColor && (
+        <View
+          style={[
+            styles.diagonalOverlay,
+            { borderRightColor: diagonalColor },
+          ]}
+        />
+      )}
       <Text
         style={[styles.dayNumber, isNoData && styles.noDataDayNumber]}
         numberOfLines={1}
@@ -357,6 +374,19 @@ const styles = StyleSheet.create({
   },
   cellPressed: {
     opacity: 0.6,
+  },
+  // Top-right triangle overlay using CSS border trick.
+  // Size matches cell content area (24x24 for both normal and today cells).
+  diagonalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 0,
+    height: 0,
+    borderRightWidth: 24,
+    borderBottomWidth: 24,
+    borderRightColor: "transparent",
+    borderBottomColor: "transparent",
   },
   dayNumber: {
     fontSize: 11,
