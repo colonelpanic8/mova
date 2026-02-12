@@ -26,7 +26,13 @@ import { formStringToTimestamp } from "@/utils/timestampConversion";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -49,11 +55,26 @@ interface PromptFieldProps {
   prompt: TemplatePrompt;
   value: string | string[];
   onChange: (value: string | string[]) => void;
+  registerTagFlusher?: (flusher: (() => string[]) | null) => void;
 }
 
-function PromptField({ prompt, value, onChange }: PromptFieldProps) {
+function PromptField({
+  prompt,
+  value,
+  onChange,
+  registerTagFlusher,
+}: PromptFieldProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tagInputValue, setTagInputValue] = useState("");
+  const tagsArray = useMemo(
+    () =>
+      Array.isArray(value)
+        ? value
+        : typeof value === "string" && value
+          ? value.split(",").map((t) => t.trim())
+          : [],
+    [value],
+  );
 
   const handleDateChange = useCallback(
     (event: DateTimePickerEvent, date?: Date) => {
@@ -64,6 +85,26 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
     },
     [onChange],
   );
+
+  const flushPendingTag = useCallback((): string[] => {
+    const trimmedTag = tagInputValue.trim();
+    if (!trimmedTag) {
+      return tagsArray;
+    }
+
+    const newTags = tagsArray.includes(trimmedTag)
+      ? tagsArray
+      : [...tagsArray, trimmedTag];
+    onChange(newTags);
+    setTagInputValue("");
+    return newTags;
+  }, [onChange, tagInputValue, tagsArray]);
+
+  useEffect(() => {
+    if (prompt.type !== "tags" || !registerTagFlusher) return;
+    registerTagFlusher(flushPendingTag);
+    return () => registerTagFlusher(null);
+  }, [flushPendingTag, prompt.type, registerTagFlusher]);
 
   if (prompt.type === "date") {
     const dateValue = typeof value === "string" ? value : "";
@@ -131,20 +172,6 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
   }
 
   if (prompt.type === "tags") {
-    const tagsArray = Array.isArray(value)
-      ? value
-      : typeof value === "string" && value
-        ? value.split(",").map((t) => t.trim())
-        : [];
-
-    const addTag = () => {
-      if (tagInputValue.trim()) {
-        const newTags = [...tagsArray, tagInputValue.trim()];
-        onChange(newTags);
-        setTagInputValue("");
-      }
-    };
-
     const removeTag = (index: number) => {
       const newTags = tagsArray.filter((_, i) => i !== index);
       onChange(newTags);
@@ -173,11 +200,12 @@ function PromptField({ prompt, value, onChange }: PromptFieldProps) {
             placeholder="Add tag..."
             value={tagInputValue}
             onChangeText={setTagInputValue}
-            onSubmitEditing={addTag}
+            onSubmitEditing={() => flushPendingTag()}
+            onEndEditing={() => flushPendingTag()}
             style={styles.tagInput}
             dense
           />
-          <IconButton icon="plus" onPress={addTag} />
+          <IconButton icon="plus" onPress={() => flushPendingTag()} />
         </View>
       </View>
     );
@@ -241,6 +269,8 @@ export default function CaptureScreen() {
   }>({});
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
+  const promptTagFlusherRef = useRef<Record<string, () => string[]>>({});
+  const optionalTagsFlusherRef = useRef<(() => string[]) | null>(null);
 
   // Load default template when templates become available
   useEffect(() => {
@@ -341,11 +371,26 @@ export default function CaptureScreen() {
     setSubmitting(true);
 
     try {
+      const effectiveValues: Record<string, string | string[]> = { ...values };
+      selectedPrompts
+        .filter((p) => p.type === "tags")
+        .forEach((p) => {
+          const flushTagInput = promptTagFlusherRef.current[p.name];
+          if (flushTagInput) {
+            effectiveValues[p.name] = flushTagInput();
+          }
+        });
+
+      const effectiveOptionalFields = { ...optionalFields };
+      if (optionalTagsFlusherRef.current) {
+        effectiveOptionalFields.tags = optionalTagsFlusherRef.current();
+      }
+
       // Validate required fields from prompts
       const missingRequired = selectedPrompts
         .filter((p) => p.required)
         .filter((p) => {
-          const val = values[p.name];
+          const val = effectiveValues[p.name];
           if (Array.isArray(val)) return val.length === 0;
           return !val || (typeof val === "string" && !val.trim());
         })
@@ -367,13 +412,13 @@ export default function CaptureScreen() {
 
       // Build capture values
       const captureValues: Record<string, string | string[] | Timestamp> = {
-        ...values,
+        ...effectiveValues,
       };
 
       // Convert scheduled to Timestamp (combines date string + repeater)
       const scheduledTs = formStringToTimestamp(
-        optionalFields.scheduled || "",
-        optionalFields.scheduledRepeater || null,
+        effectiveOptionalFields.scheduled || "",
+        effectiveOptionalFields.scheduledRepeater || null,
       );
       if (scheduledTs) {
         captureValues.scheduled = scheduledTs;
@@ -381,18 +426,22 @@ export default function CaptureScreen() {
 
       // Convert deadline to Timestamp (combines date string + repeater)
       const deadlineTs = formStringToTimestamp(
-        optionalFields.deadline || "",
-        optionalFields.deadlineRepeater || null,
+        effectiveOptionalFields.deadline || "",
+        effectiveOptionalFields.deadlineRepeater || null,
       );
       if (deadlineTs) {
         captureValues.deadline = deadlineTs;
       }
 
-      if (optionalFields.priority)
-        captureValues.priority = optionalFields.priority;
-      if (optionalFields.tags?.length) captureValues.tags = optionalFields.tags;
-      if (optionalFields.todo && optionalFields.todo !== "TODO")
-        captureValues.state = optionalFields.todo;
+      if (effectiveOptionalFields.priority)
+        captureValues.priority = effectiveOptionalFields.priority;
+      if (effectiveOptionalFields.tags?.length)
+        captureValues.tags = effectiveOptionalFields.tags;
+      if (
+        effectiveOptionalFields.todo &&
+        effectiveOptionalFields.todo !== "TODO"
+      )
+        captureValues.state = effectiveOptionalFields.todo;
 
       let result;
       if (selection.type === "template") {
@@ -532,6 +581,17 @@ export default function CaptureScreen() {
               prompt={prompt}
               value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
               onChange={(value) => handleValueChange(prompt.name, value)}
+              registerTagFlusher={
+                prompt.type === "tags"
+                  ? (flusher) => {
+                      if (flusher) {
+                        promptTagFlusherRef.current[prompt.name] = flusher;
+                      } else {
+                        delete promptTagFlusherRef.current[prompt.name];
+                      }
+                    }
+                  : undefined
+              }
             />
           ))}
 
@@ -593,6 +653,9 @@ export default function CaptureScreen() {
             prompt={{ name: "Tags", type: "tags", required: false }}
             value={optionalFields.tags || []}
             onChange={(v) => handleOptionalFieldChange("tags", v as string[])}
+            registerTagFlusher={(flusher) => {
+              optionalTagsFlusherRef.current = flusher;
+            }}
           />
 
           <Button
