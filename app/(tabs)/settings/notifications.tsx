@@ -130,7 +130,12 @@ export default function NotificationsScreen() {
     ScheduledNotificationInfo[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const { syncNotifications, isSyncing, syncError } = useNotificationSync();
+  const { syncNotifications, isSyncing, syncError } = useNotificationSync({
+    autoSync: false,
+    syncOnForeground: false,
+    prefireVerification: false,
+    registerBackgroundSync: false,
+  });
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);

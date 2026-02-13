@@ -71,7 +71,12 @@ export default function SettingsScreen() {
   const [connectionError, setConnectionError] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const { lastSync, scheduledCount, isSyncing, syncNotifications } =
-    useNotificationSync();
+    useNotificationSync({
+      autoSync: false,
+      syncOnForeground: false,
+      prefireVerification: false,
+      registerBackgroundSync: false,
+    });
   const [templateMenuVisible, setTemplateMenuVisible] = useState(false);
   const [doneStateMenuVisible, setDoneStateMenuVisible] = useState(false);
   const [callingFunction, setCallingFunction] = useState<string | null>(null);
