@@ -13,14 +13,26 @@ import * as Notifications from "expo-notifications";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
 
-export function useNotificationSync() {
+export interface UseNotificationSyncOptions {
+  autoSync?: boolean;
+  syncOnForeground?: boolean;
+  prefireVerification?: boolean;
+  registerBackgroundSync?: boolean;
+}
+
+export function useNotificationSync(options: UseNotificationSyncOptions = {}) {
+  const {
+    autoSync = true,
+    syncOnForeground = true,
+    prefireVerification = true,
+    registerBackgroundSync: shouldRegisterBackgroundSync = true,
+  } = options;
   const { isAuthenticated } = useAuth();
   const api = useApi();
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [scheduledCount, setScheduledCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const verificationInProgress = useRef(false);
 
   const syncNotifications = useCallback(async () => {
     if (!isAuthenticated || !api) return;
@@ -46,61 +58,53 @@ export function useNotificationSync() {
     }
   }, [isAuthenticated, api]);
 
-  // Pre-fire verification: check notification still exists before showing
+  // Pre-fire verification (foreground best-effort): suppress/dismiss notifications
+  // that are no longer part of the most recently synced active ID set.
   useEffect(() => {
-    if (Platform.OS === "web" || !api) return;
+    if (!prefireVerification) return;
+    if (Platform.OS === "web") return;
 
     const subscription = Notifications.addNotificationReceivedListener(
       async (notification) => {
-        // Avoid concurrent verification calls
-        if (verificationInProgress.current) return;
-        verificationInProgress.current = true;
-
-        try {
-          // Quick fetch to verify notification still exists
-          const response = await api.getNotifications();
-          updateActiveNotificationIds(response.notifications);
-
-          const identifier = notification.request.identifier;
-          if (!isNotificationActive(identifier)) {
-            // Notification no longer valid, dismiss it
-            await Notifications.dismissNotificationAsync(
-              notification.request.identifier,
-            );
-            console.log(`Dismissed stale notification: ${identifier}`);
+        const identifier = notification.request.identifier;
+        if (!isNotificationActive(identifier)) {
+          try {
+            await Notifications.dismissNotificationAsync(identifier);
+            console.log(`[Notifications] Dismissed stale notification: ${identifier}`);
+          } catch {
+            // Ignore; failing to dismiss should not break notifications.
           }
-        } catch (err) {
-          // On fetch failure, allow notification to show (fail-open)
-          console.log("Verification fetch failed, allowing notification:", err);
-        } finally {
-          verificationInProgress.current = false;
         }
       },
     );
 
     return () => subscription.remove();
-  }, [api]);
+  }, [prefireVerification]);
 
   // Sync on mount and when app comes to foreground
   useEffect(() => {
-    syncNotifications();
+    if (autoSync) {
+      syncNotifications();
+    }
 
     const subscription = AppState.addEventListener(
       "change",
       (state: AppStateStatus) => {
-        if (state === "active") {
+        if (syncOnForeground && state === "active") {
           syncNotifications();
         }
       },
     );
 
     return () => subscription.remove();
-  }, [syncNotifications]);
+  }, [syncNotifications, autoSync, syncOnForeground]);
 
   // Register background sync on mount
   useEffect(() => {
-    registerBackgroundSync();
-  }, []);
+    if (shouldRegisterBackgroundSync) {
+      registerBackgroundSync();
+    }
+  }, [shouldRegisterBackgroundSync]);
 
   // Update stats on mount
   useEffect(() => {

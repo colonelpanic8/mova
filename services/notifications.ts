@@ -6,17 +6,61 @@ import { NotificationsResponse, ServerNotification } from "./api";
 
 const NOTIFICATIONS_ENABLED_KEY = "notifications_enabled";
 const LAST_SYNC_KEY = "last_notification_sync";
+const ACTIVE_NOTIFICATION_IDS_KEY = "active_notification_ids_v1";
+
+let activeIdsLoadedFromStorage = false;
+let hasKnownActiveIds = false;
+async function ensureActiveIdsLoaded(): Promise<void> {
+  if (activeIdsLoadedFromStorage) return;
+  activeIdsLoadedFromStorage = true;
+
+  try {
+    const raw = await AsyncStorage.getItem(ACTIVE_NOTIFICATION_IDS_KEY);
+    if (!raw) {
+      // No prior sync info; fail-open (do not suppress foreground notifications).
+      hasKnownActiveIds = false;
+      return;
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      hasKnownActiveIds = false;
+      return;
+    }
+    activeNotificationIds = new Set(parsed.filter((x) => typeof x === "string"));
+    hasKnownActiveIds = true;
+  } catch {
+    // Ignore storage corruption; fail-open.
+    hasKnownActiveIds = false;
+  }
+}
 
 // Configure how notifications are displayed when app is in foreground (native only)
 if (Platform.OS !== "web") {
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
+    handleNotification: async (notification) => {
+      // If the notification is no longer part of the most recently synced set,
+      // suppress foreground display (best-effort). Background notifications
+      // can't be prevented here.
+      await ensureActiveIdsLoaded();
+      if (!hasKnownActiveIds) {
+        return {
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        };
+      }
+      const identifier = notification.request.identifier;
+      const isActive = isNotificationActive(identifier);
+      return {
+        shouldShowAlert: isActive,
+        shouldPlaySound: isActive,
+        shouldSetBadge: false,
+        shouldShowBanner: isActive,
+        shouldShowList: isActive,
+      };
+    },
   });
 }
 
@@ -45,6 +89,14 @@ export async function setNotificationsEnabled(enabled: boolean): Promise<void> {
   );
   if (!enabled) {
     await cancelAllNotifications();
+    hasKnownActiveIds = false;
+    activeNotificationIds = new Set();
+    activeIdsLoadedFromStorage = true;
+    try {
+      await AsyncStorage.removeItem(ACTIVE_NOTIFICATION_IDS_KEY);
+    } catch {
+      // Ignore.
+    }
   }
 }
 
@@ -111,6 +163,14 @@ export async function scheduleNotificationsFromServer(
 
   // Update the set of active notification IDs
   updateActiveNotificationIds(response.notifications);
+  try {
+    await AsyncStorage.setItem(
+      ACTIVE_NOTIFICATION_IDS_KEY,
+      JSON.stringify(Array.from(activeNotificationIds)),
+    );
+  } catch {
+    // Ignore storage failures; in-memory set still helps while app is running.
+  }
 
   let scheduledCount = 0;
 
@@ -239,6 +299,8 @@ export function updateActiveNotificationIds(
   activeNotificationIds = new Set(
     notifications.map((n, i) => getNotificationIdentifier(n, i)),
   );
+  activeIdsLoadedFromStorage = true;
+  hasKnownActiveIds = true;
 }
 
 export function isNotificationActive(identifier: string): boolean {
