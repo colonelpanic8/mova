@@ -15,6 +15,7 @@ import {
   HabitColorConfig,
   isThemeReference,
   PriorityLevel,
+  ThemeColorKey,
 } from "@/types/colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
@@ -131,8 +132,9 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     (colorValue: ColorValue): string => {
       if (isThemeReference(colorValue)) {
         const key = getThemeColorKey(colorValue);
-        if (key && key in theme.colors) {
-          return (theme.colors as any)[key] || colorValue;
+        if (key) {
+          const colors = theme.colors as Record<ThemeColorKey, string>;
+          return colors[key] ?? colorValue;
         }
       }
       return colorValue;
