@@ -25,6 +25,9 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+# ad-hoc debug e2e tests (must never be committed; may contain real credentials)
+e2e/debug-*.test.ts
+
 # macOS
 .DS_Store
 *.pem
