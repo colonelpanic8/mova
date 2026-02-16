@@ -26,7 +26,9 @@ async function ensureActiveIdsLoaded(): Promise<void> {
       hasKnownActiveIds = false;
       return;
     }
-    activeNotificationIds = new Set(parsed.filter((x) => typeof x === "string"));
+    activeNotificationIds = new Set(
+      parsed.filter((x) => typeof x === "string"),
+    );
     hasKnownActiveIds = true;
   } catch {
     // Ignore storage corruption; fail-open.
@@ -75,6 +77,13 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   }
 
   return finalStatus === "granted";
+}
+
+// Non-interactive permission check (safe for background/auto sync).
+export async function hasNotificationPermission(): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+  const { status } = await Notifications.getPermissionsAsync();
+  return status === "granted";
 }
 
 export async function getNotificationsEnabled(): Promise<boolean> {
@@ -153,16 +162,35 @@ export async function scheduleNotificationsFromServer(
   const enabled = await getNotificationsEnabled();
   if (!enabled) return 0;
 
-  const hasPermission = await requestNotificationPermissions();
+  // Avoid prompting for permissions during background/auto sync.
+  const hasPermission = await hasNotificationPermission();
   if (!hasPermission) return 0;
-
-  // Cancel ALL existing notifications - server is source of truth
-  await cancelAllNotifications();
 
   const now = new Date();
 
-  // Update the set of active notification IDs
-  updateActiveNotificationIds(response.notifications);
+  // Sort by notifyAt so we prioritize the soonest notifications if we hit platform limits.
+  const desired = response.notifications
+    .map((notification, index) => {
+      const notifyAt = new Date(notification.notifyAt);
+      return { notification, index, notifyAt };
+    })
+    .filter((x) => Number.isFinite(x.notifyAt.getTime()))
+    .filter((x) => x.notifyAt.getTime() >= now.getTime())
+    .sort((a, b) => a.notifyAt.getTime() - b.notifyAt.getTime());
+
+  // iOS has a hard limit (64) on scheduled local notifications.
+  // Keep a little headroom to avoid edge cases and other notifications.
+  const maxToSchedule = Platform.OS === "ios" ? 60 : Number.POSITIVE_INFINITY;
+  const desiredLimited = desired.slice(0, maxToSchedule);
+
+  // Update the set of active base notification IDs (used for foreground suppression).
+  activeNotificationIds = new Set(
+    desiredLimited.map((x) =>
+      getNotificationIdentifier(x.notification, x.index),
+    ),
+  );
+  activeIdsLoadedFromStorage = true;
+  hasKnownActiveIds = true;
   try {
     await AsyncStorage.setItem(
       ACTIVE_NOTIFICATION_IDS_KEY,
@@ -172,13 +200,34 @@ export async function scheduleNotificationsFromServer(
     // Ignore storage failures; in-memory set still helps while app is running.
   }
 
-  let scheduledCount = 0;
+  // Incremental sync: cancel only what we don't want, schedule only what we’re missing.
+  const existing = await Notifications.getAllScheduledNotificationsAsync();
+  const existingIds = new Set(existing.map((n) => n.identifier));
 
-  for (let i = 0; i < response.notifications.length; i++) {
-    const notification = response.notifications[i];
-    const notifyAt = new Date(notification.notifyAt);
+  const desiredIds = new Set(
+    desiredLimited.map((x) => {
+      const baseId = getNotificationIdentifier(x.notification, x.index);
+      return `${baseId}:${x.notifyAt.getTime()}`;
+    }),
+  );
 
-    const identifier = `${getNotificationIdentifier(notification, i)}:${notifyAt.getTime()}`;
+  // Cancel obsolete scheduled notifications.
+  for (const existingNotification of existing) {
+    if (!desiredIds.has(existingNotification.identifier)) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(
+          existingNotification.identifier,
+        );
+      } catch {
+        // Ignore cancellation failures.
+      }
+    }
+  }
+
+  // Schedule missing notifications.
+  for (const { notification, index, notifyAt } of desiredLimited) {
+    const identifier = `${getNotificationIdentifier(notification, index)}:${notifyAt.getTime()}`;
+    if (existingIds.has(identifier)) continue;
 
     try {
       await Notifications.scheduleNotificationAsync({
@@ -201,7 +250,6 @@ export async function scheduleNotificationsFromServer(
         },
         identifier,
       });
-      scheduledCount++;
     } catch (err) {
       console.error(
         `[Notifications] Failed to schedule ${notification.title}:`,
@@ -213,7 +261,7 @@ export async function scheduleNotificationsFromServer(
   // Record sync time
   await AsyncStorage.setItem(LAST_SYNC_KEY, now.toISOString());
 
-  return scheduledCount;
+  return desiredLimited.length;
 }
 
 export async function getLastSyncTime(): Promise<Date | null> {
@@ -309,4 +357,73 @@ export function isNotificationActive(identifier: string): boolean {
   // Handle both "id:timestamp" and "file:pos:timestamp" formats
   const baseId = parts.length > 2 ? parts.slice(0, -1).join(":") : parts[0];
   return activeNotificationIds.has(baseId);
+}
+
+function getLocalDayBounds(date: Date): { start: Date; end: Date } {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  return { start, end };
+}
+
+function getBaseIdFromIdentifier(identifier: string): string {
+  const parts = identifier.split(":");
+  // Handle both "id:timestamp" and "file:pos:timestamp" formats
+  return parts.length > 2 ? parts.slice(0, -1).join(":") : parts[0];
+}
+
+export async function cancelScheduledNotificationsForTodoOnDate(
+  todo: { id?: string | null; file?: string | null; pos?: number | null },
+  date: Date,
+): Promise<number> {
+  if (Platform.OS === "web") return 0;
+
+  const { start, end } = getLocalDayBounds(date);
+  const todoBaseId =
+    todo.id ??
+    (todo.file && todo.pos != null ? `${todo.file}:${todo.pos}` : null);
+
+  const notifications = await Notifications.getAllScheduledNotificationsAsync();
+  let canceled = 0;
+
+  for (const n of notifications) {
+    const trigger = n.trigger as { value?: number; date?: Date };
+    const scheduledTime = trigger?.date
+      ? new Date(trigger.date)
+      : trigger?.value
+        ? new Date(trigger.value)
+        : null;
+    if (!scheduledTime) continue;
+    if (scheduledTime < start || scheduledTime >= end) continue;
+
+    const data = (n.content?.data ?? {}) as {
+      id?: string;
+      file?: string;
+      pos?: number;
+    };
+
+    const matchesByData =
+      (todo.id && data.id === todo.id) ||
+      (!todo.id &&
+        todo.file &&
+        todo.pos != null &&
+        data.file === todo.file &&
+        data.pos === todo.pos);
+
+    const matchesByIdentifier =
+      todoBaseId != null &&
+      getBaseIdFromIdentifier(n.identifier) === todoBaseId;
+
+    if (!matchesByData && !matchesByIdentifier) continue;
+
+    try {
+      await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      canceled++;
+    } catch {
+      // Ignore.
+    }
+  }
+
+  return canceled;
 }

@@ -6,10 +6,26 @@ import { useTemplates } from "@/context/TemplatesContext";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import { AgendaFilesResponse, VersionResponse } from "@/services/api";
 import {
+  getBackgroundSyncStatus,
+  isBackgroundSyncRegistered,
+  registerBackgroundSync,
+  unregisterBackgroundSync,
+} from "@/services/backgroundSync";
+import {
+  DEFAULT_NOTIFICATION_HORIZON_DAYS,
+  getNotificationHorizonDays,
+  setNotificationHorizonDays,
+} from "@/services/notificationHorizonConfig";
+import {
   getNotificationsEnabled,
   requestNotificationPermissions,
   setNotificationsEnabled,
 } from "@/services/notifications";
+import {
+  DEFAULT_SYNC_INTERVAL_MINUTES,
+  getNotificationSyncIntervalMinutes,
+  setNotificationSyncIntervalMinutes,
+} from "@/services/notificationSyncConfig";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -61,6 +77,20 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [backgroundSyncRegistered, setBackgroundSyncRegistered] = useState<
+    boolean | null
+  >(null);
+  const [backgroundSyncStatus, setBackgroundSyncStatus] = useState<
+    number | null
+  >(null);
+  const [syncIntervalMinutes, setSyncIntervalMinutesState] = useState<number>(
+    DEFAULT_SYNC_INTERVAL_MINUTES,
+  );
+  const [syncIntervalMenuVisible, setSyncIntervalMenuVisible] = useState(false);
+  const [horizonDays, setHorizonDaysState] = useState<number>(
+    DEFAULT_NOTIFICATION_HORIZON_DAYS,
+  );
+  const [horizonMenuVisible, setHorizonMenuVisible] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [backendVersion, setBackendVersion] = useState<VersionResponse | null>(
     null,
@@ -156,6 +186,42 @@ export default function SettingsScreen() {
     });
   }, []);
 
+  useEffect(() => {
+    getNotificationSyncIntervalMinutes()
+      .then(setSyncIntervalMinutesState)
+      .catch(() => {
+        // Keep default.
+      });
+  }, []);
+
+  useEffect(() => {
+    getNotificationHorizonDays()
+      .then(setHorizonDaysState)
+      .catch(() => {
+        // Keep default.
+      });
+  }, []);
+
+  const refreshBackgroundSyncInfo = useCallback(async () => {
+    try {
+      const [registered, status] = await Promise.all([
+        isBackgroundSyncRegistered(),
+        getBackgroundSyncStatus(),
+      ]);
+      setBackgroundSyncRegistered(registered);
+      // BackgroundFetchStatus is a numeric enum in expo-background-fetch.
+      setBackgroundSyncStatus(status as unknown as number | null);
+    } catch (e) {
+      console.error("Failed to fetch background sync status:", e);
+      setBackgroundSyncRegistered(null);
+      setBackgroundSyncStatus(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshBackgroundSyncInfo();
+  }, [refreshBackgroundSyncInfo]);
+
   // Function to check server connection and fetch version/files
   const checkConnection = useCallback(async () => {
     if (!api) return;
@@ -200,10 +266,43 @@ export default function SettingsScreen() {
       setNotificationsEnabledState(value);
       await setNotificationsEnabled(value);
       if (value) {
+        await registerBackgroundSync();
+        refreshBackgroundSyncInfo();
+        syncNotifications();
+      } else {
+        await unregisterBackgroundSync();
+        refreshBackgroundSyncInfo();
+      }
+    },
+    [syncNotifications, refreshBackgroundSyncInfo],
+  );
+
+  const handleSyncIntervalSelect = useCallback(
+    async (minutes: number) => {
+      const effective = await setNotificationSyncIntervalMinutes(minutes);
+      setSyncIntervalMinutesState(effective);
+      setSyncIntervalMenuVisible(false);
+
+      // Apply immediately to background fetch scheduling, when notifications are enabled.
+      if (notificationsEnabled) {
+        await registerBackgroundSync();
+        refreshBackgroundSyncInfo();
+      }
+    },
+    [notificationsEnabled, refreshBackgroundSyncInfo],
+  );
+
+  const handleHorizonSelect = useCallback(
+    async (days: number) => {
+      const effective = await setNotificationHorizonDays(days);
+      setHorizonDaysState(effective);
+      setHorizonMenuVisible(false);
+      if (notificationsEnabled) {
+        // Re-sync now so we have enough notifications scheduled ahead.
         syncNotifications();
       }
     },
-    [syncNotifications],
+    [notificationsEnabled, syncNotifications],
   );
 
   const formatLastSync = (date: Date | null): string => {
@@ -216,6 +315,20 @@ export default function SettingsScreen() {
     const diffHours = Math.floor(diffMins / 60);
     if (diffHours < 24) return `${diffHours} hr ago`;
     return date.toLocaleDateString();
+  };
+
+  const formatBackgroundSyncStatus = (status: number | null): string => {
+    if (status == null) return "Unknown";
+    switch (status) {
+      case 1:
+        return "Denied";
+      case 2:
+        return "Restricted";
+      case 3:
+        return "Available";
+      default:
+        return `Unknown (${status})`;
+    }
   };
 
   return (
@@ -275,6 +388,88 @@ export default function SettingsScreen() {
         {notificationsEnabled && (
           <>
             <List.Item
+              title="Sync Interval"
+              description={`Every ${syncIntervalMinutes} min (best-effort)`}
+              left={(props) => <List.Icon {...props} icon="timer-outline" />}
+              onPress={() => setSyncIntervalMenuVisible(true)}
+              right={() => (
+                <Menu
+                  visible={syncIntervalMenuVisible}
+                  onDismiss={() => setSyncIntervalMenuVisible(false)}
+                  anchor={
+                    <IconButton
+                      icon="chevron-down"
+                      onPress={() => setSyncIntervalMenuVisible(true)}
+                    />
+                  }
+                >
+                  <Menu.Item
+                    onPress={() => handleSyncIntervalSelect(15)}
+                    title="15 min"
+                  />
+                  <Menu.Item
+                    onPress={() => handleSyncIntervalSelect(30)}
+                    title="30 min"
+                  />
+                  <Menu.Item
+                    onPress={() => handleSyncIntervalSelect(60)}
+                    title="1 hour"
+                  />
+                  <Menu.Item
+                    onPress={() => handleSyncIntervalSelect(120)}
+                    title="2 hours"
+                  />
+                  <Menu.Item
+                    onPress={() => handleSyncIntervalSelect(240)}
+                    title="4 hours"
+                  />
+                  <Menu.Item
+                    onPress={() => handleSyncIntervalSelect(720)}
+                    title="12 hours"
+                  />
+                </Menu>
+              )}
+            />
+            <List.Item
+              title="Schedule Ahead"
+              description={`${horizonDays} day${horizonDays === 1 ? "" : "s"} (limited by OS)`}
+              left={(props) => <List.Icon {...props} icon="calendar-range" />}
+              onPress={() => setHorizonMenuVisible(true)}
+              right={() => (
+                <Menu
+                  visible={horizonMenuVisible}
+                  onDismiss={() => setHorizonMenuVisible(false)}
+                  anchor={
+                    <IconButton
+                      icon="chevron-down"
+                      onPress={() => setHorizonMenuVisible(true)}
+                    />
+                  }
+                >
+                  <Menu.Item
+                    onPress={() => handleHorizonSelect(1)}
+                    title="1 day"
+                  />
+                  <Menu.Item
+                    onPress={() => handleHorizonSelect(3)}
+                    title="3 days"
+                  />
+                  <Menu.Item
+                    onPress={() => handleHorizonSelect(7)}
+                    title="7 days"
+                  />
+                  <Menu.Item
+                    onPress={() => handleHorizonSelect(14)}
+                    title="14 days"
+                  />
+                  <Menu.Item
+                    onPress={() => handleHorizonSelect(30)}
+                    title="30 days"
+                  />
+                </Menu>
+              )}
+            />
+            <List.Item
               title="Scheduled Notifications"
               description={`${scheduledCount} upcoming`}
               left={(props) => <List.Icon {...props} icon="calendar-clock" />}
@@ -294,6 +489,16 @@ export default function SettingsScreen() {
                   </Button>
                 )
               }
+            />
+            <List.Item
+              title="Background Sync"
+              description={`${backgroundSyncRegistered === null ? "Unknown" : backgroundSyncRegistered ? "Registered" : "Not registered"} · ${formatBackgroundSyncStatus(backgroundSyncStatus)}`}
+              left={(props) => <List.Icon {...props} icon="clock-outline" />}
+              right={() => (
+                <Button mode="text" onPress={refreshBackgroundSyncInfo} compact>
+                  Refresh
+                </Button>
+              )}
             />
           </>
         )}
