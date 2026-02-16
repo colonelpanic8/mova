@@ -504,8 +504,28 @@ export class OrgAgendaApi {
     return this.request<GetAllTodosResponse>("/get-all-todos");
   }
 
-  async getNotifications(): Promise<NotificationsResponse> {
-    return this.request<NotificationsResponse>("/notifications");
+  async getNotifications(
+    options: { withinMinutes?: number } = {},
+  ): Promise<NotificationsResponse> {
+    const { withinMinutes } = options;
+    if (withinMinutes == null) {
+      return this.request<NotificationsResponse>("/notifications");
+    }
+
+    const params = new URLSearchParams();
+    params.append("within_minutes", String(withinMinutes));
+    try {
+      return this.request<NotificationsResponse>(
+        `/notifications?${params.toString()}`,
+      );
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      // Backwards-compatible fallback if the backend doesn't support within_minutes.
+      if (message.match(/API error: 4\d\d/)) {
+        return this.request<NotificationsResponse>("/notifications");
+      }
+      throw e;
+    }
   }
 
   async completeTodo(

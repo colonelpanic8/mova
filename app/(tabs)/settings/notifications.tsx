@@ -1,5 +1,10 @@
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import {
+  BackgroundSyncAttempt,
+  clearBackgroundSyncAttempts,
+  getBackgroundSyncAttempts,
+} from "@/services/backgroundSync";
+import {
   getAllScheduledNotifications,
   ScheduledNotificationInfo,
 } from "@/services/notifications";
@@ -129,7 +134,9 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<
     ScheduledNotificationInfo[]
   >([]);
+  const [attempts, setAttempts] = useState<BackgroundSyncAttempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearingAttempts, setClearingAttempts] = useState(false);
   const { syncNotifications, isSyncing, syncError } = useNotificationSync({
     autoSync: false,
     syncOnForeground: false,
@@ -140,8 +147,12 @@ export default function NotificationsScreen() {
   const loadNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const notifs = await getAllScheduledNotifications();
+      const [notifs, attemptLog] = await Promise.all([
+        getAllScheduledNotifications(),
+        getBackgroundSyncAttempts(40),
+      ]);
       setNotifications(notifs);
+      setAttempts(attemptLog);
     } catch (error) {
       console.error("Failed to load notifications:", error);
     } finally {
@@ -157,6 +168,16 @@ export default function NotificationsScreen() {
     await syncNotifications();
     await loadNotifications();
   }, [syncNotifications, loadNotifications]);
+
+  const handleClearAttempts = useCallback(async () => {
+    setClearingAttempts(true);
+    try {
+      await clearBackgroundSyncAttempts();
+      await loadNotifications();
+    } finally {
+      setClearingAttempts(false);
+    }
+  }, [loadNotifications]);
 
   if (loading) {
     return (
@@ -339,6 +360,87 @@ export default function NotificationsScreen() {
               </Card.Content>
             </Card>
           ))}
+        </View>
+      )}
+
+      <Divider style={{ marginTop: 8 }} />
+      <View style={styles.header}>
+        <Text variant="titleMedium">Background Sync Attempts</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Button mode="text" onPress={loadNotifications} compact>
+            Refresh
+          </Button>
+          <Button
+            mode="text"
+            onPress={handleClearAttempts}
+            compact
+            loading={clearingAttempts}
+            disabled={clearingAttempts}
+          >
+            Clear
+          </Button>
+        </View>
+      </View>
+      {attempts.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <List.Icon icon="history" />
+          <Text variant="bodyLarge" style={styles.emptyText}>
+            No background attempt logs yet
+          </Text>
+          <Text
+            variant="bodySmall"
+            style={[styles.emptySubtext, { color: theme.colors.outline }]}
+          >
+            Entries appear when background register/unregister/task runs happen
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.listContainer}>
+          {attempts.map((attempt, index) => {
+            const color =
+              attempt.result === "success"
+                ? theme.colors.primary
+                : attempt.result === "failed"
+                  ? theme.colors.error
+                  : theme.colors.tertiary;
+            return (
+              <Card
+                key={`${attempt.timestamp}-${attempt.source}-${attempt.result}-${index}`}
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.colors.surfaceVariant },
+                ]}
+                mode="contained"
+              >
+                <Card.Content style={styles.cardContent}>
+                  <View style={styles.cardMain}>
+                    <Text variant="titleSmall" style={styles.notificationTitle}>
+                      {attempt.source} · {attempt.result}
+                    </Text>
+                    <Text
+                      variant="bodySmall"
+                      style={{ color: theme.colors.outline }}
+                    >
+                      {formatFullDateTime(new Date(attempt.timestamp))}
+                    </Text>
+                    {attempt.reason ? (
+                      <Text variant="bodySmall" style={{ color }}>
+                        reason: {attempt.reason}
+                      </Text>
+                    ) : null}
+                    {attempt.details ? (
+                      <Text
+                        variant="bodySmall"
+                        style={{ color: theme.colors.outline }}
+                      >
+                        {attempt.details}
+                      </Text>
+                    ) : null}
+                  </View>
+                </Card.Content>
+              </Card>
+            );
+          })}
         </View>
       )}
     </ScrollView>

@@ -8,6 +8,11 @@ import {
   TodoStatesResponse,
   TodoUpdates,
 } from "@/services/api";
+import { getNotificationHorizonMinutes } from "@/services/notificationHorizonConfig";
+import {
+  cancelScheduledNotificationsForTodoOnDate,
+  scheduleNotificationsFromServer,
+} from "@/services/notifications";
 import { formatLocalDate, formatLocalDateTime } from "@/utils/dateFormatting";
 import { dateToTimestamp, timestampToDate } from "@/utils/timestampConversion";
 import { getTodoKey } from "@/utils/todoKey";
@@ -353,6 +358,29 @@ export function useTodoEditing(
         );
 
         if (result.status === "completed") {
+          const completionDay = overrideDate ?? new Date();
+          try {
+            await cancelScheduledNotificationsForTodoOnDate(
+              editingTodo,
+              completionDay,
+            );
+          } catch (e) {
+            console.error(
+              "[Notifications] Failed to cancel completed todo notifications:",
+              e,
+            );
+          }
+          // Best-effort resync to keep repeating items/future occurrences correct.
+          void (async () => {
+            try {
+              const withinMinutes = await getNotificationHorizonMinutes();
+              const response = await api.getNotifications({ withinMinutes });
+              await scheduleNotificationsFromServer(response);
+            } catch {
+              // Ignore; local cancellation above handles "don't fire later today".
+            }
+          })();
+
           const dateMsg = overrideDate
             ? ` (as of ${formatLocalDate(overrideDate)})`
             : "";
@@ -417,6 +445,28 @@ export function useTodoEditing(
         const result = await api.setTodoState(todo, state, overrideDateStr);
 
         if (result.status === "completed") {
+          const completionDay = overrideDate ?? new Date();
+          try {
+            await cancelScheduledNotificationsForTodoOnDate(
+              todo,
+              completionDay,
+            );
+          } catch (e) {
+            console.error(
+              "[Notifications] Failed to cancel completed todo notifications:",
+              e,
+            );
+          }
+          void (async () => {
+            try {
+              const withinMinutes = await getNotificationHorizonMinutes();
+              const response = await api.getNotifications({ withinMinutes });
+              await scheduleNotificationsFromServer(response);
+            } catch {
+              // Ignore.
+            }
+          })();
+
           const dateMsg = overrideDate
             ? ` (${formatLocalDate(overrideDate)})`
             : "";
