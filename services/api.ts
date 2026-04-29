@@ -1,5 +1,10 @@
 import { base64Encode } from "@/utils/base64";
 import { normalizeUrl } from "@/utils/url";
+import {
+  buildConfigIdentityKey,
+  CONFIG_HASH_HEADER,
+  observeConfigHash,
+} from "./configMetadata";
 
 export type RepeaterType = "+" | "++" | ".+";
 export type RepeaterUnit = "d" | "w" | "m" | "y";
@@ -367,6 +372,7 @@ export interface ApiClientOptions {
 export class OrgAgendaApi {
   private readonly baseUrl: string;
   private readonly authHeader: string;
+  private readonly clientIdentityKey: string;
   private readonly onUnauthorized: (() => void) | null;
 
   constructor(
@@ -377,6 +383,7 @@ export class OrgAgendaApi {
   ) {
     this.baseUrl = normalizeUrl(baseUrl);
     this.authHeader = `Basic ${base64Encode(`${username}:${password}`)}`;
+    this.clientIdentityKey = buildConfigIdentityKey(this.baseUrl, username);
     this.onUnauthorized = options.onUnauthorized || null;
   }
 
@@ -427,7 +434,22 @@ export class OrgAgendaApi {
         const text = await response.text();
 
         try {
-          return JSON.parse(text);
+          const parsed = JSON.parse(text);
+          const headerConfigHash = response.headers?.get?.(CONFIG_HASH_HEADER);
+          const bodyConfigHash =
+            parsed &&
+            typeof parsed === "object" &&
+            "configHash" in parsed &&
+            typeof parsed.configHash === "string"
+              ? parsed.configHash
+              : null;
+
+          observeConfigHash(
+            this.clientIdentityKey,
+            headerConfigHash ?? bodyConfigHash,
+          );
+
+          return parsed;
         } catch (parseError) {
           console.error("[API] JSON parse error", {
             url,
