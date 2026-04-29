@@ -1,4 +1,6 @@
 /** @type {import('jest').Config} */
+const ignoredProjectPaths = ["<rootDir>/.worktrees/"];
+
 module.exports = {
   projects: [
     // Unit tests - pure Node.js environment
@@ -6,6 +8,8 @@ module.exports = {
       displayName: "unit",
       testEnvironment: "node",
       testMatch: ["<rootDir>/tests/unit/**/*.test.ts"],
+      modulePathIgnorePatterns: ignoredProjectPaths,
+      testPathIgnorePatterns: ignoredProjectPaths,
       transform: {
         "^.+\\.tsx?$": ["ts-jest", { tsconfig: "tsconfig.json" }],
       },
@@ -18,6 +22,8 @@ module.exports = {
       displayName: "integration",
       testEnvironment: "node",
       testMatch: ["<rootDir>/tests/integration/**/*.test.ts"],
+      modulePathIgnorePatterns: ignoredProjectPaths,
+      testPathIgnorePatterns: ignoredProjectPaths,
       transform: {
         "^.+\\.tsx?$": ["ts-jest", { tsconfig: "tsconfig.json" }],
       },
@@ -36,6 +42,8 @@ module.exports = {
       displayName: "components",
       preset: "jest-expo",
       testMatch: ["<rootDir>/tests/components/**/*.test.tsx"],
+      modulePathIgnorePatterns: ignoredProjectPaths,
+      testPathIgnorePatterns: ignoredProjectPaths,
       setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
       transformIgnorePatterns: [
         "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-paper)",

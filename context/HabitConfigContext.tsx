@@ -15,6 +15,7 @@ interface HabitConfigContextType {
     nextRequired: string;
   };
   refetch: () => Promise<void>;
+  ensureFresh: () => Promise<void>;
 }
 
 const DEFAULT_GLYPHS = {
@@ -29,7 +30,13 @@ const HabitConfigContext = createContext<HabitConfigContextType | undefined>(
 
 export function HabitConfigProvider({ children }: { children: ReactNode }) {
   // Get habitConfig from TemplatesContext (loaded via /metadata endpoint)
-  const { habitConfig, isLoading, error, reloadTemplates } = useTemplates();
+  const {
+    habitConfig,
+    isLoading,
+    error,
+    reloadTemplates,
+    ensureFreshTemplates,
+  } = useTemplates();
   // Get colors from ColorPalette (user-customizable)
   const { getHabitColors } = useColorPalette();
 
@@ -55,6 +62,7 @@ export function HabitConfigProvider({ children }: { children: ReactNode }) {
         colors,
         glyphs,
         refetch: reloadTemplates,
+        ensureFresh: ensureFreshTemplates,
       }}
     >
       {children}
