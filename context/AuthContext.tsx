@@ -142,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (apiUrl && username && password) {
+        await saveCredentialsToWidget(apiUrl, username, password);
         setState({
           apiUrl,
           username,
@@ -299,6 +300,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (id === activeServerId && state.isAuthenticated) {
       const updated = await findServerById(id);
       if (updated) {
+        await saveCredentialsToWidget(
+          updated.apiUrl,
+          updated.username,
+          updated.password,
+        );
         setState((prev) => ({
           ...prev,
           apiUrl: updated.apiUrl,
