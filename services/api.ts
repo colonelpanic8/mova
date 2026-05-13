@@ -367,6 +367,31 @@ export interface MetadataResponse {
 
 export interface ApiClientOptions {
   onUnauthorized?: () => void;
+  /**
+   * Request timeout (ms). Applies to each attempt (including retries).
+   * Default: 15000ms.
+   */
+  timeoutMs?: number;
+  /**
+   * Maximum number of attempts for retryable failures.
+   * Default: 2.
+   */
+  maxAttempts?: number;
+  /**
+   * Base delay (ms) for retry backoff.
+   * Default: 500ms.
+   */
+  retryBaseDelayMs?: number;
+}
+
+class ApiError extends Error {
+  public readonly status: number;
+
+  constructor(status: number) {
+    super(`API error: ${status}`);
+    this.name = "ApiError";
+    this.status = status;
+  }
 }
 
 export class OrgAgendaApi {
@@ -374,6 +399,9 @@ export class OrgAgendaApi {
   private readonly authHeader: string;
   private readonly clientIdentityKey: string;
   private readonly onUnauthorized: (() => void) | null;
+  private readonly timeoutMs: number;
+  private readonly maxAttempts: number;
+  private readonly retryBaseDelayMs: number;
 
   constructor(
     baseUrl: string,
@@ -385,6 +413,9 @@ export class OrgAgendaApi {
     this.authHeader = `Basic ${base64Encode(`${username}:${password}`)}`;
     this.clientIdentityKey = buildConfigIdentityKey(this.baseUrl, username);
     this.onUnauthorized = options.onUnauthorized || null;
+    this.timeoutMs = options.timeoutMs ?? 15_000;
+    this.maxAttempts = options.maxAttempts ?? 2;
+    this.retryBaseDelayMs = options.retryBaseDelayMs ?? 500;
   }
 
   private async request<T>(
@@ -404,12 +435,43 @@ export class OrgAgendaApi {
     }
 
     let lastError: Error | null = null;
-    const maxAttempts = 2;
+    const maxAttempts = this.maxAttempts;
+
+    const isRetryableStatus = (status: number): boolean => {
+      if (status === 408) return true; // Request Timeout
+      if (status === 429) return true; // Too Many Requests
+      if (status >= 500 && status <= 599) return true; // Server errors
+      return false;
+    };
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      let didTimeout = false;
+      let outerAbortListener: (() => void) | null = null;
+
       try {
+        // Support both caller-provided abort signal and an internal timeout.
+        const controller = new AbortController();
+        const outerSignal = options.signal;
+        if (outerSignal) {
+          if (outerSignal.aborted) {
+            controller.abort(outerSignal.reason);
+          } else {
+            outerAbortListener = () => controller.abort(outerSignal.reason);
+            outerSignal.addEventListener("abort", outerAbortListener);
+          }
+        }
+
+        if (this.timeoutMs > 0) {
+          timeoutId = setTimeout(() => {
+            didTimeout = true;
+            controller.abort(new Error("Request timed out"));
+          }, this.timeoutMs);
+        }
+
         const response = await fetch(url, {
           ...options,
+          signal: controller.signal,
           headers: {
             Authorization: this.authHeader,
             "Content-Type": "application/json",
@@ -420,15 +482,16 @@ export class OrgAgendaApi {
         });
 
         if (!response.ok) {
-          // Don't retry client errors (4xx) - they won't succeed on retry
+          // Don't retry most client errors (4xx) - they won't succeed on retry.
+          // Exception: 408/429 are often transient/retryable.
           if (response.status >= 400 && response.status < 500) {
             if (response.status === 401 && this.onUnauthorized) {
               this.onUnauthorized();
             }
-            throw new Error(`API error: ${response.status}`);
+            throw new ApiError(response.status);
           }
           // Server errors (5xx) are retryable
-          throw new Error(`API error: ${response.status}`);
+          throw new ApiError(response.status);
         }
 
         const text = await response.text();
@@ -460,15 +523,34 @@ export class OrgAgendaApi {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        // Don't retry client errors (4xx)
-        if (lastError.message.match(/API error: 4\d\d/)) {
+        // Don't retry if the caller explicitly aborted.
+        if (options.signal?.aborted) {
           throw lastError;
+        }
+
+        // Don't retry most client errors (4xx).
+        if (lastError instanceof ApiError) {
+          if (!isRetryableStatus(lastError.status)) {
+            throw lastError;
+          }
         }
 
         // If we have retries left, wait briefly and try again
         if (attempt < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          // Exponential-ish backoff with cap.
+          const base = this.retryBaseDelayMs;
+          const delay = Math.min(4000, base * attempt);
+          // If we timed out, a slightly longer delay tends to reduce thrash.
+          const finalDelay = didTimeout ? Math.min(6000, delay * 2) : delay;
+          await new Promise((resolve) => setTimeout(resolve, finalDelay));
           continue;
+        }
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        if (outerAbortListener && options.signal) {
+          options.signal.removeEventListener("abort", outerAbortListener);
         }
       }
     }
