@@ -7,6 +7,7 @@ import { MutationProvider } from "@/context/MutationContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { TemplatesProvider } from "@/context/TemplatesContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
+import { useNotificationSync } from "@/hooks/useNotificationSync";
 import { getTheme } from "@/theme";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -29,6 +30,10 @@ function RootLayoutNav() {
 
   // Handle deep links (mova://create, mova://complete, etc.)
   useDeepLinks();
+
+  // Keep notifications synced for authenticated users even when navigating
+  // outside the tabs stack (e.g. /edit, /body-editor).
+  useNotificationSync();
 
   useEffect(() => {
     if (isLoading) return;
