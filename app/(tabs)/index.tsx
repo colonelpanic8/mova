@@ -8,6 +8,7 @@ import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useMutationVersionEffect } from "@/hooks/useMutationVersionEffect";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
   AgendaEntry,
@@ -171,7 +172,7 @@ export default function AgendaScreen() {
   const { groupByCategory, multiDayRangeLength, multiDayPastDays } =
     useSettings();
   const { getCategoryColor } = useColorPalette();
-  const isInitialMount = useRef(true);
+  const requestIdRef = useRef(0);
   const { width } = useWindowDimensions();
   const useCompactDate = width < 400;
 
@@ -569,6 +570,7 @@ export default function AgendaScreen() {
       if (!api) {
         return;
       }
+      const requestId = ++requestIdRef.current;
 
       try {
         const dateString = formatDateForApi(date);
@@ -589,6 +591,7 @@ export default function AgendaScreen() {
             api.getTodoStates().catch(() => null),
             api.getAllHabitStatuses(14, 14).catch(() => null),
           ]);
+        if (requestId !== requestIdRef.current) return;
         // Convert multi-day response to single-day format
         const entries = multiDayData.days[dateString] || [];
         const agendaData: SingleDayAgendaResponse = {
@@ -615,6 +618,7 @@ export default function AgendaScreen() {
         }
         setError(null);
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         console.error("Failed to load agenda:", err);
         setError("Failed to load agenda");
       }
@@ -627,6 +631,7 @@ export default function AgendaScreen() {
       if (!api) {
         return;
       }
+      const requestId = ++requestIdRef.current;
 
       try {
         const startDateString = formatDateForApi(startDate);
@@ -647,6 +652,7 @@ export default function AgendaScreen() {
             api.getTodoStates().catch(() => null),
             api.getAllHabitStatuses(14, 14).catch(() => null),
           ]);
+        if (requestId !== requestIdRef.current) return;
         setMultiDayData(multiDayAgendaData);
         if (statesData) {
           setTodoStates(statesData);
@@ -666,6 +672,7 @@ export default function AgendaScreen() {
         }
         setError(null);
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         console.error("Failed to load multi-day agenda:", err);
         setError("Failed to load multi-day agenda");
       }
@@ -699,18 +706,17 @@ export default function AgendaScreen() {
   ]);
 
   // Refetch when mutations happen elsewhere
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    if (viewMode === "multiday") {
-      fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
-    } else {
-      fetchAgenda(selectedDate, showCompleted);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutationVersion]);
+  useMutationVersionEffect(
+    mutationVersion,
+    () => {
+      if (viewMode === "multiday") {
+        fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
+      } else {
+        fetchAgenda(selectedDate, showCompleted);
+      }
+    },
+    { skipInitial: true },
+  );
 
   const goToPrevious = useCallback(() => {
     const newDate = new Date(selectedDate);

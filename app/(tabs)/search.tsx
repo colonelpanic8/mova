@@ -4,6 +4,7 @@ import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
+import { useMutationVersionEffect } from "@/hooks/useMutationVersionEffect";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { Todo, TodoStatesResponse } from "@/services/api";
 import { filterTodos } from "@/utils/filterTodos";
@@ -36,7 +37,7 @@ export default function SearchScreen() {
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
-  const isInitialMount = useRef(true);
+  const requestIdRef = useRef(0);
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
@@ -50,12 +51,14 @@ export default function SearchScreen() {
 
   const fetchTodos = useCallback(async () => {
     if (!api) return;
+    const requestId = ++requestIdRef.current;
 
     try {
       const [todosResponse, statesResponse] = await Promise.all([
         api.getAllTodos(),
         api.getTodoStates().catch(() => null),
       ]);
+      if (requestId !== requestIdRef.current) return;
       setTodos(todosResponse.todos);
       setFilteredTodos(todosResponse.todos);
       if (statesResponse) {
@@ -63,6 +66,7 @@ export default function SearchScreen() {
       }
       setError(null);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError("Failed to load todos");
       console.error(err);
     }
@@ -73,14 +77,13 @@ export default function SearchScreen() {
   }, [fetchTodos]);
 
   // Refetch when mutations happen elsewhere
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    fetchTodos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutationVersion]);
+  useMutationVersionEffect(
+    mutationVersion,
+    () => {
+      fetchTodos();
+    },
+    { skipInitial: true },
+  );
 
   useEffect(() => {
     // First apply context filters
