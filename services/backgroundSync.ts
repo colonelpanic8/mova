@@ -1,3 +1,4 @@
+import { getStoredCredentials } from "@/utils/authStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { getNotificationHorizonMinutes } from "./notificationHorizonConfig";
@@ -7,23 +8,7 @@ const BACKGROUND_SYNC_TASK = "MOVA_BACKGROUND_SYNC";
 const BACKGROUND_SYNC_ATTEMPTS_KEY = "mova_background_sync_attempts_v1";
 const MAX_BACKGROUND_SYNC_ATTEMPTS = 100;
 
-// Storage keys for credentials (must match AuthContext STORAGE_KEYS)
-const API_URL_KEY = "mova_api_url";
-const USERNAME_KEY = "mova_username";
-const PASSWORD_KEY = "mova_password";
-
-async function getStoredCredentials(): Promise<{
-  apiUrl: string | null;
-  username: string | null;
-  password: string | null;
-}> {
-  const [apiUrl, username, password] = await Promise.all([
-    AsyncStorage.getItem(API_URL_KEY),
-    AsyncStorage.getItem(USERNAME_KEY),
-    AsyncStorage.getItem(PASSWORD_KEY),
-  ]);
-  return { apiUrl, username, password };
-}
+// Credentials are stored via utils/authStorage (secure store + legacy migration).
 
 export interface BackgroundSyncAttempt {
   timestamp: string;

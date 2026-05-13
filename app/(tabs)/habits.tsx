@@ -6,10 +6,18 @@ import { useHabitConfig } from "@/context/HabitConfigContext";
 import { useMutation } from "@/context/MutationContext";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { HabitStatus, Todo } from "@/services/api";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   FlatList,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -28,6 +36,7 @@ const TODAY_CELL_EXTRA = 4;
 const CELL_GAP = 3;
 const GRAPH_OUTER_PADDING = 6;
 const ITEM_CONTAINER_PADDING = 12;
+const INITIAL_LOAD_RETRY_DELAY_MS = 750;
 
 interface HabitStats {
   remainingToday: number;
@@ -98,6 +107,7 @@ export default function HabitsScreen() {
     config,
     isLoading: configLoading,
     refetch: refetchConfig,
+    ensureFresh: ensureFreshConfig,
   } = useHabitConfig();
   const { mutationVersion } = useMutation();
   const { width: screenWidth } = useWindowDimensions();
@@ -106,7 +116,14 @@ export default function HabitsScreen() {
     Map<string, HabitStatus>
   >(new Map());
   const [isLoading, setIsLoading] = useState(false);
-  const [, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const hasLoadedHabitsRef = useRef(false);
+  const latestLoadIdRef = useRef(0);
+  const activeLoadRef = useRef<{
+    key: string;
+    promise: Promise<void>;
+    token: object;
+  } | null>(null);
 
   // Calculate preceding/following based on screen width (same logic as HabitItem)
   const { preceding, following } = useMemo(() => {
@@ -122,51 +139,145 @@ export default function HabitsScreen() {
     return { preceding, following };
   }, [screenWidth]);
 
-  const loadHabits = useCallback(async () => {
-    if (!api) return;
-
-    setIsLoading(true);
+  useEffect(() => {
+    setHabits([]);
+    setHabitStatusMap(new Map());
     setError(null);
-    try {
-      // Fetch todos and statuses in parallel, but don't let a status failure
-      // blank the entire habits list.
-      const [todosResponse, habitStatusesResponse] = await Promise.all([
-        api.getAllTodos(),
-        api.getAllHabitStatuses(preceding, following).catch((err) => {
-          console.warn("Failed to load habit statuses:", err);
-          return null;
-        }),
-      ]);
+    setIsLoading(false);
+    hasLoadedHabitsRef.current = false;
+    activeLoadRef.current = null;
+  }, [api]);
 
-      const habitTodos = todosResponse.todos.filter(
-        (todo) => todo.isWindowHabit || todo.properties?.STYLE === "habit",
-      );
-      setHabits(habitTodos);
+  const loadHabits = useCallback(
+    async (options: { force?: boolean } = {}) => {
+      if (!api) return;
 
-      // Build a map of habit id -> status for quick lookup
+      const requestKey = `${preceding}:${following}`;
       if (
-        habitStatusesResponse?.status === "ok" &&
-        habitStatusesResponse.habits
+        !options.force &&
+        activeLoadRef.current?.key === requestKey &&
+        activeLoadRef.current.promise
       ) {
-        const statusMap = new Map<string, HabitStatus>();
-        for (const status of habitStatusesResponse.habits) {
-          if (status.id) {
-            statusMap.set(status.id, status);
+        return activeLoadRef.current.promise;
+      }
+
+      const loadId = latestLoadIdRef.current + 1;
+      latestLoadIdRef.current = loadId;
+      const requestToken = {};
+
+      const fetchHabitData = async () => {
+        const [todosResponse, habitStatusesResponse] = await Promise.all([
+          api.getAllTodos(),
+          api.getAllHabitStatuses(preceding, following).catch((err) => {
+            console.warn("Failed to load habit statuses:", err);
+            return null;
+          }),
+        ]);
+
+        const habitTodos = todosResponse.todos.filter(
+          (todo) => todo.isWindowHabit || todo.properties?.STYLE === "habit",
+        );
+
+        let nextStatusMap: Map<string, HabitStatus> | null = null;
+        if (
+          habitStatusesResponse?.status === "ok" &&
+          habitStatusesResponse.habits
+        ) {
+          nextStatusMap = new Map<string, HabitStatus>();
+          for (const status of habitStatusesResponse.habits) {
+            if (status.id) {
+              nextStatusMap.set(status.id, status);
+            }
           }
         }
-        setHabitStatusMap(statusMap);
-      }
-    } catch (err) {
-      console.error("Failed to load habits:", err);
-      setError("Failed to load habits");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [api, preceding, following]);
+
+        return { habitTodos, statusMap: nextStatusMap };
+      };
+
+      const run = (async () => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+          let result;
+          try {
+            result = await fetchHabitData();
+          } catch (firstError) {
+            if (hasLoadedHabitsRef.current) {
+              throw firstError;
+            }
+
+            await new Promise((resolve) =>
+              setTimeout(resolve, INITIAL_LOAD_RETRY_DELAY_MS),
+            );
+            result = await fetchHabitData();
+          }
+
+          if (
+            latestLoadIdRef.current !== loadId ||
+            activeLoadRef.current?.token !== requestToken
+          ) {
+            return;
+          }
+
+          setHabits(result.habitTodos);
+          if (result.statusMap) {
+            setHabitStatusMap(result.statusMap);
+          }
+          hasLoadedHabitsRef.current = true;
+          setError(null);
+        } catch (err) {
+          if (
+            latestLoadIdRef.current !== loadId ||
+            activeLoadRef.current?.token !== requestToken
+          ) {
+            return;
+          }
+
+          console.error("Failed to load habits:", err);
+          setError("Failed to load habits");
+        } finally {
+          if (activeLoadRef.current?.token === requestToken) {
+            setIsLoading(false);
+            activeLoadRef.current = null;
+          }
+        }
+      })();
+
+      activeLoadRef.current = {
+        key: requestKey,
+        promise: run,
+        token: requestToken,
+      };
+      return run;
+    },
+    [api, preceding, following],
+  );
+
+  const refreshHabits = useCallback(
+    () => loadHabits({ force: true }),
+    [loadHabits],
+  );
 
   useEffect(() => {
-    loadHabits();
+    if (config?.enabled === false) {
+      return;
+    }
+
+    void loadHabits();
   }, [loadHabits, mutationVersion, config?.enabled]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (config?.enabled === false) {
+        return;
+      }
+
+      void ensureFreshConfig().finally(() => {
+        void loadHabits();
+      });
+    }, [config?.enabled, ensureFreshConfig, loadHabits]),
+  );
 
   const stats = useMemo((): HabitStats => {
     const remainingToday = habits.filter(
@@ -196,15 +307,25 @@ export default function HabitsScreen() {
       <HabitItem
         todo={item}
         habitStatus={item.id ? habitStatusMap.get(item.id) : undefined}
-        onRefreshNeeded={loadHabits}
+        onRefreshNeeded={refreshHabits}
       />
     ),
-    [habitStatusMap, loadHabits],
+    [habitStatusMap, refreshHabits],
   );
 
   const keyExtractor = useCallback((item: Todo) => getTodoKey(item), []);
 
   if (configLoading) {
+    return (
+      <ScreenContainer>
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (isLoading && habits.length === 0) {
     return (
       <ScreenContainer>
         <View style={styles.emptyState}>
@@ -263,6 +384,40 @@ export default function HabitsScreen() {
     );
   }
 
+  if (error && habits.length === 0) {
+    return (
+      <ScreenContainer>
+        <ScrollView
+          contentContainerStyle={styles.errorState}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={refreshHabits} />
+          }
+        >
+          <Text
+            variant="bodyLarge"
+            style={{ color: theme.colors.error, marginBottom: 8 }}
+          >
+            {error}
+          </Text>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}
+          >
+            Pull to refresh or tap retry.
+          </Text>
+          <Button
+            mode="outlined"
+            onPress={refreshHabits}
+            loading={isLoading}
+            icon="refresh"
+          >
+            Retry
+          </Button>
+        </ScrollView>
+      </ScreenContainer>
+    );
+  }
+
   return (
     <TodoEditingProvider>
       <ScreenContainer>
@@ -284,7 +439,7 @@ export default function HabitsScreen() {
             ) : null
           }
           refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={loadHabits} />
+            <RefreshControl refreshing={isLoading} onRefresh={refreshHabits} />
           }
           contentContainerStyle={styles.listContent}
         />
@@ -318,6 +473,12 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorState: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,

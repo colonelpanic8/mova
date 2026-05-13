@@ -4,6 +4,7 @@ import { getTodoKey, TodoItem } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
+import { useMutationVersionEffect } from "@/hooks/useMutationVersionEffect";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
   CustomView,
@@ -41,7 +42,7 @@ export default function ViewsScreen() {
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
-  const isInitialMount = useRef(true);
+  const requestIdRef = useRef(0);
 
   // Apply filters to view entries
   const filteredEntries = selectedView
@@ -67,18 +68,21 @@ export default function ViewsScreen() {
 
   const fetchViews = useCallback(async () => {
     if (!api) return;
+    const requestId = ++requestIdRef.current;
 
     try {
       const [viewsData, statesData] = await Promise.all([
         api.getCustomViews(),
         api.getTodoStates().catch(() => null),
       ]);
+      if (requestId !== requestIdRef.current) return;
       setViews(viewsData.views);
       if (statesData) {
         setTodoStates(statesData);
       }
       setError(null);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError("Failed to load views");
       console.error(err);
     }
@@ -87,17 +91,22 @@ export default function ViewsScreen() {
   const fetchViewEntries = useCallback(
     async (key: string) => {
       if (!api) return;
+      const requestId = ++requestIdRef.current;
 
       setLoading(true);
       try {
         const viewData = await api.getCustomView(key);
+        if (requestId !== requestIdRef.current) return;
         setSelectedView(viewData);
         setError(null);
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         setError("Failed to load view entries");
         console.error(err);
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     },
     [api],
@@ -108,18 +117,17 @@ export default function ViewsScreen() {
   }, [fetchViews]);
 
   // Refetch when mutations happen elsewhere
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    if (selectedView) {
-      fetchViewEntries(selectedView.key);
-    } else {
-      fetchViews();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutationVersion]);
+  useMutationVersionEffect(
+    mutationVersion,
+    () => {
+      if (selectedView) {
+        fetchViewEntries(selectedView.key);
+      } else {
+        fetchViews();
+      }
+    },
+    { skipInitial: true },
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
