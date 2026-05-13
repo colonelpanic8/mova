@@ -1,0 +1,41 @@
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+
+def packageJson = new groovy.json.JsonSlurper().parse(file("../../package.json"))
+
+android {
+    namespace "com.colonelpanic.mova.wear"
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        applicationId "com.colonelpanic.mova"
+        minSdkVersion 26
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName packageJson.version
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file("../app/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+}
+
+dependencies {
+    implementation("com.google.android.gms:play-services-wearable:20.0.1")
+}

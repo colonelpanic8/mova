@@ -1,7 +1,7 @@
 import { NativeModules, Platform } from "react-native";
 
 // Native SharedStorage module for cross-process data sharing
-const { SharedStorage } = NativeModules;
+const { SharedStorage, WearSync } = NativeModules;
 
 export interface PendingTodo {
   text: string;
@@ -59,6 +59,15 @@ export async function saveCredentialsToWidget(
       error,
     );
   }
+
+  if (WearSync) {
+    try {
+      await WearSync.syncCredentials(apiUrl, username, password);
+      console.log("[Wear] Credentials synced to Wear OS");
+    } catch (error) {
+      console.error("[Wear] Failed to sync credentials:", error);
+    }
+  }
 }
 
 /**
@@ -75,6 +84,15 @@ export async function clearWidgetCredentials(): Promise<void> {
     await SharedStorage.removeItem(STORAGE_KEYS.PENDING_TODOS);
   } catch (error) {
     console.error("[Widget] Failed to clear widget credentials:", error);
+  }
+
+  if (WearSync) {
+    try {
+      await WearSync.clearCredentials();
+      console.log("[Wear] Credentials cleared on Wear OS");
+    } catch (error) {
+      console.error("[Wear] Failed to clear credentials:", error);
+    }
   }
 }
 
