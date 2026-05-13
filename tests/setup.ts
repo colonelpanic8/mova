@@ -8,9 +8,13 @@ jest.mock("expo-notifications", () => ({
   setNotificationHandler: jest.fn(),
   scheduleNotificationAsync: jest.fn(),
   cancelScheduledNotificationAsync: jest.fn(),
+  cancelAllScheduledNotificationsAsync: jest.fn(),
   getAllScheduledNotificationsAsync: jest.fn().mockResolvedValue([]),
   getPermissionsAsync: jest.fn().mockResolvedValue({ status: "granted" }),
   requestPermissionsAsync: jest.fn().mockResolvedValue({ status: "granted" }),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  dismissNotificationAsync: jest.fn(),
+  SchedulableTriggerInputTypes: { DATE: "date" },
 }));
 
 // Mock expo-linking

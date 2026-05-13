@@ -1,4 +1,10 @@
 import { createApiClient, OrgAgendaApi } from "../../services/api";
+import {
+  buildConfigIdentityKey,
+  clearObservedConfigHash,
+  CONFIG_HASH_HEADER,
+  getObservedConfigHash,
+} from "../../services/configMetadata";
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -8,6 +14,7 @@ describe("OrgAgendaApi", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    clearObservedConfigHash();
     api = createApiClient("http://test-api.local", "testuser", "testpass");
   });
 
@@ -53,6 +60,31 @@ describe("OrgAgendaApi", () => {
       });
 
       await expect(api.getAllTodos()).rejects.toThrow("API error: 401");
+    });
+
+    it("records config hash from response headers", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        headers: {
+          get: (name: string) =>
+            name === CONFIG_HASH_HEADER ? "config-hash-123" : null,
+        },
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              todos: [],
+              defaults: { notifyBefore: [] },
+            }),
+          ),
+      });
+
+      await api.getAllTodos();
+
+      expect(
+        getObservedConfigHash(
+          buildConfigIdentityKey("http://test-api.local", "testuser"),
+        ),
+      ).toBe("config-hash-123");
     });
   });
 

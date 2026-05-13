@@ -1,5 +1,10 @@
 import { base64Encode } from "@/utils/base64";
 import { normalizeUrl } from "@/utils/url";
+import {
+  buildConfigIdentityKey,
+  CONFIG_HASH_HEADER,
+  observeConfigHash,
+} from "./configMetadata";
 
 export type RepeaterType = "+" | "++" | ".+";
 export type RepeaterUnit = "d" | "w" | "m" | "y";
@@ -75,6 +80,7 @@ export interface MiniGraphEntry {
   conformingRatio: number;
   completed: boolean;
   completionNeededToday?: boolean;
+  conformingRatioWith?: number;
 }
 
 export interface WindowSpecStatus {
@@ -361,12 +367,41 @@ export interface MetadataResponse {
 
 export interface ApiClientOptions {
   onUnauthorized?: () => void;
+  /**
+   * Request timeout (ms). Applies to each attempt (including retries).
+   * Default: 15000ms.
+   */
+  timeoutMs?: number;
+  /**
+   * Maximum number of attempts for retryable failures.
+   * Default: 2.
+   */
+  maxAttempts?: number;
+  /**
+   * Base delay (ms) for retry backoff.
+   * Default: 500ms.
+   */
+  retryBaseDelayMs?: number;
+}
+
+class ApiError extends Error {
+  public readonly status: number;
+
+  constructor(status: number) {
+    super(`API error: ${status}`);
+    this.name = "ApiError";
+    this.status = status;
+  }
 }
 
 export class OrgAgendaApi {
   private readonly baseUrl: string;
   private readonly authHeader: string;
+  private readonly clientIdentityKey: string;
   private readonly onUnauthorized: (() => void) | null;
+  private readonly timeoutMs: number;
+  private readonly maxAttempts: number;
+  private readonly retryBaseDelayMs: number;
 
   constructor(
     baseUrl: string,
@@ -376,7 +411,11 @@ export class OrgAgendaApi {
   ) {
     this.baseUrl = normalizeUrl(baseUrl);
     this.authHeader = `Basic ${base64Encode(`${username}:${password}`)}`;
+    this.clientIdentityKey = buildConfigIdentityKey(this.baseUrl, username);
     this.onUnauthorized = options.onUnauthorized || null;
+    this.timeoutMs = options.timeoutMs ?? 15_000;
+    this.maxAttempts = options.maxAttempts ?? 2;
+    this.retryBaseDelayMs = options.retryBaseDelayMs ?? 500;
   }
 
   private async request<T>(
@@ -396,12 +435,43 @@ export class OrgAgendaApi {
     }
 
     let lastError: Error | null = null;
-    const maxAttempts = 2;
+    const maxAttempts = this.maxAttempts;
+
+    const isRetryableStatus = (status: number): boolean => {
+      if (status === 408) return true; // Request Timeout
+      if (status === 429) return true; // Too Many Requests
+      if (status >= 500 && status <= 599) return true; // Server errors
+      return false;
+    };
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      let didTimeout = false;
+      let outerAbortListener: (() => void) | null = null;
+
       try {
+        // Support both caller-provided abort signal and an internal timeout.
+        const controller = new AbortController();
+        const outerSignal = options.signal;
+        if (outerSignal) {
+          if (outerSignal.aborted) {
+            controller.abort(outerSignal.reason);
+          } else {
+            outerAbortListener = () => controller.abort(outerSignal.reason);
+            outerSignal.addEventListener("abort", outerAbortListener);
+          }
+        }
+
+        if (this.timeoutMs > 0) {
+          timeoutId = setTimeout(() => {
+            didTimeout = true;
+            controller.abort(new Error("Request timed out"));
+          }, this.timeoutMs);
+        }
+
         const response = await fetch(url, {
           ...options,
+          signal: controller.signal,
           headers: {
             Authorization: this.authHeader,
             "Content-Type": "application/json",
@@ -412,21 +482,37 @@ export class OrgAgendaApi {
         });
 
         if (!response.ok) {
-          // Don't retry client errors (4xx) - they won't succeed on retry
+          // Don't retry most client errors (4xx) - they won't succeed on retry.
+          // Exception: 408/429 are often transient/retryable.
           if (response.status >= 400 && response.status < 500) {
             if (response.status === 401 && this.onUnauthorized) {
               this.onUnauthorized();
             }
-            throw new Error(`API error: ${response.status}`);
+            throw new ApiError(response.status);
           }
           // Server errors (5xx) are retryable
-          throw new Error(`API error: ${response.status}`);
+          throw new ApiError(response.status);
         }
 
         const text = await response.text();
 
         try {
-          return JSON.parse(text);
+          const parsed = JSON.parse(text);
+          const headerConfigHash = response.headers?.get?.(CONFIG_HASH_HEADER);
+          const bodyConfigHash =
+            parsed &&
+            typeof parsed === "object" &&
+            "configHash" in parsed &&
+            typeof parsed.configHash === "string"
+              ? parsed.configHash
+              : null;
+
+          observeConfigHash(
+            this.clientIdentityKey,
+            headerConfigHash ?? bodyConfigHash,
+          );
+
+          return parsed;
         } catch (parseError) {
           console.error("[API] JSON parse error", {
             url,
@@ -437,15 +523,34 @@ export class OrgAgendaApi {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        // Don't retry client errors (4xx)
-        if (lastError.message.match(/API error: 4\d\d/)) {
+        // Don't retry if the caller explicitly aborted.
+        if (options.signal?.aborted) {
           throw lastError;
+        }
+
+        // Don't retry most client errors (4xx).
+        if (lastError instanceof ApiError) {
+          if (!isRetryableStatus(lastError.status)) {
+            throw lastError;
+          }
         }
 
         // If we have retries left, wait briefly and try again
         if (attempt < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          // Exponential-ish backoff with cap.
+          const base = this.retryBaseDelayMs;
+          const delay = Math.min(4000, base * attempt);
+          // If we timed out, a slightly longer delay tends to reduce thrash.
+          const finalDelay = didTimeout ? Math.min(6000, delay * 2) : delay;
+          await new Promise((resolve) => setTimeout(resolve, finalDelay));
           continue;
+        }
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        if (outerAbortListener && options.signal) {
+          options.signal.removeEventListener("abort", outerAbortListener);
         }
       }
     }
@@ -503,8 +608,28 @@ export class OrgAgendaApi {
     return this.request<GetAllTodosResponse>("/get-all-todos");
   }
 
-  async getNotifications(): Promise<NotificationsResponse> {
-    return this.request<NotificationsResponse>("/notifications");
+  async getNotifications(
+    options: { withinMinutes?: number } = {},
+  ): Promise<NotificationsResponse> {
+    const { withinMinutes } = options;
+    if (withinMinutes == null) {
+      return this.request<NotificationsResponse>("/notifications");
+    }
+
+    const params = new URLSearchParams();
+    params.append("within_minutes", String(withinMinutes));
+    try {
+      return this.request<NotificationsResponse>(
+        `/notifications?${params.toString()}`,
+      );
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      // Backwards-compatible fallback if the backend doesn't support within_minutes.
+      if (message.match(/API error: 4\d\d/)) {
+        return this.request<NotificationsResponse>("/notifications");
+      }
+      throw e;
+    }
   }
 
   async completeTodo(

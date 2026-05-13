@@ -1,4 +1,9 @@
 import { SavedServer, SavedServerInput } from "@/types/server";
+import {
+  clearStoredCredentials,
+  getStoredCredentials,
+  storeCredentials,
+} from "@/utils/authStorage";
 import { base64Encode } from "@/utils/base64";
 import {
   deleteServer as deleteServerFromStorage,
@@ -14,7 +19,6 @@ import {
   clearWidgetCredentials,
   saveCredentialsToWidget,
 } from "@/widgets/storage";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   ReactNode,
@@ -84,12 +88,6 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  API_URL: "mova_api_url",
-  USERNAME: "mova_username",
-  PASSWORD: "mova_password",
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { triggerRefresh } = useMutation();
   const [state, setState] = useState<AuthState>({
@@ -135,11 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const [apiUrl, username, password] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.API_URL),
-        AsyncStorage.getItem(STORAGE_KEYS.USERNAME),
-        AsyncStorage.getItem(STORAGE_KEYS.PASSWORD),
-      ]);
+      const { apiUrl, username, password } = await getStoredCredentials();
 
       if (apiUrl && username && password) {
         setState({
@@ -174,11 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.ok) {
-        await Promise.all([
-          AsyncStorage.setItem(STORAGE_KEYS.API_URL, normalizedUrl),
-          AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username),
-          AsyncStorage.setItem(STORAGE_KEYS.PASSWORD, password),
-        ]);
+        await storeCredentials({ apiUrl: normalizedUrl, username, password });
 
         // Also save to SharedPreferences for widget access
         await saveCredentialsToWidget(normalizedUrl, username, password);
@@ -200,11 +190,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setActiveServerIdState(newServer.id);
             await refreshSavedServers();
           } else {
-            // Update password if changed
-            if (existing.password !== password) {
-              await updateServerInStorage(existing.id, { password });
-              await refreshSavedServers();
-            }
+            // Always keep the stored password up to date (secure store).
+            await updateServerInStorage(existing.id, { password });
+            await refreshSavedServers();
             await setActiveServerId(existing.id);
             setActiveServerIdState(existing.id);
           }
@@ -229,11 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    await Promise.all([
-      AsyncStorage.removeItem(STORAGE_KEYS.API_URL),
-      AsyncStorage.removeItem(STORAGE_KEYS.USERNAME),
-      AsyncStorage.removeItem(STORAGE_KEYS.PASSWORD),
-    ]);
+    await clearStoredCredentials();
 
     // Also clear widget credentials
     await clearWidgetCredentials();
