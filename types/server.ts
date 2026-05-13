@@ -3,8 +3,12 @@ export interface SavedServer {
   nickname?: string;
   apiUrl: string;
   username: string;
-  password: string;
   defaultCaptureTemplate?: string;
+  hasPassword?: boolean;
 }
 
-export type SavedServerInput = Omit<SavedServer, "id">;
+export interface SavedServerWithPassword extends SavedServer {
+  password: string;
+}
+
+export type SavedServerInput = Omit<SavedServerWithPassword, "id">;
