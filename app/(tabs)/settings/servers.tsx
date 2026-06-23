@@ -1,3 +1,4 @@
+import { CursorStableTextInput } from "@/components/CursorStableTextInput";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useAuth } from "@/context/AuthContext";
 import { SavedServer, SavedServerInput } from "@/types/server";
@@ -264,8 +265,9 @@ export default function ServersScreen() {
                 style={styles.dialogInput}
                 mode="outlined"
               />
-              <TextInput
+              <CursorStableTextInput
                 label="Server URL"
+                syncKey={`${dialogMode}:${dialogVisible ? "open" : "closed"}:${editingServer?.id ?? "new"}`}
                 value={editingServer?.apiUrl || ""}
                 onChangeText={(text) =>
                   setEditingServer((prev) => prev && { ...prev, apiUrl: text })
