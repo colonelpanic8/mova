@@ -27,7 +27,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
-const DEFAULT_URLS = ["https://colonelpanic-org-agenda.fly.dev"];
+const DEFAULT_URLS = ["https://org-agenda-api.duckdns.org"];
 const URL_HISTORY_KEY = "mova_url_history";
 const MAX_URL_HISTORY = 5;
 
@@ -290,7 +290,7 @@ export default function LoginScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
-          placeholder="https://your-server.fly.dev"
+          placeholder="https://org-agenda-api.example.com"
           style={styles.input}
           mode="outlined"
           right={
