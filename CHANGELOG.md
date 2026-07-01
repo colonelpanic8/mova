@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.20.5]
+
+- fix: normalize bare server hostnames to HTTPS before connecting
+- fix: keep server URL input cursor stable while editing
+
 ## [5.19.4]
 
 - fix: habits view can show false "not enabled" or empty list during startup
