@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.20.6]
+
+- fix: update production org-agenda-api endpoint references
+
 ## [5.20.5]
 
 - fix: normalize bare server hostnames to HTTPS before connecting
