@@ -4,6 +4,7 @@ import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
 import { FilterProvider } from "@/context/FilterContext";
 import { HabitConfigProvider } from "@/context/HabitConfigContext";
 import { MutationProvider } from "@/context/MutationContext";
+import { OutboxProvider } from "@/context/OutboxContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { TemplatesProvider } from "@/context/TemplatesContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
@@ -92,13 +93,15 @@ export default function RootLayout() {
               <MutationProvider>
                 <AuthProvider>
                   <ApiProvider>
-                    <TemplatesProvider>
-                      <HabitConfigProvider>
-                        <FilterProvider>
-                          <RootLayoutNav />
-                        </FilterProvider>
-                      </HabitConfigProvider>
-                    </TemplatesProvider>
+                    <OutboxProvider>
+                      <TemplatesProvider>
+                        <HabitConfigProvider>
+                          <FilterProvider>
+                            <RootLayoutNav />
+                          </FilterProvider>
+                        </HabitConfigProvider>
+                      </TemplatesProvider>
+                    </OutboxProvider>
                   </ApiProvider>
                 </AuthProvider>
               </MutationProvider>

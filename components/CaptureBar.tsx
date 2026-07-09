@@ -1,11 +1,13 @@
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
+import { useOutbox } from "@/context/OutboxContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, Pressable, StyleSheet, View } from "react-native";
 import {
+  Chip,
   IconButton,
   Menu,
   Snackbar,
@@ -20,6 +22,15 @@ function getDefaultTemplateKey(serverId: string | null): string {
     ? `mova_default_template_${serverId}`
     : "mova_default_template";
 }
+
+// Storage key for the in-progress quick-capture draft, per server
+function getDraftStorageKey(serverId: string | null): string {
+  return serverId
+    ? `mova_capture_draft_v1:${serverId}`
+    : "mova_capture_draft_v1";
+}
+
+const DRAFT_SAVE_DEBOUNCE_MS = 500;
 
 export function CaptureBar() {
   const api = useApi();
@@ -36,7 +47,76 @@ export function CaptureBar() {
     isError: boolean;
   } | null>(null);
   const { isAuthenticated, activeServerId } = useAuth();
+  const { pendingCount, captureOrEnqueue, flushNow, notice, clearNotice } =
+    useOutbox();
   const theme = useTheme();
+
+  // Surface outbox notices (e.g. queued captures rejected by the server)
+  // via this bar's snackbar so nothing vanishes silently.
+  useEffect(() => {
+    if (!notice) return;
+    setMessage({ text: notice, isError: true });
+    clearNotice();
+  }, [notice, clearNotice]);
+
+  // Restore the in-progress draft on mount and when the server changes, so
+  // an app kill doesn't lose what the user was typing.
+  const draftKey = getDraftStorageKey(activeServerId);
+  // Which server's draft has finished loading; persistence is gated on it.
+  const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
+  // Tracks whether the user has typed since the current server's draft
+  // started loading, so a slow restore never clobbers fresh input.
+  const titleDirtyRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadedDraftKey(null);
+    titleDirtyRef.current = false;
+    AsyncStorage.getItem(draftKey)
+      .then((draft) => {
+        if (cancelled) return;
+        if (!titleDirtyRef.current) {
+          setTitle(draft ?? "");
+        }
+        setLoadedDraftKey(draftKey);
+      })
+      .catch((error) => {
+        console.warn("Failed to restore capture draft:", error);
+        if (!cancelled) {
+          setLoadedDraftKey(draftKey);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [draftKey]);
+
+  // Persist the draft (debounced). Skipped until the draft for the current
+  // server has loaded, so we never clobber it with stale text.
+  useEffect(() => {
+    if (loadedDraftKey !== draftKey) return;
+    const timer = setTimeout(() => {
+      const operation = title
+        ? AsyncStorage.setItem(draftKey, title)
+        : AsyncStorage.removeItem(draftKey);
+      operation.catch((error) =>
+        console.warn("Failed to persist capture draft:", error),
+      );
+    }, DRAFT_SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [title, draftKey, loadedDraftKey]);
+
+  const handleTitleChange = useCallback((text: string) => {
+    titleDirtyRef.current = true;
+    setTitle(text);
+  }, []);
+
+  const clearInputAndDraft = useCallback(() => {
+    setTitle("");
+    AsyncStorage.removeItem(draftKey).catch((error) =>
+      console.warn("Failed to clear capture draft:", error),
+    );
+  }, [draftKey]);
 
   // Load default template when templates or server changes
   useEffect(() => {
@@ -100,26 +180,37 @@ export function CaptureBar() {
     setSubmitting(true);
     Keyboard.dismiss();
 
-    try {
-      // Find the first required string field or use "Title"
-      const titlePrompt = (selectedTemplate.prompts ?? []).find(
-        (p) => p.type === "string" && p.required,
-      );
-      const fieldName = titlePrompt?.name || "Title";
+    // Find the first required string field or use "Title"
+    const titlePrompt = (selectedTemplate.prompts ?? []).find(
+      (p) => p.type === "string" && p.required,
+    );
+    const fieldName = titlePrompt?.name || "Title";
+    const captureValues = { [fieldName]: trimmedTitle };
 
-      const result = await api.capture(selectedTemplateKey, {
-        [fieldName]: trimmedTitle,
+    try {
+      const result = await captureOrEnqueue({
+        kind: "capture",
+        templateKey: selectedTemplateKey,
+        values: captureValues,
       });
-      if (result.status === "created") {
+      if (result.outcome === "queued") {
+        clearInputAndDraft();
+        setMessage({
+          text: "Offline — capture saved, will retry",
+          isError: false,
+        });
+      } else if (result.response.status === "created") {
         setMessage({ text: "Captured!", isError: false });
-        setTitle("");
+        clearInputAndDraft();
       } else {
         setMessage({
-          text: result.message || "Capture failed",
+          text: result.response.message || "Capture failed",
           isError: true,
         });
       }
     } catch (err) {
+      // Permanent rejection, or the capture could not even be queued; keep
+      // the user's input on screen.
       console.error("Capture failed:", err);
       setMessage({ text: "Failed to capture", isError: true });
     } finally {
@@ -182,10 +273,27 @@ export function CaptureBar() {
           ))}
         </Menu>
 
+        {pendingCount > 0 && (
+          <Chip
+            compact
+            icon="cloud-upload-outline"
+            onPress={() => {
+              void flushNow();
+            }}
+            style={styles.pendingChip}
+            testID="outboxPendingChip"
+            accessibilityLabel={`${pendingCount} queued capture${
+              pendingCount === 1 ? "" : "s"
+            }, tap to retry`}
+          >
+            {pendingCount}
+          </Chip>
+        )}
+
         <TextInput
           placeholder="Capture..."
           value={title}
-          onChangeText={setTitle}
+          onChangeText={handleTitleChange}
           onSubmitEditing={handleCapture}
           mode="outlined"
           dense
@@ -193,6 +301,7 @@ export function CaptureBar() {
           outlineStyle={styles.inputOutline}
           disabled={submitting}
           returnKeyType="done"
+          testID="captureBarInput"
         />
 
         <IconButton
@@ -202,6 +311,7 @@ export function CaptureBar() {
           disabled={!title.trim() || submitting}
           loading={submitting}
           style={styles.sendButton}
+          testID="captureBarSend"
         />
 
         <IconButton
@@ -253,6 +363,9 @@ const styles = StyleSheet.create({
   templateLabel: {
     minWidth: 40,
     opacity: 0.7,
+  },
+  pendingChip: {
+    marginLeft: 2,
   },
   input: {
     flex: 1,
