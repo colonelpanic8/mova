@@ -384,7 +384,7 @@ export interface ApiClientOptions {
   retryBaseDelayMs?: number;
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   public readonly status: number;
 
   constructor(status: number) {
@@ -393,6 +393,13 @@ class ApiError extends Error {
     this.status = status;
   }
 }
+
+export const isRetryableStatus = (status: number): boolean => {
+  if (status === 408) return true; // Request Timeout
+  if (status === 429) return true; // Too Many Requests
+  if (status >= 500 && status <= 599) return true; // Server errors
+  return false;
+};
 
 export class OrgAgendaApi {
   private readonly baseUrl: string;
@@ -421,6 +428,7 @@ export class OrgAgendaApi {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
+    requestConfig: { maxAttempts?: number } = {},
   ): Promise<T> {
     const cacheBuster = `_t=${Date.now()}`;
     const separator = endpoint.includes("?") ? "&" : "?";
@@ -435,14 +443,7 @@ export class OrgAgendaApi {
     }
 
     let lastError: Error | null = null;
-    const maxAttempts = this.maxAttempts;
-
-    const isRetryableStatus = (status: number): boolean => {
-      if (status === 408) return true; // Request Timeout
-      if (status === 429) return true; // Too Many Requests
-      if (status >= 500 && status <= 599) return true; // Server errors
-      return false;
-    };
+    const maxAttempts = requestConfig.maxAttempts ?? this.maxAttempts;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -722,10 +723,17 @@ export class OrgAgendaApi {
     template: string,
     values: Record<string, string | string[] | Repeater | Timestamp>,
   ): Promise<CaptureResponse> {
-    return this.request<CaptureResponse>("/capture", {
-      method: "POST",
-      body: JSON.stringify({ template, values }),
-    });
+    // Captures are not idempotent: a request can succeed server-side while
+    // the response is lost, so an automatic re-POST creates a duplicate
+    // entry. Retries are owned by the capture outbox, which is user-visible.
+    return this.request<CaptureResponse>(
+      "/capture",
+      {
+        method: "POST",
+        body: JSON.stringify({ template, values }),
+      },
+      { maxAttempts: 1 },
+    );
   }
 
   async createTodo(title: string): Promise<CaptureResponse> {
@@ -774,15 +782,20 @@ export class OrgAgendaApi {
     values: Record<string, string | string[] | Timestamp>,
   ): Promise<CategoryCaptureResponse> {
     const { title, ...rest } = values;
-    return this.request<CategoryCaptureResponse>("/category-capture", {
-      method: "POST",
-      body: JSON.stringify({
-        type,
-        category,
-        title,
-        ...rest,
-      }),
-    });
+    // Not idempotent; see capture() — the outbox owns retries.
+    return this.request<CategoryCaptureResponse>(
+      "/category-capture",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          type,
+          category,
+          title,
+          ...rest,
+        }),
+      },
+      { maxAttempts: 1 },
+    );
   }
 
   async getHabitConfig(): Promise<HabitConfig> {
