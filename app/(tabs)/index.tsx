@@ -4,12 +4,19 @@ import { HabitItem } from "@/components/HabitItem";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TodoItem, getTodoKey } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
+import { useAuth } from "@/context/AuthContext";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useMutationVersionEffect } from "@/hooks/useMutationVersionEffect";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
+import {
+  CachedAgendaData,
+  buildAgendaViewKey,
+  getCachedAgenda,
+  saveCachedAgenda,
+} from "@/services/agendaCache";
 import {
   AgendaEntry,
   HabitStatus,
@@ -102,6 +109,86 @@ function formatMultiDayHeader(dateString: string): string {
   });
 }
 
+/**
+ * Create a synthetic AgendaEntry for a habit that isn't in the API agenda
+ * response (e.g. because its scheduled date moved forward after completion).
+ */
+function createSyntheticHabitEntry(
+  status: HabitStatus,
+  todo: string,
+): AgendaEntry {
+  return {
+    id: status.id,
+    title: status.title,
+    isWindowHabit: true,
+    agendaLine: status.title,
+    file: null,
+    pos: null,
+    level: 1,
+    todo,
+    tags: null,
+    scheduled: null,
+    deadline: null,
+    priority: null,
+    olpath: null,
+    notifyBefore: null,
+    category: null,
+    effectiveCategory: null,
+    habitSummary: status.currentState,
+  };
+}
+
+/** Build a map of habit id -> status for quick lookup. */
+function buildHabitStatusMap(
+  statuses: HabitStatus[],
+): Map<string, HabitStatus> {
+  const statusMap = new Map<string, HabitStatus>();
+  for (const status of statuses) {
+    if (status.id) {
+      statusMap.set(status.id, status);
+    }
+  }
+  return statusMap;
+}
+
+interface AgendaFetchParams {
+  mode: "day" | "multiday";
+  date: Date;
+  rangeLength: number;
+  includeCompleted: boolean;
+}
+
+function buildViewKeyForParams(params: AgendaFetchParams): string {
+  const dateString = formatDateForApi(params.date);
+  return params.mode === "multiday"
+    ? buildAgendaViewKey({
+        mode: "multiday",
+        dateString,
+        rangeLength: params.rangeLength,
+        includeCompleted: params.includeCompleted,
+      })
+    : buildAgendaViewKey({
+        mode: "day",
+        dateString,
+        includeCompleted: params.includeCompleted,
+      });
+}
+
+/** Human-friendly age of the currently displayed data, for the stale banner. */
+function formatFetchedAgo(fetchedAt: string | null): string {
+  const fetchedTime = fetchedAt ? Date.parse(fetchedAt) : NaN;
+  if (!Number.isFinite(fetchedTime)) {
+    return "earlier";
+  }
+  const minutes = Math.round((Date.now() - fetchedTime) / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
 interface MultiDaySectionItem {
   key: string;
   title: string;
@@ -165,7 +252,9 @@ export default function AgendaScreen() {
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
     new Set(),
   );
+  const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(null);
   const api = useApi();
+  const { apiUrl, username } = useAuth();
   const theme = useTheme();
   const { mutationVersion } = useMutation();
   const { filters } = useFilters();
@@ -175,6 +264,13 @@ export default function AgendaScreen() {
   const requestIdRef = useRef(0);
   const { width } = useWindowDimensions();
   const useCompactDate = width < 400;
+
+  // Whether the current view mode has anything to render (from a previous
+  // fetch or from the persistent cache). Used to decide between full-screen
+  // loading/error states and non-destructive inline indicators.
+  const hasData = viewMode === "multiday" ? multiDayData !== null : !!agenda;
+  const hasDataRef = useRef(hasData);
+  hasDataRef.current = hasData;
 
   // Apply filters to agenda entries and split into active/completed
   const baseFilteredEntries = useMemo(
@@ -214,25 +310,7 @@ export default function AgendaScreen() {
       }
 
       if (wasCompletedOnDate) {
-        completedHabitsToAdd.push({
-          id: status.id,
-          title: status.title,
-          isWindowHabit: true,
-          agendaLine: status.title,
-          file: null,
-          pos: null,
-          level: 1,
-          todo: "DONE",
-          tags: null,
-          scheduled: null,
-          deadline: null,
-          priority: null,
-          olpath: null,
-          notifyBefore: null,
-          category: null,
-          effectiveCategory: null,
-          habitSummary: status.currentState,
-        });
+        completedHabitsToAdd.push(createSyntheticHabitEntry(status, "DONE"));
       }
     });
 
@@ -413,27 +491,6 @@ export default function AgendaScreen() {
       status.graph?.forEach((graphEntry) => {
         const dateStr = graphEntry.date;
 
-        // Create a synthetic AgendaEntry for this habit on this date
-        const createSyntheticEntry = (todo: string): AgendaEntry => ({
-          id: status.id,
-          title: status.title,
-          isWindowHabit: true,
-          agendaLine: status.title,
-          file: null,
-          pos: null,
-          level: 1,
-          todo,
-          tags: null,
-          scheduled: null,
-          deadline: null,
-          priority: null,
-          olpath: null,
-          notifyBefore: null,
-          category: null,
-          effectiveCategory: null,
-          habitSummary: status.currentState,
-        });
-
         // Track prospective habits (need completion on this date)
         if (graphEntry.completionExpectedToday) {
           if (!prospectiveHabitsByDate.has(dateStr)) {
@@ -441,7 +498,7 @@ export default function AgendaScreen() {
           }
           prospectiveHabitsByDate
             .get(dateStr)!
-            .push(createSyntheticEntry("TODO"));
+            .push(createSyntheticHabitEntry(status, "TODO"));
         }
 
         // Track completed habits (completed on this date)
@@ -451,7 +508,7 @@ export default function AgendaScreen() {
           }
           completedHabitsByDate
             .get(dateStr)!
-            .push(createSyntheticEntry("DONE"));
+            .push(createSyntheticHabitEntry(status, "DONE"));
         }
       });
     });
@@ -565,119 +622,111 @@ export default function AgendaScreen() {
     [selectedDate],
   );
 
-  const fetchAgenda = useCallback(
-    async (date: Date, includeCompleted: boolean) => {
+  /**
+   * Fetch agenda data (single-day or multi-day) plus todo states and habit
+   * statuses, update state, and persist the result to the agenda cache.
+   */
+  const fetchAgendaData = useCallback(
+    async (params: AgendaFetchParams) => {
       if (!api) {
         return;
       }
       const requestId = ++requestIdRef.current;
 
       try {
-        const dateString = formatDateForApi(date);
+        const dateString = formatDateForApi(params.date);
         const todayString = formatDateForApi(new Date());
-        const includeOverdue = dateString <= todayString;
-        // Use multi-day endpoint even for single day to get prospective habit scheduling
-        // The multi-day endpoint uses org-window-habit-get-future-required-intervals
-        // which projects future required completion dates for habits
-        const [multiDayData, statesData, habitStatusesResponse] =
+        // Use the multi-day endpoint even for single day to get prospective
+        // habit scheduling. The multi-day endpoint uses
+        // org-window-habit-get-future-required-intervals which projects future
+        // required completion dates for habits.
+        const agendaPromise =
+          params.mode === "multiday"
+            ? api.getAgenda(
+                "week",
+                dateString,
+                true,
+                params.includeCompleted,
+                formatDateForApi(getRangeEnd(params.date, params.rangeLength)),
+                todayString,
+                "today", // Show overdue tasks only on today, not every future day
+              )
+            : api.getAgenda(
+                "week",
+                dateString,
+                dateString <= todayString,
+                params.includeCompleted,
+                dateString,
+              );
+        const [multiDayResponse, statesData, habitStatusesResponse] =
           await Promise.all([
-            api.getAgenda(
-              "week",
-              dateString,
-              includeOverdue,
-              includeCompleted,
-              dateString,
-            ),
+            agendaPromise,
             api.getTodoStates().catch(() => null),
             api.getAllHabitStatuses(14, 14).catch(() => null),
           ]);
         if (requestId !== requestIdRef.current) return;
-        // Convert multi-day response to single-day format
-        const entries = multiDayData.days[dateString] || [];
-        const agendaData: SingleDayAgendaResponse = {
-          span: "day",
-          date: dateString,
-          entries,
-        };
-        setAgenda(agendaData);
+
+        let agendaData: SingleDayAgendaResponse | null = null;
+        if (params.mode === "multiday") {
+          setMultiDayData(multiDayResponse);
+        } else {
+          // Convert multi-day response to single-day format
+          agendaData = {
+            span: "day",
+            date: dateString,
+            entries: multiDayResponse.days[dateString] || [],
+          };
+          setAgenda(agendaData);
+        }
         if (statesData) {
           setTodoStates(statesData);
         }
-        // Build a map of habit id -> status for quick lookup
-        if (
-          habitStatusesResponse?.status === "ok" &&
-          habitStatusesResponse.habits
-        ) {
-          const statusMap = new Map<string, HabitStatus>();
-          for (const status of habitStatusesResponse.habits) {
-            if (status.id) {
-              statusMap.set(status.id, status);
-            }
-          }
-          setHabitStatusMap(statusMap);
+        const habitStatuses =
+          habitStatusesResponse?.status === "ok" && habitStatusesResponse.habits
+            ? habitStatusesResponse.habits
+            : null;
+        if (habitStatuses) {
+          setHabitStatusMap(buildHabitStatusMap(habitStatuses));
         }
         setError(null);
+        const fetchedAt = new Date().toISOString();
+        setLastFetchedAt(fetchedAt);
+        if (apiUrl && username) {
+          void saveCachedAgenda(
+            apiUrl,
+            username,
+            buildViewKeyForParams(params),
+            {
+              agenda: agendaData,
+              multiDayData:
+                params.mode === "multiday" ? multiDayResponse : null,
+              todoStates: statesData,
+              habitStatuses,
+              fetchedAt,
+            },
+          );
+        }
       } catch (err) {
         if (requestId !== requestIdRef.current) return;
         console.error("Failed to load agenda:", err);
-        setError("Failed to load agenda");
+        setError(
+          params.mode === "multiday"
+            ? "Failed to load multi-day agenda"
+            : "Failed to load agenda",
+        );
       }
     },
-    [api],
+    [api, apiUrl, username],
   );
 
-  const fetchMultiDayAgenda = useCallback(
-    async (startDate: Date, rangeLength: number, includeCompleted: boolean) => {
-      if (!api) {
-        return;
-      }
-      const requestId = ++requestIdRef.current;
-
-      try {
-        const startDateString = formatDateForApi(startDate);
-        const endDate = getRangeEnd(startDate, rangeLength);
-        const endDateString = formatDateForApi(endDate);
-        const todayString = formatDateForApi(new Date());
-        const [multiDayAgendaData, statesData, habitStatusesResponse] =
-          await Promise.all([
-            api.getAgenda(
-              "week",
-              startDateString,
-              true,
-              includeCompleted,
-              endDateString,
-              todayString,
-              "today", // Show overdue tasks only on today, not every future day
-            ),
-            api.getTodoStates().catch(() => null),
-            api.getAllHabitStatuses(14, 14).catch(() => null),
-          ]);
-        if (requestId !== requestIdRef.current) return;
-        setMultiDayData(multiDayAgendaData);
-        if (statesData) {
-          setTodoStates(statesData);
-        }
-        // Build a map of habit id -> status for quick lookup
-        if (
-          habitStatusesResponse?.status === "ok" &&
-          habitStatusesResponse.habits
-        ) {
-          const statusMap = new Map<string, HabitStatus>();
-          for (const status of habitStatusesResponse.habits) {
-            if (status.id) {
-              statusMap.set(status.id, status);
-            }
-          }
-          setHabitStatusMap(statusMap);
-        }
-        setError(null);
-      } catch (err) {
-        if (requestId !== requestIdRef.current) return;
-        console.error("Failed to load multi-day agenda:", err);
-        setError("Failed to load multi-day agenda");
-      }
-    },
-    [api],
+  const currentFetchParams = useMemo<AgendaFetchParams>(
+    () => ({
+      mode: viewMode === "multiday" ? "multiday" : "day",
+      date: selectedDate,
+      rangeLength: multiDayRangeLength,
+      includeCompleted: showCompleted,
+    }),
+    [viewMode, selectedDate, multiDayRangeLength, showCompleted],
   );
 
   // Reset showCompleted when date changes
@@ -685,35 +734,72 @@ export default function AgendaScreen() {
     setShowCompleted(isPastDay(selectedDate));
   }, [selectedDate]);
 
-  // Fetch data based on view mode
+  // On mount / server change / view change: show the last-known data from the
+  // persistent cache immediately (when present), then refresh from the
+  // network in the background.
   useEffect(() => {
-    if (viewMode === "multiday") {
-      fetchMultiDayAgenda(
-        selectedDate,
-        multiDayRangeLength,
-        showCompleted,
-      ).finally(() => setLoading(false));
-    } else {
-      fetchAgenda(selectedDate, showCompleted).finally(() => setLoading(false));
+    let cancelled = false;
+    const params = currentFetchParams;
+
+    // A new view (or server) is loading: any error from the previous view no
+    // longer applies, so a stale "couldn't refresh" banner doesn't render
+    // over data it doesn't describe.
+    setError(null);
+
+    const applyCached = (cached: CachedAgendaData) => {
+      if (cached.agenda) setAgenda(cached.agenda);
+      if (cached.multiDayData) setMultiDayData(cached.multiDayData);
+      if (cached.todoStates) setTodoStates(cached.todoStates);
+      if (cached.habitStatuses) {
+        setHabitStatusMap(buildHabitStatusMap(cached.habitStatuses));
+      }
+      setLastFetchedAt(cached.fetchedAt);
+    };
+
+    async function load() {
+      if (!hasDataRef.current) {
+        setLoading(true);
+      }
+      let cached: CachedAgendaData | null = null;
+      if (apiUrl && username) {
+        cached = await getCachedAgenda(
+          apiUrl,
+          username,
+          buildViewKeyForParams(params),
+        );
+        if (cancelled) return;
+      }
+      if (cached) {
+        applyCached(cached);
+        setLoading(false);
+      } else {
+        // No cached entry for this view: whatever is in memory belongs to a
+        // previous view. Clear it so the spinner shows instead of another
+        // date's data, and so a failed fetch falls through to the
+        // full-screen error view rather than silently keeping stale data.
+        setAgenda(null);
+        setMultiDayData(null);
+        setLastFetchedAt(null);
+        setLoading(true);
+      }
+      await fetchAgendaData(params);
+      if (!cancelled) {
+        setLoading(false);
+      }
     }
-  }, [
-    fetchAgenda,
-    fetchMultiDayAgenda,
-    selectedDate,
-    showCompleted,
-    viewMode,
-    multiDayRangeLength,
-  ]);
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiUrl, username, currentFetchParams, fetchAgendaData]);
 
   // Refetch when mutations happen elsewhere
   useMutationVersionEffect(
     mutationVersion,
     () => {
-      if (viewMode === "multiday") {
-        fetchMultiDayAgenda(selectedDate, multiDayRangeLength, showCompleted);
-      } else {
-        fetchAgenda(selectedDate, showCompleted);
-      }
+      void fetchAgendaData(currentFetchParams);
     },
     { skipInitial: true },
   );
@@ -760,26 +846,13 @@ export default function AgendaScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (viewMode === "multiday") {
-      await fetchMultiDayAgenda(
-        selectedDate,
-        multiDayRangeLength,
-        showCompleted,
-      );
-    } else {
-      await fetchAgenda(selectedDate, showCompleted);
-    }
+    await fetchAgendaData(currentFetchParams);
     setRefreshing(false);
-  }, [
-    fetchAgenda,
-    fetchMultiDayAgenda,
-    selectedDate,
-    showCompleted,
-    viewMode,
-    multiDayRangeLength,
-  ]);
+  }, [fetchAgendaData, currentFetchParams]);
 
-  if (loading) {
+  // Full-screen spinner only when there is nothing to render yet (no cached
+  // or in-memory data).
+  if (loading && !hasData) {
     return (
       <View
         testID="agendaLoadingView"
@@ -790,7 +863,10 @@ export default function AgendaScreen() {
     );
   }
 
-  if (error) {
+  // Full-screen error only when there is no data at all; if anything is
+  // displayed (cached or from a previous fetch), keep it and show a
+  // non-destructive banner instead (below).
+  if (error && !hasData) {
     return (
       <ScrollView
         testID="agendaErrorView"
@@ -935,6 +1011,35 @@ export default function AgendaScreen() {
         )}
 
         <FilterBar testID="agendaFilterBar" />
+
+        {error != null && (
+          <View
+            testID="agendaStaleBanner"
+            style={[
+              styles.staleBanner,
+              { backgroundColor: theme.colors.errorContainer },
+            ]}
+          >
+            <Text
+              testID="agendaStaleBannerText"
+              variant="bodySmall"
+              style={[
+                styles.staleBannerText,
+                { color: theme.colors.onErrorContainer },
+              ]}
+            >
+              {`Couldn't refresh — showing data from ${formatFetchedAgo(lastFetchedAt)}`}
+            </Text>
+            <IconButton
+              icon="refresh"
+              size={16}
+              iconColor={theme.colors.onErrorContainer}
+              onPress={onRefresh}
+              disabled={refreshing}
+              testID="agendaStaleBannerRetry"
+            />
+          </View>
+        )}
 
         {viewMode === "multiday" ? (
           multiDaySections.length === 0 ? (
@@ -1190,5 +1295,14 @@ const styles = StyleSheet.create({
   },
   categoryHeaderCount: {
     fontSize: 12,
+  },
+  staleBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 12,
+    paddingVertical: 2,
+  },
+  staleBannerText: {
+    flex: 1,
   },
 });
