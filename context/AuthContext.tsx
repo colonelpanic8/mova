@@ -158,15 +158,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     save: boolean = true,
   ): Promise<boolean> {
+    // Abort the credential test if the server never responds so login can't
+    // hang forever. 15s matches the OrgAgendaApi default timeout. The timer
+    // guards ONLY the fetch below — the post-fetch credential/storage work is
+    // not subject to it, so a slow (but responsive) server can't cause an
+    // unrelated post-fetch error to be misreported as a connection failure.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
+    let normalizedUrl: string;
+    let response: Response;
     try {
-      const normalizedUrl = normalizeUrl(apiUrl);
+      normalizedUrl = normalizeUrl(apiUrl);
       // Test the credentials by hitting the /capture-templates endpoint
-      const response = await fetch(`${normalizedUrl}/capture-templates`, {
+      response = await fetch(`${normalizedUrl}/capture-templates`, {
         headers: {
           Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
         },
+        signal: controller.signal,
       });
+    } catch (error) {
+      // Only the fetch is guarded by the abort timer, so an abort caught here
+      // unambiguously means the request itself timed out.
+      if (controller.signal.aborted) {
+        // Surface timeouts distinctly so the login screen shows the
+        // connection-failure copy rather than "invalid credentials".
+        console.error("Login timed out after 15s");
+        throw new Error("Connection failed. Check the URL and try again.");
+      }
+      console.error("Login failed:", error);
+      return false;
+    } finally {
+      // Clear as soon as the fetch settles so the timer can't fire during the
+      // post-fetch work below and flip controller.signal.aborted after the
+      // fact. The finally acts as a safety net for both the resolve and throw
+      // paths.
+      clearTimeout(timeoutId);
+    }
 
+    try {
       if (response.ok) {
         await storeCredentials({ apiUrl: normalizedUrl, username, password });
 
@@ -211,6 +241,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return false;
     } catch (error) {
+      // Post-fetch failures are never timeouts, so they must not surface the
+      // connection-failure copy.
       console.error("Login failed:", error);
       return false;
     }
