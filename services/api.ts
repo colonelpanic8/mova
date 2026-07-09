@@ -637,17 +637,9 @@ export class OrgAgendaApi {
     newState: string = "DONE",
     overrideDate?: string,
   ): Promise<CompleteTodoResponse> {
-    const identifier = todo.id
-      ? { id: todo.id }
-      : { file: todo.file, pos: todo.pos, title: todo.title };
-    return this.request<CompleteTodoResponse>("/complete", {
-      method: "POST",
-      body: JSON.stringify({
-        ...identifier,
-        state: newState,
-        ...(overrideDate && { override_date: overrideDate }),
-      }),
-    });
+    // completeTodo and setTodoState hit the same /complete endpoint with the
+    // same payload; delegate to keep a single implementation.
+    return this.setTodoState(todo, newState, overrideDate);
   }
 
   async updateTodo(
