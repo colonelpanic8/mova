@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.21.0]
+
+- feat: render cached agenda offline-first and keep data on refresh failure
+- feat: add a durable offline capture outbox with per-server draft persistence
+- fix: drop permanently-rejected widget captures, add fetch timeouts, and bound the pending queue
+- fix: bound login with a fetch-scoped timeout
+- refactor: export ApiError/isRetryableStatus and stop auto-retrying non-idempotent captures
+
 ## [5.20.6]
 
 - fix: update production org-agenda-api endpoint references
