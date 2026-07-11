@@ -9,11 +9,17 @@
  * - Date navigation
  */
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
 import { FilterProvider } from "../../context/FilterContext";
+import {
+  buildAgendaViewKey,
+  saveCachedAgenda,
+} from "../../services/agendaCache";
+import { formatLocalDate } from "../../utils/dateFormatting";
 
 // Import after mocks are set up
 import { useApi } from "../../context/ApiContext";
@@ -162,8 +168,12 @@ const mockAgendaResponse = {
 };
 
 // Setup mocks
-beforeEach(() => {
+beforeEach(async () => {
   jest.clearAllMocks();
+
+  // The agenda screen persists successful fetches to AsyncStorage; clear the
+  // in-memory mock store so tests don't leak cached agendas into each other.
+  await AsyncStorage.clear();
 
   // Mock useAuth
   (useAuth as jest.Mock).mockReturnValue({
@@ -332,7 +342,7 @@ describe("AgendaScreen", () => {
     });
   });
 
-  it("should handle API errors gracefully", async () => {
+  it("should show the full-screen error view when there is no data at all", async () => {
     mockApi.getAgenda.mockRejectedValue(new Error("Network error"));
 
     const { getByText, getByTestId } = renderScreen(<AgendaScreen />);
@@ -341,6 +351,172 @@ describe("AgendaScreen", () => {
       expect(getByTestId("agendaErrorView")).toBeTruthy();
       expect(getByText("Failed to load agenda")).toBeTruthy();
     });
+  });
+
+  it("keeps existing data and shows a banner when a refresh fails", async () => {
+    const { getByText, getByTestId, queryByTestId } = renderScreen(
+      <AgendaScreen />,
+    );
+
+    await waitFor(() => {
+      expect(getByText("Morning standup")).toBeTruthy();
+    });
+
+    // Make the next fetch fail and trigger a refresh
+    mockApi.getAgenda.mockRejectedValue(new Error("Network error"));
+    fireEvent.press(getByTestId("agendaRefreshButton"));
+
+    await waitFor(() => {
+      expect(getByTestId("agendaStaleBanner")).toBeTruthy();
+    });
+
+    // Existing data is still rendered; no full-screen error
+    expect(getByText("Morning standup")).toBeTruthy();
+    expect(getByText("Submit report")).toBeTruthy();
+    expect(queryByTestId("agendaErrorView")).toBeNull();
+    expect(queryByTestId("agendaErrorText")).toBeNull();
+  });
+
+  it("clears the failure banner after a successful retry", async () => {
+    const { getByText, getByTestId, queryByTestId } = renderScreen(
+      <AgendaScreen />,
+    );
+
+    await waitFor(() => {
+      expect(getByText("Morning standup")).toBeTruthy();
+    });
+
+    const workingImplementation = mockApi.getAgenda.getMockImplementation();
+    mockApi.getAgenda.mockRejectedValue(new Error("Network error"));
+    fireEvent.press(getByTestId("agendaRefreshButton"));
+
+    await waitFor(() => {
+      expect(getByTestId("agendaStaleBanner")).toBeTruthy();
+    });
+
+    mockApi.getAgenda.mockImplementation(workingImplementation);
+
+    // Wait for the failed refresh to fully settle (the retry button is
+    // disabled while a refresh is in flight), then retry.
+    await waitFor(() => {
+      expect(getByTestId("agendaStaleBannerRetry")).toBeEnabled();
+    });
+    const callsBefore = mockApi.getAgenda.mock.calls.length;
+    fireEvent.press(getByTestId("agendaStaleBannerRetry"));
+
+    await waitFor(() => {
+      expect(mockApi.getAgenda.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+    await waitFor(() => {
+      expect(queryByTestId("agendaStaleBanner")).toBeNull();
+    });
+    expect(getByText("Morning standup")).toBeTruthy();
+  });
+
+  it("clears a stale failure banner when navigating to another date", async () => {
+    const { getByText, getByTestId, queryByTestId } = renderScreen(
+      <AgendaScreen />,
+    );
+
+    await waitFor(() => {
+      expect(getByText("Morning standup")).toBeTruthy();
+    });
+
+    // Fail a refresh of the current view so the stale banner shows.
+    mockApi.getAgenda.mockRejectedValue(new Error("Network error"));
+    fireEvent.press(getByTestId("agendaRefreshButton"));
+
+    await waitFor(() => {
+      expect(getByTestId("agendaStaleBanner")).toBeTruthy();
+    });
+
+    // Navigate to the next (uncached) day while its fetch hangs: the old
+    // view's banner must not render over the new view.
+    mockApi.getAgenda.mockImplementation(() => new Promise(() => {}));
+    fireEvent.press(getByTestId("agendaNextDay"));
+
+    await waitFor(() => {
+      expect(queryByTestId("agendaStaleBanner")).toBeNull();
+    });
+    // With no cache for the new date, the previous day's data is cleared and
+    // the full-screen spinner shows instead of another date's entries.
+    await waitFor(() => {
+      expect(getByTestId("agendaLoadingIndicator")).toBeTruthy();
+    });
+  });
+
+  it("clears the previous view's data and shows the full-screen error when an uncached date fails to load", async () => {
+    const { getByText, queryByText, getByTestId, queryByTestId } = renderScreen(
+      <AgendaScreen />,
+    );
+
+    await waitFor(() => {
+      expect(getByText("Morning standup")).toBeTruthy();
+    });
+
+    // Navigating to an uncached date whose fetch fails must not leave the
+    // previous date's entries on screen.
+    mockApi.getAgenda.mockRejectedValue(new Error("Network error"));
+    fireEvent.press(getByTestId("agendaNextDay"));
+
+    await waitFor(() => {
+      expect(getByTestId("agendaErrorView")).toBeTruthy();
+    });
+    expect(queryByText("Morning standup")).toBeNull();
+    expect(queryByTestId("agendaStaleBanner")).toBeNull();
+  });
+
+  it("renders cached data immediately when the server is unreachable", async () => {
+    const today = formatLocalDate(new Date());
+    await saveCachedAgenda(
+      "http://test-api.local",
+      "testuser",
+      buildAgendaViewKey({
+        mode: "day",
+        dateString: today,
+        includeCompleted: false,
+      }),
+      {
+        agenda: {
+          span: "day",
+          date: today,
+          entries: [
+            {
+              id: "cached-1",
+              title: "Cached task",
+              todo: "TODO",
+              tags: null,
+              level: 1,
+              scheduled: null,
+              deadline: null,
+              priority: null,
+              file: "/test/cached.org",
+              pos: 100,
+              olpath: null,
+              notifyBefore: null,
+              agendaLine: "Scheduled:  TODO Cached task",
+              category: null,
+              effectiveCategory: null,
+            },
+          ],
+        },
+        multiDayData: null,
+        todoStates: { active: ["TODO", "NEXT"], done: ["DONE"] },
+        habitStatuses: null,
+        fetchedAt: new Date().toISOString(),
+      },
+    );
+
+    // The network never responds
+    mockApi.getAgenda.mockImplementation(() => new Promise(() => {}));
+
+    const { getByText, queryByTestId } = renderScreen(<AgendaScreen />);
+
+    await waitFor(() => {
+      expect(getByText("Cached task")).toBeTruthy();
+    });
+    expect(queryByTestId("agendaLoadingIndicator")).toBeNull();
+    expect(queryByTestId("agendaErrorView")).toBeNull();
   });
 
   it("should call API with correct date", async () => {

@@ -8,7 +8,7 @@ import { by, device, element, expect, waitFor } from "detox";
  * and perform basic operations like fetching agenda, todos, and creating items.
  *
  * Environment variables:
- *   MOVA_TEST_API_URL      - API URL (default: https://colonelpanic-org-agenda.fly.dev)
+ *   MOVA_TEST_API_URL      - API URL (default: https://org-agenda-api.rocket-sense.duckdns.org)
  *   MOVA_TEST_USERNAME     - API username
  *   MOVA_TEST_PASSWORD     - API password
  *   MOVA_USE_LOCAL_API     - Set to "1" to use local container (requires ./e2e/local-api.sh start)
@@ -27,10 +27,11 @@ const USE_LOCAL_API = process.env.MOVA_USE_LOCAL_API === "1";
 const LOCAL_API_PORT = process.env.MOVA_LOCAL_API_PORT || "8080";
 
 // For local testing, we use localhost which requires adb reverse for physical devices
-// For production, we use the fly.dev URL
+// For production, we use the railbird-sf URL
 const API_URL = USE_LOCAL_API
   ? `http://localhost:${LOCAL_API_PORT}`
-  : process.env.MOVA_TEST_API_URL || "https://colonelpanic-org-agenda.fly.dev";
+  : process.env.MOVA_TEST_API_URL ||
+    "https://org-agenda-api.rocket-sense.duckdns.org";
 
 const USERNAME = process.env.MOVA_TEST_USERNAME || "";
 const PASSWORD = process.env.MOVA_TEST_PASSWORD || "";

@@ -7,12 +7,14 @@ import CaptureScreen from "../../app/(tabs)/capture";
 import { useApi } from "../../context/ApiContext";
 import { useAuth } from "../../context/AuthContext";
 import { useMutation } from "../../context/MutationContext";
+import { useOutbox } from "../../context/OutboxContext";
 import { useSettings } from "../../context/SettingsContext";
 import { useTemplates } from "../../context/TemplatesContext";
 
 jest.mock("../../context/ApiContext");
 jest.mock("../../context/AuthContext");
 jest.mock("../../context/MutationContext");
+jest.mock("../../context/OutboxContext");
 jest.mock("../../context/SettingsContext");
 jest.mock("../../context/TemplatesContext");
 
@@ -68,6 +70,8 @@ const mockApi = {
   capture: jest.fn(),
 };
 
+const mockCaptureOrEnqueue = jest.fn();
+
 const renderScreen = () =>
   render(
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -82,6 +86,10 @@ describe("CaptureScreen", () => {
     jest.clearAllMocks();
 
     mockApi.capture.mockResolvedValue({ status: "created" });
+    mockCaptureOrEnqueue.mockResolvedValue({
+      outcome: "delivered",
+      response: { status: "created" },
+    });
 
     (useApi as jest.Mock).mockReturnValue(mockApi);
     (useAuth as jest.Mock).mockReturnValue({
@@ -106,6 +114,14 @@ describe("CaptureScreen", () => {
     (useMutation as jest.Mock).mockReturnValue({
       triggerRefresh: jest.fn(),
     });
+    (useOutbox as jest.Mock).mockReturnValue({
+      pendingCount: 0,
+      enqueueCapture: jest.fn(),
+      captureOrEnqueue: mockCaptureOrEnqueue,
+      flushNow: jest.fn(),
+      notice: null,
+      clearNotice: jest.fn(),
+    });
   });
 
   it("captures a typed tag even if add button is not pressed", async () => {
@@ -115,8 +131,10 @@ describe("CaptureScreen", () => {
     fireEvent.press(getByTestId("captureButton"));
 
     await waitFor(() => {
-      expect(mockApi.capture).toHaveBeenCalledWith("quick-capture", {
-        tags: ["work"],
+      expect(mockCaptureOrEnqueue).toHaveBeenCalledWith({
+        kind: "capture",
+        templateKey: "quick-capture",
+        values: { tags: ["work"] },
       });
     });
   });
