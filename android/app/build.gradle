@@ -1,5 +1,6 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.google.devtools.ksp"
 apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
@@ -155,10 +156,27 @@ android {
     }
 }
 
+// Aggregate every @AppFunction in this module into a single descriptor the OS can index.
+ksp {
+    arg("appfunctions:aggregateAppFunctions", "true")
+}
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     implementation("com.google.android.gms:play-services-wearable:20.0.1")
+
+    // Android AppFunctions (androidx.appfunctions, Jetpack) — exposes createTodo to
+    // on-device assistants/agents (eventually Gemini). Pinned to alpha08: it is the last
+    // release that supports compileSdk 36 / AGP >= 8.9.1 (already provided by RN 0.81's
+    // version catalog). alpha09+ require compileSdk 37 and alpha10 requires AGP 9.1, neither
+    // of which the current Expo/React Native toolchain supports. Bump these in lockstep once
+    // Expo moves to AGP 9 / compileSdk 37. appfunctions-service provides the platform service
+    // (merged from its own manifest) and appfunctions-compiler is a KSP processor.
+    def appFunctionsVersion = "1.0.0-alpha08"
+    implementation("androidx.appfunctions:appfunctions:${appFunctionsVersion}")
+    implementation("androidx.appfunctions:appfunctions-service:${appFunctionsVersion}")
+    ksp("androidx.appfunctions:appfunctions-compiler:${appFunctionsVersion}")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
