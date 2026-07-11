@@ -1,14 +1,33 @@
 import { base64Encode } from "@/utils/base64";
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import {
+  gcPendingTodos,
   getPendingTodos,
   getWidgetCredentials,
-  incrementRetryCount,
   queuePendingTodo,
   removePendingTodo,
 } from "./storage";
 
 const MAX_RETRIES = 3;
+// Per-request timeout for widget fetches so a hung connection can't wedge the
+// background task. Matches the OrgAgendaApi default.
+const FETCH_TIMEOUT_MS = 15000;
+
+/**
+ * fetch with an AbortController-based timeout that is always cleaned up.
+ */
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 export interface WidgetTaskResult {
   status:
@@ -26,7 +45,33 @@ const RESTART_WAIT_MS = 10000;
 interface CaptureResult {
   success: boolean;
   error?: string;
+  // HTTP status of the response, when one was received. Absent for
+  // network/timeout failures where no response arrived.
+  status?: number;
   shouldRestart?: boolean;
+}
+
+interface SubmitResult {
+  success: boolean;
+  error?: string;
+  // HTTP status of the last failing response, carried so the flush path can
+  // distinguish permanent client rejections from transient failures.
+  status?: number;
+}
+
+/**
+ * Whether an HTTP status is a permanent client rejection that will never
+ * succeed on retry, so a queued todo should be dropped rather than re-driven
+ * through the retry/backoff loop on every flush.
+ *
+ * 4xx statuses are permanent EXCEPT:
+ * - 401: handled separately as an auth failure (may succeed after re-login).
+ * - 408 (request timeout) / 429 (too many requests): transient, worth retrying.
+ */
+export function isPermanentRejection(status: number | undefined): boolean {
+  if (status === undefined) return false;
+  if (status < 400 || status >= 500) return false;
+  return status !== 401 && status !== 408 && status !== 429;
 }
 
 /**
@@ -39,7 +84,7 @@ async function captureTodo(
   title: string,
 ): Promise<CaptureResult> {
   try {
-    const response = await fetch(`${apiUrl}/capture`, {
+    const response = await fetchWithTimeout(`${apiUrl}/capture`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -56,18 +101,23 @@ async function captureTodo(
     }
 
     if (response.status === 401) {
-      return { success: false, error: "auth_failed" };
+      return { success: false, error: "auth_failed", status: 401 };
     }
 
     if (response.status === 502 || response.status === 503) {
       return {
         success: false,
         error: "server_unavailable",
+        status: response.status,
         shouldRestart: true,
       };
     }
 
-    return { success: false, error: `http_${response.status}` };
+    return {
+      success: false,
+      error: `http_${response.status}`,
+      status: response.status,
+    };
   } catch (error) {
     return { success: false, error: "network_error" };
   }
@@ -82,7 +132,7 @@ async function requestRestart(
   password: string,
 ): Promise<boolean> {
   try {
-    const response = await fetch(`${apiUrl}/restart`, {
+    const response = await fetchWithTimeout(`${apiUrl}/restart`, {
       method: "POST",
       headers: {
         Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
@@ -109,8 +159,9 @@ async function submitTodoWithRetry(
   username: string,
   password: string,
   title: string,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<SubmitResult> {
   let lastError = "";
+  let lastStatus: number | undefined;
   let hasTriedRestart = false;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -122,10 +173,26 @@ async function submitTodoWithRetry(
 
     // Don't retry auth failures
     if (result.error === "auth_failed") {
-      return { success: false, error: "Authentication failed" };
+      return {
+        success: false,
+        error: "Authentication failed",
+        status: result.status,
+      };
+    }
+
+    // Permanent client rejection (e.g. 400/422): retrying can't help, so bail
+    // out immediately instead of burning the full backoff loop. The caller
+    // drops the todo from the queue.
+    if (isPermanentRejection(result.status)) {
+      return {
+        success: false,
+        error: result.error || "Unknown error",
+        status: result.status,
+      };
     }
 
     lastError = result.error || "Unknown error";
+    lastStatus = result.status;
 
     // If server unavailable and we haven't tried restart yet, do it
     if (result.shouldRestart && !hasTriedRestart) {
@@ -144,7 +211,7 @@ async function submitTodoWithRetry(
     }
   }
 
-  return { success: false, error: lastError };
+  return { success: false, error: lastError, status: lastStatus };
 }
 
 /**
@@ -156,13 +223,13 @@ async function processPendingTodos(): Promise<void> {
     return;
   }
 
+  // Drop entries too old to be worth retrying before we flush the rest. We
+  // never give up on a capture silently otherwise: every flush re-attempts
+  // all remaining pending todos.
+  await gcPendingTodos();
+
   const pending = await getPendingTodos();
   for (const todo of pending) {
-    if (todo.retryCount >= MAX_RETRIES) {
-      // Give up on this todo after max retries
-      continue;
-    }
-
     const result = await submitTodoWithRetry(
       credentials.apiUrl,
       credentials.username,
@@ -172,9 +239,18 @@ async function processPendingTodos(): Promise<void> {
 
     if (result.success) {
       await removePendingTodo(todo.timestamp);
-    } else {
-      await incrementRetryCount(todo.timestamp);
+    } else if (isPermanentRejection(result.status)) {
+      // The server rejected this capture with a permanent 4xx (e.g. 400/422).
+      // Retrying will never succeed, so drop it instead of re-driving the
+      // retry loop on every flush. The widget has no snackbar surface, so a
+      // log line is the only diagnostic we can leave behind.
+      console.warn(
+        `[Widget] Dropping permanently-rejected pending todo (HTTP ${result.status}): "${todo.text}"`,
+      );
+      await removePendingTodo(todo.timestamp);
     }
+    // Otherwise (transient network/timeout/5xx/408/429 or auth failure) keep
+    // the todo queued and retry it on the next flush.
   }
 }
 

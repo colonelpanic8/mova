@@ -1,4 +1,9 @@
 import { SavedServer, SavedServerInput } from "@/types/server";
+import {
+  clearStoredCredentials,
+  getStoredCredentials,
+  storeCredentials,
+} from "@/utils/authStorage";
 import { base64Encode } from "@/utils/base64";
 import {
   deleteServer as deleteServerFromStorage,
@@ -14,7 +19,6 @@ import {
   clearWidgetCredentials,
   saveCredentialsToWidget,
 } from "@/widgets/storage";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   ReactNode,
@@ -84,12 +88,6 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  API_URL: "mova_api_url",
-  USERNAME: "mova_username",
-  PASSWORD: "mova_password",
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { triggerRefresh } = useMutation();
   const [state, setState] = useState<AuthState>({
@@ -135,11 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const [apiUrl, username, password] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.API_URL),
-        AsyncStorage.getItem(STORAGE_KEYS.USERNAME),
-        AsyncStorage.getItem(STORAGE_KEYS.PASSWORD),
-      ]);
+      const { apiUrl, username, password } = await getStoredCredentials();
 
       if (apiUrl && username && password) {
         await saveCredentialsToWidget(apiUrl, username, password);
@@ -165,21 +159,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     save: boolean = true,
   ): Promise<boolean> {
+    // Abort the credential test if the server never responds so login can't
+    // hang forever. 15s matches the OrgAgendaApi default timeout. The timer
+    // guards ONLY the fetch below — the post-fetch credential/storage work is
+    // not subject to it, so a slow (but responsive) server can't cause an
+    // unrelated post-fetch error to be misreported as a connection failure.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
+    let normalizedUrl: string;
+    let response: Response;
     try {
-      const normalizedUrl = normalizeUrl(apiUrl);
+      normalizedUrl = normalizeUrl(apiUrl);
       // Test the credentials by hitting the /capture-templates endpoint
-      const response = await fetch(`${normalizedUrl}/capture-templates`, {
+      response = await fetch(`${normalizedUrl}/capture-templates`, {
         headers: {
           Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
         },
+        signal: controller.signal,
       });
+    } catch (error) {
+      // Only the fetch is guarded by the abort timer, so an abort caught here
+      // unambiguously means the request itself timed out.
+      if (controller.signal.aborted) {
+        // Surface timeouts distinctly so the login screen shows the
+        // connection-failure copy rather than "invalid credentials".
+        console.error("Login timed out after 15s");
+        throw new Error("Connection failed. Check the URL and try again.");
+      }
+      console.error("Login failed:", error);
+      return false;
+    } finally {
+      // Clear as soon as the fetch settles so the timer can't fire during the
+      // post-fetch work below and flip controller.signal.aborted after the
+      // fact. The finally acts as a safety net for both the resolve and throw
+      // paths.
+      clearTimeout(timeoutId);
+    }
 
+    try {
       if (response.ok) {
-        await Promise.all([
-          AsyncStorage.setItem(STORAGE_KEYS.API_URL, normalizedUrl),
-          AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username),
-          AsyncStorage.setItem(STORAGE_KEYS.PASSWORD, password),
-        ]);
+        await storeCredentials({ apiUrl: normalizedUrl, username, password });
 
         // Also save to SharedPreferences for widget access
         await saveCredentialsToWidget(normalizedUrl, username, password);
@@ -201,11 +221,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setActiveServerIdState(newServer.id);
             await refreshSavedServers();
           } else {
-            // Update password if changed
-            if (existing.password !== password) {
-              await updateServerInStorage(existing.id, { password });
-              await refreshSavedServers();
-            }
+            // Always keep the stored password up to date (secure store).
+            await updateServerInStorage(existing.id, { password });
+            await refreshSavedServers();
             await setActiveServerId(existing.id);
             setActiveServerIdState(existing.id);
           }
@@ -224,17 +242,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return false;
     } catch (error) {
+      // Post-fetch failures are never timeouts, so they must not surface the
+      // connection-failure copy.
       console.error("Login failed:", error);
       return false;
     }
   }
 
   async function logout() {
-    await Promise.all([
-      AsyncStorage.removeItem(STORAGE_KEYS.API_URL),
-      AsyncStorage.removeItem(STORAGE_KEYS.USERNAME),
-      AsyncStorage.removeItem(STORAGE_KEYS.PASSWORD),
-    ]);
+    await clearStoredCredentials();
 
     // Also clear widget credentials
     await clearWidgetCredentials();

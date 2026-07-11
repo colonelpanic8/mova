@@ -6,17 +6,29 @@ import {
   ExposedFunction,
   FilterOptionsResponse,
   HabitConfig,
+  MetadataResponse,
   TemplatesResponse,
   TodoStatesResponse,
 } from "@/services/api";
+import {
+  buildConfigIdentityKey,
+  CONFIG_METADATA_TTL_MS,
+  getCachedMetadata,
+  getObservedConfigHash,
+  isCachedMetadataFresh,
+  saveCachedMetadata,
+  subscribeToConfigHash,
+} from "@/services/configMetadata";
 import React, {
   createContext,
   ReactNode,
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import { AppState } from "react-native";
 
 interface TemplatesContextType {
   templates: TemplatesResponse | null;
@@ -29,6 +41,36 @@ interface TemplatesContextType {
   isLoading: boolean;
   error: string | null;
   reloadTemplates: () => Promise<void>;
+  ensureFreshTemplates: () => Promise<void>;
+}
+
+const EMPTY_METADATA: MetadataResponse = {
+  templates: null,
+  filterOptions: null,
+  todoStates: null,
+  customViews: null,
+  categoryTypes: null,
+  habitConfig: null,
+  exposedFunctions: null,
+  errors: [],
+};
+
+type InFlightMetadataRequest = {
+  identityKey: string;
+  promise: Promise<void>;
+  token: object;
+};
+
+function metadataHasValues(metadata: MetadataResponse): boolean {
+  return Boolean(
+    metadata.templates ||
+    metadata.filterOptions ||
+    metadata.todoStates ||
+    metadata.customViews ||
+    metadata.categoryTypes ||
+    metadata.habitConfig ||
+    metadata.exposedFunctions,
+  );
 }
 
 const TemplatesContext = createContext<TemplatesContextType | undefined>(
@@ -51,48 +93,72 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     ExposedFunction[] | null
   >(null);
   const [isLoading, setIsLoading] = useState(false);
-  // Consumers often need to distinguish "not loaded yet" from "loaded but empty/disabled".
-  // This prevents false-negative UI states during the initial async fetch.
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+
+  const metadataRef = useRef<MetadataResponse>(EMPTY_METADATA);
+  const lastLoadedAtRef = useRef<number | null>(null);
+  const currentConfigHashRef = useRef<string | null>(null);
+  const reloadPromiseRef = useRef<InFlightMetadataRequest | null>(null);
+  const activeIdentityRef = useRef<string | null>(null);
+
+  const { isAuthenticated, apiUrl, username } = useAuth();
   const api = useApi();
+  const identityKey =
+    apiUrl && username ? buildConfigIdentityKey(apiUrl, username) : null;
 
-  const reloadTemplates = useCallback(async () => {
-    if (!api) {
-      return;
-    }
+  const applyMetadata = useCallback(
+    (
+      metadata: MetadataResponse,
+      options: { preserveExisting?: boolean } = {},
+    ): MetadataResponse => {
+      const preserveExisting = options.preserveExisting ?? true;
+      const previous = metadataRef.current;
+      const next: MetadataResponse = {
+        templates: preserveExisting
+          ? (metadata.templates ?? previous.templates)
+          : metadata.templates,
+        filterOptions: preserveExisting
+          ? (metadata.filterOptions ?? previous.filterOptions)
+          : metadata.filterOptions,
+        todoStates: preserveExisting
+          ? (metadata.todoStates ?? previous.todoStates)
+          : metadata.todoStates,
+        customViews: preserveExisting
+          ? (metadata.customViews ?? previous.customViews)
+          : metadata.customViews,
+        categoryTypes: preserveExisting
+          ? (metadata.categoryTypes ?? previous.categoryTypes)
+          : metadata.categoryTypes,
+        habitConfig: preserveExisting
+          ? (metadata.habitConfig ?? previous.habitConfig)
+          : metadata.habitConfig,
+        exposedFunctions: preserveExisting
+          ? (metadata.exposedFunctions ?? previous.exposedFunctions)
+          : metadata.exposedFunctions,
+        errors: metadata.errors ?? [],
+      };
 
-    setIsLoading(true);
-    setError(null);
+      metadataRef.current = next;
+      setTemplates(next.templates);
+      setFilterOptions(next.filterOptions);
+      setTodoStates(next.todoStates);
+      setCustomViews(next.customViews);
+      setCategoryTypes(next.categoryTypes?.types ?? null);
+      setHabitConfig(next.habitConfig);
+      setExposedFunctions(next.exposedFunctions);
+      setError(next.templates ? null : "Failed to load templates");
 
-    try {
-      // Use the unified /metadata endpoint for all app metadata
-      const metadata = await api.getMetadata();
+      return next;
+    },
+    [],
+  );
 
-      // Log any errors from the backend
-      if (metadata.errors && metadata.errors.length > 0) {
-        console.warn("Metadata fetch had errors:", metadata.errors);
+  const buildFallbackMetadata =
+    useCallback(async (): Promise<MetadataResponse> => {
+      if (!api) {
+        return EMPTY_METADATA;
       }
-
-      setTemplates(metadata.templates);
-      setFilterOptions(metadata.filterOptions);
-      setTodoStates(metadata.todoStates);
-      setCustomViews(metadata.customViews);
-      setCategoryTypes(metadata.categoryTypes?.types ?? null);
-      setHabitConfig(metadata.habitConfig);
-      setExposedFunctions(metadata.exposedFunctions ?? null);
-
-      // Set error if templates failed (critical)
-      if (!metadata.templates) {
-        setError("Failed to load templates");
-      }
-    } catch (err) {
-      // Fallback to individual endpoints if /metadata is not available
-      console.warn(
-        "Metadata endpoint failed, falling back to individual endpoints:",
-        err,
-      );
 
       const results = await Promise.allSettled([
         api.getTemplates(),
@@ -112,67 +178,296 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         habitConfigResult,
       ] = results;
 
-      if (templatesResult.status === "fulfilled") {
-        setTemplates(templatesResult.value);
-      } else {
+      const errors: string[] = [];
+
+      if (templatesResult.status === "rejected") {
         console.error("Failed to load templates:", templatesResult.reason);
-        setError("Failed to load templates");
+        errors.push(`templates: ${String(templatesResult.reason)}`);
       }
-
-      if (filterOptionsResult.status === "fulfilled") {
-        setFilterOptions(filterOptionsResult.value);
+      if (filterOptionsResult.status === "rejected") {
+        console.warn(
+          "Failed to fetch filter options:",
+          filterOptionsResult.reason,
+        );
+        errors.push(`filterOptions: ${String(filterOptionsResult.reason)}`);
       }
-
-      if (todoStatesResult.status === "fulfilled") {
-        setTodoStates(todoStatesResult.value);
+      if (todoStatesResult.status === "rejected") {
+        console.warn("Failed to fetch todo states:", todoStatesResult.reason);
+        errors.push(`todoStates: ${String(todoStatesResult.reason)}`);
       }
-
-      if (customViewsResult.status === "fulfilled") {
-        setCustomViews(customViewsResult.value);
+      if (customViewsResult.status === "rejected") {
+        console.warn("Failed to fetch custom views:", customViewsResult.reason);
+        errors.push(`customViews: ${String(customViewsResult.reason)}`);
       }
-
-      if (categoryTypesResult.status === "fulfilled") {
-        setCategoryTypes(categoryTypesResult.value.types);
-      } else {
+      if (categoryTypesResult.status === "rejected") {
         console.warn(
           "Failed to fetch category types:",
           categoryTypesResult.reason,
         );
-        setCategoryTypes([]);
+        errors.push(`categoryTypes: ${String(categoryTypesResult.reason)}`);
       }
-
-      if (habitConfigResult.status === "fulfilled") {
-        setHabitConfig(habitConfigResult.value);
-      } else {
+      if (habitConfigResult.status === "rejected") {
         console.warn("Failed to fetch habit config:", habitConfigResult.reason);
-        // Don't treat a fetch failure as a definitive "disabled" signal.
-        // This avoids false negatives when the server is slow/transiently failing.
-        setHabitConfig(null);
+        errors.push(`habitConfig: ${String(habitConfigResult.reason)}`);
       }
 
-      // exposedFunctions not available in fallback mode (no individual endpoint)
-      setExposedFunctions(null);
-    } finally {
-      setIsLoading(false);
-      setHasLoadedOnce(true);
+      return {
+        templates:
+          templatesResult.status === "fulfilled" ? templatesResult.value : null,
+        filterOptions:
+          filterOptionsResult.status === "fulfilled"
+            ? filterOptionsResult.value
+            : null,
+        todoStates:
+          todoStatesResult.status === "fulfilled"
+            ? todoStatesResult.value
+            : null,
+        customViews:
+          customViewsResult.status === "fulfilled"
+            ? customViewsResult.value
+            : null,
+        categoryTypes:
+          categoryTypesResult.status === "fulfilled"
+            ? categoryTypesResult.value
+            : null,
+        habitConfig:
+          habitConfigResult.status === "fulfilled"
+            ? habitConfigResult.value
+            : null,
+        exposedFunctions: null,
+        errors,
+      };
+    }, [api]);
+
+  const fetchTemplates = useCallback(
+    async ({ background = false }: { background?: boolean } = {}) => {
+      if (!api || !identityKey) {
+        return;
+      }
+
+      const requestIdentityKey = identityKey;
+      const existingRequest = reloadPromiseRef.current;
+      if (existingRequest?.identityKey === requestIdentityKey) {
+        return existingRequest.promise;
+      }
+
+      const requestToken = {};
+      const run = (async () => {
+        if (!background) {
+          setIsLoading(true);
+        }
+        setError(null);
+
+        try {
+          let metadata: MetadataResponse;
+
+          try {
+            metadata = await api.getMetadata();
+
+            if (metadata.errors && metadata.errors.length > 0) {
+              console.warn("Metadata fetch had errors:", metadata.errors);
+            }
+          } catch (err) {
+            console.warn(
+              "Metadata endpoint failed, falling back to individual endpoints:",
+              err,
+            );
+            metadata = await buildFallbackMetadata();
+          }
+
+          if (
+            activeIdentityRef.current !== requestIdentityKey ||
+            reloadPromiseRef.current?.token !== requestToken
+          ) {
+            return;
+          }
+
+          const mergedMetadata = applyMetadata(metadata, {
+            preserveExisting: true,
+          });
+          const now = new Date();
+          const observedHash = getObservedConfigHash(requestIdentityKey);
+
+          if (metadataHasValues(mergedMetadata)) {
+            lastLoadedAtRef.current = now.getTime();
+          }
+          if (observedHash) {
+            currentConfigHashRef.current = observedHash;
+          }
+
+          if (
+            apiUrl &&
+            username &&
+            activeIdentityRef.current === requestIdentityKey &&
+            metadataHasValues(mergedMetadata)
+          ) {
+            await saveCachedMetadata(apiUrl, username, {
+              metadata: mergedMetadata,
+              configHash: currentConfigHashRef.current,
+              cachedAt: now.toISOString(),
+            });
+          }
+        } finally {
+          if (reloadPromiseRef.current?.token === requestToken) {
+            setIsLoading(false);
+            setHasLoadedOnce(true);
+            reloadPromiseRef.current = null;
+          }
+        }
+      })();
+
+      reloadPromiseRef.current = {
+        identityKey: requestIdentityKey,
+        promise: run,
+        token: requestToken,
+      };
+      return run;
+    },
+    [api, apiUrl, applyMetadata, buildFallbackMetadata, identityKey, username],
+  );
+
+  const reloadTemplates = useCallback(async () => {
+    await fetchTemplates({ background: hasLoadedOnce });
+  }, [fetchTemplates, hasLoadedOnce]);
+
+  const ensureFreshTemplates = useCallback(async () => {
+    if (!api) {
+      return;
     }
-  }, [api]);
+
+    const observedHash = identityKey
+      ? getObservedConfigHash(identityKey)
+      : null;
+    if (
+      observedHash &&
+      observedHash !== currentConfigHashRef.current &&
+      !reloadPromiseRef.current
+    ) {
+      await fetchTemplates({ background: true });
+      return;
+    }
+
+    const lastLoadedAt = lastLoadedAtRef.current;
+    if (
+      (!metadataRef.current.habitConfig ||
+        !metadataHasValues(metadataRef.current) ||
+        !lastLoadedAt ||
+        Date.now() - lastLoadedAt >= CONFIG_METADATA_TTL_MS) &&
+      !reloadPromiseRef.current
+    ) {
+      await fetchTemplates({ background: true });
+    }
+  }, [api, fetchTemplates, identityKey]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      reloadTemplates();
-    } else {
-      // Clear all state when logged out
-      setTemplates(null);
-      setCategoryTypes(null);
-      setFilterOptions(null);
-      setTodoStates(null);
-      setCustomViews(null);
-      setHabitConfig(null);
-      setExposedFunctions(null);
-      setHasLoadedOnce(false);
+    let cancelled = false;
+
+    async function loadInitialMetadata() {
+      if (!isAuthenticated || !api || !apiUrl || !username) {
+        activeIdentityRef.current = null;
+        metadataRef.current = EMPTY_METADATA;
+        lastLoadedAtRef.current = null;
+        currentConfigHashRef.current = null;
+        reloadPromiseRef.current = null;
+        setTemplates(null);
+        setCategoryTypes(null);
+        setFilterOptions(null);
+        setTodoStates(null);
+        setCustomViews(null);
+        setHabitConfig(null);
+        setExposedFunctions(null);
+        setError(null);
+        setIsLoading(false);
+        setHasLoadedOnce(false);
+        return;
+      }
+
+      const identityChanged = activeIdentityRef.current !== identityKey;
+      activeIdentityRef.current = identityKey;
+      if (identityChanged) {
+        metadataRef.current = EMPTY_METADATA;
+        lastLoadedAtRef.current = null;
+        currentConfigHashRef.current = null;
+        reloadPromiseRef.current = null;
+        setTemplates(null);
+        setCategoryTypes(null);
+        setFilterOptions(null);
+        setTodoStates(null);
+        setCustomViews(null);
+        setHabitConfig(null);
+        setExposedFunctions(null);
+        setError(null);
+        setHasLoadedOnce(false);
+      }
+
+      const cached = await getCachedMetadata(apiUrl, username);
+      if (cancelled) {
+        return;
+      }
+
+      if (cached) {
+        applyMetadata(cached.metadata, { preserveExisting: false });
+        lastLoadedAtRef.current = Date.parse(cached.cachedAt);
+        currentConfigHashRef.current = cached.configHash;
+        setHasLoadedOnce(true);
+      }
+
+      if (
+        !cached ||
+        !cached.metadata.habitConfig ||
+        !isCachedMetadataFresh(cached.cachedAt)
+      ) {
+        await fetchTemplates({ background: Boolean(cached) });
+      }
     }
-  }, [isAuthenticated, reloadTemplates]);
+
+    void loadInitialMetadata();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    api,
+    apiUrl,
+    applyMetadata,
+    fetchTemplates,
+    identityKey,
+    isAuthenticated,
+    username,
+  ]);
+
+  useEffect(() => {
+    if (!identityKey) {
+      return;
+    }
+
+    return subscribeToConfigHash((event) => {
+      if (event.identityKey !== identityKey) {
+        return;
+      }
+
+      if (
+        event.configHash === currentConfigHashRef.current ||
+        reloadPromiseRef.current?.identityKey === identityKey
+      ) {
+        return;
+      }
+
+      void fetchTemplates({ background: true });
+    });
+  }, [fetchTemplates, identityKey]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        void ensureFreshTemplates();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [ensureFreshTemplates]);
 
   return (
     <TemplatesContext.Provider
@@ -187,6 +482,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
         isLoading: isLoading || (isAuthenticated && !hasLoadedOnce),
         error,
         reloadTemplates,
+        ensureFreshTemplates,
       }}
     >
       {children}

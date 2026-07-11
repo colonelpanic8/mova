@@ -1,3 +1,4 @@
+import { CursorStableTextInput } from "@/components/CursorStableTextInput";
 import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useAuth } from "@/context/AuthContext";
@@ -27,7 +28,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
-const DEFAULT_URLS = ["https://colonelpanic-org-agenda.fly.dev"];
+const DEFAULT_URLS = ["https://org-agenda-api.duckdns.org"];
 const URL_HISTORY_KEY = "mova_url_history";
 const MAX_URL_HISTORY = 5;
 
@@ -48,6 +49,7 @@ export default function LoginScreen() {
   const [showUrlSuggestions, setShowUrlSuggestions] = useState(false);
   const [serverLocked, setServerLocked] = useState(false);
   const [urlHistory, setUrlHistory] = useState<string[]>([]);
+  const [serverUrlSyncKey, setServerUrlSyncKey] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
   const [switchingServerId, setSwitchingServerId] = useState<string | null>(
     null,
@@ -80,6 +82,7 @@ export default function LoginScreen() {
         origin.includes("localhost") || origin.includes("127.0.0.1");
       if (!isLocalhost) {
         setApiUrl(origin);
+        setServerUrlSyncKey((current) => current + 1);
         setServerLocked(true);
       }
     }
@@ -118,6 +121,7 @@ export default function LoginScreen() {
   const handleUrlSelect = useCallback((url: string) => {
     justSelectedRef.current = true;
     setApiUrl(url);
+    setServerUrlSyncKey((current) => current + 1);
     setShowUrlSuggestions(false);
     setServerLocked(true);
     // Reset the flag after a short delay
@@ -274,9 +278,10 @@ export default function LoginScreen() {
     // Unlocked state - show editable text input with inline suggestions
     return (
       <View style={styles.urlInputContainer}>
-        <TextInput
+        <CursorStableTextInput
           testID="serverUrlInput"
           label="Server URL"
+          syncKey={serverUrlSyncKey}
           value={apiUrl}
           onChangeText={(text) => {
             setApiUrl(text);
@@ -290,7 +295,7 @@ export default function LoginScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
-          placeholder="https://your-server.fly.dev"
+          placeholder="https://org-agenda-api.example.com"
           style={styles.input}
           mode="outlined"
           right={

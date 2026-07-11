@@ -10,6 +10,7 @@ import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/context/MutationContext";
+import { useOutbox } from "@/context/OutboxContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import {
@@ -18,6 +19,7 @@ import {
   TemplatePrompt,
   Timestamp,
 } from "@/services/api";
+import { OutboxRequest } from "@/services/captureOutbox";
 import {
   formatLocalDate as formatDateForApi,
   formatDateForDisplay,
@@ -269,6 +271,7 @@ export default function CaptureScreen() {
   }>({});
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
+  const { captureOrEnqueue } = useOutbox();
   const promptTagFlusherRef = useRef<Record<string, () => string[]>>({});
   const optionalTagsFlusherRef = useRef<(() => string[]) | null>(null);
 
@@ -365,6 +368,12 @@ export default function CaptureScreen() {
     setValues((prev) => ({ ...prev, [promptName]: value }));
   };
 
+  const clearForm = () => {
+    setValues({});
+    setOptionalFields({});
+    setCategoryValue("");
+  };
+
   const handleCapture = async () => {
     if (!selection || !api) return;
 
@@ -443,9 +452,13 @@ export default function CaptureScreen() {
       )
         captureValues.state = effectiveOptionalFields.todo;
 
-      let result;
+      let outboxRequest: OutboxRequest;
       if (selection.type === "template") {
-        result = await api.capture(selection.key, captureValues);
+        outboxRequest = {
+          kind: "capture",
+          templateKey: selection.key,
+          values: captureValues,
+        };
       } else {
         // Category capture
         // Map prompt names to API field names
@@ -453,26 +466,35 @@ export default function CaptureScreen() {
         delete captureValues.Title;
         captureValues.title = title;
 
-        result = await api.categoryCapture(
-          selection.categoryType.name,
-          categoryValue.trim(),
-          captureValues,
-        );
+        outboxRequest = {
+          kind: "category-capture",
+          categoryType: selection.categoryType.name,
+          category: categoryValue.trim(),
+          values: captureValues,
+        };
       }
 
-      if (result.status === "created") {
+      const result = await captureOrEnqueue(outboxRequest);
+
+      if (result.outcome === "queued") {
+        clearForm();
+        setMessage({
+          text: "Offline — capture queued, will send when reconnected",
+          isError: false,
+        });
+      } else if (result.response.status === "created") {
         setMessage({ text: "Captured!", isError: false });
-        setValues({});
-        setOptionalFields({});
-        setCategoryValue("");
+        clearForm();
         triggerRefresh();
       } else {
         setMessage({
-          text: result.message || "Capture failed",
+          text: result.response.message || "Capture failed",
           isError: true,
         });
       }
     } catch (err) {
+      // Permanent rejection, or the capture could not even be queued; keep
+      // the user's input on screen.
       console.error("Capture failed:", err);
       setMessage({ text: "Failed to capture", isError: true });
     } finally {
