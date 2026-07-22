@@ -54,7 +54,7 @@ class QuickCaptureActivity : AppCompatActivity() {
 
         // Load template selection for this widget
         if (widgetId != null) {
-            val prefs = getSharedPreferences("mova_widget_prefs", MODE_PRIVATE)
+            val prefs = MovaSharedPrefs.get(this)
             templateKey = prefs.getString("widget_${widgetId}_template_key", "__quick_capture__") ?: "__quick_capture__"
             templateName = prefs.getString("widget_${widgetId}_template_name", "Quick Capture") ?: "Quick Capture"
         }
@@ -124,7 +124,7 @@ class QuickCaptureActivity : AppCompatActivity() {
     }
 
     private fun getCredentials(): Triple<String, String, String>? {
-        val prefs = getSharedPreferences("mova_widget_prefs", MODE_PRIVATE)
+        val prefs = MovaSharedPrefs.get(this)
         val apiUrl = prefs.getString("mova_api_url", null)
         val username = prefs.getString("mova_username", null)
         val password = prefs.getString("mova_password", null)

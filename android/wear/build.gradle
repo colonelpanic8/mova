@@ -2,6 +2,14 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 
 def packageJson = new groovy.json.JsonSlurper().parse(file("../../package.json"))
+def (semverMajor, semverMinor, semverPatch) = packageJson.version.tokenize('.').collect { it.toInteger() }
+def movaBuildNumber = (packageJson.buildNumber ?: '0').toInteger()
+def movaVersionCode = semverMajor * 1000000 + semverMinor * 10000 + semverPatch * 100 + movaBuildNumber
+
+// Optional release keystore, configured via environment variables or gradle
+// properties. Falls back to the committed debug keystore for local builds.
+def uploadStoreFile = System.getenv('MOVA_UPLOAD_STORE_FILE') ?: findProperty('MOVA_UPLOAD_STORE_FILE')
+
 def generatedWearIconResDir = layout.buildDirectory.dir("generated/movaWearIcon/res")
 
 def generateMovaWearIcon = tasks.register("generateMovaWearIcon", Copy) {
@@ -18,7 +26,7 @@ android {
         applicationId "com.colonelpanic.mova"
         minSdkVersion 26
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode movaVersionCode
         versionName packageJson.version
     }
 
@@ -29,6 +37,14 @@ android {
             keyAlias "androiddebugkey"
             keyPassword "android"
         }
+        if (uploadStoreFile) {
+            release {
+                storeFile file(uploadStoreFile)
+                storePassword System.getenv("MOVA_UPLOAD_STORE_PASSWORD") ?: findProperty("MOVA_UPLOAD_STORE_PASSWORD")
+                keyAlias System.getenv("MOVA_UPLOAD_KEY_ALIAS") ?: findProperty("MOVA_UPLOAD_KEY_ALIAS")
+                keyPassword System.getenv("MOVA_UPLOAD_KEY_PASSWORD") ?: findProperty("MOVA_UPLOAD_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -36,7 +52,12 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig signingConfigs.debug
+            if (uploadStoreFile) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.warn("WARNING: MOVA_UPLOAD_STORE_FILE not set - signing :wear release build with the DEBUG keystore. Do not distribute this APK.")
+                signingConfig signingConfigs.debug
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
@@ -51,4 +72,5 @@ tasks.named("preBuild").configure {
 
 dependencies {
     implementation("com.google.android.gms:play-services-wearable:20.0.1")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 }

@@ -4,6 +4,17 @@ apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
+// Derive the Android version from package.json so it stays in sync with the
+// app version reported to Expo (app.config.js) and the wear module.
+def packageJson = new groovy.json.JsonSlurper().parse(file("$projectRoot/package.json"))
+def (semverMajor, semverMinor, semverPatch) = packageJson.version.tokenize('.').collect { it.toInteger() }
+def movaBuildNumber = (packageJson.buildNumber ?: '0').toInteger()
+def movaVersionCode = semverMajor * 1000000 + semverMinor * 10000 + semverPatch * 100 + movaBuildNumber
+
+// Optional release keystore, configured via environment variables or gradle
+// properties. Falls back to the committed debug keystore for local builds.
+def uploadStoreFile = System.getenv('MOVA_UPLOAD_STORE_FILE') ?: findProperty('MOVA_UPLOAD_STORE_FILE')
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -92,8 +103,8 @@ android {
         applicationId 'com.colonelpanic.mova'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.1.0"
+        versionCode movaVersionCode
+        versionName packageJson.version
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
 
@@ -107,15 +118,26 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (uploadStoreFile) {
+            release {
+                storeFile file(uploadStoreFile)
+                storePassword System.getenv('MOVA_UPLOAD_STORE_PASSWORD') ?: findProperty('MOVA_UPLOAD_STORE_PASSWORD')
+                keyAlias System.getenv('MOVA_UPLOAD_KEY_ALIAS') ?: findProperty('MOVA_UPLOAD_KEY_ALIAS')
+                keyPassword System.getenv('MOVA_UPLOAD_KEY_PASSWORD') ?: findProperty('MOVA_UPLOAD_KEY_PASSWORD')
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            if (uploadStoreFile) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.warn("WARNING: MOVA_UPLOAD_STORE_FILE not set - signing :app release build with the DEBUG keystore. Do not distribute this APK.")
+                signingConfig signingConfigs.debug
+            }
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
@@ -159,6 +181,7 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     implementation("com.google.android.gms:play-services-wearable:20.0.1")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

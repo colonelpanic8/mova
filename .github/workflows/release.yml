@@ -82,22 +82,46 @@ jobs:
             "$HERMESC" --version 2>&1 || echo "Direct execution failed"
           fi
 
-      - name: Build APK
+      - name: Set up release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/mova-upload.keystore"
+            {
+              echo "MOVA_UPLOAD_STORE_FILE=$RUNNER_TEMP/mova-upload.keystore"
+              echo "MOVA_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+              echo "MOVA_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+              echo "MOVA_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo "Release keystore configured from secrets."
+          else
+            echo "No ANDROID_KEYSTORE_BASE64 secret available; release APKs will be signed with the debug keystore."
+          fi
+
+      - name: Build APKs
         run: |
           cd android
-          ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
+          ./gradlew :app:assembleRelease :wear:assembleRelease -PreactNativeArchitectures=arm64-v8a
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: mova-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/wear/build/outputs/apk/release/wear-release.apk
 
       - name: Upload APK to Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: android/app/build/outputs/apk/release/app-release.apk
+          files: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/wear/build/outputs/apk/release/wear-release.apk
 
       - name: Create Release (tag push)
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
@@ -105,7 +129,9 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
-          files: android/app/build/outputs/apk/release/app-release.apk
+          files: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/wear/build/outputs/apk/release/wear-release.apk
           generate_release_notes: true
 
       - name: Create Release (manual dispatch)
@@ -114,5 +140,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag_name }}
           name: Release ${{ github.event.inputs.tag_name }}
-          files: android/app/build/outputs/apk/release/app-release.apk
+          files: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/wear/build/outputs/apk/release/wear-release.apk
           generate_release_notes: true

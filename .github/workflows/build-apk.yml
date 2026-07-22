@@ -32,13 +32,35 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build Android Release APK
-        working-directory: android
-        run: ./gradlew assembleRelease
+      - name: Set up release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/mova-upload.keystore"
+            {
+              echo "MOVA_UPLOAD_STORE_FILE=$RUNNER_TEMP/mova-upload.keystore"
+              echo "MOVA_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+              echo "MOVA_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+              echo "MOVA_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo "Release keystore configured from secrets."
+          else
+            echo "No ANDROID_KEYSTORE_BASE64 secret available; release APKs will be signed with the debug keystore."
+          fi
 
-      - name: Upload APK
+      - name: Build Android Release APKs
+        working-directory: android
+        run: ./gradlew :app:assembleRelease :wear:assembleRelease
+
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: mova-release-${{ github.sha }}
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/wear/build/outputs/apk/release/wear-release.apk
           retention-days: 14

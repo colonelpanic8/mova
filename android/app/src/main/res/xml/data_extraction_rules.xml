@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 31+ backup rules: back up everything except the shared prefs files
+     that hold widget credentials (legacy plaintext + encrypted store, whose
+     keystore-backed master key never transfers anyway). -->
+<data-extraction-rules>
+  <cloud-backup>
+    <exclude domain="sharedpref" path="mova_widget_prefs.xml"/>
+    <exclude domain="sharedpref" path="mova_widget_prefs_secure.xml"/>
+  </cloud-backup>
+  <device-transfer>
+    <exclude domain="sharedpref" path="mova_widget_prefs.xml"/>
+    <exclude domain="sharedpref" path="mova_widget_prefs_secure.xml"/>
+  </device-transfer>
+</data-extraction-rules>

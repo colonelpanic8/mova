@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pre-API 31 backup rules: back up everything except the shared prefs
+     files that hold credentials (legacy plaintext + encrypted store, whose
+     keystore-backed master key never transfers anyway). -->
+<full-backup-content>
+  <exclude domain="sharedpref" path="mova_wear_prefs.xml"/>
+  <exclude domain="sharedpref" path="mova_wear_prefs_secure.xml"/>
+</full-backup-content>
