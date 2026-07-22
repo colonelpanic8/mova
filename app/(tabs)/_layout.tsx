@@ -2,75 +2,52 @@ import { CaptureBar } from "@/components/CaptureBar";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { Pressable, View } from "react-native";
 import {
-  Animated,
-  Keyboard,
-  KeyboardEvent,
-  Platform,
-  Pressable,
-  View,
-} from "react-native";
+  KeyboardStickyView,
+  useReanimatedKeyboardAnimation,
+} from "react-native-keyboard-controller";
 import { useTheme } from "react-native-paper";
+import Reanimated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 
 // Hidden routes that shouldn't appear in tab bar
 const HIDDEN_ROUTES = new Set<string>([]);
+const TAB_BAR_CONTENT_HEIGHT = 40;
 
 // Custom tab bar that includes CaptureBar above the tabs
 function CustomTabBar(props: BottomTabBarProps) {
   const { state, descriptors, navigation, insets } = props;
   const theme = useTheme();
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [keyboardHeight] = useState(() => new Animated.Value(0));
-
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (event: KeyboardEvent) => {
-        setKeyboardVisible(true);
-        Animated.timing(keyboardHeight, {
-          toValue: event.endCoordinates.height,
-          duration: Platform.OS === "ios" ? event.duration || 250 : 250,
-          useNativeDriver: false,
-        }).start();
-      },
-    );
-    const hideSubscription = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      (event: KeyboardEvent) => {
-        setKeyboardVisible(false);
-        Animated.timing(keyboardHeight, {
-          toValue: 0,
-          duration: Platform.OS === "ios" ? event.duration || 250 : 250,
-          useNativeDriver: false,
-        }).start();
-      },
-    );
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, [keyboardHeight]);
-
-  // On Android, windowSoftInputMode="adjustResize" already handles window resizing.
-  // Adding paddingBottom would double-count the keyboard space, making the content
-  // area shrink by 2x the keyboard height (once from adjustResize, once from padding).
-  // On iOS, we need animated padding to push the CaptureBar above the keyboard.
+  const { progress } = useReanimatedKeyboardAnimation();
+  const tabBarAnimatedStyle = useAnimatedStyle(() => ({
+    height: interpolate(
+      progress.value,
+      [0, 1],
+      [TAB_BAR_CONTENT_HEIGHT + insets.bottom, 0],
+    ),
+    opacity: 1 - progress.value,
+  }));
 
   return (
-    <Animated.View
+    <KeyboardStickyView
       style={{
         backgroundColor: theme.colors.surface,
-        paddingBottom: Platform.OS === "ios" ? keyboardHeight : 0,
       }}
     >
       <CaptureBar />
-      {!keyboardVisible && (
+      <Reanimated.View
+        pointerEvents="box-none"
+        style={[{ overflow: "hidden" }, tabBarAnimatedStyle]}
+      >
         <View
           style={{
             flexDirection: "row",
             paddingBottom: insets.bottom,
+            height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
             backgroundColor: theme.colors.surface,
           }}
         >
@@ -141,8 +118,8 @@ function CustomTabBar(props: BottomTabBarProps) {
             );
           })}
         </View>
-      )}
-    </Animated.View>
+      </Reanimated.View>
+    </KeyboardStickyView>
   );
 }
 
