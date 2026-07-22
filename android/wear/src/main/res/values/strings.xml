@@ -1,3 +1,4 @@
 <resources>
   <string name="app_name">Mova</string>
+  <string name="voice_capture_name">Mova Voice Capture</string>
 </resources>

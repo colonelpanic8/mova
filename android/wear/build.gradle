@@ -2,6 +2,13 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 
 def packageJson = new groovy.json.JsonSlurper().parse(file("../../package.json"))
+def generatedWearIconResDir = layout.buildDirectory.dir("generated/movaWearIcon/res")
+
+def generateMovaWearIcon = tasks.register("generateMovaWearIcon", Copy) {
+    from(file("../../assets/images/mova-icon-final.png"))
+    into(generatedWearIconResDir.map { it.dir("drawable") })
+    rename { "ic_launcher.png" }
+}
 
 android {
     namespace "com.colonelpanic.mova.wear"
@@ -34,6 +41,12 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
+
+    sourceSets.main.res.srcDir(generatedWearIconResDir)
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(generateMovaWearIcon)
 }
 
 dependencies {

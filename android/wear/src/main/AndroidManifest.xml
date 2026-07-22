@@ -20,6 +20,21 @@
       </intent-filter>
     </activity>
 
+    <activity
+        android:name=".VoiceCaptureActivity"
+        android:exported="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/voice_capture_name">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="com.colonelpanic.mova.action.VOICE_CAPTURE"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
+    </activity>
+
     <service
         android:name=".ConfigListenerService"
         android:exported="true">

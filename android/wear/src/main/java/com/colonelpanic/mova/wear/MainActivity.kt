@@ -1,12 +1,14 @@
 package com.colonelpanic.mova.wear
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.text.InputType
 import android.view.Gravity
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -15,8 +17,9 @@ import android.widget.TextView
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
 
-class MainActivity : Activity() {
+open class MainActivity : Activity() {
   private lateinit var titleInput: EditText
+  private lateinit var voiceButton: Button
   private lateinit var submitButton: Button
   private lateinit var retryButton: Button
   private lateinit var statusText: TextView
@@ -25,6 +28,9 @@ class MainActivity : Activity() {
     super.onCreate(savedInstanceState)
     setContentView(buildContentView())
 
+    voiceButton.setOnClickListener {
+      launchVoiceCapture()
+    }
     submitButton.setOnClickListener {
       submitCurrentText()
     }
@@ -45,12 +51,6 @@ class MainActivity : Activity() {
     super.onResume()
     refreshStatus()
     syncConfigFromDataLayer()
-    titleInput.requestFocus()
-    titleInput.postDelayed({
-      val inputMethodManager =
-        getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-      inputMethodManager.showSoftInput(titleInput, InputMethodManager.SHOW_IMPLICIT)
-    }, 250)
   }
 
   private fun buildContentView(): ScrollView {
@@ -92,6 +92,12 @@ class MainActivity : Activity() {
       setPadding(dp(12), 0, dp(12), 0)
     }
 
+    voiceButton = Button(this).apply {
+      text = "Voice capture"
+      textSize = 18f
+      minHeight = dp(72)
+    }
+
     submitButton = Button(this).apply {
       text = "Capture"
       minHeight = dp(44)
@@ -104,11 +110,52 @@ class MainActivity : Activity() {
 
     content.addView(heading, matchWrap())
     content.addView(statusText, matchWrap())
+    content.addView(voiceButton, matchWrap(bottomMargin = dp(8)))
     content.addView(titleInput, matchFixedHeight(48))
     content.addView(submitButton, matchWrap(topMargin = dp(8)))
     content.addView(retryButton, matchWrap(topMargin = dp(4)))
     root.addView(content)
     return root
+  }
+
+  protected fun launchVoiceCapture() {
+    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+      putExtra(
+        RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+      )
+      putExtra(RecognizerIntent.EXTRA_PROMPT, "What should Mova capture?")
+      putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+    }
+
+    try {
+      startActivityForResult(intent, VOICE_CAPTURE_REQUEST)
+    } catch (_: ActivityNotFoundException) {
+      setStatus("Voice input isn't available on this watch")
+    }
+  }
+
+  @Deprecated("Uses the system speech recognizer activity for broad Wear OS support")
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    super.onActivityResult(requestCode, resultCode, data)
+    if (requestCode != VOICE_CAPTURE_REQUEST || resultCode != RESULT_OK) {
+      return
+    }
+
+    val spokenText =
+      data
+        ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+        ?.firstOrNull()
+        ?.trim()
+
+    if (spokenText.isNullOrBlank()) {
+      setStatus("Didn't hear a todo")
+      return
+    }
+
+    titleInput.setText(spokenText)
+    titleInput.setSelection(spokenText.length)
+    submitCurrentText()
   }
 
   private fun submitCurrentText() {
@@ -233,6 +280,7 @@ class MainActivity : Activity() {
 
   private fun setBusy(isBusy: Boolean, status: String? = null) {
     titleInput.isEnabled = !isBusy
+    voiceButton.isEnabled = !isBusy
     submitButton.isEnabled = !isBusy
     retryButton.isEnabled = !isBusy
     if (status != null) {
@@ -244,12 +292,16 @@ class MainActivity : Activity() {
     statusText.text = status
   }
 
-  private fun matchWrap(topMargin: Int = 0): LinearLayout.LayoutParams =
+  private fun matchWrap(
+    topMargin: Int = 0,
+    bottomMargin: Int = 0,
+  ): LinearLayout.LayoutParams =
     LinearLayout.LayoutParams(
       LinearLayout.LayoutParams.MATCH_PARENT,
       LinearLayout.LayoutParams.WRAP_CONTENT,
     ).apply {
       this.topMargin = topMargin
+      this.bottomMargin = bottomMargin
     }
 
   private fun matchFixedHeight(height: Int): LinearLayout.LayoutParams =
@@ -260,4 +312,8 @@ class MainActivity : Activity() {
 
   private fun dp(value: Int): Int =
     (value * resources.displayMetrics.density).toInt()
+
+  private companion object {
+    const val VOICE_CAPTURE_REQUEST = 1001
+  }
 }
