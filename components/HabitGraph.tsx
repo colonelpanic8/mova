@@ -1,4 +1,4 @@
-import { useHabitConfig } from "@/context/HabitConfigContext";
+import { useHabitConfig } from "@/hooks/useHabitConfig";
 import { MiniGraphEntry, WindowSpecStatus } from "@/services/api";
 import { getHabitCellColor } from "@/utils/habitColors";
 import React, { useCallback, useState } from "react";

@@ -343,10 +343,7 @@ let activeNotificationIds: Set<string> = new Set();
 
 export function isNotificationActive(identifier: string): boolean {
   // Extract the base ID (before the timestamp suffix)
-  const parts = identifier.split(":");
-  // Handle both "id:timestamp" and "file:pos:timestamp" formats
-  const baseId = parts.length > 2 ? parts.slice(0, -1).join(":") : parts[0];
-  return activeNotificationIds.has(baseId);
+  return activeNotificationIds.has(getBaseIdFromIdentifier(identifier));
 }
 
 function getLocalDayBounds(date: Date): { start: Date; end: Date } {

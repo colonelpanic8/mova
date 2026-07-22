@@ -1,8 +1,7 @@
 import { HabitGraph } from "@/components/HabitGraph";
 import { StatePill } from "@/components/StatePill";
 import { useColorPalette } from "@/context/ColorPaletteContext";
-import { useSettings } from "@/context/SettingsContext";
-import { useTemplates } from "@/context/TemplatesContext";
+import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
 import { PriorityLevel } from "@/types/colors";
@@ -32,14 +31,15 @@ import {
   useTheme,
 } from "react-native-paper";
 
-export { getTodoKey };
-
 export interface TodoItemProps {
   todo: Todo & { completedAt?: string | null };
   opacity?: number;
 }
 
-export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
+export const TodoItem = React.memo(function TodoItem({
+  todo,
+  opacity = 1,
+}: TodoItemProps) {
   const router = useRouter();
   const theme = useTheme();
   const { getActionColor, getPriorityColor } = useColorPalette();
@@ -57,15 +57,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
     openDeleteConfirm,
     quickComplete,
   } = useTodoEditingContext();
-  const { defaultDoneState } = useSettings();
-  const { todoStates } = useTemplates();
-
-  // Compute effective default done state
-  const effectiveDoneState = useMemo(() => {
-    if (defaultDoneState) return defaultDoneState;
-    if (!todoStates?.done?.length) return "DONE";
-    return todoStates.done.includes("DONE") ? "DONE" : todoStates.done[0];
-  }, [defaultDoneState, todoStates]);
+  const effectiveDoneState = useEffectiveDoneState();
 
   const internalRef = useRef<Swipeable>(null);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -378,7 +370,7 @@ export function TodoItem({ todo, opacity = 1 }: TodoItemProps) {
       </Pressable>
     </Swipeable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   todoItem: {

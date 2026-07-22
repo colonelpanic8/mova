@@ -22,8 +22,10 @@ import {
 import React, {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { NativeModules, Platform } from "react-native";
@@ -101,154 +103,157 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     null,
   );
 
-  useEffect(() => {
-    loadStoredCredentials();
-  }, []);
-
-  async function refreshSavedServers() {
+  const refreshSavedServers = useCallback(async () => {
     const servers = await getSavedServers();
     setSavedServers(servers);
-  }
+  }, []);
 
-  async function loadStoredCredentials() {
-    try {
-      // Load saved servers
-      const servers = await getSavedServers();
-      setSavedServers(servers);
+  useEffect(() => {
+    loadStoredCredentials();
 
-      const storedActiveId = await getActiveServerId();
-      setActiveServerIdState(storedActiveId);
+    async function loadStoredCredentials() {
+      try {
+        // Load saved servers
+        const servers = await getSavedServers();
+        setSavedServers(servers);
 
-      // Check for test launch args first (for Detox auto-login)
-      const testArgs = await getTestLaunchArgs();
-      if (testArgs?.apiUrl && testArgs?.username && testArgs?.password) {
-        setState({
-          apiUrl: testArgs.apiUrl,
-          username: testArgs.username,
-          password: testArgs.password,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-        return;
-      }
+        const storedActiveId = await getActiveServerId();
+        setActiveServerIdState(storedActiveId);
 
-      const { apiUrl, username, password } = await getStoredCredentials();
-
-      if (apiUrl && username && password) {
-        await saveCredentialsToWidget(apiUrl, username, password);
-        setState({
-          apiUrl,
-          username,
-          password,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } else {
-        setState((prev) => ({ ...prev, isLoading: false }));
-      }
-    } catch (error) {
-      console.error("Failed to load credentials:", error);
-      setState((prev) => ({ ...prev, isLoading: false }));
-    }
-  }
-
-  async function login(
-    apiUrl: string,
-    username: string,
-    password: string,
-    save: boolean = true,
-  ): Promise<boolean> {
-    // Abort the credential test if the server never responds so login can't
-    // hang forever. 15s matches the OrgAgendaApi default timeout. The timer
-    // guards ONLY the fetch below — the post-fetch credential/storage work is
-    // not subject to it, so a slow (but responsive) server can't cause an
-    // unrelated post-fetch error to be misreported as a connection failure.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15_000);
-
-    let normalizedUrl: string;
-    let response: Response;
-    try {
-      normalizedUrl = normalizeUrl(apiUrl);
-      // Test the credentials by hitting the /capture-templates endpoint
-      response = await fetch(`${normalizedUrl}/capture-templates`, {
-        headers: {
-          Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
-        },
-        signal: controller.signal,
-      });
-    } catch (error) {
-      // Only the fetch is guarded by the abort timer, so an abort caught here
-      // unambiguously means the request itself timed out.
-      if (controller.signal.aborted) {
-        // Surface timeouts distinctly so the login screen shows the
-        // connection-failure copy rather than "invalid credentials".
-        console.error("Login timed out after 15s");
-        throw new Error("Connection failed. Check the URL and try again.");
-      }
-      console.error("Login failed:", error);
-      return false;
-    } finally {
-      // Clear as soon as the fetch settles so the timer can't fire during the
-      // post-fetch work below and flip controller.signal.aborted after the
-      // fact. The finally acts as a safety net for both the resolve and throw
-      // paths.
-      clearTimeout(timeoutId);
-    }
-
-    try {
-      if (response.ok) {
-        await storeCredentials({ apiUrl: normalizedUrl, username, password });
-
-        // Also save to SharedPreferences for widget access
-        await saveCredentialsToWidget(normalizedUrl, username, password);
-
-        // Save to server list if requested
-        if (save) {
-          // Check if server already exists
-          const currentServers = await getSavedServers();
-          const existing = currentServers.find(
-            (s) => s.apiUrl === normalizedUrl && s.username === username,
-          );
-          if (!existing) {
-            const newServer = await saveServerToStorage({
-              apiUrl: normalizedUrl,
-              username,
-              password,
-            });
-            await setActiveServerId(newServer.id);
-            setActiveServerIdState(newServer.id);
-            await refreshSavedServers();
-          } else {
-            // Always keep the stored password up to date (secure store).
-            await updateServerInStorage(existing.id, { password });
-            await refreshSavedServers();
-            await setActiveServerId(existing.id);
-            setActiveServerIdState(existing.id);
-          }
+        // Check for test launch args first (for Detox auto-login)
+        const testArgs = await getTestLaunchArgs();
+        if (testArgs?.apiUrl && testArgs?.username && testArgs?.password) {
+          setState({
+            apiUrl: testArgs.apiUrl,
+            username: testArgs.username,
+            password: testArgs.password,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return;
         }
 
-        setState({
-          apiUrl: normalizedUrl,
-          username,
-          password,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+        const { apiUrl, username, password } = await getStoredCredentials();
 
-        return true;
+        if (apiUrl && username && password) {
+          await saveCredentialsToWidget(apiUrl, username, password);
+          setState({
+            apiUrl,
+            username,
+            password,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          setState((prev) => ({ ...prev, isLoading: false }));
+        }
+      } catch (error) {
+        console.error("Failed to load credentials:", error);
+        setState((prev) => ({ ...prev, isLoading: false }));
+      }
+    }
+  }, []);
+
+  const login = useCallback(
+    async (
+      apiUrl: string,
+      username: string,
+      password: string,
+      save: boolean = true,
+    ): Promise<boolean> => {
+      // Abort the credential test if the server never responds so login can't
+      // hang forever. 15s matches the OrgAgendaApi default timeout. The timer
+      // guards ONLY the fetch below — the post-fetch credential/storage work is
+      // not subject to it, so a slow (but responsive) server can't cause an
+      // unrelated post-fetch error to be misreported as a connection failure.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
+      let normalizedUrl: string;
+      let response: Response;
+      try {
+        normalizedUrl = normalizeUrl(apiUrl);
+        // Test the credentials by hitting the /capture-templates endpoint
+        response = await fetch(`${normalizedUrl}/capture-templates`, {
+          headers: {
+            Authorization: `Basic ${base64Encode(`${username}:${password}`)}`,
+          },
+          signal: controller.signal,
+        });
+      } catch (error) {
+        // Only the fetch is guarded by the abort timer, so an abort caught here
+        // unambiguously means the request itself timed out.
+        if (controller.signal.aborted) {
+          // Surface timeouts distinctly so the login screen shows the
+          // connection-failure copy rather than "invalid credentials".
+          console.error("Login timed out after 15s");
+          throw new Error("Connection failed. Check the URL and try again.");
+        }
+        console.error("Login failed:", error);
+        return false;
+      } finally {
+        // Clear as soon as the fetch settles so the timer can't fire during the
+        // post-fetch work below and flip controller.signal.aborted after the
+        // fact. The finally acts as a safety net for both the resolve and throw
+        // paths.
+        clearTimeout(timeoutId);
       }
 
-      return false;
-    } catch (error) {
-      // Post-fetch failures are never timeouts, so they must not surface the
-      // connection-failure copy.
-      console.error("Login failed:", error);
-      return false;
-    }
-  }
+      try {
+        if (response.ok) {
+          await storeCredentials({ apiUrl: normalizedUrl, username, password });
 
-  async function logout() {
+          // Also save to SharedPreferences for widget access
+          await saveCredentialsToWidget(normalizedUrl, username, password);
+
+          // Save to server list if requested
+          if (save) {
+            // Check if server already exists
+            const currentServers = await getSavedServers();
+            const existing = currentServers.find(
+              (s) => s.apiUrl === normalizedUrl && s.username === username,
+            );
+            if (!existing) {
+              const newServer = await saveServerToStorage({
+                apiUrl: normalizedUrl,
+                username,
+                password,
+              });
+              await setActiveServerId(newServer.id);
+              setActiveServerIdState(newServer.id);
+              await refreshSavedServers();
+            } else {
+              // Always keep the stored password up to date (secure store).
+              await updateServerInStorage(existing.id, { password });
+              await refreshSavedServers();
+              await setActiveServerId(existing.id);
+              setActiveServerIdState(existing.id);
+            }
+          }
+
+          setState({
+            apiUrl: normalizedUrl,
+            username,
+            password,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+
+          return true;
+        }
+
+        return false;
+      } catch (error) {
+        // Post-fetch failures are never timeouts, so they must not surface the
+        // connection-failure copy.
+        console.error("Login failed:", error);
+        return false;
+      }
+    },
+    [refreshSavedServers],
+  );
+
+  const logout = useCallback(async () => {
     await clearStoredCredentials();
 
     // Also clear widget credentials
@@ -265,100 +270,117 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: false,
       isLoading: false,
     });
-  }
+  }, []);
 
-  async function switchServer(serverId: string): Promise<boolean> {
-    const server = await findServerById(serverId);
-    if (!server) return false;
+  const switchServer = useCallback(
+    async (serverId: string): Promise<boolean> => {
+      const server = await findServerById(serverId);
+      if (!server) return false;
 
-    const success = await login(
-      server.apiUrl,
-      server.username,
-      server.password,
-      false,
-    );
-    if (success) {
-      await setActiveServerId(serverId);
-      setActiveServerIdState(serverId);
-      // Trigger a refresh of all screens to fetch data from the new server
-      triggerRefresh();
-    }
-    return success;
-  }
-
-  async function saveCurrentServer(
-    nickname?: string,
-  ): Promise<SavedServer | null> {
-    if (!state.apiUrl || !state.username || !state.password) return null;
-
-    const newServer = await saveServerToStorage({
-      nickname,
-      apiUrl: state.apiUrl,
-      username: state.username,
-      password: state.password,
-    });
-
-    await setActiveServerId(newServer.id);
-    setActiveServerIdState(newServer.id);
-    await refreshSavedServers();
-    return newServer;
-  }
-
-  async function handleUpdateServer(
-    id: string,
-    updates: Partial<SavedServerInput>,
-  ): Promise<void> {
-    await updateServerInStorage(id, updates);
-    await refreshSavedServers();
-
-    // If updating the active server, update current credentials too
-    if (id === activeServerId && state.isAuthenticated) {
-      const updated = await findServerById(id);
-      if (updated) {
-        await saveCredentialsToWidget(
-          updated.apiUrl,
-          updated.username,
-          updated.password,
-        );
-        setState((prev) => ({
-          ...prev,
-          apiUrl: updated.apiUrl,
-          username: updated.username,
-          password: updated.password,
-        }));
+      const success = await login(
+        server.apiUrl,
+        server.username,
+        server.password,
+        false,
+      );
+      if (success) {
+        await setActiveServerId(serverId);
+        setActiveServerIdState(serverId);
+        // Trigger a refresh of all screens to fetch data from the new server
+        triggerRefresh();
       }
-    }
-  }
-
-  async function handleDeleteServer(id: string): Promise<void> {
-    await deleteServerFromStorage(id);
-    await refreshSavedServers();
-
-    // If deleting the active server, clear active server id
-    if (id === activeServerId) {
-      await setActiveServerId(null);
-      setActiveServerIdState(null);
-    }
-  }
-
-  return (
-    <AuthContext.Provider
-      value={{
-        ...state,
-        login,
-        logout,
-        savedServers,
-        activeServerId,
-        switchServer,
-        saveCurrentServer,
-        updateServer: handleUpdateServer,
-        deleteServer: handleDeleteServer,
-        refreshSavedServers,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+      return success;
+    },
+    [login, triggerRefresh],
   );
+
+  const saveCurrentServer = useCallback(
+    async (nickname?: string): Promise<SavedServer | null> => {
+      if (!state.apiUrl || !state.username || !state.password) return null;
+
+      const newServer = await saveServerToStorage({
+        nickname,
+        apiUrl: state.apiUrl,
+        username: state.username,
+        password: state.password,
+      });
+
+      await setActiveServerId(newServer.id);
+      setActiveServerIdState(newServer.id);
+      await refreshSavedServers();
+      return newServer;
+    },
+    [state.apiUrl, state.username, state.password, refreshSavedServers],
+  );
+
+  const handleUpdateServer = useCallback(
+    async (id: string, updates: Partial<SavedServerInput>): Promise<void> => {
+      await updateServerInStorage(id, updates);
+      await refreshSavedServers();
+
+      // If updating the active server, update current credentials too
+      if (id === activeServerId && state.isAuthenticated) {
+        const updated = await findServerById(id);
+        if (updated) {
+          await saveCredentialsToWidget(
+            updated.apiUrl,
+            updated.username,
+            updated.password,
+          );
+          setState((prev) => ({
+            ...prev,
+            apiUrl: updated.apiUrl,
+            username: updated.username,
+            password: updated.password,
+          }));
+        }
+      }
+    },
+    [activeServerId, state.isAuthenticated, refreshSavedServers],
+  );
+
+  const handleDeleteServer = useCallback(
+    async (id: string): Promise<void> => {
+      await deleteServerFromStorage(id);
+      await refreshSavedServers();
+
+      // If deleting the active server, clear active server id
+      if (id === activeServerId) {
+        await setActiveServerId(null);
+        setActiveServerIdState(null);
+      }
+    },
+    [activeServerId, refreshSavedServers],
+  );
+
+  const value = useMemo<AuthContextType>(
+    () => ({
+      ...state,
+      login,
+      logout,
+      savedServers,
+      activeServerId,
+      switchServer,
+      saveCurrentServer,
+      updateServer: handleUpdateServer,
+      deleteServer: handleDeleteServer,
+      refreshSavedServers,
+    }),
+    [
+      state,
+      login,
+      logout,
+      savedServers,
+      activeServerId,
+      switchServer,
+      saveCurrentServer,
+      handleUpdateServer,
+      handleDeleteServer,
+      refreshSavedServers,
+    ],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

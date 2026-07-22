@@ -1,7 +1,6 @@
 import { HabitGraph } from "@/components/HabitGraph";
 import { useApi } from "@/context/ApiContext";
-import { useSettings } from "@/context/SettingsContext";
-import { useTemplates } from "@/context/TemplatesContext";
+import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import {
   HabitStatus,
@@ -10,6 +9,8 @@ import {
   Todo,
 } from "@/services/api";
 import { formatLocalDate } from "@/utils/dateFormatting";
+import { computeHabitGraphWindow } from "@/utils/habitGraphLayout";
+import { getTodoKey } from "@/utils/todoKey";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -149,14 +150,7 @@ export interface HabitItemProps {
   onRefreshNeeded?: () => void;
 }
 
-// Layout constants
-const CELL_WIDTH = 24;
-const TODAY_CELL_EXTRA = 4; // Today cell is 28 instead of 24
-const CELL_GAP = 3;
-const GRAPH_OUTER_PADDING = 6;
-const ITEM_CONTAINER_PADDING = 12;
-
-export function HabitItem({
+export const HabitItem = React.memo(function HabitItem({
   todo,
   habitStatus,
   onRefreshNeeded,
@@ -165,8 +159,6 @@ export function HabitItem({
   const router = useRouter();
   const api = useApi();
   const { quickComplete, completingIds } = useTodoEditingContext();
-  const { defaultDoneState } = useSettings();
-  const { todoStates } = useTemplates();
   const { width: screenWidth } = useWindowDimensions();
 
   const [menuVisible, setMenuVisible] = useState(false);
@@ -178,37 +170,15 @@ export function HabitItem({
   const [confirmEntry, setConfirmEntry] = useState<MiniGraphEntry | null>(null);
   const [isUncompleting, setIsUncompleting] = useState(false);
 
-  const key = todo.id || `${todo.file}:${todo.pos}:${todo.title}`;
+  const key = getTodoKey(todo);
   const isCompleting = completingIds.has(key);
   const wasCompletingRef = useRef(false);
 
   // Calculate how many cells can fit based on screen width
-  const { preceding, following } = useMemo(() => {
-    // Available width for cells after accounting for all padding
-    const availableWidth =
-      screenWidth - ITEM_CONTAINER_PADDING * 2 - GRAPH_OUTER_PADDING * 2;
-
-    // Calculate max cells that fit (accounting for today's larger cell)
-    // Each cell slot is cellWidth + gap, except last one doesn't need gap
-    // Formula: n * CELL_WIDTH + (n-1) * CELL_GAP + TODAY_CELL_EXTRA <= availableWidth
-    // Simplify: n * (CELL_WIDTH + CELL_GAP) - CELL_GAP + TODAY_CELL_EXTRA <= availableWidth
-    // n <= (availableWidth + CELL_GAP - TODAY_CELL_EXTRA) / (CELL_WIDTH + CELL_GAP)
-    const maxCells = Math.floor(
-      (availableWidth + CELL_GAP - TODAY_CELL_EXTRA) / (CELL_WIDTH + CELL_GAP),
-    );
-
-    // Split cells evenly between past (including today) and future
-    // Give slightly more to past since that's the primary view
-    const pastCells = Math.ceil(maxCells / 2);
-    const futureCells = Math.floor(maxCells / 2);
-
-    // preceding is past cells minus today (which is always shown)
-    // Cap at reasonable values to avoid overwhelming the server
-    const preceding = Math.min(14, Math.max(1, pastCells - 1));
-    const following = Math.min(14, Math.max(1, futureCells));
-
-    return { preceding, following };
-  }, [screenWidth]);
+  const { preceding, following } = useMemo(
+    () => computeHabitGraphWindow(screenWidth),
+    [screenWidth],
+  );
 
   // Use pre-fetched habitStatus if available, otherwise use local state
   // Pad the data to ensure consistent "today" positioning
@@ -272,12 +242,7 @@ export function HabitItem({
     wasCompletingRef.current = isCompleting;
   }, [isCompleting, fetchGraphData]);
 
-  // Compute effective default done state
-  const effectiveDoneState = useMemo(() => {
-    if (defaultDoneState) return defaultDoneState;
-    if (!todoStates?.done?.length) return "DONE";
-    return todoStates.done.includes("DONE") ? "DONE" : todoStates.done[0];
-  }, [defaultDoneState, todoStates]);
+  const effectiveDoneState = useEffectiveDoneState();
 
   const habitSummary = todo.habitSummary;
   const needsCompletion = habitSummary?.completionNeededToday;
@@ -568,7 +533,7 @@ export function HabitItem({
       </Portal>
     </>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

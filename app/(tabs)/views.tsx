@@ -1,6 +1,6 @@
 import { FilterBar } from "@/components/FilterBar";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { getTodoKey, TodoItem } from "@/components/TodoItem";
+import { TodoItem } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
@@ -13,6 +13,7 @@ import {
   TodoStatesResponse,
 } from "@/services/api";
 import { filterTodos } from "@/utils/filterTodos";
+import { getTodoKey } from "@/utils/todoKey";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,

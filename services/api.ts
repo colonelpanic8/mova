@@ -655,26 +655,32 @@ export class OrgAgendaApi {
     }
   }
 
-  async completeTodo(
+  /**
+   * Identify a todo for mutation endpoints: id when available, otherwise
+   * file/pos (optionally with title, for endpoints that accept it as a
+   * disambiguator).
+   */
+  private todoIdentifier(
     todo: Todo,
-    newState: string = "DONE",
-    overrideDate?: string,
-  ): Promise<CompleteTodoResponse> {
-    // completeTodo and setTodoState hit the same /complete endpoint with the
-    // same payload; delegate to keep a single implementation.
-    return this.setTodoState(todo, newState, overrideDate);
+    { withTitle = false }: { withTitle?: boolean } = {},
+  ):
+    | { id: string }
+    | { file: string | null; pos: number | null; title?: string } {
+    if (todo.id) {
+      return { id: todo.id };
+    }
+    return withTitle
+      ? { file: todo.file, pos: todo.pos, title: todo.title }
+      : { file: todo.file, pos: todo.pos };
   }
 
   async updateTodo(
     todo: Todo,
     updates: TodoUpdates,
   ): Promise<UpdateTodoResponse> {
-    // Use id if available, otherwise file/pos for identification
     // Note: we don't include title in the identifier because it could conflict
     // with title updates. Backend uses file+pos to locate the todo.
-    const identifier = todo.id
-      ? { id: todo.id }
-      : { file: todo.file, pos: todo.pos };
+    const identifier = this.todoIdentifier(todo);
     return this.request<UpdateTodoResponse>("/update", {
       method: "POST",
       body: JSON.stringify({
@@ -685,9 +691,7 @@ export class OrgAgendaApi {
   }
 
   async deleteTodo(todo: Todo): Promise<DeleteTodoResponse> {
-    const identifier = todo.id
-      ? { id: todo.id }
-      : { file: todo.file, pos: todo.pos, title: todo.title };
+    const identifier = this.todoIdentifier(todo, { withTitle: true });
     return this.request<DeleteTodoResponse>("/delete", {
       method: "POST",
       body: JSON.stringify({
@@ -702,9 +706,7 @@ export class OrgAgendaApi {
     date: string,
     entryType?: "state-change" | "note",
   ): Promise<DeleteLogbookEntryResponse> {
-    const identifier = todo.id
-      ? { id: todo.id }
-      : { file: todo.file, pos: todo.pos };
+    const identifier = this.todoIdentifier(todo);
     return this.request<DeleteLogbookEntryResponse>("/delete-logbook-entry", {
       method: "POST",
       body: JSON.stringify({
@@ -724,9 +726,7 @@ export class OrgAgendaApi {
     newState: string,
     overrideDate?: string,
   ): Promise<CompleteTodoResponse> {
-    const identifier = todo.id
-      ? { id: todo.id }
-      : { file: todo.file, pos: todo.pos, title: todo.title };
+    const identifier = this.todoIdentifier(todo, { withTitle: true });
     return this.request<CompleteTodoResponse>("/complete", {
       method: "POST",
       body: JSON.stringify({

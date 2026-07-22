@@ -2,7 +2,7 @@ import { DayScheduleView } from "@/components/DayScheduleView";
 import { FilterBar } from "@/components/FilterBar";
 import { HabitItem } from "@/components/HabitItem";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { TodoItem, getTodoKey } from "@/components/TodoItem";
+import { TodoItem } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
 import { useColorPalette } from "@/context/ColorPaletteContext";
@@ -32,6 +32,9 @@ import {
   isPastDay,
 } from "@/utils/dateFormatting";
 import { filterTodos } from "@/utils/filterTodos";
+import { isHabitTodo } from "@/utils/habits";
+import { formatRelativeTime } from "@/utils/timeFormatting";
+import { getTodoKey } from "@/utils/todoKey";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -180,13 +183,7 @@ function formatFetchedAgo(fetchedAt: string | null): string {
   if (!Number.isFinite(fetchedTime)) {
     return "earlier";
   }
-  const minutes = Math.round((Date.now() - fetchedTime) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  const days = Math.round(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
+  return formatRelativeTime(new Date(fetchedTime));
 }
 
 interface MultiDaySectionItem {
@@ -216,7 +213,7 @@ function sortEntriesForListView<T extends Todo>(entries: T[]): T[] {
   const habitsWithoutTime: T[] = [];
 
   for (const entry of entries) {
-    const isHabit = entry.isWindowHabit || entry.properties?.STYLE === "habit";
+    const isHabit = isHabitTodo(entry);
     const hasScheduledTime = entry.scheduled?.time != null;
 
     if (isHabit && !hasScheduledTime) {
@@ -379,9 +376,7 @@ export default function AgendaScreen() {
 
   const isCompleted = useCallback(
     (entry: Todo & { completedAt?: string | null }) => {
-      const isHabit =
-        entry.isWindowHabit || entry.properties?.STYLE === "habit";
-      if (isHabit) {
+      if (isHabitTodo(entry)) {
         // Check completion for the selected date, not just today
         const selectedDateString = formatDateForApi(selectedDate);
         return isHabitCompletedOnDate(entry, selectedDateString);
@@ -395,9 +390,7 @@ export default function AgendaScreen() {
   // Note: For future dates, habits returned by API are scheduled for that date, so show them
   const shouldShowInAgenda = useCallback(
     (entry: Todo & { completedAt?: string | null }): boolean => {
-      const isHabit =
-        entry.isWindowHabit || entry.properties?.STYLE === "habit";
-      if (isHabit) {
+      if (isHabitTodo(entry)) {
         const todayString = formatDateForApi(new Date());
         const selectedDateString = formatDateForApi(selectedDate);
 
@@ -423,12 +416,23 @@ export default function AgendaScreen() {
     [habitNeedsCompletionOnDate, isHabitCompletedOnDate, selectedDate],
   );
 
-  const visibleEntries = filteredEntries.filter(shouldShowInAgenda);
-  const activeEntries = sortEntriesForListView(
-    visibleEntries.filter((entry) => !isCompleted(entry)),
+  const visibleEntries = useMemo(
+    () => filteredEntries.filter(shouldShowInAgenda),
+    [filteredEntries, shouldShowInAgenda],
   );
-  const completedEntries = sortEntriesForListView(
-    visibleEntries.filter((entry) => isCompleted(entry)),
+  const activeEntries = useMemo(
+    () =>
+      sortEntriesForListView(
+        visibleEntries.filter((entry) => !isCompleted(entry)),
+      ),
+    [visibleEntries, isCompleted],
+  );
+  const completedEntries = useMemo(
+    () =>
+      sortEntriesForListView(
+        visibleEntries.filter((entry) => isCompleted(entry)),
+      ),
+    [visibleEntries, isCompleted],
   );
 
   const toggleCategoryCollapse = useCallback((categoryKey: string) => {
@@ -475,6 +479,30 @@ export default function AgendaScreen() {
       return result;
     },
     [groupByCategory, getCategoryColor, collapsedCategories],
+  );
+
+  // Sections for the single-day list view (active + optional completed)
+  const listSections = useMemo(
+    (): { key: string; title?: string; data: AgendaListItem[] }[] => [
+      ...(activeEntries.length > 0
+        ? [
+            {
+              key: "active",
+              data: groupItemsByCategory(activeEntries),
+            },
+          ]
+        : []),
+      ...(showCompleted && completedEntries.length > 0
+        ? [
+            {
+              key: "completed",
+              title: "Completed",
+              data: groupItemsByCategory(completedEntries),
+            },
+          ]
+        : []),
+    ],
+    [activeEntries, completedEntries, showCompleted, groupItemsByCategory],
   );
 
   // Build sections for multi-day view
@@ -543,9 +571,7 @@ export default function AgendaScreen() {
         const displayEntries = showCompleted
           ? mergedEntries
           : mergedEntries.filter((e) => {
-              const isHabit =
-                e.isWindowHabit || e.properties?.STYLE === "habit";
-              if (isHabit) {
+              if (isHabitTodo(e)) {
                 // For habits, check completion using miniGraph/habitStatusMap
                 return !isHabitCompletedOnDate(e, dateString);
               }
@@ -1054,9 +1080,7 @@ export default function AgendaScreen() {
               sections={multiDaySections}
               keyExtractor={(item) => getTodoKey(item)}
               renderItem={({ item, section }) => {
-                const isHabit =
-                  item.isWindowHabit || item.properties?.STYLE === "habit";
-                const completed = isHabit
+                const completed = isHabitTodo(item)
                   ? isHabitCompletedOnDate(item, section.dateString)
                   : item.completedAt || doneStates.includes(item.todo);
                 return <TodoItem todo={item} opacity={completed ? 0.6 : 1} />;
@@ -1120,25 +1144,7 @@ export default function AgendaScreen() {
         ) : (
           <SectionList<AgendaListItem>
             testID="agendaList"
-            sections={[
-              ...(activeEntries.length > 0
-                ? [
-                    {
-                      key: "active",
-                      data: groupItemsByCategory(activeEntries),
-                    },
-                  ]
-                : []),
-              ...(showCompleted && completedEntries.length > 0
-                ? [
-                    {
-                      key: "completed",
-                      title: "Completed",
-                      data: groupItemsByCategory(completedEntries),
-                    },
-                  ]
-                : []),
-            ]}
+            sections={listSections}
             keyExtractor={(item) =>
               "type" in item && item.type === "category-header"
                 ? `header-${item.category}`
@@ -1190,10 +1196,7 @@ export default function AgendaScreen() {
 
               // Handle regular items
               const todoItem = item as AgendaEntry;
-              const isHabit =
-                todoItem.isWindowHabit ||
-                todoItem.properties?.STYLE === "habit";
-              if (isHabit) {
+              if (isHabitTodo(todoItem)) {
                 return (
                   <HabitItem
                     todo={todoItem}

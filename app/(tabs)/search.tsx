@@ -1,6 +1,6 @@
 import { FilterBar } from "@/components/FilterBar";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { getTodoKey, TodoItem } from "@/components/TodoItem";
+import { TodoItem } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
 import { useFilters } from "@/context/FilterContext";
 import { useMutation } from "@/context/MutationContext";
@@ -8,7 +8,14 @@ import { useMutationVersionEffect } from "@/hooks/useMutationVersionEffect";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { Todo, TodoStatesResponse } from "@/services/api";
 import { filterTodos } from "@/utils/filterTodos";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { getTodoKey } from "@/utils/todoKey";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   FlatList,
   RefreshControl,
@@ -26,7 +33,6 @@ import {
 
 export default function SearchScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [filteredTodos, setFilteredTodos] = useState<Todo[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +66,6 @@ export default function SearchScreen() {
       ]);
       if (requestId !== requestIdRef.current) return;
       setTodos(todosResponse.todos);
-      setFilteredTodos(todosResponse.todos);
       if (statesResponse) {
         setTodoStates(statesResponse);
       }
@@ -85,7 +90,7 @@ export default function SearchScreen() {
     { skipInitial: true },
   );
 
-  useEffect(() => {
+  const filteredTodos = useMemo(() => {
     // First apply context filters
     let result = filterTodos(todos, filters);
 
@@ -102,7 +107,7 @@ export default function SearchScreen() {
       });
     }
 
-    setFilteredTodos(result);
+    return result;
   }, [searchQuery, todos, filters]);
 
   const onRefresh = useCallback(async () => {

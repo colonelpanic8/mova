@@ -1,5 +1,6 @@
 import { DateRange, FilterState } from "@/context/FilterContext";
 import { Todo } from "@/services/api";
+import { isHabitTodo } from "@/utils/habits";
 
 function formatDateForComparison(date: Date): string {
   const year = date.getFullYear();
@@ -95,9 +96,7 @@ export function filterTodos<T extends Todo>(
 
   return todos.filter((todo) => {
     // Filter out habits if showHabits is false
-    // Check both isWindowHabit (window habits) and STYLE property (standard org habits)
-    const isHabit = todo.isWindowHabit || todo.properties?.STYLE === "habit";
-    if (!filters.showHabits && isHabit) {
+    if (!filters.showHabits && isHabitTodo(todo)) {
       return false;
     }
 

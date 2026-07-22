@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -221,69 +222,91 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   }, [showHabitsInAgenda]);
 
   // Compute active filters as a flat list for display
-  const activeFilters: ActiveFilter[] = [
-    ...filters.tags.include.map((tag) => ({
-      type: "tag" as const,
-      value: tag,
-    })),
-    ...filters.tags.exclude.map((tag) => ({
-      type: "tag" as const,
-      value: tag,
-      exclude: true,
-    })),
-    ...filters.states.map((state) => ({
-      type: "state" as const,
-      value: state,
-    })),
-    ...filters.priorities.map((priority) => ({
-      type: "priority" as const,
-      value: priority,
-    })),
-    ...(filters.dateRange
-      ? [
-          {
-            type: "dateRange" as const,
-            value:
-              typeof filters.dateRange === "string"
-                ? filters.dateRange
-                : "custom",
-          },
-        ]
-      : []),
-    ...filters.files.map((file) => ({ type: "file" as const, value: file })),
-    ...filters.categories.map((category) => ({
-      type: "category" as const,
-      value: category,
-    })),
-  ];
+  const activeFilters: ActiveFilter[] = useMemo(
+    () => [
+      ...filters.tags.include.map((tag) => ({
+        type: "tag" as const,
+        value: tag,
+      })),
+      ...filters.tags.exclude.map((tag) => ({
+        type: "tag" as const,
+        value: tag,
+        exclude: true,
+      })),
+      ...filters.states.map((state) => ({
+        type: "state" as const,
+        value: state,
+      })),
+      ...filters.priorities.map((priority) => ({
+        type: "priority" as const,
+        value: priority,
+      })),
+      ...(filters.dateRange
+        ? [
+            {
+              type: "dateRange" as const,
+              value:
+                typeof filters.dateRange === "string"
+                  ? filters.dateRange
+                  : "custom",
+            },
+          ]
+        : []),
+      ...filters.files.map((file) => ({ type: "file" as const, value: file })),
+      ...filters.categories.map((category) => ({
+        type: "category" as const,
+        value: category,
+      })),
+    ],
+    [filters],
+  );
 
   const hasActiveFilters = activeFilters.length > 0 || !filters.showHabits;
 
+  const value = useMemo<FilterContextType>(
+    () => ({
+      filters,
+      activeFilters,
+      hasActiveFilters,
+      addTagFilter,
+      removeTagFilter,
+      addStateFilter,
+      removeStateFilter,
+      addPriorityFilter,
+      removePriorityFilter,
+      setDateRangeFilter,
+      addFileFilter,
+      removeFileFilter,
+      addCategoryFilter,
+      removeCategoryFilter,
+      removeFilter,
+      clearAllFilters,
+      showHabits: filters.showHabits,
+      setShowHabits,
+    }),
+    [
+      filters,
+      activeFilters,
+      hasActiveFilters,
+      addTagFilter,
+      removeTagFilter,
+      addStateFilter,
+      removeStateFilter,
+      addPriorityFilter,
+      removePriorityFilter,
+      setDateRangeFilter,
+      addFileFilter,
+      removeFileFilter,
+      addCategoryFilter,
+      removeCategoryFilter,
+      removeFilter,
+      clearAllFilters,
+      setShowHabits,
+    ],
+  );
+
   return (
-    <FilterContext.Provider
-      value={{
-        filters,
-        activeFilters,
-        hasActiveFilters,
-        addTagFilter,
-        removeTagFilter,
-        addStateFilter,
-        removeStateFilter,
-        addPriorityFilter,
-        removePriorityFilter,
-        setDateRangeFilter,
-        addFileFilter,
-        removeFileFilter,
-        addCategoryFilter,
-        removeCategoryFilter,
-        removeFilter,
-        clearAllFilters,
-        showHabits: filters.showHabits,
-        setShowHabits,
-      }}
-    >
-      {children}
-    </FilterContext.Provider>
+    <FilterContext.Provider value={value}>{children}</FilterContext.Provider>
   );
 }
 

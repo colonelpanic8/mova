@@ -156,7 +156,7 @@ describe("OrgAgendaApi", () => {
     });
   });
 
-  describe("completeTodo", () => {
+  describe("setTodoState", () => {
     it("should send only id when todo has id", async () => {
       const todo = {
         id: "test-id-123",
@@ -182,7 +182,7 @@ describe("OrgAgendaApi", () => {
         text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
-      await api.completeTodo(todo);
+      await api.setTodoState(todo, "DONE");
 
       const callBody = JSON.parse(
         (global.fetch as jest.Mock).mock.calls[0][1].body,
@@ -223,7 +223,7 @@ describe("OrgAgendaApi", () => {
         text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
-      await api.completeTodo(todo);
+      await api.setTodoState(todo, "DONE");
 
       const callBody = JSON.parse(
         (global.fetch as jest.Mock).mock.calls[0][1].body,

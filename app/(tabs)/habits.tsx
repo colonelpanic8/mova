@@ -1,11 +1,13 @@
 import { HabitItem } from "@/components/HabitItem";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { getTodoKey } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
-import { useHabitConfig } from "@/context/HabitConfigContext";
 import { useMutation } from "@/context/MutationContext";
+import { useHabitConfig } from "@/hooks/useHabitConfig";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { HabitStatus, Todo } from "@/services/api";
+import { computeHabitGraphWindow } from "@/utils/habitGraphLayout";
+import { isHabitTodo } from "@/utils/habits";
+import { getTodoKey } from "@/utils/todoKey";
 import { useFocusEffect } from "@react-navigation/native";
 import React, {
   useCallback,
@@ -30,12 +32,6 @@ import {
   useTheme,
 } from "react-native-paper";
 
-// Layout constants (must match HabitItem)
-const CELL_WIDTH = 24;
-const TODAY_CELL_EXTRA = 4;
-const CELL_GAP = 3;
-const GRAPH_OUTER_PADDING = 6;
-const ITEM_CONTAINER_PADDING = 12;
 const INITIAL_LOAD_RETRY_DELAY_MS = 750;
 
 interface HabitStats {
@@ -126,18 +122,10 @@ export default function HabitsScreen() {
   } | null>(null);
 
   // Calculate preceding/following based on screen width (same logic as HabitItem)
-  const { preceding, following } = useMemo(() => {
-    const availableWidth =
-      screenWidth - ITEM_CONTAINER_PADDING * 2 - GRAPH_OUTER_PADDING * 2;
-    const maxCells = Math.floor(
-      (availableWidth + CELL_GAP - TODAY_CELL_EXTRA) / (CELL_WIDTH + CELL_GAP),
-    );
-    const pastCells = Math.ceil(maxCells / 2);
-    const futureCells = Math.floor(maxCells / 2);
-    const preceding = Math.min(14, Math.max(1, pastCells - 1));
-    const following = Math.min(14, Math.max(1, futureCells));
-    return { preceding, following };
-  }, [screenWidth]);
+  const { preceding, following } = useMemo(
+    () => computeHabitGraphWindow(screenWidth),
+    [screenWidth],
+  );
 
   useEffect(() => {
     setHabits([]);
@@ -174,9 +162,7 @@ export default function HabitsScreen() {
           }),
         ]);
 
-        const habitTodos = todosResponse.todos.filter(
-          (todo) => todo.isWindowHabit || todo.properties?.STYLE === "habit",
-        );
+        const habitTodos = todosResponse.todos.filter(isHabitTodo);
 
         let nextStatusMap: Map<string, HabitStatus> | null = null;
         if (

@@ -20,6 +20,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -139,26 +140,45 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [multiDayRangeLength],
   );
 
+  const value = useMemo<SettingsContextType>(
+    () => ({
+      quickScheduleIncludeTime,
+      setQuickScheduleIncludeTime,
+      showHabitsInAgenda,
+      setShowHabitsInAgenda,
+      defaultDoneState,
+      setDefaultDoneState,
+      useClientCompletionTime,
+      setUseClientCompletionTime,
+      groupByCategory,
+      setGroupByCategory,
+      multiDayRangeLength,
+      setMultiDayRangeLength,
+      multiDayPastDays,
+      setMultiDayPastDays,
+      isLoading,
+    }),
+    [
+      quickScheduleIncludeTime,
+      setQuickScheduleIncludeTime,
+      showHabitsInAgenda,
+      setShowHabitsInAgenda,
+      defaultDoneState,
+      setDefaultDoneState,
+      useClientCompletionTime,
+      setUseClientCompletionTime,
+      groupByCategory,
+      setGroupByCategory,
+      multiDayRangeLength,
+      setMultiDayRangeLength,
+      multiDayPastDays,
+      setMultiDayPastDays,
+      isLoading,
+    ],
+  );
+
   return (
-    <SettingsContext.Provider
-      value={{
-        quickScheduleIncludeTime,
-        setQuickScheduleIncludeTime,
-        showHabitsInAgenda,
-        setShowHabitsInAgenda,
-        defaultDoneState,
-        setDefaultDoneState,
-        useClientCompletionTime,
-        setUseClientCompletionTime,
-        groupByCategory,
-        setGroupByCategory,
-        multiDayRangeLength,
-        setMultiDayRangeLength,
-        multiDayPastDays,
-        setMultiDayPastDays,
-        isLoading,
-      }}
-    >
+    <SettingsContext.Provider value={value}>
       {children}
     </SettingsContext.Provider>
   );

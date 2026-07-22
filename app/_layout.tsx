@@ -2,7 +2,6 @@ import { ApiProvider } from "@/context/ApiContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
 import { FilterProvider } from "@/context/FilterContext";
-import { HabitConfigProvider } from "@/context/HabitConfigContext";
 import { MutationProvider } from "@/context/MutationContext";
 import { OutboxProvider } from "@/context/OutboxContext";
 import { SettingsProvider } from "@/context/SettingsContext";
@@ -93,11 +92,9 @@ export default function RootLayout() {
                   <ApiProvider>
                     <OutboxProvider>
                       <TemplatesProvider>
-                        <HabitConfigProvider>
-                          <FilterProvider>
-                            <RootLayoutNav />
-                          </FilterProvider>
-                        </HabitConfigProvider>
+                        <FilterProvider>
+                          <RootLayoutNav />
+                        </FilterProvider>
                       </TemplatesProvider>
                     </OutboxProvider>
                   </ApiProvider>

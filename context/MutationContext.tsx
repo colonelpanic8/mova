@@ -3,6 +3,7 @@ import React, {
   ReactNode,
   useCallback,
   useContext,
+  useMemo,
   useState,
 } from "react";
 
@@ -22,8 +23,13 @@ export function MutationProvider({ children }: { children: ReactNode }) {
     setMutationVersion((v) => v + 1);
   }, []);
 
+  const value = useMemo<MutationContextType>(
+    () => ({ mutationVersion, triggerRefresh }),
+    [mutationVersion, triggerRefresh],
+  );
+
   return (
-    <MutationContext.Provider value={{ mutationVersion, triggerRefresh }}>
+    <MutationContext.Provider value={value}>
       {children}
     </MutationContext.Provider>
   );

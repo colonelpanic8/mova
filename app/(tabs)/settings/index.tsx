@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
+import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import { AgendaFilesResponse, VersionResponse } from "@/services/api";
 import {
@@ -26,6 +27,7 @@ import {
   getNotificationSyncIntervalMinutes,
   setNotificationSyncIntervalMinutes,
 } from "@/services/notificationSyncConfig";
+import { formatRelativeTime } from "@/utils/timeFormatting";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -130,13 +132,8 @@ export default function SettingsScreen() {
     return template?.name || "Not set";
   }, [activeServer?.defaultCaptureTemplate, templates]);
 
-  // Compute effective default done state (setting or auto-detect)
-  const effectiveDefaultDoneState = useMemo(() => {
-    if (defaultDoneState) return defaultDoneState;
-    if (!todoStates?.done?.length) return "DONE";
-    // Default to "DONE" if it exists, otherwise first done state
-    return todoStates.done.includes("DONE") ? "DONE" : todoStates.done[0];
-  }, [defaultDoneState, todoStates]);
+  // Effective default done state (setting or auto-detect)
+  const effectiveDefaultDoneState = useEffectiveDoneState();
 
   const handleDoneStateSelect = useCallback(
     async (state: string | null) => {
@@ -305,17 +302,8 @@ export default function SettingsScreen() {
     [notificationsEnabled, syncNotifications],
   );
 
-  const formatLastSync = (date: Date | null): string => {
-    if (!date) return "Never";
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins} min ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} hr ago`;
-    return date.toLocaleDateString();
-  };
+  const formatLastSync = (date: Date | null): string =>
+    date ? formatRelativeTime(date) : "Never";
 
   const formatBackgroundSyncStatus = (status: number | null): string => {
     if (status == null) return "Unknown";

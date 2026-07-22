@@ -99,7 +99,6 @@ jest.mock("expo-router", () => ({
 const mockApi = {
   getAllTodos: jest.fn(),
   getTodoStates: jest.fn(),
-  completeTodo: jest.fn(),
   setTodoState: jest.fn(),
   updateTodo: jest.fn(),
 };
@@ -171,7 +170,6 @@ beforeEach(() => {
   // Reset mock API methods
   mockApi.getAllTodos.mockReset();
   mockApi.getTodoStates.mockReset();
-  mockApi.completeTodo.mockReset();
   mockApi.setTodoState.mockReset();
   mockApi.updateTodo.mockReset();
 
@@ -183,10 +181,6 @@ beforeEach(() => {
   mockApi.getTodoStates.mockResolvedValue({
     active: ["TODO", "NEXT", "WAITING"],
     done: ["DONE"],
-  });
-  mockApi.completeTodo.mockResolvedValue({
-    status: "completed",
-    newState: "DONE",
   });
   mockApi.setTodoState.mockResolvedValue({
     status: "completed",
@@ -217,9 +211,9 @@ describe("SearchScreen API Integration", () => {
 
   it("should complete a todo via API", async () => {
     const todo = mockTodos[0];
-    const result = await mockApi.completeTodo(todo);
+    const result = await mockApi.setTodoState(todo, "DONE");
 
-    expect(mockApi.completeTodo).toHaveBeenCalledWith(todo);
+    expect(mockApi.setTodoState).toHaveBeenCalledWith(todo, "DONE");
     expect(result.status).toBe("completed");
     expect(result.newState).toBe("DONE");
   });
@@ -383,9 +377,9 @@ describe("SearchScreen Error Handling", () => {
   });
 
   it("should handle completion errors", async () => {
-    mockApi.completeTodo.mockRejectedValue(new Error("Completion failed"));
+    mockApi.setTodoState.mockRejectedValue(new Error("Completion failed"));
 
-    await expect(mockApi.completeTodo(mockTodos[0])).rejects.toThrow(
+    await expect(mockApi.setTodoState(mockTodos[0], "DONE")).rejects.toThrow(
       "Completion failed",
     );
   });
@@ -487,7 +481,6 @@ describe("SearchScreen Component", () => {
     // Reset and set default mock implementations
     mockApi.getAllTodos.mockReset();
     mockApi.getTodoStates.mockReset();
-    mockApi.completeTodo.mockReset();
     mockApi.setTodoState.mockReset();
 
     mockApi.getAllTodos.mockResolvedValue({
@@ -497,10 +490,6 @@ describe("SearchScreen Component", () => {
     mockApi.getTodoStates.mockResolvedValue({
       active: ["TODO", "NEXT", "WAITING"],
       done: ["DONE"],
-    });
-    mockApi.completeTodo.mockResolvedValue({
-      status: "completed",
-      newState: "DONE",
     });
     mockApi.setTodoState.mockResolvedValue({
       status: "completed",

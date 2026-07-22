@@ -25,6 +25,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -469,22 +470,39 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     };
   }, [ensureFreshTemplates]);
 
+  const value = useMemo<TemplatesContextType>(
+    () => ({
+      templates,
+      categoryTypes,
+      filterOptions,
+      todoStates,
+      customViews,
+      habitConfig,
+      exposedFunctions,
+      isLoading: isLoading || (isAuthenticated && !hasLoadedOnce),
+      error,
+      reloadTemplates,
+      ensureFreshTemplates,
+    }),
+    [
+      templates,
+      categoryTypes,
+      filterOptions,
+      todoStates,
+      customViews,
+      habitConfig,
+      exposedFunctions,
+      isLoading,
+      isAuthenticated,
+      hasLoadedOnce,
+      error,
+      reloadTemplates,
+      ensureFreshTemplates,
+    ],
+  );
+
   return (
-    <TemplatesContext.Provider
-      value={{
-        templates,
-        categoryTypes,
-        filterOptions,
-        todoStates,
-        customViews,
-        habitConfig,
-        exposedFunctions,
-        isLoading: isLoading || (isAuthenticated && !hasLoadedOnce),
-        error,
-        reloadTemplates,
-        ensureFreshTemplates,
-      }}
-    >
+    <TemplatesContext.Provider value={value}>
       {children}
     </TemplatesContext.Provider>
   );

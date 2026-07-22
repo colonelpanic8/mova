@@ -1,8 +1,8 @@
 import { StatePill } from "@/components/StatePill";
-import { getTodoKey } from "@/components/TodoItem";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
 import { formatHour, formatTime } from "@/utils/timeFormatting";
+import { getTodoKey } from "@/utils/todoKey";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
 import {

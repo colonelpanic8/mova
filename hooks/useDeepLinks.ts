@@ -84,7 +84,7 @@ export function useDeepLinks() {
       case "complete":
         if (params.id || (params.file && params.pos)) {
           try {
-            const result = await api.completeTodo(
+            const result = await api.setTodoState(
               {
                 id: params.id || null,
                 file: params.file || null,

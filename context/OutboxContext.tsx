@@ -193,19 +193,27 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
 
   const clearNotice = useCallback(() => setNotice(null), []);
 
+  const value = useMemo<OutboxContextType>(
+    () => ({
+      pendingCount,
+      enqueueCapture,
+      captureOrEnqueue,
+      flushNow,
+      notice,
+      clearNotice,
+    }),
+    [
+      pendingCount,
+      enqueueCapture,
+      captureOrEnqueue,
+      flushNow,
+      notice,
+      clearNotice,
+    ],
+  );
+
   return (
-    <OutboxContext.Provider
-      value={{
-        pendingCount,
-        enqueueCapture,
-        captureOrEnqueue,
-        flushNow,
-        notice,
-        clearNotice,
-      }}
-    >
-      {children}
-    </OutboxContext.Provider>
+    <OutboxContext.Provider value={value}>{children}</OutboxContext.Provider>
   );
 }
 

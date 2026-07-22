@@ -24,6 +24,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { useTheme } from "react-native-paper";
@@ -81,43 +82,43 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
   // Load saved configuration on mount
   useEffect(() => {
     loadConfig();
+
+    async function loadConfig() {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as ColorPaletteConfig;
+          // Merge with defaults to handle new fields in updates
+          setConfig({
+            ...DEFAULT_COLOR_PALETTE,
+            ...parsed,
+            todoStateColors: {
+              ...DEFAULT_COLOR_PALETTE.todoStateColors,
+              ...parsed.todoStateColors,
+            },
+            actionColors: {
+              ...DEFAULT_COLOR_PALETTE.actionColors,
+              ...parsed.actionColors,
+            },
+            priorityColors: {
+              ...DEFAULT_COLOR_PALETTE.priorityColors,
+              ...parsed.priorityColors,
+            },
+            habitColors: {
+              ...DEFAULT_COLOR_PALETTE.habitColors,
+              ...parsed.habitColors,
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load color palette:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
   }, []);
 
-  async function loadConfig() {
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as ColorPaletteConfig;
-        // Merge with defaults to handle new fields in updates
-        setConfig({
-          ...DEFAULT_COLOR_PALETTE,
-          ...parsed,
-          todoStateColors: {
-            ...DEFAULT_COLOR_PALETTE.todoStateColors,
-            ...parsed.todoStateColors,
-          },
-          actionColors: {
-            ...DEFAULT_COLOR_PALETTE.actionColors,
-            ...parsed.actionColors,
-          },
-          priorityColors: {
-            ...DEFAULT_COLOR_PALETTE.priorityColors,
-            ...parsed.priorityColors,
-          },
-          habitColors: {
-            ...DEFAULT_COLOR_PALETTE.habitColors,
-            ...parsed.habitColors,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Failed to load color palette:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function saveConfig(newConfig: ColorPaletteConfig) {
+  const saveConfig = useCallback(async (newConfig: ColorPaletteConfig) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
       setConfig(newConfig);
@@ -125,7 +126,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       console.error("Failed to save color palette:", error);
       throw error;
     }
-  }
+  }, []);
 
   // Resolve a color value (handles theme references)
   const resolveColor = useCallback(
@@ -212,7 +213,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config],
+    [config, saveConfig],
   );
 
   const removeTodoStateColor = useCallback(
@@ -229,7 +230,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config],
+    [config, saveConfig],
   );
 
   const setActionColor = useCallback(
@@ -243,7 +244,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config],
+    [config, saveConfig],
   );
 
   const setPriorityColor = useCallback(
@@ -257,7 +258,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config],
+    [config, saveConfig],
   );
 
   const setHabitColor = useCallback(
@@ -271,7 +272,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config],
+    [config, saveConfig],
   );
 
   const setCategoryColor = useCallback(
@@ -285,7 +286,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config],
+    [config, saveConfig],
   );
 
   const clearCategoryColor = useCallback(
@@ -297,7 +298,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config],
+    [config, saveConfig],
   );
 
   const randomizeTodoStateColors = useCallback(
@@ -315,7 +316,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       };
       await saveConfig(newConfig);
     },
-    [config],
+    [config, saveConfig],
   );
 
   const resetToDefaults = useCallback(async () => {
@@ -323,28 +324,49 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     setConfig(DEFAULT_COLOR_PALETTE);
   }, []);
 
+  const value = useMemo<ColorPaletteContextType>(
+    () => ({
+      config,
+      isLoading,
+      getTodoStateColor,
+      getActionColor,
+      getPriorityColor,
+      getHabitColors,
+      getCategoryColor,
+      getConfiguredTodoStates,
+      setTodoStateColor,
+      removeTodoStateColor,
+      setActionColor,
+      setPriorityColor,
+      setHabitColor,
+      setCategoryColor,
+      clearCategoryColor,
+      randomizeTodoStateColors,
+      resetToDefaults,
+    }),
+    [
+      config,
+      isLoading,
+      getTodoStateColor,
+      getActionColor,
+      getPriorityColor,
+      getHabitColors,
+      getCategoryColor,
+      getConfiguredTodoStates,
+      setTodoStateColor,
+      removeTodoStateColor,
+      setActionColor,
+      setPriorityColor,
+      setHabitColor,
+      setCategoryColor,
+      clearCategoryColor,
+      randomizeTodoStateColors,
+      resetToDefaults,
+    ],
+  );
+
   return (
-    <ColorPaletteContext.Provider
-      value={{
-        config,
-        isLoading,
-        getTodoStateColor,
-        getActionColor,
-        getPriorityColor,
-        getHabitColors,
-        getCategoryColor,
-        getConfiguredTodoStates,
-        setTodoStateColor,
-        removeTodoStateColor,
-        setActionColor,
-        setPriorityColor,
-        setHabitColor,
-        setCategoryColor,
-        clearCategoryColor,
-        randomizeTodoStateColors,
-        resetToDefaults,
-      }}
-    >
+    <ColorPaletteContext.Provider value={value}>
       {children}
     </ColorPaletteContext.Provider>
   );

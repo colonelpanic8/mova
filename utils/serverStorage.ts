@@ -33,23 +33,35 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
+/**
+ * Shape of a server entry as persisted in AsyncStorage. Legacy entries may
+ * still carry a plaintext password (migrated to the secure store on read).
+ */
+type StoredServer = Omit<SavedServer, "hasPassword"> & { password?: string };
+
+function isStoredServer(value: unknown): value is StoredServer {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.id === "string";
+}
+
 export async function getSavedServers(): Promise<SavedServer[]> {
   try {
     const stored = await AsyncStorage.getItem(STORAGE_KEYS.SAVED_SERVERS);
-    const parsed: any[] = stored ? JSON.parse(stored) : [];
+    const parsed: unknown = stored ? JSON.parse(stored) : [];
+    // Drop malformed entries (no usable id) instead of passing them through.
+    const entries = Array.isArray(parsed) ? parsed.filter(isStoredServer) : [];
 
     // Migrate legacy stored passwords into secure store, and remove from AsyncStorage.
     let didMigrate = false;
-    const sanitized = await Promise.all(
-      parsed.map(async (s) => {
-        if (typeof s?.id !== "string") return s;
-        if (typeof s?.password === "string" && s.password.length > 0) {
+    const sanitized: Omit<SavedServer, "hasPassword">[] = await Promise.all(
+      entries.map(async (s) => {
+        if (typeof s.password === "string" && s.password.length > 0) {
           await setServerPassword(s.id, s.password);
-          const { password, ...rest } = s;
           didMigrate = true;
-          return rest;
         }
-        return s;
+        const { password: _password, ...rest } = s;
+        return rest;
       }),
     );
 
@@ -62,7 +74,6 @@ export async function getSavedServers(): Promise<SavedServer[]> {
 
     const withFlags: SavedServer[] = await Promise.all(
       sanitized.map(async (s) => {
-        if (!s?.id) return s;
         const pw = await getServerPassword(s.id);
         return { ...s, hasPassword: !!pw };
       }),

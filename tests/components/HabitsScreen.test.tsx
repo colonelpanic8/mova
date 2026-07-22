@@ -5,18 +5,15 @@ import { MD3LightTheme, PaperProvider } from "react-native-paper";
 
 import HabitsScreen from "../../app/(tabs)/habits";
 import { useApi } from "../../context/ApiContext";
-import { useHabitConfig } from "../../context/HabitConfigContext";
+import { useHabitConfig } from "../../hooks/useHabitConfig";
 
 jest.mock("../../context/ApiContext");
-jest.mock("../../context/HabitConfigContext");
+jest.mock("../../hooks/useHabitConfig");
 jest.mock("../../context/MutationContext", () => ({
   useMutation: () => ({
     mutationVersion: 0,
     triggerRefresh: jest.fn(),
   }),
-}));
-jest.mock("../../components/TodoItem", () => ({
-  getTodoKey: (item: { id?: string; title?: string }) => item.id ?? item.title,
 }));
 jest.mock("../../components/HabitItem", () => ({
   HabitItem: ({
