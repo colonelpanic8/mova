@@ -179,18 +179,23 @@ mova/
 │   │   ├── index.tsx       # Agenda screen
 │   │   ├── capture.tsx     # Capture screen
 │   │   ├── search.tsx      # Search screen
+│   │   ├── habits.tsx      # Habits screen
 │   │   ├── views.tsx       # Custom views
 │   │   └── settings/       # Settings screens
+│   ├── edit.tsx            # Todo editor
 │   └── login.tsx           # Login screen
-├── services/               # API client and background tasks
+├── services/               # API client, query cache, background tasks
 │   ├── api.ts              # org-agenda-api client
+│   ├── queryClient.ts      # TanStack Query client + offline persistence
+│   ├── captureOutbox.ts    # Durable offline capture queue
 │   ├── backgroundSync.ts   # Background task registration
-│   └── notifications.ts    # Push notifications
-├── components/             # Reusable UI components
-├── context/                # React context providers
-├── hooks/                  # Custom React hooks
-├── widgets/                # Android widget implementation
-└── tests/                  # Jest unit/integration tests
+│   └── notifications.ts    # Local notifications
+├── hooks/                  # Query hooks (useAgendaData, queryKeys), mutations
+├── components/             # Reusable UI (agenda/, capture/, todoForm/, todoEditing/)
+├── context/                # React context providers (auth, settings, filters)
+├── widgets/                # Android home-screen widget (JS side)
+├── android/wear/           # Wear OS companion app (Kotlin)
+└── tests/                  # Jest unit/integration/component tests
 #+end_example
 
 *** Commands
@@ -227,8 +232,15 @@ yarn e2e:android
 - *React Native* + *Expo* - Cross-platform mobile framework
 - *Expo Router* - File-based navigation
 - *React Native Paper* - Material Design 3 components
+- *TanStack Query* - Server-state caching, invalidation, and offline
+  persistence (queries are keyed per server identity and persisted to
+  AsyncStorage for offline launches)
 - *TypeScript* - Type safety
 - *Jest* + *Detox* - Testing
+
+Note: the home-screen widget, quick-capture activity, and Wear OS
+companion app are Android-only; iOS currently has no counterpart for
+these capture surfaces.
 
 ** Configuration
 :PROPERTIES:

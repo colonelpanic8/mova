@@ -95,6 +95,45 @@ export function formatDateLong(dateString: string): string {
 }
 
 /**
+ * Format a date range for display (e.g. "Jun 15 - Jun 21").
+ */
+export function formatDateRange(startDate: string, endDate: string): string {
+  const start = new Date(startDate + "T00:00:00");
+  const end = new Date(endDate + "T00:00:00");
+  const startStr = start.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  const endStr = end.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  return `${startStr} - ${endStr}`;
+}
+
+/**
+ * Format a date for multi-day view section headers (e.g. "Sat, Jun 15").
+ */
+export function formatMultiDayHeader(dateString: string): string {
+  const date = new Date(dateString + "T00:00:00");
+  return date.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * Get the default multi-day range start date based on settings.
+ * Start = today - pastDays
+ */
+export function getDefaultRangeStart(today: Date, pastDays: number): Date {
+  const result = new Date(today);
+  result.setDate(result.getDate() - pastDays);
+  return result;
+}
+
+/**
  * Check if a date is in the past (before today)
  */
 export function isPastDay(date: Date): boolean {
