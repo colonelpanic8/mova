@@ -1,16 +1,14 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import { NativeModules } from "react-native";
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import { FlexWidget, TextWidget } from "react-native-android-widget";
-import { widgetTaskHandler } from "./widgets/QuickCaptureTask";
 import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
+import { getWidgetCredentials } from "./widgets/storage";
 import { getWidgetTemplate } from "./widgets/WidgetConfigurationScreen";
 
 const { SharedStorage } = NativeModules;
 
 const QUICK_CAPTURE_KEY = "__quick_capture__";
-const AUTH_STORAGE_KEY = "mova_auth";
 
 const nameToWidget = {
   QuickCaptureWidget: QuickCaptureWidget,
@@ -36,7 +34,7 @@ function ErrorWidget({ message }: { message: string }) {
 async function getTemplateName(widgetId: number): Promise<string> {
   try {
     // First try to read template name directly from SharedPreferences
-    // (saved by native TemplateConfigActivity)
+    // (saved by the widget configuration screen)
     if (SharedStorage) {
       const templateName = await SharedStorage.getItem(
         `widget_${widgetId}_template_name`,
@@ -54,9 +52,8 @@ async function getTemplateName(widgetId: number): Promise<string> {
     }
 
     // Try to get template name from API
-    const authData = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
-    if (authData) {
-      const { apiUrl, username, password } = JSON.parse(authData);
+    const { apiUrl, username, password } = await getWidgetCredentials();
+    if (apiUrl && username && password) {
       const response = await fetch(`${apiUrl}/capture-templates`, {
         headers: {
           Authorization: `Basic ${btoa(`${username}:${password}`)}`,
@@ -76,13 +73,15 @@ async function getTemplateName(widgetId: number): Promise<string> {
   }
 }
 
+// Renders the home-screen widget. Tapping the widget is handled natively:
+// the OPEN_URI click action launches QuickCaptureActivity via the
+// mova://capture deep link, so this handler only needs to render.
 export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
-  const { widgetInfo, widgetAction, clickAction, renderWidget } = props;
+  const { widgetInfo, widgetAction, renderWidget } = props;
 
   console.log("[Widget] widgetTaskHandlerEntry:", {
     widgetName: widgetInfo.widgetName,
     widgetAction,
-    clickAction,
   });
 
   try {
@@ -97,34 +96,8 @@ export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
       return;
     }
 
-    // Get the template name for this widget
     const templateName = await getTemplateName(widgetInfo.widgetId);
 
-    // Handle click actions
-    if (clickAction) {
-      const result = await widgetTaskHandler(props);
-      console.log("[Widget] Task result:", result);
-
-      const status =
-        result.status === "success"
-          ? "success"
-          : result.status === "queued"
-            ? "offline"
-            : result.status === "no_auth"
-              ? "error"
-              : "idle";
-
-      renderWidget(
-        <Widget
-          status={status}
-          widgetId={widgetInfo.widgetId}
-          templateName={templateName}
-        />,
-      );
-      return;
-    }
-
-    // Default render
     renderWidget(
       <Widget widgetId={widgetInfo.widgetId} templateName={templateName} />,
     );

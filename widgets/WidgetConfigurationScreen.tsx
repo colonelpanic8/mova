@@ -11,10 +11,10 @@ import {
   useTheme,
 } from "react-native-paper";
 import { QuickCaptureWidget } from "./QuickCaptureWidget";
+import { getWidgetCredentials } from "./storage";
 
 const { SharedStorage } = NativeModules;
 
-const AUTH_STORAGE_KEY = "mova_auth";
 const QUICK_CAPTURE_KEY = "__quick_capture__";
 
 // Get the storage key for a widget's template selection (for AsyncStorage - JS config screen)
@@ -59,15 +59,14 @@ export function WidgetConfigurationScreen({
 
   const loadTemplates = useCallback(async () => {
     try {
-      // Load auth credentials
-      const authData = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
-      if (!authData) {
+      // Load auth credentials (saved to SharedPreferences on login)
+      const { apiUrl, username, password } = await getWidgetCredentials();
+      if (!apiUrl || !username || !password) {
         setError("Please log in to the app first");
         setLoading(false);
         return;
       }
 
-      const { apiUrl, username, password } = JSON.parse(authData);
       const apiClient = createApiClient(apiUrl, username, password);
 
       // Load templates

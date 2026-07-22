@@ -56,14 +56,6 @@
         <data android:scheme="mova" android:host="capture"/>
       </intent-filter>
     </activity>
-    <activity
-        android:name=".TemplateConfigActivity"
-        android:exported="true"
-        android:theme="@style/AppTheme">
-      <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
-      </intent-filter>
-    </activity>
     <receiver android:name=".widget.QuickCaptureWidget" android:exported="true" android:label="Mova Quick Capture">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
