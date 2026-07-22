@@ -449,14 +449,16 @@ describe("OrgAgendaApi", () => {
         effectiveCategory: null,
       };
 
-      const mockResponse = { status: "deleted" };
+      const mockResponse = { deleted: true, title: todo.title };
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
-      await api.deleteTodo(todo);
+      const result = await api.deleteTodo(todo);
+
+      expect(result).toEqual(mockResponse);
 
       const callBody = JSON.parse(
         (global.fetch as jest.Mock).mock.calls[0][1].body,
@@ -486,14 +488,16 @@ describe("OrgAgendaApi", () => {
         effectiveCategory: null,
       };
 
-      const mockResponse = { status: "deleted" };
+      const mockResponse = { deleted: true, title: todo.title };
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
-      await api.deleteTodo(todo);
+      const result = await api.deleteTodo(todo);
+
+      expect(result).toEqual(mockResponse);
 
       const callBody = JSON.parse(
         (global.fetch as jest.Mock).mock.calls[0][1].body,

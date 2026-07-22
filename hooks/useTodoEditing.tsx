@@ -517,7 +517,7 @@ export function useTodoEditing(
 
       try {
         const result = await api.deleteTodo(todo);
-        if (result.status === "deleted") {
+        if (result.deleted) {
           setSnackbar({
             visible: true,
             message: `Deleted: ${todo.title}`,
