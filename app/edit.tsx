@@ -8,6 +8,7 @@ import { DateFieldWithQuickActions } from "@/components/todoForm";
 import { useApi } from "@/context/ApiContext";
 import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
+import { AppSnackbar, useSnackbar } from "@/context/SnackbarContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { Repeater, Todo, TodoUpdates } from "@/services/api";
 import {
@@ -16,14 +17,13 @@ import {
 } from "@/utils/timestampConversion";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
   Dialog,
   IconButton,
   Portal,
-  Snackbar,
   Text,
   TextInput,
   useTheme,
@@ -99,18 +99,7 @@ export default function EditScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    visible: false,
-    message: "",
-    isError: false,
-  });
-  const [remindDialogVisible, setRemindDialogVisible] = useState(false);
-  const [remindDateTime, setRemindDateTime] = useState<Date>(() => {
-    const date = new Date();
-    date.setHours(date.getHours() + 1);
-    date.setMinutes(0, 0, 0);
-    return date;
-  });
+  const { showSnackbar } = useSnackbar();
 
   const handleSave = useCallback(async () => {
     if (!api) return;
@@ -172,9 +161,7 @@ export default function EditScreen() {
       if (Object.keys(updates).length > 0) {
         const result = await api.updateTodo(originalTodo, updates);
         if (result.status !== "updated") {
-          setSnackbar({
-            visible: true,
-            message: result.message || "Failed to update",
+          showSnackbar(result.message || "Failed to update", {
             isError: true,
           });
           setIsSaving(false);
@@ -183,13 +170,13 @@ export default function EditScreen() {
       }
 
       triggerRefresh();
-      setSnackbar({ visible: true, message: "Saved", isError: false });
+      showSnackbar("Saved");
 
       // Navigate back after brief delay to show success
       setTimeout(() => router.back(), 500);
     } catch (err) {
       console.error("Failed to save:", err);
-      setSnackbar({ visible: true, message: "Failed to save", isError: true });
+      showSnackbar("Failed to save", { isError: true });
     } finally {
       setIsSaving(false);
     }
@@ -208,6 +195,7 @@ export default function EditScreen() {
     triggerRefresh,
     router,
     api,
+    showSnackbar,
   ]);
 
   const handleDelete = useCallback(async () => {
@@ -220,49 +208,15 @@ export default function EditScreen() {
         triggerRefresh();
         router.back();
       } else {
-        setSnackbar({
-          visible: true,
-          message: result.message || "Failed to delete",
-          isError: true,
-        });
+        showSnackbar(result.message || "Failed to delete", { isError: true });
       }
     } catch (err) {
       console.error("Failed to delete:", err);
-      setSnackbar({
-        visible: true,
-        message: "Failed to delete",
-        isError: true,
-      });
+      showSnackbar("Failed to delete", { isError: true });
     } finally {
       setIsDeleting(false);
     }
-  }, [originalTodo, triggerRefresh, router, api]);
-
-  const handleRemind = useCallback(() => {
-    setRemindDialogVisible(true);
-  }, []);
-
-  const handleScheduleReminder = useCallback(async () => {
-    const now = new Date();
-    if (remindDateTime <= now) {
-      setSnackbar({
-        visible: true,
-        message: "Please select a future time",
-        isError: true,
-      });
-      return;
-    }
-
-    // Custom notification scheduling removed - server is now source of truth
-    // TODO: Implement via API by setting WILD_NOTIFIER_NOTIFY_AT property
-    setSnackbar({
-      visible: true,
-      message:
-        "Custom reminders not yet supported with server-driven notifications",
-      isError: true,
-    });
-    setRemindDialogVisible(false);
-  }, [remindDateTime]);
+  }, [originalTodo, triggerRefresh, router, api, showSnackbar]);
 
   return (
     <View
@@ -401,18 +355,6 @@ export default function EditScreen() {
             defaultExpanded={false}
           />
 
-          {/* Remind button - only on native (notifications don't work on web) */}
-          {Platform.OS !== "web" && (
-            <Button
-              mode="outlined"
-              onPress={handleRemind}
-              style={styles.remindButton}
-              icon="bell"
-            >
-              Set Reminder
-            </Button>
-          )}
-
           {/* Save button */}
           <Button
             mode="contained"
@@ -446,63 +388,9 @@ export default function EditScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
-        <Dialog
-          visible={remindDialogVisible}
-          onDismiss={() => setRemindDialogVisible(false)}
-        >
-          <Dialog.Title>Set Reminder</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
-              {originalTodo.title}
-            </Text>
-            {Platform.OS === "web" ? (
-              <input
-                type="datetime-local"
-                value={`${remindDateTime.getFullYear()}-${String(remindDateTime.getMonth() + 1).padStart(2, "0")}-${String(remindDateTime.getDate()).padStart(2, "0")}T${String(remindDateTime.getHours()).padStart(2, "0")}:${String(remindDateTime.getMinutes()).padStart(2, "0")}`}
-                onChange={(e) => {
-                  const parsed = new Date(e.target.value);
-                  if (!isNaN(parsed.getTime())) {
-                    setRemindDateTime(parsed);
-                  }
-                }}
-                style={{
-                  padding: 12,
-                  fontSize: 16,
-                  borderRadius: 8,
-                  border: `1px solid ${theme.colors.outline}`,
-                }}
-              />
-            ) : (
-              <Text variant="bodySmall">
-                {remindDateTime.toLocaleString([], {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setRemindDialogVisible(false)}>
-              Cancel
-            </Button>
-            <Button onPress={handleScheduleReminder}>Set Reminder</Button>
-          </Dialog.Actions>
-        </Dialog>
       </Portal>
 
-      <Snackbar
-        visible={snackbar.visible}
-        onDismiss={() => setSnackbar((s) => ({ ...s, visible: false }))}
-        duration={2000}
-        style={
-          snackbar.isError ? { backgroundColor: theme.colors.error } : undefined
-        }
-      >
-        {snackbar.message}
-      </Snackbar>
+      <AppSnackbar />
     </View>
   );
 }
@@ -549,9 +437,6 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   addBodyButton: {
-    marginBottom: 16,
-  },
-  remindButton: {
     marginBottom: 16,
   },
   saveButton: {

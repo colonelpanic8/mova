@@ -15,6 +15,7 @@ import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
 import { FilterProvider } from "../../context/FilterContext";
+import { SnackbarProvider } from "../../context/SnackbarContext";
 import {
   buildAgendaViewKey,
   saveCachedAgenda,
@@ -251,7 +252,9 @@ const renderScreen = (component: React.ReactElement) => {
   return render(
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={MD3LightTheme}>
-        <FilterProvider>{component}</FilterProvider>
+        <SnackbarProvider>
+          <FilterProvider>{component}</FilterProvider>
+        </SnackbarProvider>
       </PaperProvider>
     </GestureHandlerRootView>,
   );

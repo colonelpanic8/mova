@@ -5,6 +5,7 @@ import { FilterProvider } from "@/context/FilterContext";
 import { MutationProvider } from "@/context/MutationContext";
 import { OutboxProvider } from "@/context/OutboxContext";
 import { SettingsProvider } from "@/context/SettingsContext";
+import { SnackbarProvider } from "@/context/SnackbarContext";
 import { TemplatesProvider } from "@/context/TemplatesContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
@@ -93,7 +94,9 @@ export default function RootLayout() {
                     <OutboxProvider>
                       <TemplatesProvider>
                         <FilterProvider>
-                          <RootLayoutNav />
+                          <SnackbarProvider>
+                            <RootLayoutNav />
+                          </SnackbarProvider>
                         </FilterProvider>
                       </TemplatesProvider>
                     </OutboxProvider>

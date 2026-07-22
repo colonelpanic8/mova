@@ -47,7 +47,8 @@ export const TodoItem = React.memo(function TodoItem({
     completingIds,
     updatingIds,
     deletingIds,
-    swipeableRefs,
+    registerSwipeable,
+    closeOtherSwipeables,
     handleTodoPress,
     scheduleToday,
     scheduleTomorrow,
@@ -66,16 +67,13 @@ export const TodoItem = React.memo(function TodoItem({
   const isUpdating = updatingIds.has(key);
   const isDeleting = deletingIds.has(key);
 
-  // Register ref with the context's ref map
+  // Register this row's swipeable with the editing context
   useEffect(() => {
-    const refs = swipeableRefs.current;
     if (internalRef.current) {
-      refs.set(key, internalRef.current);
+      return registerSwipeable(key, internalRef.current);
     }
-    return () => {
-      refs.delete(key);
-    };
-  }, [key, swipeableRefs]);
+    return undefined;
+  }, [key, registerSwipeable]);
 
   const onTodoChipPress = useCallback(() => {
     handleTodoPress(todo);
@@ -92,12 +90,8 @@ export const TodoItem = React.memo(function TodoItem({
 
   // Close all other swipeables when this one starts to open (from swiping)
   const handleSwipeableWillOpen = useCallback(() => {
-    swipeableRefs.current.forEach((swipeable, refKey) => {
-      if (refKey !== key) {
-        swipeable.close();
-      }
-    });
-  }, [key, swipeableRefs]);
+    closeOtherSwipeables(key);
+  }, [key, closeOtherSwipeables]);
 
   // Create a unique suffix for testIDs based on todo title (sanitized for testID)
   const testIdSuffix = todo.title

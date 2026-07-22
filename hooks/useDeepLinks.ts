@@ -1,10 +1,9 @@
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
-import { getNotificationHorizonMinutes } from "@/services/notificationHorizonConfig";
 import {
-  cancelScheduledNotificationsForTodoOnDate,
-  scheduleNotificationsFromServer,
-} from "@/services/notifications";
+  buildTodoStub,
+  completeTodoWithNotificationSync,
+} from "@/services/todoCompletion";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -84,65 +83,19 @@ export function useDeepLinks() {
       case "complete":
         if (params.id || (params.file && params.pos)) {
           try {
-            const result = await api.setTodoState(
-              {
-                id: params.id || null,
-                file: params.file || null,
-                pos: params.pos ? parseInt(params.pos, 10) : null,
-                title: params.title || "",
-                todo: "",
-                tags: null,
-                level: 0,
-                scheduled: null,
-                deadline: null,
-                priority: null,
-                olpath: null,
-                notifyBefore: null,
-                category: null,
-                effectiveCategory: null,
-              },
+            const todo = buildTodoStub({
+              id: params.id || null,
+              file: params.file || null,
+              pos: params.pos ? parseInt(params.pos, 10) : null,
+              title: params.title || "",
+            });
+            const result = await completeTodoWithNotificationSync(
+              api,
+              todo,
               params.state || "DONE",
             );
 
             if (result.status === "completed") {
-              // Ensure we don't fire any remaining notifications for this todo later today.
-              const completionTodo = {
-                id: params.id || null,
-                file: params.file || null,
-                pos: params.pos ? parseInt(params.pos, 10) : null,
-                title: params.title || "",
-                todo: "",
-                tags: null,
-                level: 0,
-                scheduled: null,
-                deadline: null,
-                priority: null,
-                olpath: null,
-                notifyBefore: null,
-                category: null,
-                effectiveCategory: null,
-              };
-              try {
-                await cancelScheduledNotificationsForTodoOnDate(
-                  completionTodo,
-                  new Date(),
-                );
-              } catch {
-                // Ignore.
-              }
-              // Best-effort resync after completion to update repeating items/future occurrences.
-              void (async () => {
-                try {
-                  const withinMinutes = await getNotificationHorizonMinutes();
-                  const response = await api.getNotifications({
-                    withinMinutes,
-                  });
-                  await scheduleNotificationsFromServer(response);
-                } catch {
-                  // Ignore.
-                }
-              })();
-
               Alert.alert("Completed", result.title || "Todo completed");
             } else {
               Alert.alert("Error", result.message || "Failed to complete");
