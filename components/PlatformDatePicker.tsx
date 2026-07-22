@@ -13,20 +13,27 @@ export interface PlatformDatePickerProps {
   mode: PlatformDatePickerMode;
   /**
    * Current value. Time pickers combine the picked time into this date, so
-   * `onChange` always receives a full Date.
+   * `onChange` always receives a full Date. `null` renders an empty web input;
+   * native pickers (and time combination) start from the current date instead.
    */
-  value: Date;
+  value: Date | null;
   /** Render (and on native/hidden web, immediately open) the picker. */
   visible: boolean;
   /** Called with the updated Date when the user picks a value. */
   onChange: (date: Date) => void;
   /** Called when the user cancels/dismisses the picker. */
   onDismiss: () => void;
+  /** Earliest selectable date (native pickers and web input `min`). */
+  minimumDate?: Date;
+  /** Latest selectable date (native pickers and web input `max`). */
+  maximumDate?: Date;
   /**
    * Web only: render a visible, styled input inline instead of a hidden input
    * that auto-opens the browser's picker.
    */
   webInline?: boolean;
+  /** Web only: style overrides merged over the default `webInline` styling. */
+  webInlineStyle?: React.CSSProperties;
 }
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -79,7 +86,10 @@ export function PlatformDatePicker({
   visible,
   onChange,
   onDismiss,
+  minimumDate,
+  maximumDate,
   webInline = false,
+  webInlineStyle,
 }: PlatformDatePickerProps) {
   const theme = useTheme();
   // Android datetime fallback state: which step we're on and the picked date.
@@ -94,9 +104,15 @@ export function PlatformDatePicker({
     return (
       <input
         type={webInputTypes[mode]}
-        value={toWebInputValue(mode, value)}
+        value={value ? toWebInputValue(mode, value) : ""}
+        min={minimumDate ? toWebInputValue(mode, minimumDate) : undefined}
+        max={maximumDate ? toWebInputValue(mode, maximumDate) : undefined}
         onChange={(e) => {
-          const parsed = parseWebInputValue(mode, e.target.value, value);
+          const parsed = parseWebInputValue(
+            mode,
+            e.target.value,
+            value ?? new Date(),
+          );
           if (parsed) {
             onChange(parsed);
           }
@@ -125,6 +141,7 @@ export function PlatformDatePicker({
                 borderRadius: 8,
                 border: `1px solid ${theme.colors.outline}`,
                 marginBottom: 8,
+                ...webInlineStyle,
               }
             : {
                 position: "absolute",
@@ -153,14 +170,14 @@ export function PlatformDatePicker({
     if (!date) return;
 
     if (nativeMode === "time") {
-      const base = androidTimeStep ?? value;
+      const base = androidTimeStep ?? value ?? new Date();
       const combined = new Date(base);
       combined.setHours(date.getHours(), date.getMinutes(), 0, 0);
       setAndroidTimeStep(null);
       onChange(combined);
     } else if (useAndroidDatetimeFallback) {
       // Date step done; keep the time-of-day from value and ask for the time.
-      const merged = new Date(value);
+      const merged = new Date(value ?? new Date());
       merged.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
       setAndroidTimeStep(merged);
     } else {
@@ -170,9 +187,11 @@ export function PlatformDatePicker({
 
   return (
     <DateTimePicker
-      value={androidTimeStep ?? value}
+      value={androidTimeStep ?? value ?? new Date()}
       mode={nativeMode}
       display="default"
+      minimumDate={minimumDate}
+      maximumDate={maximumDate}
       onChange={handleNativeChange}
     />
   );

@@ -1,14 +1,13 @@
 import { ActionButton } from "@/components/ActionButton";
+import { PlatformDatePicker } from "@/components/PlatformDatePicker";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import {
   formatDateForDisplay,
   formatLocalDate,
   formatLocalDateTime,
+  formatLocalTime,
 } from "@/utils/dateFormatting";
 import { parseFormString } from "@/utils/timestampConversion";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
 import React, { useCallback, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { Button, IconButton, Switch, Text, useTheme } from "react-native-paper";
@@ -48,67 +47,46 @@ export function DateFieldWithQuickActions({
     initialIncludeTime || valueHasTime,
   );
 
-  const handleToday = useCallback(() => {
-    const today = new Date();
-    today.setSeconds(0, 0);
-    // Always set date immediately
-    onChange(formatDateTimeForApi(today, false));
-    // On mobile, open time picker if includeTime is on
-    if (includeTime && Platform.OS !== "web") {
-      setTempDate(today);
-      setShowTimePicker(true);
-    }
-  }, [includeTime, onChange]);
-
-  const handleTomorrow = useCallback(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setSeconds(0, 0);
-    // Always set date immediately
-    onChange(formatDateTimeForApi(tomorrow, false));
-    // On mobile, open time picker if includeTime is on
-    if (includeTime && Platform.OS !== "web") {
-      setTempDate(tomorrow);
-      setShowTimePicker(true);
-    }
-  }, [includeTime, onChange]);
-
-  const handleDateChange = useCallback(
-    (event: DateTimePickerEvent, date?: Date) => {
-      setShowDatePicker(false);
-      if (event.type === "dismissed") {
-        return;
-      }
-      if (date) {
-        if (includeTime) {
-          setTempDate(date);
-          setShowTimePicker(true);
-        } else {
-          onChange(formatDateTimeForApi(date, false));
-        }
+  const setQuickDate = useCallback(
+    (date: Date) => {
+      date.setSeconds(0, 0);
+      // Always set date immediately
+      onChange(formatDateTimeForApi(date, false));
+      // On mobile, open time picker if includeTime is on
+      if (includeTime && Platform.OS !== "web") {
+        setTempDate(date);
+        setShowTimePicker(true);
       }
     },
     [includeTime, onChange],
   );
 
-  const handleTimeChange = useCallback(
-    (event: DateTimePickerEvent, date?: Date) => {
-      setShowTimePicker(false);
-      if (event.type === "dismissed") {
-        return;
-      }
-      if (date) {
-        const combined = new Date(tempDate);
-        combined.setHours(date.getHours(), date.getMinutes(), 0, 0);
-        onChange(formatDateTimeForApi(combined, true));
+  const handleTomorrow = useCallback(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setQuickDate(tomorrow);
+  }, [setQuickDate]);
+
+  const handleDatePicked = useCallback(
+    (date: Date) => {
+      setShowDatePicker(false);
+      if (includeTime) {
+        setTempDate(date);
+        setShowTimePicker(true);
+      } else {
+        onChange(formatDateTimeForApi(date, false));
       }
     },
-    [tempDate, onChange],
+    [includeTime, onChange],
   );
 
-  const handleClear = useCallback(() => {
-    onChange("");
-  }, [onChange]);
+  const handleTimePicked = useCallback(
+    (combined: Date) => {
+      setShowTimePicker(false);
+      onChange(formatDateTimeForApi(combined, true));
+    },
+    [onChange],
+  );
 
   const handleOpenPicker = useCallback(() => {
     if (value) {
@@ -124,80 +102,14 @@ export function DateFieldWithQuickActions({
   }, [value]);
 
   const fieldColor = getActionColor(colorKey);
-
-  if (Platform.OS === "web") {
-    const { datePart, timePart } = parseFormString(value);
-
-    return (
-      <View style={styles.fieldContainer}>
-        <Text variant="bodySmall" style={styles.fieldLabel}>
-          {label}
-        </Text>
-        <View style={styles.quickActionsRow}>
-          <ActionButton onPress={handleToday}>Today</ActionButton>
-          <ActionButton onPress={handleTomorrow}>Tomorrow</ActionButton>
-          <View style={styles.timeToggle}>
-            <Text
-              style={[
-                styles.timeToggleLabel,
-                { color: theme.colors.onSurfaceVariant },
-              ]}
-            >
-              Time
-            </Text>
-            <Switch value={includeTime} onValueChange={setIncludeTime} />
-          </View>
-        </View>
-        <View style={styles.dateInputRow}>
-          <input
-            type="date"
-            value={datePart}
-            onChange={(e) => {
-              if (e.target.value) {
-                // Keep existing time if there was one
-                const newValue = timePart
-                  ? `${e.target.value}T${timePart}`
-                  : e.target.value;
-                onChange(newValue);
-              }
-            }}
-            style={{
-              flex: 1,
-              padding: 12,
-              fontSize: 16,
-              borderRadius: 4,
-              border: `1px solid ${fieldColor}`,
-              backgroundColor: "transparent",
-            }}
-          />
-          {includeTime && (
-            <input
-              type="time"
-              value={timePart}
-              onChange={(e) => {
-                const currentDatePart = datePart || formatLocalDate(new Date());
-                if (e.target.value) {
-                  onChange(`${currentDatePart}T${e.target.value}`);
-                } else {
-                  // Time cleared, just keep date
-                  onChange(currentDatePart);
-                }
-              }}
-              style={{
-                marginLeft: 8,
-                padding: 12,
-                fontSize: 16,
-                borderRadius: 4,
-                border: `1px solid ${fieldColor}`,
-                backgroundColor: "transparent",
-              }}
-            />
-          )}
-          {value && <IconButton icon="close" size={20} onPress={handleClear} />}
-        </View>
-      </View>
-    );
-  }
+  const { datePart, timePart } = parseFormString(value);
+  const handleClear = () => onChange("");
+  const webInputStyle: React.CSSProperties = {
+    borderRadius: 4,
+    borderColor: fieldColor,
+    backgroundColor: "transparent",
+    marginBottom: 0,
+  };
 
   return (
     <View style={styles.fieldContainer}>
@@ -205,7 +117,9 @@ export function DateFieldWithQuickActions({
         {label}
       </Text>
       <View style={styles.quickActionsRow}>
-        <ActionButton onPress={handleToday}>Today</ActionButton>
+        <ActionButton onPress={() => setQuickDate(new Date())}>
+          Today
+        </ActionButton>
         <ActionButton onPress={handleTomorrow}>Tomorrow</ActionButton>
         <View style={styles.timeToggle}>
           <Text
@@ -219,40 +133,75 @@ export function DateFieldWithQuickActions({
           <Switch value={includeTime} onValueChange={setIncludeTime} />
         </View>
       </View>
-      <View style={styles.dateButtonRow}>
-        <Button
-          mode="outlined"
-          onPress={handleOpenPicker}
-          style={[styles.dateButton, { borderColor: fieldColor }]}
-          icon="calendar"
-        >
-          {value ? formatDateForDisplay(value) : `Select ${label}`}
-        </Button>
-        {value && (
-          <IconButton
-            icon="close"
-            size={20}
-            onPress={handleClear}
-            style={styles.clearButtonInline}
+
+      {Platform.OS === "web" ? (
+        // Web: inline date (+ optional time) inputs
+        <View style={styles.dateInputRow}>
+          <PlatformDatePicker
+            mode="date"
+            webInline
+            visible
+            value={datePart ? new Date(datePart + "T00:00:00") : null}
+            onChange={(date) => {
+              // Keep existing time if there was one
+              const newDatePart = formatLocalDate(date);
+              onChange(timePart ? `${newDatePart}T${timePart}` : newDatePart);
+            }}
+            onDismiss={() => {}}
+            webInlineStyle={{ flex: 1, ...webInputStyle }}
           />
-        )}
-      </View>
-      {showDatePicker && (
-        <DateTimePicker
-          value={tempDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={handleDateChange}
-        />
+          {includeTime && (
+            <PlatformDatePicker
+              mode="time"
+              webInline
+              visible
+              value={timePart ? new Date(`${datePart}T${timePart}`) : null}
+              onChange={(picked) => {
+                const currentDatePart = datePart || formatLocalDate(new Date());
+                onChange(`${currentDatePart}T${formatLocalTime(picked)}`);
+              }}
+              onDismiss={() => {}}
+              webInlineStyle={{ marginLeft: 8, ...webInputStyle }}
+            />
+          )}
+          {value && <IconButton icon="close" size={20} onPress={handleClear} />}
+        </View>
+      ) : (
+        // Native: button opens a date picker, then a time picker if enabled
+        <View style={styles.dateButtonRow}>
+          <Button
+            mode="outlined"
+            onPress={handleOpenPicker}
+            style={[styles.dateButton, { borderColor: fieldColor }]}
+            icon="calendar"
+          >
+            {value ? formatDateForDisplay(value) : `Select ${label}`}
+          </Button>
+          {value && (
+            <IconButton
+              icon="close"
+              size={20}
+              onPress={handleClear}
+              style={styles.clearButtonInline}
+            />
+          )}
+        </View>
       )}
-      {showTimePicker && (
-        <DateTimePicker
-          value={tempDate}
-          mode="time"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={handleTimeChange}
-        />
-      )}
+
+      <PlatformDatePicker
+        mode="date"
+        visible={showDatePicker}
+        value={tempDate}
+        onChange={handleDatePicked}
+        onDismiss={() => setShowDatePicker(false)}
+      />
+      <PlatformDatePicker
+        mode="time"
+        visible={showTimePicker}
+        value={tempDate}
+        onChange={handleTimePicked}
+        onDismiss={() => setShowTimePicker(false)}
+      />
     </View>
   );
 }
@@ -293,11 +242,5 @@ const styles = StyleSheet.create({
   },
   timeToggleLabel: {
     fontSize: 13,
-  },
-  webTimePickerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-    gap: 8,
   },
 });

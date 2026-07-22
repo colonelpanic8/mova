@@ -47,6 +47,7 @@ jest.mock("../../components/ScreenContainer", () => ({
 jest.mock("../../components/capture", () => ({
   CategoryField: () => null,
   PriorityPicker: () => null,
+  PromptField: () => null,
   StatePicker: () => null,
 }));
 
@@ -54,17 +55,11 @@ jest.mock("../../components/RepeaterPicker", () => ({
   RepeaterPicker: () => null,
 }));
 
-jest.mock("../../components/todoForm", () => ({
+// Stub only the date field; TodoFormFields (and the real TagsEditor inside
+// it) stay real so the tag-flush-on-submit behavior is exercised.
+jest.mock("../../components/todoForm/DateFieldWithQuickActions", () => ({
   DateFieldWithQuickActions: () => null,
 }));
-
-jest.mock("@react-native-community/datetimepicker", () => {
-  const React = require("react");
-  return {
-    __esModule: true,
-    default: () => null,
-  };
-});
 
 const mockApi = {
   capture: jest.fn(),
@@ -127,7 +122,7 @@ describe("CaptureScreen", () => {
   it("captures a typed tag even if add button is not pressed", async () => {
     const { getByPlaceholderText, getByTestId } = renderScreen();
 
-    fireEvent.changeText(getByPlaceholderText("Add tag..."), "work");
+    fireEvent.changeText(getByPlaceholderText("Tag name"), "work");
     fireEvent.press(getByTestId("captureButton"));
 
     await waitFor(() => {

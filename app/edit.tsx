@@ -1,16 +1,17 @@
-import { PriorityPicker, StatePicker } from "@/components/capture";
 import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { LogbookViewer } from "@/components/LogbookViewer";
 import { PropertiesEditor } from "@/components/PropertiesEditor";
-import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { TagsEditor } from "@/components/TagsEditor";
-import { DateFieldWithQuickActions } from "@/components/todoForm";
+import { DeleteConfirmDialog } from "@/components/todoEditing/DeleteConfirmDialog";
+import {
+  TodoFormFields,
+  TodoFormState,
+  todoToFormState,
+} from "@/components/todoForm";
 import { useApi } from "@/context/ApiContext";
 import { useMutation } from "@/context/MutationContext";
-import { useSettings } from "@/context/SettingsContext";
 import { AppSnackbar, useSnackbar } from "@/context/SnackbarContext";
-import { useTemplates } from "@/context/TemplatesContext";
-import { Repeater, Todo, TodoUpdates } from "@/services/api";
+import { Todo, TodoUpdates } from "@/services/api";
 import {
   formStringToTimestamp,
   timestampToFormString,
@@ -21,9 +22,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
-  Dialog,
   IconButton,
-  Portal,
   Text,
   TextInput,
   useTheme,
@@ -34,8 +33,6 @@ export default function EditScreen() {
   const router = useRouter();
   const api = useApi();
   const { triggerRefresh } = useMutation();
-  const { quickScheduleIncludeTime } = useSettings();
-  const { filterOptions } = useTemplates();
 
   const params = useLocalSearchParams<{
     todo: string;
@@ -72,28 +69,14 @@ export default function EditScreen() {
 
   // Form state
   const [title, setTitle] = useState(originalTodo.title || "");
-  const [todoState, setTodoState] = useState(originalTodo.todo || "TODO");
-  const [priority, setPriority] = useState<string | null>(
-    originalTodo.priority,
-  );
-  const [scheduled, setScheduled] = useState(
-    timestampToFormString(originalTodo.scheduled),
-  );
-  const [scheduledRepeater, setScheduledRepeater] = useState<Repeater | null>(
-    originalTodo.scheduled?.repeater || null,
-  );
-  const [deadline, setDeadline] = useState(
-    timestampToFormString(originalTodo.deadline),
-  );
-  const [deadlineRepeater, setDeadlineRepeater] = useState<Repeater | null>(
-    originalTodo.deadline?.repeater || null,
+  const [form, setForm] = useState<TodoFormState>(() =>
+    todoToFormState(originalTodo),
   );
   const [body, setBody] = useState(originalTodo.body || "");
   const [bodyExpanded, setBodyExpanded] = useState(!!originalTodo.body);
   const [properties, setProperties] = useState<Record<string, string>>(
     originalTodo.properties || {},
   );
-  const [tags, setTags] = useState<string[]>(originalTodo.tags || []);
 
   // UI state
   const [isSaving, setIsSaving] = useState(false);
@@ -112,8 +95,8 @@ export default function EditScreen() {
         updates.new_title = title;
       }
 
-      if (todoState !== originalTodo.todo) {
-        updates.state = todoState;
+      if (form.state !== originalTodo.todo) {
+        updates.state = form.state;
       }
 
       // Check if scheduled or its repeater changed
@@ -123,25 +106,31 @@ export default function EditScreen() {
       const originalScheduledRepeater =
         originalTodo.scheduled?.repeater || null;
       if (
-        scheduled !== originalScheduledStr ||
-        JSON.stringify(scheduledRepeater) !==
+        form.scheduled !== originalScheduledStr ||
+        JSON.stringify(form.scheduledRepeater) !==
           JSON.stringify(originalScheduledRepeater)
       ) {
-        updates.scheduled = formStringToTimestamp(scheduled, scheduledRepeater);
+        updates.scheduled = formStringToTimestamp(
+          form.scheduled,
+          form.scheduledRepeater,
+        );
       }
 
       // Check if deadline or its repeater changed
       const originalDeadlineStr = timestampToFormString(originalTodo.deadline);
       const originalDeadlineRepeater = originalTodo.deadline?.repeater || null;
       if (
-        deadline !== originalDeadlineStr ||
-        JSON.stringify(deadlineRepeater) !==
+        form.deadline !== originalDeadlineStr ||
+        JSON.stringify(form.deadlineRepeater) !==
           JSON.stringify(originalDeadlineRepeater)
       ) {
-        updates.deadline = formStringToTimestamp(deadline, deadlineRepeater);
+        updates.deadline = formStringToTimestamp(
+          form.deadline,
+          form.deadlineRepeater,
+        );
       }
-      if (priority !== originalTodo.priority) {
-        updates.priority = priority;
+      if (form.priority !== originalTodo.priority) {
+        updates.priority = form.priority;
       }
       if (body !== (originalTodo.body || "")) {
         updates.body = body || null;
@@ -153,8 +142,10 @@ export default function EditScreen() {
         updates.properties =
           Object.keys(properties).length > 0 ? properties : null;
       }
-      if (JSON.stringify(tags) !== JSON.stringify(originalTodo.tags || [])) {
-        updates.tags = tags.length > 0 ? tags : null;
+      if (
+        JSON.stringify(form.tags) !== JSON.stringify(originalTodo.tags || [])
+      ) {
+        updates.tags = form.tags.length > 0 ? form.tags : null;
       }
 
       // Apply all updates in a single request
@@ -182,15 +173,9 @@ export default function EditScreen() {
     }
   }, [
     title,
-    todoState,
-    priority,
-    scheduled,
-    scheduledRepeater,
-    deadline,
-    deadlineRepeater,
+    form,
     body,
     properties,
-    tags,
     originalTodo,
     triggerRefresh,
     router,
@@ -273,45 +258,8 @@ export default function EditScreen() {
             />
           </View>
 
-          {/* State */}
-          <StatePicker value={todoState} onChange={setTodoState} />
-
-          {/* Priority */}
-          <PriorityPicker
-            value={priority}
-            onChange={setPriority}
-            priorities={filterOptions?.priorities}
-          />
-
-          {/* Scheduled */}
-          <DateFieldWithQuickActions
-            label="Schedule"
-            value={scheduled}
-            onChange={setScheduled}
-            colorKey="schedule"
-            includeTime={quickScheduleIncludeTime}
-          />
-
-          <RepeaterPicker
-            value={scheduledRepeater}
-            onChange={setScheduledRepeater}
-            label="Schedule Repeater"
-          />
-
-          {/* Deadline */}
-          <DateFieldWithQuickActions
-            label="Deadline"
-            value={deadline}
-            onChange={setDeadline}
-            colorKey="deadline"
-            includeTime={quickScheduleIncludeTime}
-          />
-
-          <RepeaterPicker
-            value={deadlineRepeater}
-            onChange={setDeadlineRepeater}
-            label="Deadline Repeater"
-          />
+          {/* State, priority, schedule/deadline with repeaters */}
+          <TodoFormFields value={form} onChange={setForm} showTags={false} />
 
           {/* Body - Collapsible */}
           {bodyExpanded ? (
@@ -347,7 +295,11 @@ export default function EditScreen() {
           />
 
           {/* Tags - Collapsible, collapsed by default */}
-          <TagsEditor tags={tags} onChange={setTags} defaultExpanded={false} />
+          <TagsEditor
+            tags={form.tags}
+            onChange={(tags) => setForm((f) => ({ ...f, tags }))}
+            defaultExpanded={false}
+          />
 
           {/* Logbook - Read-only, collapsed by default */}
           <LogbookViewer
@@ -370,25 +322,11 @@ export default function EditScreen() {
       </KeyboardAwareContainer>
 
       {/* Delete confirmation dialog */}
-      <Portal>
-        <Dialog
-          visible={deleteDialogVisible}
-          onDismiss={() => setDeleteDialogVisible(false)}
-        >
-          <Dialog.Title>Delete Todo?</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">{originalTodo.title}</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setDeleteDialogVisible(false)}>
-              Cancel
-            </Button>
-            <Button onPress={handleDelete} textColor={theme.colors.error}>
-              Delete
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <DeleteConfirmDialog
+        todo={deleteDialogVisible ? originalTodo : null}
+        onDismiss={() => setDeleteDialogVisible(false)}
+        onConfirm={handleDelete}
+      />
 
       <AppSnackbar />
     </View>
@@ -422,9 +360,6 @@ const styles = StyleSheet.create({
   },
   inlineSaveButton: {
     marginTop: 6,
-  },
-  input: {
-    marginBottom: 16,
   },
   fieldLabel: {
     marginBottom: 8,

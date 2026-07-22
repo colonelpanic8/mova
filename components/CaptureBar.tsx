@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useOutbox } from "@/context/OutboxContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
+import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, Pressable, StyleSheet, View } from "react-native";
@@ -41,7 +42,7 @@ export function CaptureBar() {
     useState<string>("default");
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
+  const menu = useMenuPickerWorkaround();
   const [message, setMessage] = useState<{
     text: string;
     isError: boolean;
@@ -159,18 +160,16 @@ export function CaptureBar() {
       })
     : [];
 
+  const { select: menuSelect } = menu;
   const handleTemplateSelect = useCallback(
     (key: string) => {
-      // Close menu first, then update state after menu animation completes
-      // This fixes Android issue where menu won't reopen after selection
-      setMenuVisible(false);
-      setTimeout(() => {
+      menuSelect(() => {
         setSelectedTemplateKey(key);
         const storageKey = getDefaultTemplateKey(activeServerId);
         AsyncStorage.setItem(storageKey, key);
-      }, 0);
+      });
     },
-    [activeServerId],
+    [activeServerId, menuSelect],
   );
 
   const handleCapture = async () => {
@@ -243,17 +242,14 @@ export function CaptureBar() {
         ]}
       >
         <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
+          visible={menu.visible}
+          onDismiss={menu.close}
           anchor={
-            <Pressable
-              onPress={() => setMenuVisible(true)}
-              style={styles.menuAnchor}
-            >
+            <Pressable onPress={menu.open} style={styles.menuAnchor}>
               <IconButton
                 icon="chevron-up"
                 size={16}
-                onPress={() => setMenuVisible(true)}
+                onPress={menu.open}
                 style={styles.menuButton}
               />
               <Text variant="labelSmall" style={styles.templateLabel}>

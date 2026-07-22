@@ -1,4 +1,5 @@
 import { HabitGraph } from "@/components/HabitGraph";
+import { PlatformDatePicker } from "@/components/PlatformDatePicker";
 import { useApi } from "@/context/ApiContext";
 import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
@@ -8,12 +9,8 @@ import {
   MiniGraphEntry,
   Todo,
 } from "@/services/api";
-import { formatLocalDate } from "@/utils/dateFormatting";
 import { computeHabitGraphWindow } from "@/utils/habitGraphLayout";
 import { getTodoKey } from "@/utils/todoKey";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import React, {
   useCallback,
@@ -22,7 +19,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -271,12 +268,9 @@ export const HabitItem = React.memo(function HabitItem({
     setShowDatePicker(true);
   }, []);
 
-  const handleDateChange = useCallback(
-    (event: DateTimePickerEvent, date?: Date) => {
+  const handleDatePicked = useCallback(
+    (date: Date) => {
       setShowDatePicker(false);
-      if (event.type === "dismissed" || !date) {
-        return;
-      }
       handleCompleteForDate(date);
     },
     [handleCompleteForDate],
@@ -448,50 +442,14 @@ export const HabitItem = React.memo(function HabitItem({
       </View>
 
       {/* Date picker - rendered outside Pressable to prevent touch conflicts */}
-      {showDatePicker && Platform.OS !== "web" && (
-        <DateTimePicker
-          value={new Date()}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-          maximumDate={new Date()}
-        />
-      )}
-
-      {/* Web-specific date picker using Portal and Dialog */}
-      {Platform.OS === "web" && (
-        <Portal>
-          <Dialog
-            visible={showDatePicker}
-            onDismiss={() => setShowDatePicker(false)}
-          >
-            <Dialog.Title>Choose Date</Dialog.Title>
-            <Dialog.Content>
-              <input
-                type="date"
-                max={formatLocalDate(new Date())}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    const selectedDate = new Date(e.target.value + "T00:00:00");
-                    setShowDatePicker(false);
-                    handleCompleteForDate(selectedDate);
-                  }
-                }}
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  fontSize: 16,
-                  borderRadius: 4,
-                  border: "1px solid #ccc",
-                }}
-              />
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setShowDatePicker(false)}>Cancel</Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
-      )}
+      <PlatformDatePicker
+        mode="date"
+        visible={showDatePicker}
+        value={new Date()}
+        maximumDate={new Date()}
+        onChange={handleDatePicked}
+        onDismiss={() => setShowDatePicker(false)}
+      />
 
       {/* Confirmation dialog for completing/uncompleting habit on a specific date */}
       <Portal>

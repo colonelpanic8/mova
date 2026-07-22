@@ -1,51 +1,34 @@
 import {
   CategoryField,
-  PriorityPicker,
-  StatePicker,
+  PromptField,
+  PromptFieldHandle,
 } from "@/components/capture";
 import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
-import { RepeaterPicker } from "@/components/RepeaterPicker";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { DateFieldWithQuickActions } from "@/components/todoForm";
+import {
+  emptyTodoFormState,
+  TodoFormFields,
+  TodoFormFieldsHandle,
+  TodoFormState,
+} from "@/components/todoForm";
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/context/MutationContext";
 import { useOutbox } from "@/context/OutboxContext";
-import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
-import {
-  CategoryType,
-  Repeater,
-  TemplatePrompt,
-  Timestamp,
-} from "@/services/api";
+import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
+import { CategoryType, TemplatePrompt, Timestamp } from "@/services/api";
 import { OutboxRequest } from "@/services/captureOutbox";
-import {
-  formatLocalDate as formatDateForApi,
-  formatDateForDisplay,
-} from "@/utils/dateFormatting";
 import { formStringToTimestamp } from "@/utils/timestampConversion";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
-  Chip,
   Divider,
   IconButton,
   Menu,
   Snackbar,
-  Text,
-  TextInput,
   useTheme,
 } from "react-native-paper";
 
@@ -53,197 +36,15 @@ type CaptureSelection =
   | { type: "template"; key: string }
   | { type: "category"; categoryType: CategoryType };
 
-interface PromptFieldProps {
-  prompt: TemplatePrompt;
-  value: string | string[];
-  onChange: (value: string | string[]) => void;
-  registerTagFlusher?: (flusher: (() => string[]) | null) => void;
-}
-
-function PromptField({
-  prompt,
-  value,
-  onChange,
-  registerTagFlusher,
-}: PromptFieldProps) {
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [tagInputValue, setTagInputValue] = useState("");
-  const tagsArray = useMemo(
-    () =>
-      Array.isArray(value)
-        ? value
-        : typeof value === "string" && value
-          ? value.split(",").map((t) => t.trim())
-          : [],
-    [value],
-  );
-
-  const handleDateChange = useCallback(
-    (event: DateTimePickerEvent, date?: Date) => {
-      setShowDatePicker(Platform.OS === "ios");
-      if (date) {
-        onChange(formatDateForApi(date));
-      }
-    },
-    [onChange],
-  );
-
-  const flushPendingTag = useCallback((): string[] => {
-    const trimmedTag = tagInputValue.trim();
-    if (!trimmedTag) {
-      return tagsArray;
-    }
-
-    const newTags = tagsArray.includes(trimmedTag)
-      ? tagsArray
-      : [...tagsArray, trimmedTag];
-    onChange(newTags);
-    setTagInputValue("");
-    return newTags;
-  }, [onChange, tagInputValue, tagsArray]);
-
-  useEffect(() => {
-    if (prompt.type !== "tags" || !registerTagFlusher) return;
-    registerTagFlusher(flushPendingTag);
-    return () => registerTagFlusher(null);
-  }, [flushPendingTag, prompt.type, registerTagFlusher]);
-
-  if (prompt.type === "date") {
-    const dateValue = typeof value === "string" ? value : "";
-
-    // Use native HTML date input on web
-    if (Platform.OS === "web") {
-      return (
-        <View style={styles.fieldContainer}>
-          <Text variant="bodySmall" style={styles.fieldLabel}>
-            {prompt.name}
-            {prompt.required ? " *" : ""}
-          </Text>
-          <View style={styles.dateInputRow}>
-            <input
-              type="date"
-              value={dateValue}
-              onChange={(e) => onChange(e.target.value)}
-              style={{
-                flex: 1,
-                padding: 12,
-                fontSize: 16,
-                borderRadius: 4,
-                border: "1px solid #79747E",
-                backgroundColor: "transparent",
-              }}
-            />
-            {dateValue && (
-              <IconButton icon="close" size={20} onPress={() => onChange("")} />
-            )}
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.fieldContainer}>
-        <Button
-          mode="outlined"
-          onPress={() => setShowDatePicker(true)}
-          style={styles.dateButton}
-          icon="calendar"
-        >
-          {dateValue
-            ? formatDateForDisplay(dateValue)
-            : `Select ${prompt.name}${prompt.required ? " *" : ""}`}
-        </Button>
-        {dateValue && (
-          <IconButton
-            icon="close"
-            size={20}
-            onPress={() => onChange("")}
-            style={styles.clearButton}
-          />
-        )}
-        {showDatePicker && (
-          <DateTimePicker
-            value={dateValue ? new Date(dateValue + "T00:00:00") : new Date()}
-            mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={handleDateChange}
-          />
-        )}
-      </View>
-    );
-  }
-
-  if (prompt.type === "tags") {
-    const removeTag = (index: number) => {
-      const newTags = tagsArray.filter((_, i) => i !== index);
-      onChange(newTags);
-    };
-
-    return (
-      <View style={styles.fieldContainer}>
-        <Text variant="bodySmall" style={styles.fieldLabel}>
-          {prompt.name}
-          {prompt.required ? " *" : ""}
-        </Text>
-        <View style={styles.tagsContainer}>
-          {tagsArray.map((tag, index) => (
-            <Chip
-              key={`${tag}-${index}`}
-              onClose={() => removeTag(index)}
-              style={styles.tag}
-            >
-              {tag}
-            </Chip>
-          ))}
-        </View>
-        <View style={styles.tagInputRow}>
-          <TextInput
-            mode="outlined"
-            placeholder="Add tag..."
-            value={tagInputValue}
-            onChangeText={setTagInputValue}
-            onSubmitEditing={() => flushPendingTag()}
-            onEndEditing={() => flushPendingTag()}
-            style={styles.tagInput}
-            dense
-          />
-          <IconButton icon="plus" onPress={() => flushPendingTag()} />
-        </View>
-      </View>
-    );
-  }
-
-  // Default: string type
-  const stringValue = typeof value === "string" ? value : "";
-  return (
-    <View style={styles.textFieldContainer}>
-      <TextInput
-        label={`${prompt.name}${prompt.required ? " *" : ""}`}
-        value={stringValue}
-        onChangeText={(text) => onChange(text)}
-        mode="outlined"
-        style={styles.textFieldInput}
-        multiline={
-          prompt.name.toLowerCase() === "title" ||
-          prompt.name.toLowerCase() === "body"
-        }
-        numberOfLines={prompt.name.toLowerCase() === "body" ? 4 : 2}
-      />
-    </View>
-  );
-}
-
 export default function CaptureScreen() {
   const api = useApi();
   const {
     templates,
     categoryTypes,
-    filterOptions,
     isLoading: loading,
     reloadTemplates,
   } = useTemplates();
   const { savedServers, activeServerId } = useAuth();
-  const { quickScheduleIncludeTime } = useSettings();
 
   const activeServer = useMemo(
     () => savedServers.find((s) => s.id === activeServerId),
@@ -259,21 +60,13 @@ export default function CaptureScreen() {
     text: string;
     isError: boolean;
   } | null>(null);
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [optionalFields, setOptionalFields] = useState<{
-    scheduled?: string;
-    deadline?: string;
-    scheduledRepeater?: Repeater | null;
-    deadlineRepeater?: Repeater | null;
-    priority?: string | null;
-    tags?: string[];
-    todo?: string;
-  }>({});
+  const [form, setForm] = useState<TodoFormState>(emptyTodoFormState);
   const theme = useTheme();
   const { triggerRefresh } = useMutation();
   const { captureOrEnqueue } = useOutbox();
-  const promptTagFlusherRef = useRef<Record<string, () => string[]>>({});
-  const optionalTagsFlusherRef = useRef<(() => string[]) | null>(null);
+  const menu = useMenuPickerWorkaround();
+  const promptRefs = useRef<Record<string, PromptFieldHandle | null>>({});
+  const formFieldsRef = useRef<TodoFormFieldsHandle>(null);
 
   // Load default template when templates become available
   useEffect(() => {
@@ -317,30 +110,15 @@ export default function CaptureScreen() {
   // Reset form values when selection changes
   useEffect(() => {
     setValues({});
-    setOptionalFields({});
+    setForm(emptyTodoFormState());
     setCategoryValue("");
   }, [selection]);
 
-  const handleOptionalFieldChange = <K extends keyof typeof optionalFields>(
-    field: K,
-    value: (typeof optionalFields)[K],
-  ) => {
-    setOptionalFields((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleTemplateSelect = (key: string) =>
+    menu.select(() => setSelection({ type: "template", key }));
 
-  const handleTemplateSelect = (key: string) => {
-    setMenuVisible(false);
-    setTimeout(() => {
-      setSelection({ type: "template", key });
-    }, 0);
-  };
-
-  const handleCategoryTypeSelect = (categoryType: CategoryType) => {
-    setMenuVisible(false);
-    setTimeout(() => {
-      setSelection({ type: "category", categoryType });
-    }, 0);
-  };
+  const handleCategoryTypeSelect = (categoryType: CategoryType) =>
+    menu.select(() => setSelection({ type: "category", categoryType }));
 
   const selectedDisplayName = useMemo(() => {
     if (!selection) return "Select Template";
@@ -370,7 +148,7 @@ export default function CaptureScreen() {
 
   const clearForm = () => {
     setValues({});
-    setOptionalFields({});
+    setForm(emptyTodoFormState());
     setCategoryValue("");
   };
 
@@ -380,20 +158,17 @@ export default function CaptureScreen() {
     setSubmitting(true);
 
     try {
+      // Commit any half-typed tag text before reading the form values.
       const effectiveValues: Record<string, string | string[]> = { ...values };
       selectedPrompts
         .filter((p) => p.type === "tags")
         .forEach((p) => {
-          const flushTagInput = promptTagFlusherRef.current[p.name];
-          if (flushTagInput) {
-            effectiveValues[p.name] = flushTagInput();
+          const handle = promptRefs.current[p.name];
+          if (handle) {
+            effectiveValues[p.name] = handle.flushTags();
           }
         });
-
-      const effectiveOptionalFields = { ...optionalFields };
-      if (optionalTagsFlusherRef.current) {
-        effectiveOptionalFields.tags = optionalTagsFlusherRef.current();
-      }
+      const effectiveTags = formFieldsRef.current?.flushTags() ?? form.tags;
 
       // Validate required fields from prompts
       const missingRequired = selectedPrompts
@@ -426,8 +201,8 @@ export default function CaptureScreen() {
 
       // Convert scheduled to Timestamp (combines date string + repeater)
       const scheduledTs = formStringToTimestamp(
-        effectiveOptionalFields.scheduled || "",
-        effectiveOptionalFields.scheduledRepeater || null,
+        form.scheduled,
+        form.scheduledRepeater,
       );
       if (scheduledTs) {
         captureValues.scheduled = scheduledTs;
@@ -435,22 +210,16 @@ export default function CaptureScreen() {
 
       // Convert deadline to Timestamp (combines date string + repeater)
       const deadlineTs = formStringToTimestamp(
-        effectiveOptionalFields.deadline || "",
-        effectiveOptionalFields.deadlineRepeater || null,
+        form.deadline,
+        form.deadlineRepeater,
       );
       if (deadlineTs) {
         captureValues.deadline = deadlineTs;
       }
 
-      if (effectiveOptionalFields.priority)
-        captureValues.priority = effectiveOptionalFields.priority;
-      if (effectiveOptionalFields.tags?.length)
-        captureValues.tags = effectiveOptionalFields.tags;
-      if (
-        effectiveOptionalFields.todo &&
-        effectiveOptionalFields.todo !== "TODO"
-      )
-        captureValues.state = effectiveOptionalFields.todo;
+      if (form.priority) captureValues.priority = form.priority;
+      if (effectiveTags.length) captureValues.tags = effectiveTags;
+      if (form.state && form.state !== "TODO") captureValues.state = form.state;
 
       let outboxRequest: OutboxRequest;
       if (selection.type === "template") {
@@ -519,12 +288,12 @@ export default function CaptureScreen() {
     <ScreenContainer testID="captureScreen">
       <View style={styles.header}>
         <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
+          visible={menu.visible}
+          onDismiss={menu.close}
           anchor={
             <Button
               mode="outlined"
-              onPress={() => setMenuVisible(true)}
+              onPress={menu.open}
               icon="chevron-down"
               contentStyle={styles.templateButtonContent}
               testID="templateSelector"
@@ -600,20 +369,12 @@ export default function CaptureScreen() {
           {selectedPrompts.map((prompt) => (
             <PromptField
               key={prompt.name}
+              ref={(handle) => {
+                promptRefs.current[prompt.name] = handle;
+              }}
               prompt={prompt}
               value={values[prompt.name] || (prompt.type === "tags" ? [] : "")}
               onChange={(value) => handleValueChange(prompt.name, value)}
-              registerTagFlusher={
-                prompt.type === "tags"
-                  ? (flusher) => {
-                      if (flusher) {
-                        promptTagFlusherRef.current[prompt.name] = flusher;
-                      } else {
-                        delete promptTagFlusherRef.current[prompt.name];
-                      }
-                    }
-                  : undefined
-              }
             />
           ))}
 
@@ -632,52 +393,11 @@ export default function CaptureScreen() {
           {/* Universal org-mode fields */}
           <Divider style={styles.optionsDivider} />
 
-          <StatePicker
-            value={optionalFields.todo || "TODO"}
-            onChange={(v) => handleOptionalFieldChange("todo", v)}
-          />
-
-          <PriorityPicker
-            value={optionalFields.priority || null}
-            onChange={(v) => handleOptionalFieldChange("priority", v)}
-            priorities={filterOptions?.priorities}
-          />
-
-          <DateFieldWithQuickActions
-            label="Schedule"
-            value={optionalFields.scheduled || ""}
-            onChange={(v) => handleOptionalFieldChange("scheduled", v)}
-            colorKey="schedule"
-            includeTime={quickScheduleIncludeTime}
-          />
-
-          <RepeaterPicker
-            value={optionalFields.scheduledRepeater || null}
-            onChange={(v) => handleOptionalFieldChange("scheduledRepeater", v)}
-            label="Schedule Repeater"
-          />
-
-          <DateFieldWithQuickActions
-            label="Deadline"
-            value={optionalFields.deadline || ""}
-            onChange={(v) => handleOptionalFieldChange("deadline", v)}
-            colorKey="deadline"
-            includeTime={quickScheduleIncludeTime}
-          />
-
-          <RepeaterPicker
-            value={optionalFields.deadlineRepeater || null}
-            onChange={(v) => handleOptionalFieldChange("deadlineRepeater", v)}
-            label="Deadline Repeater"
-          />
-
-          <PromptField
-            prompt={{ name: "Tags", type: "tags", required: false }}
-            value={optionalFields.tags || []}
-            onChange={(v) => handleOptionalFieldChange("tags", v as string[])}
-            registerTagFlusher={(flusher) => {
-              optionalTagsFlusherRef.current = flusher;
-            }}
+          <TodoFormFields
+            ref={formFieldsRef}
+            value={form}
+            onChange={setForm}
+            tagsDefaultExpanded
           />
 
           <Button
@@ -709,9 +429,6 @@ export default function CaptureScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   centered: {
     flex: 1,
     justifyContent: "center",
@@ -733,56 +450,10 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 8,
   },
-  input: {
-    marginBottom: 16,
-  },
-  fieldContainer: {
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    marginBottom: 8,
-    opacity: 0.7,
-  },
-  dateButton: {
-    flex: 1,
-  },
-  clearButton: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-  },
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 8,
-  },
-  tag: {
-    marginRight: 4,
-  },
-  tagInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  tagInput: {
-    flex: 1,
-  },
-  dateInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
   captureButton: {
     marginTop: 8,
   },
   optionsDivider: {
     marginVertical: 16,
-  },
-  textFieldContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 16,
-  },
-  textFieldInput: {
-    flex: 1,
   },
 });

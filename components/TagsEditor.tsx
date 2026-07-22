@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { forwardRef, useImperativeHandle, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   Button,
@@ -10,100 +10,114 @@ import {
   useTheme,
 } from "react-native-paper";
 
+export interface TagsEditorHandle {
+  /**
+   * Commit any tag text typed but not yet added and return the resulting
+   * tags. Lets submit handlers pick up a half-entered tag synchronously.
+   */
+  flush: () => string[];
+}
+
 interface TagsEditorProps {
   tags: string[];
   onChange: (tags: string[]) => void;
   defaultExpanded?: boolean;
+  title?: string;
 }
 
-export function TagsEditor({
-  tags,
-  onChange,
-  defaultExpanded = false,
-}: TagsEditorProps) {
-  const theme = useTheme();
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const [newTag, setNewTag] = useState("");
+export const TagsEditor = forwardRef<TagsEditorHandle, TagsEditorProps>(
+  function TagsEditor(
+    { tags, onChange, defaultExpanded = false, title = "Tags" },
+    ref,
+  ) {
+    const theme = useTheme();
+    const [expanded, setExpanded] = useState(defaultExpanded);
+    const [newTag, setNewTag] = useState("");
 
-  const handleAddTag = () => {
-    const trimmedTag = newTag.trim();
-    if (!trimmedTag) return;
-    // Avoid duplicates
-    if (tags.includes(trimmedTag)) {
+    const handleAddTag = (): string[] => {
+      const trimmedTag = newTag.trim();
+      if (!trimmedTag) return tags;
       setNewTag("");
-      return;
-    }
-    onChange([...tags, trimmedTag]);
-    setNewTag("");
-  };
+      // Avoid duplicates
+      if (tags.includes(trimmedTag)) return tags;
+      const next = [...tags, trimmedTag];
+      onChange(next);
+      return next;
+    };
 
-  const handleRemoveTag = (index: number) => {
-    onChange(tags.filter((_, i) => i !== index));
-  };
+    useImperativeHandle(ref, () => ({ flush: handleAddTag }));
 
-  return (
-    <View style={styles.container}>
-      <List.Accordion
-        title="Tags"
-        description={tags.length > 0 ? `${tags.length} tags` : undefined}
-        expanded={expanded}
-        onPress={() => setExpanded(!expanded)}
-        left={(props) => <List.Icon {...props} icon="tag-outline" />}
-        style={{ backgroundColor: theme.colors.surface }}
-      >
-        {tags.length === 0 ? (
-          <Text
-            style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}
-          >
-            No tags
-          </Text>
-        ) : (
-          <View style={styles.tagsContainer}>
-            {tags.map((tag, index) => (
-              <Chip
-                key={`${tag}-${index}`}
-                onClose={() => handleRemoveTag(index)}
-                style={styles.tag}
-              >
-                {tag}
-              </Chip>
-            ))}
-          </View>
-        )}
+    const handleRemoveTag = (index: number) => {
+      onChange(tags.filter((_, i) => i !== index));
+    };
 
-        <Divider style={styles.divider} />
-
-        <View style={styles.addSection}>
-          <Text
-            variant="labelMedium"
-            style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}
-          >
-            Add Tag
-          </Text>
-          <View style={styles.addRow}>
-            <TextInput
-              placeholder="Tag name"
-              value={newTag}
-              onChangeText={setNewTag}
-              mode="outlined"
-              dense
-              style={styles.tagInput}
-              onSubmitEditing={handleAddTag}
-            />
-            <Button
-              mode="contained-tonal"
-              onPress={handleAddTag}
-              disabled={!newTag.trim()}
-              compact
+    return (
+      <View style={styles.container}>
+        <List.Accordion
+          title={title}
+          description={tags.length > 0 ? `${tags.length} tags` : undefined}
+          expanded={expanded}
+          onPress={() => setExpanded(!expanded)}
+          left={(props) => <List.Icon {...props} icon="tag-outline" />}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
+          {tags.length === 0 ? (
+            <Text
+              style={[
+                styles.emptyText,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
             >
-              Add
-            </Button>
+              No tags
+            </Text>
+          ) : (
+            <View style={styles.tagsContainer}>
+              {tags.map((tag, index) => (
+                <Chip
+                  key={`${tag}-${index}`}
+                  onClose={() => handleRemoveTag(index)}
+                  style={styles.tag}
+                >
+                  {tag}
+                </Chip>
+              ))}
+            </View>
+          )}
+
+          <Divider style={styles.divider} />
+
+          <View style={styles.addSection}>
+            <Text
+              variant="labelMedium"
+              style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}
+            >
+              Add Tag
+            </Text>
+            <View style={styles.addRow}>
+              <TextInput
+                placeholder="Tag name"
+                value={newTag}
+                onChangeText={setNewTag}
+                mode="outlined"
+                dense
+                style={styles.tagInput}
+                onSubmitEditing={handleAddTag}
+              />
+              <Button
+                mode="contained-tonal"
+                onPress={handleAddTag}
+                disabled={!newTag.trim()}
+                compact
+              >
+                Add
+              </Button>
+            </View>
           </View>
-        </View>
-      </List.Accordion>
-    </View>
-  );
-}
+        </List.Accordion>
+      </View>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   container: {
