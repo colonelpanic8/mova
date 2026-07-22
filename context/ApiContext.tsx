@@ -1,5 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
-import { createApiClient, OrgAgendaApi } from "@/services/api";
+import { ApiError, createApiClient, OrgAgendaApi } from "@/services/api";
 import React, {
   createContext,
   ReactNode,
@@ -14,6 +14,7 @@ const ApiContext = createContext<OrgAgendaApi | null>(null);
 export function ApiProvider({ children }: { children: ReactNode }) {
   const { apiUrl, username, password, logout } = useAuth();
   const logoutRef = useRef(logout);
+  const verifyingRef = useRef(false);
 
   // Keep logout ref up to date
   useEffect(() => {
@@ -24,8 +25,28 @@ export function ApiProvider({ children }: { children: ReactNode }) {
     if (!apiUrl || !username || !password) {
       return null;
     }
+    // A single 401 can be transient (e.g. the server restarting behind its
+    // proxy). Before wiping auth state, re-verify the credentials with a
+    // lightweight probe and only log out if that also comes back 401.
+    const probeClient = createApiClient(apiUrl, username, password);
     return createApiClient(apiUrl, username, password, {
-      onUnauthorized: () => logoutRef.current(),
+      onUnauthorized: () => {
+        if (verifyingRef.current) return;
+        verifyingRef.current = true;
+        probeClient
+          .getVersion()
+          .then(() => {
+            // Credentials still work; treat the 401 as transient.
+          })
+          .catch((error) => {
+            if (error instanceof ApiError && error.status === 401) {
+              logoutRef.current();
+            }
+          })
+          .finally(() => {
+            verifyingRef.current = false;
+          });
+      },
     });
   }, [apiUrl, username, password]);
 

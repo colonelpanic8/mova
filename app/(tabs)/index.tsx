@@ -1194,7 +1194,14 @@ export default function AgendaScreen() {
                 todoItem.isWindowHabit ||
                 todoItem.properties?.STYLE === "habit";
               if (isHabit) {
-                return <HabitItem todo={todoItem} />;
+                return (
+                  <HabitItem
+                    todo={todoItem}
+                    habitStatus={
+                      todoItem.id ? habitStatusMap.get(todoItem.id) : undefined
+                    }
+                  />
+                );
               }
               return (
                 <TodoItem

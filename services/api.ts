@@ -386,11 +386,17 @@ export interface ApiClientOptions {
 
 export class ApiError extends Error {
   public readonly status: number;
+  public readonly serverMessage?: string;
 
-  constructor(status: number) {
-    super(`API error: ${status}`);
+  constructor(status: number, serverMessage?: string) {
+    super(
+      serverMessage
+        ? `API error: ${status}: ${serverMessage}`
+        : `API error: ${status}`,
+    );
     this.name = "ApiError";
     this.status = status;
+    this.serverMessage = serverMessage;
   }
 }
 
@@ -483,16 +489,33 @@ export class OrgAgendaApi {
         });
 
         if (!response.ok) {
-          // Don't retry most client errors (4xx) - they won't succeed on retry.
-          // Exception: 408/429 are often transient/retryable.
-          if (response.status >= 400 && response.status < 500) {
-            if (response.status === 401 && this.onUnauthorized) {
-              this.onUnauthorized();
-            }
-            throw new ApiError(response.status);
+          // Surface the server's error message when it provides one, so
+          // callers can show more than a bare status code.
+          let errorBody = "";
+          try {
+            errorBody = await response.text();
+          } catch {
+            // Body unreadable; fall back to the bare status code.
           }
-          // Server errors (5xx) are retryable
-          throw new ApiError(response.status);
+          let serverMessage: string | undefined;
+          if (errorBody) {
+            try {
+              const parsed = JSON.parse(errorBody);
+              serverMessage =
+                typeof parsed?.message === "string"
+                  ? parsed.message
+                  : undefined;
+            } catch {
+              serverMessage = errorBody.slice(0, 200);
+            }
+          }
+          if (response.status === 401 && this.onUnauthorized) {
+            this.onUnauthorized();
+          }
+          // Don't retry most client errors (4xx) - they won't succeed on
+          // retry (408/429 are handled as transient below). Server errors
+          // (5xx) are retryable.
+          throw new ApiError(response.status, serverMessage);
         }
 
         const text = await response.text();
@@ -620,13 +643,12 @@ export class OrgAgendaApi {
     const params = new URLSearchParams();
     params.append("within_minutes", String(withinMinutes));
     try {
-      return this.request<NotificationsResponse>(
+      return await this.request<NotificationsResponse>(
         `/notifications?${params.toString()}`,
       );
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
       // Backwards-compatible fallback if the backend doesn't support within_minutes.
-      if (message.match(/API error: 4\d\d/)) {
+      if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
         return this.request<NotificationsResponse>("/notifications");
       }
       throw e;

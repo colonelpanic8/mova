@@ -151,6 +151,8 @@ class QuickCaptureActivity : AppCompatActivity() {
             val connection = url.openConnection() as HttpURLConnection
 
             try {
+                connection.connectTimeout = 8000
+                connection.readTimeout = 12000
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-Type", "application/json")
 
@@ -195,6 +197,8 @@ class QuickCaptureActivity : AppCompatActivity() {
             val connection = url.openConnection() as HttpURLConnection
 
             try {
+                connection.connectTimeout = 8000
+                connection.readTimeout = 12000
                 connection.requestMethod = "GET"
                 val basicAuth = "Basic " + Base64.encodeToString("$username:$password".toByteArray(), Base64.NO_WRAP)
                 connection.setRequestProperty("Authorization", basicAuth)
