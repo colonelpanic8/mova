@@ -3,6 +3,9 @@ package com.colonelpanic.mova
 import android.app.Application
 import android.content.res.Configuration
 
+import androidx.appfunctions.service.AppFunctionConfiguration
+import com.colonelpanic.mova.appfunctions.MovaAppFunctions
+
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -16,7 +19,16 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
-class MainApplication : Application(), ReactApplication {
+class MainApplication : Application(), ReactApplication, AppFunctionConfiguration.Provider {
+
+  // Tells the androidx.appfunctions runtime how to construct the class that hosts Mova's
+  // @AppFunction methods. MovaAppFunctions is stateless and reads everything it needs (server
+  // URL + credentials) from the AppFunctionContext at call time.
+  override val appFunctionConfiguration: AppFunctionConfiguration =
+    AppFunctionConfiguration.Builder()
+      .addEnclosingClassFactory(MovaAppFunctions::class.java) { MovaAppFunctions() }
+      .build()
+
 
   override val reactNativeHost: ReactNativeHost =
     ReactNativeHostWrapper(
