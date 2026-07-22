@@ -21,7 +21,29 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 CONTAINER_NAME="mova-test-api"
 LOCAL_PORT="${MOVA_LOCAL_API_PORT:-8080}"
-ORG_AGENDA_API_DIR="${ORG_AGENDA_API_DIR:-$HOME/Projects/colonelpanic-org-agenda-api}"
+
+# Where to find the org-agenda-api checkout used to build the container:
+#   1. $ORG_AGENDA_API_DIR - set by the flake shellHook to the locked flake
+#      input (a /nix/store path), or exported manually to a local checkout
+#   2. ~/Projects/colonelpanic-org-agenda-api - standalone working checkout
+#   3. ~/dotfiles/dotfiles/emacs.d/straight/repos/org-agenda-api - straight.el
+#      checkout used on machines that manage emacs via dotfiles
+# Keep this list in sync with tests/utils/container.ts.
+default_org_agenda_api_dir() {
+  local candidate
+  for candidate in \
+    "$HOME/Projects/colonelpanic-org-agenda-api" \
+    "$HOME/dotfiles/dotfiles/emacs.d/straight/repos/org-agenda-api"; do
+    if [[ -d "$candidate" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  # Nothing found; return the primary fallback so error messages point somewhere sensible
+  echo "$HOME/Projects/colonelpanic-org-agenda-api"
+}
+
+ORG_AGENDA_API_DIR="${ORG_AGENDA_API_DIR:-$(default_org_agenda_api_dir)}"
 
 # Test credentials
 TEST_USER="testuser"
@@ -126,6 +148,10 @@ start_test_container() {
   # Create a writable copy of test data for capture to work
   TEST_DATA_COPY=$(mktemp -d)
   cp -r "$SCRIPT_DIR/test-data/"* "$TEST_DATA_COPY/"
+
+  # Render the dated org fixtures from their templates so scheduled/deadline
+  # dates are relative to today (see e2e/generate-test-data.js)
+  node "$SCRIPT_DIR/generate-test-data.js" "$TEST_DATA_COPY"
   # Initialize git in the copy if not already
   if [[ ! -d "$TEST_DATA_COPY/.git" ]]; then
     git -C "$TEST_DATA_COPY" init

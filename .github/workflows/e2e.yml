@@ -1,7 +1,11 @@
 name: E2E Tests
 
 on:
-  workflow_dispatch: # Allow manual triggering only - disabled due to flaky CI emulator timeouts
+  # Not run on push/PR because the CI emulator is flaky (timeouts); instead we
+  # run nightly and keep manual triggering available.
+  schedule:
+    - cron: "30 8 * * *" # nightly at 08:30 UTC
+  workflow_dispatch:
 
 jobs:
   e2e-android:
@@ -99,6 +103,10 @@ jobs:
           TEST_DATA_DIR=$(mktemp -d)
           cp -r e2e/test-data/* "$TEST_DATA_DIR/"
 
+          # Render the dated org fixtures from their templates so
+          # scheduled/deadline dates are relative to today
+          node e2e/generate-test-data.js "$TEST_DATA_DIR"
+
           # Initialize git in the test data directory
           git -C "$TEST_DATA_DIR" init
           git -C "$TEST_DATA_DIR" config user.email "test@test.local"
@@ -114,6 +122,11 @@ jobs:
           fi
 
           echo "TEST_DATA_DIR=$TEST_DATA_DIR" >> $GITHUB_ENV
+
+          # Record the data dir so resetTestData() in e2e/helpers/test-helpers.ts
+          # can revert/re-render fixtures between suites (same path convention
+          # as e2e/local-api.sh)
+          echo "$TEST_DATA_DIR" > /tmp/mova-test-api-data-dir
 
       - name: Start test API container
         run: |
@@ -201,8 +214,9 @@ jobs:
             adb install android/app/build/outputs/apk/debug/app-debug.apk
             adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 
-            # Run Detox tests - just login tests for now
-            yarn detox test --configuration android.emu.debug e2e/login.test.ts --headless --record-logs all
+            # Run Detox tests - login and capture specs (the remaining suites
+            # are still too flaky on the CI emulator)
+            yarn detox test --configuration android.emu.debug e2e/login.test.ts e2e/capture.test.ts --headless --record-logs all
 
             # Stop logcat and save
             kill $LOGCAT_PID 2>/dev/null || true

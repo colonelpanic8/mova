@@ -7,9 +7,11 @@
  * Note: Schedule/deadline actions now open native Android date picker.
  * Priority action still uses a custom modal.
  *
- * Test data includes items scheduled for:
- * - 2026-01-13: "Morning standup", "Code review"
- * - 2026-01-14: "Submit report" (deadline), "Doctor appointment", "Review code"
+ * Test data is generated from e2e/test-data/*.org.tmpl by
+ * e2e/generate-test-data.js with dates relative to the current day:
+ * - yesterday: "Morning standup", "Code review"
+ * - today:     "Team meeting", "Submit report" (deadline), "Doctor appointment"
+ * - tomorrow:  "Review code", "Update dependencies"
  */
 
 import { by, device, element, expect, waitFor } from "detox";
@@ -17,6 +19,10 @@ import { setupTestWithLoginOnce } from "./helpers/test-helpers";
 // Use Jest's expect for value assertions (not UI elements)
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { expect: jestExpect } = require("@jest/globals");
+// Shared date helpers - the same module generates the org fixtures, so
+// expected dates here can never drift from the test data
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { dayOfMonth, isoDate } = require("./test-dates");
 
 // Helper to fetch a todo via API and verify its scheduled date
 async function fetchTodoScheduledDate(
@@ -164,10 +170,9 @@ describe("Scheduling from Agenda", () => {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const scheduledAfter = await fetchTodoScheduledDate(todoText);
 
-    // Calculate tomorrow's date
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const expectedDate = tomorrow.toISOString().slice(0, 10);
+    // Tomorrow's date in local time (toISOString would be UTC and can be
+    // off-by-one relative to the local calendar day)
+    const expectedDate = isoDate(1);
 
     // The scheduled date should have changed to tomorrow
     jestExpect(scheduledAfter).not.toBe(scheduledBefore);
@@ -326,14 +331,18 @@ describe("Scheduling from Agenda", () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // On Android Material date picker, find and tap day "17" (4 days from Jan 13)
-      // The date picker shows the current month with numbered day buttons
+      // On Android Material date picker, find and tap the day 4 days after
+      // the item's current scheduled date ("Code review" is scheduled for
+      // yesterday, so target = yesterday + 4 = today + 3). The picker shows
+      // numbered day buttons for the displayed month; if the target falls in
+      // a different month this tap is skipped and OK confirms the current
+      // selection instead.
+      const targetDay = String(dayOfMonth(3));
       try {
-        // Try to tap on day 17 (which is 4 days from the test date of Jan 13)
-        await element(by.text("17")).tap();
+        await element(by.text(targetDay)).tap();
         await new Promise((resolve) => setTimeout(resolve, 300));
       } catch {
-        console.log("Could not find day 17 in date picker");
+        console.log(`Could not find day ${targetDay} in date picker`);
       }
 
       // Confirm the date selection

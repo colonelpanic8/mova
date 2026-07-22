@@ -1,0 +1,4 @@
+# The .org fixtures are generated from the *.org.tmpl templates by
+# ../generate-test-data.js (dates are relative to the current day).
+# Edit the templates, not the generated files.
+*.org

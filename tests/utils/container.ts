@@ -3,12 +3,32 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 
-const ORG_AGENDA_API_PATH =
-  process.env.ORG_AGENDA_API_DIR ||
+// Where to find the org-agenda-api checkout used to build the container:
+//   1. ORG_AGENDA_API_DIR env var - set by the flake shellHook to the locked
+//      flake input (a /nix/store path), or exported manually
+//   2. ~/Projects/colonelpanic-org-agenda-api - standalone working checkout
+//   3. ~/dotfiles/dotfiles/emacs.d/straight/repos/org-agenda-api - straight.el
+//      checkout used on machines that manage emacs via dotfiles
+// Keep this list in sync with e2e/local-api.sh.
+const FALLBACK_ORG_AGENDA_API_PATHS = [
+  path.join(os.homedir(), "Projects/colonelpanic-org-agenda-api"),
   path.join(
     os.homedir(),
     "dotfiles/dotfiles/emacs.d/straight/repos/org-agenda-api",
-  );
+  ),
+];
+
+const ORG_AGENDA_API_PATH =
+  process.env.ORG_AGENDA_API_DIR ||
+  FALLBACK_ORG_AGENDA_API_PATHS.find((p) => fs.existsSync(p)) ||
+  FALLBACK_ORG_AGENDA_API_PATHS[0];
+
+/**
+ * If set, skip the nix build entirely and use this already-docker-loaded
+ * image. CI (.github/workflows/ci.yml) builds the container from the locked
+ * org-agenda-api flake revision, docker-loads it, and passes its name here.
+ */
+const PREBUILT_IMAGE = process.env.ORG_AGENDA_API_IMAGE;
 
 interface ContainerConfig {
   port?: number;
@@ -166,9 +186,15 @@ export async function startContainer(
   const gitSyncInterval = config.gitSyncInterval || 2;
   const containerName = `mova-test-${process.pid}-${Date.now()}`;
 
-  // Build and load container
-  const imagePath = buildContainer();
-  const imageName = loadContainer(imagePath);
+  // Use the pre-built image when provided (CI); otherwise build and load
+  let imageName: string;
+  if (PREBUILT_IMAGE) {
+    console.log(`Using pre-built container image: ${PREBUILT_IMAGE}`);
+    imageName = PREBUILT_IMAGE;
+  } else {
+    const imagePath = buildContainer();
+    imageName = loadContainer(imagePath);
+  }
 
   // Create test org directory
   const orgDir = createTestOrgDir();

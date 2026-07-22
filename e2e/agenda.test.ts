@@ -4,11 +4,11 @@
  * Tests that the agenda page UI works correctly.
  * Uses test container with known test data.
  *
- * IMPORTANT: Today's date for testing should be 2026-01-21.
- * Test data includes items scheduled for:
- * - 2026-01-20: "Morning standup", "Code review"
- * - 2026-01-21 (TODAY): "Team meeting", "Submit report", "Doctor appointment"
- * - 2026-01-22: "Review code", "Update dependencies"
+ * Test data is generated from e2e/test-data/*.org.tmpl by
+ * e2e/generate-test-data.js with dates relative to the current day:
+ * - yesterday: "Morning standup", "Code review"
+ * - TODAY:     "Team meeting", "Submit report" (deadline), "Doctor appointment"
+ * - tomorrow:  "Review code", "Update dependencies"
  */
 
 import { by, element, expect, waitFor } from "detox";
@@ -58,7 +58,7 @@ describe("Agenda Screen", () => {
   it("should populate agenda with entries from API", async () => {
     await waitForLoadingComplete();
 
-    // Test data is on today's date (2026-01-21): Team meeting, Doctor appointment, Submit report
+    // Test data is on today's date: Team meeting, Doctor appointment, Submit report
     // Wait for agenda list to be visible
     await waitFor(element(by.id("agendaList")))
       .toBeVisible()
@@ -77,7 +77,7 @@ describe("Agenda Screen", () => {
 
   it("should refresh when pulling down", async () => {
     await waitForLoadingComplete();
-    // Test data is on today (2026-01-21), no need to navigate
+    // Test data is on today, no need to navigate
     await waitFor(element(by.id("agendaList")))
       .toBeVisible()
       .withTimeout(10000);
@@ -120,7 +120,7 @@ describe("Agenda Screen - Todo Manipulation", () => {
   beforeEach(async () => {
     await setupTestWithLogin();
     await waitForLoadingComplete();
-    // Test items are on today's date (2026-01-21): Team meeting, Doctor appointment, Submit report
+    // Test items are on today's date: Team meeting, Doctor appointment, Submit report
     // Wait for the list container AND the data to load
     await waitFor(element(by.id("agendaList")))
       .toBeVisible()
@@ -224,8 +224,8 @@ describe("Agenda Screen - Todo Manipulation", () => {
   });
 
   it("should delete item via detail view", async () => {
-    // beforeEach already navigated to tomorrow where Doctor appointment is scheduled
-    // Wait for the item to be visible (data may still be loading after navigation)
+    // Doctor appointment is scheduled for today (see e2e/test-data templates)
+    // Wait for the item to be visible (data may still be loading)
     await waitFor(element(by.text("Doctor appointment")))
       .toBeVisible()
       .withTimeout(15000);

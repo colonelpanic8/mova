@@ -1,31 +1,40 @@
+# Template for agenda-items.org — rendered by e2e/generate-test-data.js.
+# The d:OFFSET placeholders (optionally with HH:MM) expand to org timestamp
+# bodies OFFSET days from today (see e2e/test-dates.js). Do not edit the
+# generated .org file.
+#
+# Date layout the e2e tests rely on (agenda.test.ts, scheduling.test.ts):
+#   yesterday: "Morning standup", "Code review"
+#   today:     "Team meeting", "Submit report" (deadline), "Doctor appointment"
+#   tomorrow:  "Review code", "Update dependencies"
 #+TITLE: Agenda Items
 
 * Calendar
 ** TODO Morning standup
-   SCHEDULED: <2026-01-20 Mon 09:00>
+   SCHEDULED: <{{d:-1 09:00}}>
    Daily standup meeting
 
 ** TODO [#A] Team meeting
-   SCHEDULED: <2026-01-21 Tue 10:00>
+   SCHEDULED: <{{d:0 10:00}}>
    Weekly standup
 
 ** TODO Submit report
-   DEADLINE: <2026-01-21 Tue>
+   DEADLINE: <{{d:0}}>
    Quarterly report due
 
 ** TODO Doctor appointment
-   SCHEDULED: <2026-01-21 Tue 14:30>
+   SCHEDULED: <{{d:0 14:30}}>
 
 * Weekly Tasks
 ** TODO Code review
-   SCHEDULED: <2026-01-20 Mon>
+   SCHEDULED: <{{d:-1}}>
    Review pending PRs
 
 ** TODO Review code
-   SCHEDULED: <2026-01-22 Thu>
+   SCHEDULED: <{{d:+1}}>
 
 ** TODO Update dependencies
-   SCHEDULED: <2026-01-22 Wed>
+   SCHEDULED: <{{d:+1}}>
 
 * Next Action Items
 ** NEXT Prepare demo for stakeholders

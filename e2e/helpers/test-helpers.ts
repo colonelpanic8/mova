@@ -10,6 +10,7 @@
 
 import { execSync } from "child_process";
 import { by, device, element, waitFor } from "detox";
+import * as fs from "fs";
 
 // Test container configuration
 export const TEST_API_URL = "http://10.0.2.2:8080"; // Android emulator localhost
@@ -17,14 +18,29 @@ export const TEST_USERNAME = "testuser";
 export const TEST_PASSWORD = "testpass";
 
 /**
- * Reset test data to its original state using git checkout.
- * Also restarts the test container so Emacs picks up the fresh files.
- * This ensures tests always start with clean, predictable data.
+ * Reset test data to its original state.
+ *
+ * The container started by e2e/local-api.sh mounts a temporary copy of
+ * e2e/test-data/ and records its path in /tmp/mova-test-api-data-dir. We
+ * revert any test mutations in that copy via git, re-render the dated org
+ * fixtures from their templates (e2e/generate-test-data.js), and restart the
+ * container so Emacs reloads the files.
  */
 export function resetTestData(): void {
   try {
-    // Reset files to git state
-    execSync("git checkout e2e/test-data/", { stdio: "pipe" });
+    const dataDirFile = "/tmp/mova-test-api-data-dir";
+    if (fs.existsSync(dataDirFile)) {
+      const dataDir = fs.readFileSync(dataDirFile, "utf-8").trim();
+      if (dataDir && fs.existsSync(dataDir)) {
+        // Revert mutations made by previous tests (data dir is a git repo)
+        execSync(`git -C "${dataDir}" checkout -- .`, { stdio: "pipe" });
+        execSync(`git -C "${dataDir}" clean -fd`, { stdio: "pipe" });
+        // Re-render dated fixtures relative to today
+        execSync(`node e2e/generate-test-data.js "${dataDir}"`, {
+          stdio: "pipe",
+        });
+      }
+    }
     // Restart container so Emacs reloads the files
     execSync("docker restart mova-test-api", { stdio: "pipe", timeout: 10000 });
     // Wait for container to be ready

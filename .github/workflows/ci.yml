@@ -50,3 +50,56 @@ jobs:
 
       - name: Run tests
         run: yarn test --selectProjects unit components
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: org-agenda-api
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Same approach as .github/workflows/e2e.yml: build the container from
+      # the org-agenda-api revision locked in our flake.lock so the tests run
+      # against the exact API version the app is developed against.
+      - name: Build and load org-agenda-api container
+        run: |
+          ORG_API_REV=$(nix flake metadata --json . | jq -r '.locks.nodes."org-agenda-api".locked.rev')
+          echo "Using org-agenda-api revision: $ORG_API_REV"
+          nix build "github:colonelpanic8/org-agenda-api/$ORG_API_REV#container" --no-write-lock-file -o result-container
+
+          # Load and capture the image name from docker load output
+          LOAD_OUTPUT=$(docker load < result-container)
+          echo "Docker load output: $LOAD_OUTPUT"
+
+          IMAGE_NAME=$(echo "$LOAD_OUTPUT" | grep -oP 'Loaded image: \K.*' | tr -d '[:space:]')
+          echo "Extracted image name: $IMAGE_NAME"
+          if [ -z "$IMAGE_NAME" ]; then
+            echo "Failed to extract image name!"
+            exit 1
+          fi
+          echo "ORG_AGENDA_API_IMAGE=$IMAGE_NAME" >> "$GITHUB_ENV"
+
+      # ORG_AGENDA_API_IMAGE tells tests/utils/container.ts to use the image
+      # loaded above instead of nix-building from a local checkout.
+      - name: Run integration tests
+        run: yarn test --selectProjects integration

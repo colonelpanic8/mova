@@ -24,6 +24,10 @@ release-android:
 clean-android:
     cd android && ./gradlew clean
 
+# Regenerate dated e2e org fixtures from templates (dates relative to today)
+test-data:
+    node e2e/generate-test-data.js
+
 # Start test API container
 test-api-start:
     ./e2e/local-api.sh start

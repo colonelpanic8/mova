@@ -1,18 +1,22 @@
+# Template for test-todos.org — rendered by e2e/generate-test-data.js.
+# The d:OFFSET placeholders (optionally with HH:MM) expand to org timestamp
+# bodies OFFSET days from today (see e2e/test-dates.js). Do not edit the
+# generated .org file.
 #+TITLE: Test Todos for E2E Testing
 
 * Tasks
 ** TODO Buy groceries
-   SCHEDULED: <2026-01-15 Wed>
+   SCHEDULED: <{{d:-6}}>
    - Milk
    - Bread
    - Eggs
 
 ** TODO Call dentist
-   DEADLINE: <2026-01-20 Mon>
+   DEADLINE: <{{d:-1}}>
    Make appointment for checkup
 
 ** DONE Set up E2E tests
-   CLOSED: [2026-01-13 Mon 10:00]
+   CLOSED: [{{d:-8 10:00}}]
 
 ** TODO Review pull request
    :PROPERTIES:
@@ -20,8 +24,8 @@
    :END:
 
 ** TODO Write documentation
-   SCHEDULED: <2026-01-16 Thu>
-   DEADLINE: <2026-01-25 Sat>
+   SCHEDULED: <{{d:-5}}>
+   DEADLINE: <{{d:+4}}>
 
 * Projects
 ** TODO Project Alpha
