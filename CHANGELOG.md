@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.22.0]
+
+- feat: add Wear OS quick capture with phone-synced configuration
+- fix: keep the quick capture bar visible above the mobile keyboard without layout jumps
+
 ## [5.21.0]
 
 - feat: render cached agenda offline-first and keep data on refresh failure
