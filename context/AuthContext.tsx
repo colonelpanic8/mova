@@ -19,6 +19,7 @@ import {
   clearWidgetCredentials,
   saveCredentialsToWidget,
 } from "@/widgets/storage";
+import { useQueryClient } from "@tanstack/react-query";
 import React, {
   createContext,
   ReactNode,
@@ -29,7 +30,6 @@ import React, {
   useState,
 } from "react";
 import { NativeModules, Platform } from "react-native";
-import { useMutation } from "./MutationContext";
 
 interface AuthState {
   apiUrl: string | null;
@@ -90,7 +90,7 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { triggerRefresh } = useMutation();
+  const queryClient = useQueryClient();
   const [state, setState] = useState<AuthState>({
     apiUrl: null,
     username: null,
@@ -286,12 +286,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (success) {
         await setActiveServerId(serverId);
         setActiveServerIdState(serverId);
-        // Trigger a refresh of all screens to fetch data from the new server
-        triggerRefresh();
+        // Drop all cached server state so nothing from the previous server
+        // can render; screens refetch against the new server's identity keys.
+        queryClient.clear();
       }
       return success;
     },
-    [login, triggerRefresh],
+    [login, queryClient],
   );
 
   const saveCurrentServer = useCallback(

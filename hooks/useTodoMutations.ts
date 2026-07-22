@@ -1,7 +1,7 @@
 import { useApi } from "@/context/ApiContext";
-import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useSnackbar } from "@/context/SnackbarContext";
+import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { OrgAgendaApi, Timestamp, Todo, TodoUpdates } from "@/services/api";
 import { completeTodoWithNotificationSync } from "@/services/todoCompletion";
 import { getTodoKey } from "@/utils/todoKey";
@@ -57,7 +57,7 @@ export function useTodoMutations(
 ): UseTodoMutationsResult {
   const { onTodoUpdated } = options;
   const api = useApi();
-  const { triggerRefresh } = useMutation();
+  const invalidateServerData = useServerDataInvalidation();
   const { useClientCompletionTime } = useSettings();
   const { showSnackbar } = useSnackbar();
 
@@ -99,7 +99,7 @@ export function useTodoMutations(
           if (result.status === "updated") {
             showSnackbar(`Scheduled: ${todo.title}`);
             onTodoUpdated?.(todo, { scheduled: timestamp });
-            triggerRefresh();
+            invalidateServerData();
           } else {
             showSnackbar(result.message || "Failed to schedule", {
               isError: true,
@@ -107,7 +107,7 @@ export function useTodoMutations(
           }
         },
       }),
-    [runTodoMutation, showSnackbar, onTodoUpdated, triggerRefresh],
+    [runTodoMutation, showSnackbar, onTodoUpdated, invalidateServerData],
   );
 
   const updateTodo = useCallback(
@@ -120,7 +120,7 @@ export function useTodoMutations(
           if (result.status === "updated") {
             showSnackbar(`Updated: ${todo.title}`);
             onTodoUpdated?.(todo, updates);
-            triggerRefresh();
+            invalidateServerData();
           } else {
             showSnackbar(result.message || "Failed to update", {
               isError: true,
@@ -128,7 +128,7 @@ export function useTodoMutations(
           }
         },
       }),
-    [runTodoMutation, showSnackbar, onTodoUpdated, triggerRefresh],
+    [runTodoMutation, showSnackbar, onTodoUpdated, invalidateServerData],
   );
 
   const changeTodoState = useCallback(
@@ -154,7 +154,7 @@ export function useTodoMutations(
               `${todo.title}: ${result.oldState} → ${result.newState}${successSuffix}`,
             );
             onTodoUpdated?.(todo, { todo: result.newState || state });
-            triggerRefresh();
+            invalidateServerData();
           } else {
             showSnackbar(result.message || failureMessage, { isError: true });
           }
@@ -165,7 +165,7 @@ export function useTodoMutations(
       runTodoMutation,
       showSnackbar,
       onTodoUpdated,
-      triggerRefresh,
+      invalidateServerData,
       useClientCompletionTime,
     ],
   );
@@ -179,7 +179,7 @@ export function useTodoMutations(
           const result = await client.deleteTodo(todo);
           if (result.deleted) {
             showSnackbar(`Deleted: ${todo.title}`);
-            triggerRefresh();
+            invalidateServerData();
           } else {
             showSnackbar(result.message || "Failed to delete", {
               isError: true,
@@ -187,7 +187,7 @@ export function useTodoMutations(
           }
         },
       }),
-    [runTodoMutation, showSnackbar, triggerRefresh],
+    [runTodoMutation, showSnackbar, invalidateServerData],
   );
 
   return {

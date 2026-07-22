@@ -1,5 +1,6 @@
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
+import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import {
   buildTodoStub,
   completeTodoWithNotificationSync,
@@ -49,6 +50,7 @@ export function useDeepLinks() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const api = useApi();
+  const invalidateServerData = useServerDataInvalidation();
   const processedUrls = useRef<Set<string>>(new Set());
 
   const handleUrl = async (url: string) => {
@@ -70,6 +72,7 @@ export function useDeepLinks() {
         if (params.title) {
           try {
             await api.capture("default", { Title: params.title });
+            invalidateServerData();
             Alert.alert("Todo created", params.title);
           } catch (err) {
             Alert.alert("Error", "Failed to create todo");
@@ -96,6 +99,7 @@ export function useDeepLinks() {
             );
 
             if (result.status === "completed") {
+              invalidateServerData();
               Alert.alert("Completed", result.title || "Todo completed");
             } else {
               Alert.alert("Error", result.message || "Failed to complete");

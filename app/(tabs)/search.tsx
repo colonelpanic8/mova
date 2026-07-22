@@ -2,20 +2,20 @@ import { FilterBar } from "@/components/FilterBar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TodoItem } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
+import { useAuth } from "@/context/AuthContext";
 import { useFilters } from "@/context/FilterContext";
-import { useMutation } from "@/context/MutationContext";
-import { useMutationVersionEffect } from "@/hooks/useMutationVersionEffect";
+import {
+  buildServerIdentity,
+  queryKeys,
+  SIGNED_OUT_IDENTITY,
+} from "@/hooks/queryKeys";
+import { useTodoStates } from "@/hooks/useServerData";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
-import { Todo, TodoStatesResponse } from "@/services/api";
+import { GetAllTodosResponse, Todo } from "@/services/api";
 import { filterTodos } from "@/utils/filterTodos";
 import { getTodoKey } from "@/utils/todoKey";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -32,62 +32,52 @@ import {
 } from "react-native-paper";
 
 export default function SearchScreen() {
-  const [todos, setTodos] = useState<Todo[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
 
   const api = useApi();
+  const { apiUrl, username } = useAuth();
   const theme = useTheme();
-  const { mutationVersion } = useMutation();
   const { filters } = useFilters();
-  const requestIdRef = useRef(0);
+  const queryClient = useQueryClient();
+
+  const identity = buildServerIdentity(apiUrl, username);
+  const todosKey = useMemo(
+    () => queryKeys.todos(identity ?? SIGNED_OUT_IDENTITY),
+    [identity],
+  );
+  const todosQuery = useQuery({
+    queryKey: todosKey,
+    enabled: Boolean(api && identity),
+    queryFn: () => api!.getAllTodos(),
+  });
+  const { refetch: refetchTodos } = todosQuery;
+  const todos = useMemo(
+    () => todosQuery.data?.todos ?? [],
+    [todosQuery.data?.todos],
+  );
+  const todoStatesQuery = useTodoStates();
+  const todoStates = todoStatesQuery.data ?? null;
+  const { refetch: refetchTodoStates } = todoStatesQuery;
+
+  const loading = todosQuery.isPending;
+  const error = todosQuery.isError ? "Failed to load todos" : null;
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
       const key = getTodoKey(todo);
-      setTodos((prev) =>
-        prev.map((t) => (getTodoKey(t) === key ? { ...t, ...updates } : t)),
+      queryClient.setQueryData<GetAllTodosResponse>(todosKey, (prev) =>
+        prev
+          ? {
+              ...prev,
+              todos: prev.todos.map((t) =>
+                getTodoKey(t) === key ? { ...t, ...updates } : t,
+              ),
+            }
+          : prev,
       );
     },
-    [],
-  );
-
-  const fetchTodos = useCallback(async () => {
-    if (!api) return;
-    const requestId = ++requestIdRef.current;
-
-    try {
-      const [todosResponse, statesResponse] = await Promise.all([
-        api.getAllTodos(),
-        api.getTodoStates().catch(() => null),
-      ]);
-      if (requestId !== requestIdRef.current) return;
-      setTodos(todosResponse.todos);
-      if (statesResponse) {
-        setTodoStates(statesResponse);
-      }
-      setError(null);
-    } catch (err) {
-      if (requestId !== requestIdRef.current) return;
-      setError("Failed to load todos");
-      console.error(err);
-    }
-  }, [api]);
-
-  useEffect(() => {
-    fetchTodos().finally(() => setLoading(false));
-  }, [fetchTodos]);
-
-  // Refetch when mutations happen elsewhere
-  useMutationVersionEffect(
-    mutationVersion,
-    () => {
-      fetchTodos();
-    },
-    { skipInitial: true },
+    [queryClient, todosKey],
   );
 
   const filteredTodos = useMemo(() => {
@@ -112,9 +102,9 @@ export default function SearchScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchTodos();
+    await Promise.all([refetchTodos(), refetchTodoStates()]);
     setRefreshing(false);
-  }, [fetchTodos]);
+  }, [refetchTodos, refetchTodoStates]);
 
   if (loading) {
     return (

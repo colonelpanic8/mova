@@ -13,9 +13,9 @@ import {
 } from "@/components/todoForm";
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
-import { useMutation } from "@/context/MutationContext";
 import { useOutbox } from "@/context/OutboxContext";
 import { useTemplates } from "@/context/TemplatesContext";
+import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
 import { CategoryType, TemplatePrompt, Timestamp } from "@/services/api";
 import { OutboxRequest } from "@/services/captureOutbox";
@@ -62,7 +62,7 @@ export default function CaptureScreen() {
   } | null>(null);
   const [form, setForm] = useState<TodoFormState>(emptyTodoFormState);
   const theme = useTheme();
-  const { triggerRefresh } = useMutation();
+  const invalidateServerData = useServerDataInvalidation();
   const { captureOrEnqueue } = useOutbox();
   const menu = useMenuPickerWorkaround();
   const promptRefs = useRef<Record<string, PromptFieldHandle | null>>({});
@@ -254,7 +254,7 @@ export default function CaptureScreen() {
       } else if (result.response.status === "created") {
         setMessage({ text: "Captured!", isError: false });
         clearForm();
-        triggerRefresh();
+        invalidateServerData();
       } else {
         setMessage({
           text: result.response.message || "Capture failed",

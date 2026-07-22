@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, waitFor } from "@testing-library/react-native";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -5,16 +6,12 @@ import { MD3LightTheme, PaperProvider } from "react-native-paper";
 
 import HabitsScreen from "../../app/(tabs)/habits";
 import { useApi } from "../../context/ApiContext";
+import { useAuth } from "../../context/AuthContext";
 import { useHabitConfig } from "../../hooks/useHabitConfig";
 
 jest.mock("../../context/ApiContext");
+jest.mock("../../context/AuthContext");
 jest.mock("../../hooks/useHabitConfig");
-jest.mock("../../context/MutationContext", () => ({
-  useMutation: () => ({
-    mutationVersion: 0,
-    triggerRefresh: jest.fn(),
-  }),
-}));
 jest.mock("../../components/HabitItem", () => ({
   HabitItem: ({
     todo,
@@ -87,12 +84,19 @@ const mockHabit = {
   },
 };
 
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+  });
+
 const renderScreen = () =>
   render(
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={MD3LightTheme}>
-        <HabitsScreen />
-      </PaperProvider>
+      <QueryClientProvider client={createTestQueryClient()}>
+        <PaperProvider theme={MD3LightTheme}>
+          <HabitsScreen />
+        </PaperProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>,
   );
 
@@ -115,6 +119,11 @@ describe("HabitsScreen", () => {
     });
 
     (useApi as jest.Mock).mockReturnValue(mockApi);
+    (useAuth as jest.Mock).mockReturnValue({
+      apiUrl: "http://test-api.local",
+      username: "testuser",
+      isAuthenticated: true,
+    });
     (useHabitConfig as jest.Mock).mockReturnValue({
       config: { status: "ok", enabled: true },
       isLoading: false,

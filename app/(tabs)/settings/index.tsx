@@ -1,8 +1,8 @@
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
-import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
+import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import { AgendaFilesResponse, VersionResponse } from "@/services/api";
@@ -74,7 +74,7 @@ export default function SettingsScreen() {
 
   const multiDayFutureDays = multiDayRangeLength - multiDayPastDays - 1;
   const { templates, todoStates, exposedFunctions } = useTemplates();
-  const { triggerRefresh } = useMutation();
+  const invalidateServerData = useServerDataInvalidation();
   const theme = useTheme();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
@@ -161,15 +161,15 @@ export default function SettingsScreen() {
       setCallingFunction(functionId);
       try {
         await api.callFunction(functionId);
-        // Trigger refresh since the function may have modified data
-        triggerRefresh();
+        // Refresh since the function may have modified data
+        invalidateServerData();
       } catch (error) {
         console.error("Failed to call function:", error);
       } finally {
         setCallingFunction(null);
       }
     },
-    [api, triggerRefresh],
+    [api, invalidateServerData],
   );
 
   // Mova version info from Expo Constants

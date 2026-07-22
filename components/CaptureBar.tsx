@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useOutbox } from "@/context/OutboxContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
+import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -50,6 +51,7 @@ export function CaptureBar() {
   const { isAuthenticated, activeServerId } = useAuth();
   const { pendingCount, captureOrEnqueue, flushNow, notice, clearNotice } =
     useOutbox();
+  const invalidateServerData = useServerDataInvalidation();
   const theme = useTheme();
 
   // Surface outbox notices (e.g. queued captures rejected by the server)
@@ -201,6 +203,7 @@ export function CaptureBar() {
       } else if (result.response.status === "created") {
         setMessage({ text: "Captured!", isError: false });
         clearInputAndDraft();
+        invalidateServerData();
       } else {
         setMessage({
           text: result.response.message || "Capture failed",

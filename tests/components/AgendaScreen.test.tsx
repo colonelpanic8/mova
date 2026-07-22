@@ -9,17 +9,14 @@
  * - Date navigation
  */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
 import { FilterProvider } from "../../context/FilterContext";
 import { SnackbarProvider } from "../../context/SnackbarContext";
-import {
-  buildAgendaViewKey,
-  saveCachedAgenda,
-} from "../../services/agendaCache";
+import { buildServerIdentity, queryKeys } from "../../hooks/queryKeys";
 import { formatLocalDate } from "../../utils/dateFormatting";
 
 // Import after mocks are set up
@@ -50,13 +47,6 @@ jest.mock("@react-native-community/datetimepicker", () => {
     default: () => null,
   };
 });
-jest.mock("../../context/MutationContext", () => ({
-  MutationProvider: ({ children }: { children: React.ReactNode }) => children,
-  useMutation: () => ({
-    mutationVersion: 0,
-    triggerRefresh: jest.fn(),
-  }),
-}));
 jest.mock("../../context/TemplatesContext", () => ({
   useTemplates: () => ({
     templates: null,
@@ -172,10 +162,6 @@ const mockAgendaResponse = {
 beforeEach(async () => {
   jest.clearAllMocks();
 
-  // The agenda screen persists successful fetches to AsyncStorage; clear the
-  // in-memory mock store so tests don't leak cached agendas into each other.
-  await AsyncStorage.clear();
-
   // Mock useAuth
   (useAuth as jest.Mock).mockReturnValue({
     apiUrl: "http://test-api.local",
@@ -247,15 +233,28 @@ beforeEach(async () => {
   (useApi as jest.Mock).mockReturnValue(mockApi);
 });
 
+// Fresh query cache per test so cached agendas can't leak between tests.
+// gcTime Infinity avoids long-lived GC timers keeping the test env alive;
+// retry: false matches the app's defaults (the API client retries itself).
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+  });
+
 // Helper to render with providers
-const renderScreen = (component: React.ReactElement) => {
+const renderScreen = (
+  component: React.ReactElement,
+  queryClient: QueryClient = createTestQueryClient(),
+) => {
   return render(
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={MD3LightTheme}>
-        <SnackbarProvider>
-          <FilterProvider>{component}</FilterProvider>
-        </SnackbarProvider>
-      </PaperProvider>
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider theme={MD3LightTheme}>
+          <SnackbarProvider>
+            <FilterProvider>{component}</FilterProvider>
+          </SnackbarProvider>
+        </PaperProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>,
   );
 };
@@ -471,19 +470,25 @@ describe("AgendaScreen", () => {
 
   it("renders cached data immediately when the server is unreachable", async () => {
     const today = formatLocalDate(new Date());
-    await saveCachedAgenda(
-      "http://test-api.local",
-      "testuser",
-      buildAgendaViewKey({
+    const identity = buildServerIdentity("http://test-api.local", "testuser")!;
+    const queryClient = createTestQueryClient();
+
+    // Simulate a cache restored from a previous session (the persisted query
+    // cache in the app): seed the exact key the agenda view uses.
+    queryClient.setQueryData(
+      queryKeys.agendaView(identity, {
         mode: "day",
         dateString: today,
+        rangeLength: 1,
         includeCompleted: false,
       }),
       {
-        agenda: {
-          span: "day",
-          date: today,
-          entries: [
+        span: "week",
+        startDate: today,
+        endDate: today,
+        today,
+        days: {
+          [today]: [
             {
               id: "cached-1",
               title: "Cached task",
@@ -503,17 +508,22 @@ describe("AgendaScreen", () => {
             },
           ],
         },
-        multiDayData: null,
-        todoStates: { active: ["TODO", "NEXT"], done: ["DONE"] },
-        habitStatuses: null,
-        fetchedAt: new Date().toISOString(),
       },
     );
+    queryClient.setQueryData(queryKeys.todoStates(identity), {
+      active: ["TODO", "NEXT"],
+      done: ["DONE"],
+    });
 
     // The network never responds
     mockApi.getAgenda.mockImplementation(() => new Promise(() => {}));
+    mockApi.getTodoStates.mockImplementation(() => new Promise(() => {}));
+    mockApi.getAllHabitStatuses.mockImplementation(() => new Promise(() => {}));
 
-    const { getByText, queryByTestId } = renderScreen(<AgendaScreen />);
+    const { getByText, queryByTestId } = renderScreen(
+      <AgendaScreen />,
+      queryClient,
+    );
 
     await waitFor(() => {
       expect(getByText("Cached task")).toBeTruthy();

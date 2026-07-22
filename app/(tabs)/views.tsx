@@ -2,19 +2,20 @@ import { FilterBar } from "@/components/FilterBar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TodoItem } from "@/components/TodoItem";
 import { useApi } from "@/context/ApiContext";
+import { useAuth } from "@/context/AuthContext";
 import { useFilters } from "@/context/FilterContext";
-import { useMutation } from "@/context/MutationContext";
-import { useMutationVersionEffect } from "@/hooks/useMutationVersionEffect";
-import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import {
-  CustomView,
-  CustomViewResponse,
-  Todo,
-  TodoStatesResponse,
-} from "@/services/api";
+  buildServerIdentity,
+  queryKeys,
+  SIGNED_OUT_IDENTITY,
+} from "@/hooks/queryKeys";
+import { useTodoStates } from "@/hooks/useServerData";
+import { TodoEditingProvider } from "@/hooks/useTodoEditing";
+import { CustomView, CustomViewResponse, Todo } from "@/services/api";
 import { filterTodos } from "@/utils/filterTodos";
 import { getTodoKey } from "@/utils/todoKey";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -31,19 +32,52 @@ import {
 } from "react-native-paper";
 
 export default function ViewsScreen() {
-  const [views, setViews] = useState<CustomView[]>([]);
-  const [selectedView, setSelectedView] = useState<CustomViewResponse | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
+  const [selectedViewKey, setSelectedViewKey] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
   const api = useApi();
+  const { apiUrl, username } = useAuth();
   const theme = useTheme();
-  const { mutationVersion } = useMutation();
   const { filters } = useFilters();
-  const requestIdRef = useRef(0);
+  const queryClient = useQueryClient();
+
+  const identity = buildServerIdentity(apiUrl, username);
+  const viewsQuery = useQuery({
+    queryKey: queryKeys.views(identity ?? SIGNED_OUT_IDENTITY),
+    enabled: Boolean(api && identity),
+    queryFn: () => api!.getCustomViews(),
+  });
+  const { refetch: refetchViews } = viewsQuery;
+  const views = viewsQuery.data?.views ?? [];
+
+  const entriesKey = useMemo(
+    () =>
+      queryKeys.viewEntries(
+        identity ?? SIGNED_OUT_IDENTITY,
+        selectedViewKey ?? "",
+      ),
+    [identity, selectedViewKey],
+  );
+  const entriesQuery = useQuery({
+    queryKey: entriesKey,
+    enabled: Boolean(api && identity && selectedViewKey),
+    queryFn: () => api!.getCustomView(selectedViewKey!),
+  });
+  const { refetch: refetchEntries } = entriesQuery;
+  const selectedView = selectedViewKey ? (entriesQuery.data ?? null) : null;
+
+  const todoStatesQuery = useTodoStates();
+  const todoStates = todoStatesQuery.data ?? null;
+
+  const loading = selectedViewKey
+    ? entriesQuery.isPending
+    : viewsQuery.isPending;
+  const error = selectedViewKey
+    ? entriesQuery.isError
+      ? "Failed to load view entries"
+      : null
+    : viewsQuery.isError
+      ? "Failed to load views"
+      : null;
 
   // Apply filters to view entries
   const filteredEntries = selectedView
@@ -52,7 +86,7 @@ export default function ViewsScreen() {
 
   const handleTodoUpdated = useCallback(
     (todo: Todo, updates: Partial<Todo>) => {
-      setSelectedView((prev) => {
+      queryClient.setQueryData<CustomViewResponse>(entriesKey, (prev) => {
         if (!prev) return prev;
         return {
           ...prev,
@@ -64,91 +98,25 @@ export default function ViewsScreen() {
         };
       });
     },
-    [],
-  );
-
-  const fetchViews = useCallback(async () => {
-    if (!api) return;
-    const requestId = ++requestIdRef.current;
-
-    try {
-      const [viewsData, statesData] = await Promise.all([
-        api.getCustomViews(),
-        api.getTodoStates().catch(() => null),
-      ]);
-      if (requestId !== requestIdRef.current) return;
-      setViews(viewsData.views);
-      if (statesData) {
-        setTodoStates(statesData);
-      }
-      setError(null);
-    } catch (err) {
-      if (requestId !== requestIdRef.current) return;
-      setError("Failed to load views");
-      console.error(err);
-    }
-  }, [api]);
-
-  const fetchViewEntries = useCallback(
-    async (key: string) => {
-      if (!api) return;
-      const requestId = ++requestIdRef.current;
-
-      setLoading(true);
-      try {
-        const viewData = await api.getCustomView(key);
-        if (requestId !== requestIdRef.current) return;
-        setSelectedView(viewData);
-        setError(null);
-      } catch (err) {
-        if (requestId !== requestIdRef.current) return;
-        setError("Failed to load view entries");
-        console.error(err);
-      } finally {
-        if (requestId === requestIdRef.current) {
-          setLoading(false);
-        }
-      }
-    },
-    [api],
-  );
-
-  useEffect(() => {
-    fetchViews().finally(() => setLoading(false));
-  }, [fetchViews]);
-
-  // Refetch when mutations happen elsewhere
-  useMutationVersionEffect(
-    mutationVersion,
-    () => {
-      if (selectedView) {
-        fetchViewEntries(selectedView.key);
-      } else {
-        fetchViews();
-      }
-    },
-    { skipInitial: true },
+    [queryClient, entriesKey],
   );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (selectedView) {
-      await fetchViewEntries(selectedView.key);
+    if (selectedViewKey) {
+      await refetchEntries();
     } else {
-      await fetchViews();
+      await refetchViews();
     }
     setRefreshing(false);
-  }, [fetchViews, fetchViewEntries, selectedView]);
+  }, [selectedViewKey, refetchEntries, refetchViews]);
 
-  const handleViewPress = useCallback(
-    (view: CustomView) => {
-      fetchViewEntries(view.key);
-    },
-    [fetchViewEntries],
-  );
+  const handleViewPress = useCallback((view: CustomView) => {
+    setSelectedViewKey(view.key);
+  }, []);
 
   const handleBack = useCallback(() => {
-    setSelectedView(null);
+    setSelectedViewKey(null);
   }, []);
 
   if (loading) {

@@ -2,11 +2,11 @@
  * Test to verify server switching behavior
  */
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import React from "react";
 import { ApiProvider, useApi } from "../../context/ApiContext";
 import { AuthProvider, useAuth } from "../../context/AuthContext";
-import { MutationProvider } from "../../context/MutationContext";
 
 // Mock all external dependencies
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -35,11 +35,17 @@ describe("Server Switching", () => {
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <MutationProvider>
+    <QueryClientProvider
+      client={
+        new QueryClient({
+          defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+        })
+      }
+    >
       <AuthProvider>
         <ApiProvider>{children}</ApiProvider>
       </AuthProvider>
-    </MutationProvider>
+    </QueryClientProvider>
   );
 
   it("should update API client when switching servers", async () => {

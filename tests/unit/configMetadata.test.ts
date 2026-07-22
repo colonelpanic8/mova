@@ -1,75 +1,22 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   buildConfigIdentityKey,
-  CachedMetadataEntry,
   clearObservedConfigHash,
-  CONFIG_METADATA_TTL_MS,
-  getCachedMetadata,
   getObservedConfigHash,
-  isCachedMetadataFresh,
   observeConfigHash,
-  saveCachedMetadata,
   subscribeToConfigHash,
 } from "../../services/configMetadata";
 
-jest.mock("@react-native-async-storage/async-storage", () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-}));
-
-const SAMPLE_METADATA: CachedMetadataEntry["metadata"] = {
-  templates: {
-    default: {
-      name: "Default",
-      prompts: [],
-    },
-  },
-  filterOptions: null,
-  todoStates: null,
-  customViews: null,
-  categoryTypes: null,
-  habitConfig: {
-    status: "ok",
-    enabled: true,
-  },
-  exposedFunctions: null,
-  errors: [],
-};
-
 describe("configMetadata", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
     clearObservedConfigHash();
   });
 
-  it("stores cached metadata per server identity", async () => {
-    await saveCachedMetadata("http://example.com/", "ivan", {
-      metadata: SAMPLE_METADATA,
-      configHash: "hash-1",
-      cachedAt: "2026-04-03T00:00:00.000Z",
-    });
-    const storedValue = (AsyncStorage.setItem as jest.Mock).mock.calls[0][1];
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(storedValue);
-
-    const cached = await getCachedMetadata("http://example.com", "ivan");
-
-    expect(cached).toEqual({
-      metadata: SAMPLE_METADATA,
-      configHash: "hash-1",
-      cachedAt: "2026-04-03T00:00:00.000Z",
-    });
-  });
-
-  it("calculates freshness against the ttl window", () => {
-    const freshTimestamp = new Date(
-      Date.now() - CONFIG_METADATA_TTL_MS + 1_000,
-    ).toISOString();
-    const staleTimestamp = new Date(
-      Date.now() - CONFIG_METADATA_TTL_MS - 1_000,
-    ).toISOString();
-
-    expect(isCachedMetadataFresh(freshTimestamp)).toBe(true);
-    expect(isCachedMetadataFresh(staleTimestamp)).toBe(false);
+  it("builds identity keys from normalized url and username", () => {
+    const key = buildConfigIdentityKey("http://example.com/", "ivan");
+    // Trailing slash is normalized away, so both spellings share an identity.
+    expect(buildConfigIdentityKey("http://example.com", "ivan")).toBe(key);
+    expect(buildConfigIdentityKey("http://example.com", "other")).not.toBe(key);
+    expect(buildConfigIdentityKey("http://other.com", "ivan")).not.toBe(key);
   });
 
   it("publishes config hash changes once per distinct value", () => {
@@ -92,5 +39,20 @@ describe("configMetadata", () => {
       identityKey,
       configHash: "hash-2",
     });
+  });
+
+  it("ignores empty hashes and scopes hashes per identity", () => {
+    const identityA = buildConfigIdentityKey("http://a.com", "ivan");
+    const identityB = buildConfigIdentityKey("http://b.com", "ivan");
+
+    observeConfigHash(identityA, "hash-a");
+    observeConfigHash(identityB, "  ");
+    observeConfigHash(identityB, null);
+
+    expect(getObservedConfigHash(identityA)).toBe("hash-a");
+    expect(getObservedConfigHash(identityB)).toBeNull();
+
+    clearObservedConfigHash(identityA);
+    expect(getObservedConfigHash(identityA)).toBeNull();
   });
 });

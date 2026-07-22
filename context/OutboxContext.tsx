@@ -1,6 +1,6 @@
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
-import { useMutation } from "@/context/MutationContext";
+import { invalidateServerData } from "@/hooks/queryKeys";
 import {
   CaptureDeliveryResponse,
   countOutbox,
@@ -12,6 +12,7 @@ import {
   OutboxRequest,
 } from "@/services/captureOutbox";
 import { buildConfigIdentityKey } from "@/services/configMetadata";
+import { useQueryClient } from "@tanstack/react-query";
 import React, {
   createContext,
   ReactNode,
@@ -65,7 +66,7 @@ const OutboxContext = createContext<OutboxContextType | undefined>(undefined);
 export function OutboxProvider({ children }: { children: ReactNode }) {
   const api = useApi();
   const { apiUrl, username } = useAuth();
-  const { triggerRefresh } = useMutation();
+  const queryClient = useQueryClient();
   const [pendingCount, setPendingCount] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const flushingRef = useRef(false);
@@ -95,7 +96,9 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
         rerunRef.current = false;
         const result = await flushOutbox(scopeKey, api);
         if (result.succeededCount > 0) {
-          triggerRefresh();
+          // Delivered captures created new todos on the server; refresh the
+          // affected listings. scopeKey IS the server identity key.
+          void invalidateServerData(queryClient, scopeKey);
         }
         if (result.rejections.length > 0) {
           const titles = result.rejections
@@ -114,7 +117,7 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
     } finally {
       flushingRef.current = false;
     }
-  }, [api, scopeKey, triggerRefresh]);
+  }, [api, scopeKey, queryClient]);
 
   const enqueueCapture = useCallback(
     async (request: OutboxRequest) => {

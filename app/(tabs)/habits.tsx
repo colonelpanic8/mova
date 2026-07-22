@@ -1,21 +1,22 @@
 import { HabitItem } from "@/components/HabitItem";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useApi } from "@/context/ApiContext";
-import { useMutation } from "@/context/MutationContext";
+import { useAuth } from "@/context/AuthContext";
+import {
+  buildServerIdentity,
+  queryKeys,
+  SIGNED_OUT_IDENTITY,
+} from "@/hooks/queryKeys";
 import { useHabitConfig } from "@/hooks/useHabitConfig";
+import { useHabitStatuses } from "@/hooks/useServerData";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
 import { HabitStatus, Todo } from "@/services/api";
 import { computeHabitGraphWindow } from "@/utils/habitGraphLayout";
 import { isHabitTodo } from "@/utils/habits";
 import { getTodoKey } from "@/utils/todoKey";
 import { useFocusEffect } from "@react-navigation/native";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { useCallback, useMemo } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -109,27 +110,14 @@ function HabitStatsCard({ stats }: { stats: HabitStats }) {
 export default function HabitsScreen() {
   const theme = useTheme();
   const api = useApi();
+  const { apiUrl, username } = useAuth();
   const {
     config,
     isLoading: configLoading,
     refetch: refetchConfig,
     ensureFresh: ensureFreshConfig,
   } = useHabitConfig();
-  const { mutationVersion } = useMutation();
   const { width: screenWidth } = useWindowDimensions();
-  const [habits, setHabits] = useState<Todo[]>([]);
-  const [habitStatusMap, setHabitStatusMap] = useState<
-    Map<string, HabitStatus>
-  >(new Map());
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const hasLoadedHabitsRef = useRef(false);
-  const latestLoadIdRef = useRef(0);
-  const activeLoadRef = useRef<{
-    key: string;
-    promise: Promise<void>;
-    token: object;
-  } | null>(null);
 
   // Calculate preceding/following based on screen width (same logic as HabitItem)
   const { preceding, following } = useMemo(
@@ -137,131 +125,43 @@ export default function HabitsScreen() {
     [screenWidth],
   );
 
-  useEffect(() => {
-    setHabits([]);
-    setHabitStatusMap(new Map());
-    setError(null);
-    setIsLoading(false);
-    hasLoadedHabitsRef.current = false;
-    activeLoadRef.current = null;
-  }, [api]);
+  const identity = buildServerIdentity(apiUrl, username);
+  const habitsEnabled = config?.enabled !== false;
+  const todosQuery = useQuery({
+    queryKey: queryKeys.todos(identity ?? SIGNED_OUT_IDENTITY),
+    enabled: Boolean(api && identity && habitsEnabled),
+    queryFn: () => api!.getAllTodos(),
+    // A failure right at startup is often transient (server still warming
+    // up); retry once after a short delay before surfacing an error.
+    retry: 1,
+    retryDelay: INITIAL_LOAD_RETRY_DELAY_MS,
+  });
+  const { refetch: refetchTodos } = todosQuery;
+  const statusesQuery = useHabitStatuses(preceding, following, {
+    enabled: habitsEnabled,
+  });
+  const { refetch: refetchStatuses } = statusesQuery;
 
-  const loadHabits = useCallback(
-    async (options: { force?: boolean } = {}) => {
-      if (!api) return;
-
-      const requestKey = `${preceding}:${following}`;
-      if (
-        !options.force &&
-        activeLoadRef.current?.key === requestKey &&
-        activeLoadRef.current.promise
-      ) {
-        return activeLoadRef.current.promise;
+  const habits = useMemo(
+    () => (todosQuery.data?.todos ?? []).filter(isHabitTodo),
+    [todosQuery.data?.todos],
+  );
+  const habitStatusMap = useMemo(() => {
+    const statusMap = new Map<string, HabitStatus>();
+    for (const status of statusesQuery.data ?? []) {
+      if (status.id) {
+        statusMap.set(status.id, status);
       }
-
-      const loadId = latestLoadIdRef.current + 1;
-      latestLoadIdRef.current = loadId;
-      const requestToken = {};
-
-      const fetchHabitData = async () => {
-        const [todosResponse, habitStatusesResponse] = await Promise.all([
-          api.getAllTodos(),
-          api.getAllHabitStatuses(preceding, following).catch((err) => {
-            console.warn("Failed to load habit statuses:", err);
-            return null;
-          }),
-        ]);
-
-        const habitTodos = todosResponse.todos.filter(isHabitTodo);
-
-        let nextStatusMap: Map<string, HabitStatus> | null = null;
-        if (
-          habitStatusesResponse?.status === "ok" &&
-          habitStatusesResponse.habits
-        ) {
-          nextStatusMap = new Map<string, HabitStatus>();
-          for (const status of habitStatusesResponse.habits) {
-            if (status.id) {
-              nextStatusMap.set(status.id, status);
-            }
-          }
-        }
-
-        return { habitTodos, statusMap: nextStatusMap };
-      };
-
-      const run = (async () => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-          let result;
-          try {
-            result = await fetchHabitData();
-          } catch (firstError) {
-            if (hasLoadedHabitsRef.current) {
-              throw firstError;
-            }
-
-            await new Promise((resolve) =>
-              setTimeout(resolve, INITIAL_LOAD_RETRY_DELAY_MS),
-            );
-            result = await fetchHabitData();
-          }
-
-          if (
-            latestLoadIdRef.current !== loadId ||
-            activeLoadRef.current?.token !== requestToken
-          ) {
-            return;
-          }
-
-          setHabits(result.habitTodos);
-          if (result.statusMap) {
-            setHabitStatusMap(result.statusMap);
-          }
-          hasLoadedHabitsRef.current = true;
-          setError(null);
-        } catch (err) {
-          if (
-            latestLoadIdRef.current !== loadId ||
-            activeLoadRef.current?.token !== requestToken
-          ) {
-            return;
-          }
-
-          console.error("Failed to load habits:", err);
-          setError("Failed to load habits");
-        } finally {
-          if (activeLoadRef.current?.token === requestToken) {
-            setIsLoading(false);
-            activeLoadRef.current = null;
-          }
-        }
-      })();
-
-      activeLoadRef.current = {
-        key: requestKey,
-        promise: run,
-        token: requestToken,
-      };
-      return run;
-    },
-    [api, preceding, following],
-  );
-
-  const refreshHabits = useCallback(
-    () => loadHabits({ force: true }),
-    [loadHabits],
-  );
-
-  useEffect(() => {
-    if (config?.enabled === false) {
-      return;
     }
+    return statusMap;
+  }, [statusesQuery.data]);
 
-    void loadHabits();
-  }, [loadHabits, mutationVersion, config?.enabled]);
+  const isLoading = todosQuery.isFetching;
+  const error = todosQuery.isError ? "Failed to load habits" : null;
+
+  const refreshHabits = useCallback(async () => {
+    await Promise.all([refetchTodos(), refetchStatuses()]);
+  }, [refetchTodos, refetchStatuses]);
 
   useFocusEffect(
     useCallback(() => {
@@ -270,9 +170,12 @@ export default function HabitsScreen() {
       }
 
       void ensureFreshConfig().finally(() => {
-        void loadHabits();
+        // Revalidate on focus (parity with the previous hand-rolled loader);
+        // cancelRefetch: false keeps an in-flight initial fetch undisturbed.
+        void refetchTodos({ cancelRefetch: false });
+        void refetchStatuses({ cancelRefetch: false });
       });
-    }, [config?.enabled, ensureFreshConfig, loadHabits]),
+    }, [config?.enabled, ensureFreshConfig, refetchTodos, refetchStatuses]),
   );
 
   const stats = useMemo((): HabitStats => {

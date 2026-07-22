@@ -1,5 +1,6 @@
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
+import { queryKeys, SIGNED_OUT_IDENTITY } from "@/hooks/queryKeys";
 import {
   CategoryType,
   CustomViewsResponse,
@@ -7,18 +8,17 @@ import {
   FilterOptionsResponse,
   HabitConfig,
   MetadataResponse,
+  OrgAgendaApi,
   TemplatesResponse,
   TodoStatesResponse,
 } from "@/services/api";
 import {
   buildConfigIdentityKey,
   CONFIG_METADATA_TTL_MS,
-  getCachedMetadata,
   getObservedConfigHash,
-  isCachedMetadataFresh,
-  saveCachedMetadata,
   subscribeToConfigHash,
 } from "@/services/configMetadata";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, {
   createContext,
   ReactNode,
@@ -26,8 +26,6 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useRef,
-  useState,
 } from "react";
 import { AppState } from "react-native";
 
@@ -45,6 +43,16 @@ interface TemplatesContextType {
   ensureFreshTemplates: () => Promise<void>;
 }
 
+/**
+ * What the metadata query stores: the merged metadata plus the config hash
+ * observed when it was fetched, so hash changes seen on later API responses
+ * can invalidate it.
+ */
+interface MetadataQueryData {
+  metadata: MetadataResponse;
+  configHash: string | null;
+}
+
 const EMPTY_METADATA: MetadataResponse = {
   templates: null,
   filterOptions: null,
@@ -56,22 +64,102 @@ const EMPTY_METADATA: MetadataResponse = {
   errors: [],
 };
 
-type InFlightMetadataRequest = {
-  identityKey: string;
-  promise: Promise<void>;
-  token: object;
-};
+/**
+ * Merge a fresh metadata response over the previous one, preserving previous
+ * non-null sections when the new response is missing them (partial server
+ * failures must not wipe known-good data).
+ */
+function mergeMetadata(
+  previous: MetadataResponse | null,
+  next: MetadataResponse,
+): MetadataResponse {
+  if (!previous) {
+    return { ...next, errors: next.errors ?? [] };
+  }
+  return {
+    templates: next.templates ?? previous.templates,
+    filterOptions: next.filterOptions ?? previous.filterOptions,
+    todoStates: next.todoStates ?? previous.todoStates,
+    customViews: next.customViews ?? previous.customViews,
+    categoryTypes: next.categoryTypes ?? previous.categoryTypes,
+    habitConfig: next.habitConfig ?? previous.habitConfig,
+    exposedFunctions: next.exposedFunctions ?? previous.exposedFunctions,
+    errors: next.errors ?? [],
+  };
+}
 
-function metadataHasValues(metadata: MetadataResponse): boolean {
-  return Boolean(
-    metadata.templates ||
-    metadata.filterOptions ||
-    metadata.todoStates ||
-    metadata.customViews ||
-    metadata.categoryTypes ||
-    metadata.habitConfig ||
-    metadata.exposedFunctions,
-  );
+/**
+ * Fallback when the combined /metadata endpoint is unavailable (older
+ * servers): fetch each section individually and tolerate partial failures.
+ */
+async function buildFallbackMetadata(
+  api: OrgAgendaApi,
+): Promise<MetadataResponse> {
+  const results = await Promise.allSettled([
+    api.getTemplates(),
+    api.getFilterOptions(),
+    api.getTodoStates(),
+    api.getCustomViews(),
+    api.getCategoryTypes(),
+    api.getHabitConfig(),
+  ]);
+
+  const [
+    templatesResult,
+    filterOptionsResult,
+    todoStatesResult,
+    customViewsResult,
+    categoryTypesResult,
+    habitConfigResult,
+  ] = results;
+
+  const errors: string[] = [];
+
+  if (templatesResult.status === "rejected") {
+    console.error("Failed to load templates:", templatesResult.reason);
+    errors.push(`templates: ${String(templatesResult.reason)}`);
+  }
+  if (filterOptionsResult.status === "rejected") {
+    console.warn("Failed to fetch filter options:", filterOptionsResult.reason);
+    errors.push(`filterOptions: ${String(filterOptionsResult.reason)}`);
+  }
+  if (todoStatesResult.status === "rejected") {
+    console.warn("Failed to fetch todo states:", todoStatesResult.reason);
+    errors.push(`todoStates: ${String(todoStatesResult.reason)}`);
+  }
+  if (customViewsResult.status === "rejected") {
+    console.warn("Failed to fetch custom views:", customViewsResult.reason);
+    errors.push(`customViews: ${String(customViewsResult.reason)}`);
+  }
+  if (categoryTypesResult.status === "rejected") {
+    console.warn("Failed to fetch category types:", categoryTypesResult.reason);
+    errors.push(`categoryTypes: ${String(categoryTypesResult.reason)}`);
+  }
+  if (habitConfigResult.status === "rejected") {
+    console.warn("Failed to fetch habit config:", habitConfigResult.reason);
+    errors.push(`habitConfig: ${String(habitConfigResult.reason)}`);
+  }
+
+  return {
+    templates:
+      templatesResult.status === "fulfilled" ? templatesResult.value : null,
+    filterOptions:
+      filterOptionsResult.status === "fulfilled"
+        ? filterOptionsResult.value
+        : null,
+    todoStates:
+      todoStatesResult.status === "fulfilled" ? todoStatesResult.value : null,
+    customViews:
+      customViewsResult.status === "fulfilled" ? customViewsResult.value : null,
+    categoryTypes:
+      categoryTypesResult.status === "fulfilled"
+        ? categoryTypesResult.value
+        : null,
+    habitConfig:
+      habitConfigResult.status === "fulfilled" ? habitConfigResult.value : null,
+    exposedFunctions: null,
+    errors,
+  };
 }
 
 const TemplatesContext = createContext<TemplatesContextType | undefined>(
@@ -79,364 +167,78 @@ const TemplatesContext = createContext<TemplatesContextType | undefined>(
 );
 
 export function TemplatesProvider({ children }: { children: ReactNode }) {
-  const [templates, setTemplates] = useState<TemplatesResponse | null>(null);
-  const [categoryTypes, setCategoryTypes] = useState<CategoryType[] | null>(
-    null,
-  );
-  const [filterOptions, setFilterOptions] =
-    useState<FilterOptionsResponse | null>(null);
-  const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
-  const [customViews, setCustomViews] = useState<CustomViewsResponse | null>(
-    null,
-  );
-  const [habitConfig, setHabitConfig] = useState<HabitConfig | null>(null);
-  const [exposedFunctions, setExposedFunctions] = useState<
-    ExposedFunction[] | null
-  >(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const metadataRef = useRef<MetadataResponse>(EMPTY_METADATA);
-  const lastLoadedAtRef = useRef<number | null>(null);
-  const currentConfigHashRef = useRef<string | null>(null);
-  const reloadPromiseRef = useRef<InFlightMetadataRequest | null>(null);
-  const activeIdentityRef = useRef<string | null>(null);
-
   const { isAuthenticated, apiUrl, username } = useAuth();
   const api = useApi();
+  const queryClient = useQueryClient();
+
   const identityKey =
     apiUrl && username ? buildConfigIdentityKey(apiUrl, username) : null;
-
-  const applyMetadata = useCallback(
-    (
-      metadata: MetadataResponse,
-      options: { preserveExisting?: boolean } = {},
-    ): MetadataResponse => {
-      const preserveExisting = options.preserveExisting ?? true;
-      const previous = metadataRef.current;
-      const next: MetadataResponse = {
-        templates: preserveExisting
-          ? (metadata.templates ?? previous.templates)
-          : metadata.templates,
-        filterOptions: preserveExisting
-          ? (metadata.filterOptions ?? previous.filterOptions)
-          : metadata.filterOptions,
-        todoStates: preserveExisting
-          ? (metadata.todoStates ?? previous.todoStates)
-          : metadata.todoStates,
-        customViews: preserveExisting
-          ? (metadata.customViews ?? previous.customViews)
-          : metadata.customViews,
-        categoryTypes: preserveExisting
-          ? (metadata.categoryTypes ?? previous.categoryTypes)
-          : metadata.categoryTypes,
-        habitConfig: preserveExisting
-          ? (metadata.habitConfig ?? previous.habitConfig)
-          : metadata.habitConfig,
-        exposedFunctions: preserveExisting
-          ? (metadata.exposedFunctions ?? previous.exposedFunctions)
-          : metadata.exposedFunctions,
-        errors: metadata.errors ?? [],
-      };
-
-      metadataRef.current = next;
-      setTemplates(next.templates);
-      setFilterOptions(next.filterOptions);
-      setTodoStates(next.todoStates);
-      setCustomViews(next.customViews);
-      setCategoryTypes(next.categoryTypes?.types ?? null);
-      setHabitConfig(next.habitConfig);
-      setExposedFunctions(next.exposedFunctions);
-      setError(next.templates ? null : "Failed to load templates");
-
-      return next;
-    },
-    [],
+  const queryKey = useMemo(
+    () => queryKeys.metadata(identityKey ?? SIGNED_OUT_IDENTITY),
+    [identityKey],
   );
 
-  const buildFallbackMetadata =
-    useCallback(async (): Promise<MetadataResponse> => {
-      if (!api) {
-        return EMPTY_METADATA;
-      }
-
-      const results = await Promise.allSettled([
-        api.getTemplates(),
-        api.getFilterOptions(),
-        api.getTodoStates(),
-        api.getCustomViews(),
-        api.getCategoryTypes(),
-        api.getHabitConfig(),
-      ]);
-
-      const [
-        templatesResult,
-        filterOptionsResult,
-        todoStatesResult,
-        customViewsResult,
-        categoryTypesResult,
-        habitConfigResult,
-      ] = results;
-
-      const errors: string[] = [];
-
-      if (templatesResult.status === "rejected") {
-        console.error("Failed to load templates:", templatesResult.reason);
-        errors.push(`templates: ${String(templatesResult.reason)}`);
-      }
-      if (filterOptionsResult.status === "rejected") {
+  const query = useQuery({
+    queryKey,
+    enabled: Boolean(isAuthenticated && api && identityKey),
+    // Metadata changes rarely; refetches are driven by the config-hash
+    // observer and the TTL check in ensureFreshTemplates.
+    staleTime: CONFIG_METADATA_TTL_MS,
+    queryFn: async (): Promise<MetadataQueryData> => {
+      let metadata: MetadataResponse;
+      try {
+        metadata = await api!.getMetadata();
+        if (metadata.errors && metadata.errors.length > 0) {
+          console.warn("Metadata fetch had errors:", metadata.errors);
+        }
+      } catch (err) {
         console.warn(
-          "Failed to fetch filter options:",
-          filterOptionsResult.reason,
+          "Metadata endpoint failed, falling back to individual endpoints:",
+          err,
         );
-        errors.push(`filterOptions: ${String(filterOptionsResult.reason)}`);
-      }
-      if (todoStatesResult.status === "rejected") {
-        console.warn("Failed to fetch todo states:", todoStatesResult.reason);
-        errors.push(`todoStates: ${String(todoStatesResult.reason)}`);
-      }
-      if (customViewsResult.status === "rejected") {
-        console.warn("Failed to fetch custom views:", customViewsResult.reason);
-        errors.push(`customViews: ${String(customViewsResult.reason)}`);
-      }
-      if (categoryTypesResult.status === "rejected") {
-        console.warn(
-          "Failed to fetch category types:",
-          categoryTypesResult.reason,
-        );
-        errors.push(`categoryTypes: ${String(categoryTypesResult.reason)}`);
-      }
-      if (habitConfigResult.status === "rejected") {
-        console.warn("Failed to fetch habit config:", habitConfigResult.reason);
-        errors.push(`habitConfig: ${String(habitConfigResult.reason)}`);
+        metadata = await buildFallbackMetadata(api!);
       }
 
+      const previous = queryClient.getQueryData<MetadataQueryData>(queryKey);
       return {
-        templates:
-          templatesResult.status === "fulfilled" ? templatesResult.value : null,
-        filterOptions:
-          filterOptionsResult.status === "fulfilled"
-            ? filterOptionsResult.value
-            : null,
-        todoStates:
-          todoStatesResult.status === "fulfilled"
-            ? todoStatesResult.value
-            : null,
-        customViews:
-          customViewsResult.status === "fulfilled"
-            ? customViewsResult.value
-            : null,
-        categoryTypes:
-          categoryTypesResult.status === "fulfilled"
-            ? categoryTypesResult.value
-            : null,
-        habitConfig:
-          habitConfigResult.status === "fulfilled"
-            ? habitConfigResult.value
-            : null,
-        exposedFunctions: null,
-        errors,
+        metadata: mergeMetadata(previous?.metadata ?? null, metadata),
+        configHash: getObservedConfigHash(identityKey!),
       };
-    }, [api]);
-
-  const fetchTemplates = useCallback(
-    async ({ background = false }: { background?: boolean } = {}) => {
-      if (!api || !identityKey) {
-        return;
-      }
-
-      const requestIdentityKey = identityKey;
-      const existingRequest = reloadPromiseRef.current;
-      if (existingRequest?.identityKey === requestIdentityKey) {
-        return existingRequest.promise;
-      }
-
-      const requestToken = {};
-      const run = (async () => {
-        if (!background) {
-          setIsLoading(true);
-        }
-        setError(null);
-
-        try {
-          let metadata: MetadataResponse;
-
-          try {
-            metadata = await api.getMetadata();
-
-            if (metadata.errors && metadata.errors.length > 0) {
-              console.warn("Metadata fetch had errors:", metadata.errors);
-            }
-          } catch (err) {
-            console.warn(
-              "Metadata endpoint failed, falling back to individual endpoints:",
-              err,
-            );
-            metadata = await buildFallbackMetadata();
-          }
-
-          if (
-            activeIdentityRef.current !== requestIdentityKey ||
-            reloadPromiseRef.current?.token !== requestToken
-          ) {
-            return;
-          }
-
-          const mergedMetadata = applyMetadata(metadata, {
-            preserveExisting: true,
-          });
-          const now = new Date();
-          const observedHash = getObservedConfigHash(requestIdentityKey);
-
-          if (metadataHasValues(mergedMetadata)) {
-            lastLoadedAtRef.current = now.getTime();
-          }
-          if (observedHash) {
-            currentConfigHashRef.current = observedHash;
-          }
-
-          if (
-            apiUrl &&
-            username &&
-            activeIdentityRef.current === requestIdentityKey &&
-            metadataHasValues(mergedMetadata)
-          ) {
-            await saveCachedMetadata(apiUrl, username, {
-              metadata: mergedMetadata,
-              configHash: currentConfigHashRef.current,
-              cachedAt: now.toISOString(),
-            });
-          }
-        } finally {
-          if (reloadPromiseRef.current?.token === requestToken) {
-            setIsLoading(false);
-            setHasLoadedOnce(true);
-            reloadPromiseRef.current = null;
-          }
-        }
-      })();
-
-      reloadPromiseRef.current = {
-        identityKey: requestIdentityKey,
-        promise: run,
-        token: requestToken,
-      };
-      return run;
     },
-    [api, apiUrl, applyMetadata, buildFallbackMetadata, identityKey, username],
-  );
+  });
+
+  const { refetch } = query;
 
   const reloadTemplates = useCallback(async () => {
-    await fetchTemplates({ background: hasLoadedOnce });
-  }, [fetchTemplates, hasLoadedOnce]);
+    await refetch();
+  }, [refetch]);
 
   const ensureFreshTemplates = useCallback(async () => {
-    if (!api) {
+    if (!api || !identityKey) {
+      return;
+    }
+    if (queryClient.isFetching({ queryKey }) > 0) {
       return;
     }
 
-    const observedHash = identityKey
-      ? getObservedConfigHash(identityKey)
-      : null;
-    if (
-      observedHash &&
-      observedHash !== currentConfigHashRef.current &&
-      !reloadPromiseRef.current
-    ) {
-      await fetchTemplates({ background: true });
-      return;
+    const current = queryClient.getQueryData<MetadataQueryData>(queryKey);
+    const observedHash = getObservedConfigHash(identityKey);
+    const configChanged = Boolean(
+      observedHash && observedHash !== current?.configHash,
+    );
+
+    const dataUpdatedAt =
+      queryClient.getQueryState(queryKey)?.dataUpdatedAt ?? 0;
+    const isStale = Date.now() - dataUpdatedAt >= CONFIG_METADATA_TTL_MS;
+
+    if (configChanged || !current?.metadata.habitConfig || isStale) {
+      await queryClient.invalidateQueries({ queryKey });
     }
+  }, [api, identityKey, queryClient, queryKey]);
 
-    const lastLoadedAt = lastLoadedAtRef.current;
-    if (
-      (!metadataRef.current.habitConfig ||
-        !metadataHasValues(metadataRef.current) ||
-        !lastLoadedAt ||
-        Date.now() - lastLoadedAt >= CONFIG_METADATA_TTL_MS) &&
-      !reloadPromiseRef.current
-    ) {
-      await fetchTemplates({ background: true });
-    }
-  }, [api, fetchTemplates, identityKey]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadInitialMetadata() {
-      if (!isAuthenticated || !api || !apiUrl || !username) {
-        activeIdentityRef.current = null;
-        metadataRef.current = EMPTY_METADATA;
-        lastLoadedAtRef.current = null;
-        currentConfigHashRef.current = null;
-        reloadPromiseRef.current = null;
-        setTemplates(null);
-        setCategoryTypes(null);
-        setFilterOptions(null);
-        setTodoStates(null);
-        setCustomViews(null);
-        setHabitConfig(null);
-        setExposedFunctions(null);
-        setError(null);
-        setIsLoading(false);
-        setHasLoadedOnce(false);
-        return;
-      }
-
-      const identityChanged = activeIdentityRef.current !== identityKey;
-      activeIdentityRef.current = identityKey;
-      if (identityChanged) {
-        metadataRef.current = EMPTY_METADATA;
-        lastLoadedAtRef.current = null;
-        currentConfigHashRef.current = null;
-        reloadPromiseRef.current = null;
-        setTemplates(null);
-        setCategoryTypes(null);
-        setFilterOptions(null);
-        setTodoStates(null);
-        setCustomViews(null);
-        setHabitConfig(null);
-        setExposedFunctions(null);
-        setError(null);
-        setHasLoadedOnce(false);
-      }
-
-      const cached = await getCachedMetadata(apiUrl, username);
-      if (cancelled) {
-        return;
-      }
-
-      if (cached) {
-        applyMetadata(cached.metadata, { preserveExisting: false });
-        lastLoadedAtRef.current = Date.parse(cached.cachedAt);
-        currentConfigHashRef.current = cached.configHash;
-        setHasLoadedOnce(true);
-      }
-
-      if (
-        !cached ||
-        !cached.metadata.habitConfig ||
-        !isCachedMetadataFresh(cached.cachedAt)
-      ) {
-        await fetchTemplates({ background: Boolean(cached) });
-      }
-    }
-
-    void loadInitialMetadata();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    api,
-    apiUrl,
-    applyMetadata,
-    fetchTemplates,
-    identityKey,
-    isAuthenticated,
-    username,
-  ]);
-
+  // The server reports a config hash on every API response; when it changes,
+  // the metadata this context serves is out of date — refetch in the
+  // background.
   useEffect(() => {
     if (!identityKey) {
       return;
@@ -446,18 +248,18 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       if (event.identityKey !== identityKey) {
         return;
       }
-
-      if (
-        event.configHash === currentConfigHashRef.current ||
-        reloadPromiseRef.current?.identityKey === identityKey
-      ) {
+      if (queryClient.isFetching({ queryKey }) > 0) {
         return;
       }
-
-      void fetchTemplates({ background: true });
+      const current = queryClient.getQueryData<MetadataQueryData>(queryKey);
+      if (event.configHash === current?.configHash) {
+        return;
+      }
+      void queryClient.invalidateQueries({ queryKey });
     });
-  }, [fetchTemplates, identityKey]);
+  }, [identityKey, queryClient, queryKey]);
 
+  // Revalidate when the app returns to the foreground.
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
@@ -470,32 +272,34 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
     };
   }, [ensureFreshTemplates]);
 
+  const metadata = query.data?.metadata ?? EMPTY_METADATA;
+  const hasData = query.data !== undefined;
+
   const value = useMemo<TemplatesContextType>(
     () => ({
-      templates,
-      categoryTypes,
-      filterOptions,
-      todoStates,
-      customViews,
-      habitConfig,
-      exposedFunctions,
-      isLoading: isLoading || (isAuthenticated && !hasLoadedOnce),
-      error,
+      templates: metadata.templates,
+      categoryTypes: metadata.categoryTypes?.types ?? null,
+      filterOptions: metadata.filterOptions,
+      todoStates: metadata.todoStates,
+      customViews: metadata.customViews,
+      habitConfig: metadata.habitConfig,
+      exposedFunctions: metadata.exposedFunctions,
+      isLoading: isAuthenticated && query.isPending,
+      error:
+        hasData && !metadata.templates
+          ? "Failed to load templates"
+          : query.isError
+            ? "Failed to load templates"
+            : null,
       reloadTemplates,
       ensureFreshTemplates,
     }),
     [
-      templates,
-      categoryTypes,
-      filterOptions,
-      todoStates,
-      customViews,
-      habitConfig,
-      exposedFunctions,
-      isLoading,
+      metadata,
+      hasData,
       isAuthenticated,
-      hasLoadedOnce,
-      error,
+      query.isPending,
+      query.isError,
       reloadTemplates,
       ensureFreshTemplates,
     ],

@@ -3,29 +3,13 @@ import { FilterBar } from "@/components/FilterBar";
 import { HabitItem } from "@/components/HabitItem";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TodoItem } from "@/components/TodoItem";
-import { useApi } from "@/context/ApiContext";
-import { useAuth } from "@/context/AuthContext";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useFilters } from "@/context/FilterContext";
-import { useMutation } from "@/context/MutationContext";
 import { useSettings } from "@/context/SettingsContext";
-import { useMutationVersionEffect } from "@/hooks/useMutationVersionEffect";
+import { useAgendaData } from "@/hooks/useAgendaData";
+import { useHabitStatuses, useTodoStates } from "@/hooks/useServerData";
 import { TodoEditingProvider } from "@/hooks/useTodoEditing";
-import {
-  CachedAgendaData,
-  buildAgendaViewKey,
-  getCachedAgenda,
-  saveCachedAgenda,
-} from "@/services/agendaCache";
-import {
-  AgendaEntry,
-  HabitStatus,
-  MiniGraphEntry,
-  MultiDayAgendaResponse,
-  SingleDayAgendaResponse,
-  Todo,
-  TodoStatesResponse,
-} from "@/services/api";
+import { AgendaEntry, HabitStatus, MiniGraphEntry, Todo } from "@/services/api";
 import {
   formatLocalDate as formatDateForApi,
   formatDateForDisplay,
@@ -38,13 +22,7 @@ import { getTodoKey } from "@/utils/todoKey";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Platform,
   RefreshControl,
@@ -70,16 +48,6 @@ import {
 function getDefaultRangeStart(today: Date, pastDays: number): Date {
   const result = new Date(today);
   result.setDate(result.getDate() - pastDays);
-  return result;
-}
-
-/**
- * Get the range end date based on start and length.
- * End = start + rangeLength - 1
- */
-function getRangeEnd(startDate: Date, rangeLength: number): Date {
-  const result = new Date(startDate);
-  result.setDate(result.getDate() + rangeLength - 1);
   return result;
 }
 
@@ -154,36 +122,12 @@ function buildHabitStatusMap(
   return statusMap;
 }
 
-interface AgendaFetchParams {
-  mode: "day" | "multiday";
-  date: Date;
-  rangeLength: number;
-  includeCompleted: boolean;
-}
-
-function buildViewKeyForParams(params: AgendaFetchParams): string {
-  const dateString = formatDateForApi(params.date);
-  return params.mode === "multiday"
-    ? buildAgendaViewKey({
-        mode: "multiday",
-        dateString,
-        rangeLength: params.rangeLength,
-        includeCompleted: params.includeCompleted,
-      })
-    : buildAgendaViewKey({
-        mode: "day",
-        dateString,
-        includeCompleted: params.includeCompleted,
-      });
-}
-
 /** Human-friendly age of the currently displayed data, for the stale banner. */
-function formatFetchedAgo(fetchedAt: string | null): string {
-  const fetchedTime = fetchedAt ? Date.parse(fetchedAt) : NaN;
-  if (!Number.isFinite(fetchedTime)) {
+function formatFetchedAgo(dataUpdatedAt: number): string {
+  if (!Number.isFinite(dataUpdatedAt) || dataUpdatedAt <= 0) {
     return "earlier";
   }
-  return formatRelativeTime(new Date(fetchedTime));
+  return formatRelativeTime(new Date(dataUpdatedAt));
 }
 
 interface MultiDaySectionItem {
@@ -227,13 +171,9 @@ function sortEntriesForListView<T extends Todo>(entries: T[]): T[] {
 }
 
 export default function AgendaScreen() {
-  const [agenda, setAgenda] = useState<SingleDayAgendaResponse | null>(null);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [todoStates, setTodoStates] = useState<TodoStatesResponse | null>(null);
   const [showCompleted, setShowCompleted] = useState<boolean>(() =>
     isPastDay(new Date()),
   );
@@ -241,33 +181,47 @@ export default function AgendaScreen() {
     "list",
   );
   const [viewModeMenuVisible, setViewModeMenuVisible] = useState(false);
-  const [multiDayData, setMultiDayData] =
-    useState<MultiDayAgendaResponse | null>(null);
-  const [habitStatusMap, setHabitStatusMap] = useState<
-    Map<string, HabitStatus>
-  >(new Map());
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
     new Set(),
   );
-  const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(null);
-  const api = useApi();
-  const { apiUrl, username } = useAuth();
   const theme = useTheme();
-  const { mutationVersion } = useMutation();
   const { filters } = useFilters();
   const { groupByCategory, multiDayRangeLength, multiDayPastDays } =
     useSettings();
   const { getCategoryColor } = useColorPalette();
-  const requestIdRef = useRef(0);
   const { width } = useWindowDimensions();
   const useCompactDate = width < 400;
 
+  // Server state: the agenda view plus its supporting lookups. All of it is
+  // cached per server identity and persisted for offline launches.
+  const {
+    agenda,
+    multiDayData,
+    isLoading: loading,
+    error,
+    dataUpdatedAt,
+    refetch,
+    updateTodoInView,
+  } = useAgendaData({
+    mode: viewMode === "multiday" ? "multiday" : "day",
+    date: selectedDate,
+    rangeLength: multiDayRangeLength,
+    includeCompleted: showCompleted,
+  });
+  const todoStatesQuery = useTodoStates();
+  const todoStates = todoStatesQuery.data ?? null;
+  const { refetch: refetchTodoStates } = todoStatesQuery;
+  const habitStatusesQuery = useHabitStatuses(14, 14);
+  const { refetch: refetchHabitStatuses } = habitStatusesQuery;
+  const habitStatusMap = useMemo(
+    () => buildHabitStatusMap(habitStatusesQuery.data ?? []),
+    [habitStatusesQuery.data],
+  );
+
   // Whether the current view mode has anything to render (from a previous
-  // fetch or from the persistent cache). Used to decide between full-screen
+  // fetch or from the persisted cache). Used to decide between full-screen
   // loading/error states and non-destructive inline indicators.
   const hasData = viewMode === "multiday" ? multiDayData !== null : !!agenda;
-  const hasDataRef = useRef(hasData);
-  hasDataRef.current = hasData;
 
   // Apply filters to agenda entries and split into active/completed
   const baseFilteredEntries = useMemo(
@@ -596,239 +550,10 @@ export default function AgendaScreen() {
     habitStatusMap,
   ]);
 
-  const handleTodoUpdated = useCallback(
-    (todo: Todo, updates: Partial<Todo>) => {
-      // Update day agenda
-      setAgenda((prev) => {
-        if (!prev) return prev;
-
-        // If schedule changed, check if item should be removed from current view
-        if (updates.scheduled !== undefined) {
-          const currentDateStr = formatDateForApi(selectedDate);
-          const newScheduledDate = updates.scheduled?.date;
-
-          // If scheduled to a different day, remove from current view
-          if (newScheduledDate && newScheduledDate !== currentDateStr) {
-            return {
-              ...prev,
-              entries: prev.entries.filter(
-                (entry) => getTodoKey(entry) !== getTodoKey(todo),
-              ),
-            };
-          }
-        }
-
-        // Otherwise update in place
-        return {
-          ...prev,
-          entries: prev.entries.map((entry) =>
-            getTodoKey(entry) === getTodoKey(todo)
-              ? { ...entry, ...updates }
-              : entry,
-          ),
-        };
-      });
-
-      // Update multi-day agenda
-      setMultiDayData((prev) => {
-        if (!prev) return prev;
-
-        const newDays = { ...prev.days };
-        for (const [dateStr, entries] of Object.entries(newDays)) {
-          newDays[dateStr] = entries.map((entry) =>
-            getTodoKey(entry) === getTodoKey(todo)
-              ? { ...entry, ...updates }
-              : entry,
-          );
-        }
-
-        return { ...prev, days: newDays };
-      });
-    },
-    [selectedDate],
-  );
-
-  /**
-   * Fetch agenda data (single-day or multi-day) plus todo states and habit
-   * statuses, update state, and persist the result to the agenda cache.
-   */
-  const fetchAgendaData = useCallback(
-    async (params: AgendaFetchParams) => {
-      if (!api) {
-        return;
-      }
-      const requestId = ++requestIdRef.current;
-
-      try {
-        const dateString = formatDateForApi(params.date);
-        const todayString = formatDateForApi(new Date());
-        // Use the multi-day endpoint even for single day to get prospective
-        // habit scheduling. The multi-day endpoint uses
-        // org-window-habit-get-future-required-intervals which projects future
-        // required completion dates for habits.
-        const agendaPromise =
-          params.mode === "multiday"
-            ? api.getAgenda(
-                "week",
-                dateString,
-                true,
-                params.includeCompleted,
-                formatDateForApi(getRangeEnd(params.date, params.rangeLength)),
-                todayString,
-                "today", // Show overdue tasks only on today, not every future day
-              )
-            : api.getAgenda(
-                "week",
-                dateString,
-                dateString <= todayString,
-                params.includeCompleted,
-                dateString,
-              );
-        const [multiDayResponse, statesData, habitStatusesResponse] =
-          await Promise.all([
-            agendaPromise,
-            api.getTodoStates().catch(() => null),
-            api.getAllHabitStatuses(14, 14).catch(() => null),
-          ]);
-        if (requestId !== requestIdRef.current) return;
-
-        let agendaData: SingleDayAgendaResponse | null = null;
-        if (params.mode === "multiday") {
-          setMultiDayData(multiDayResponse);
-        } else {
-          // Convert multi-day response to single-day format
-          agendaData = {
-            span: "day",
-            date: dateString,
-            entries: multiDayResponse.days[dateString] || [],
-          };
-          setAgenda(agendaData);
-        }
-        if (statesData) {
-          setTodoStates(statesData);
-        }
-        const habitStatuses =
-          habitStatusesResponse?.status === "ok" && habitStatusesResponse.habits
-            ? habitStatusesResponse.habits
-            : null;
-        if (habitStatuses) {
-          setHabitStatusMap(buildHabitStatusMap(habitStatuses));
-        }
-        setError(null);
-        const fetchedAt = new Date().toISOString();
-        setLastFetchedAt(fetchedAt);
-        if (apiUrl && username) {
-          void saveCachedAgenda(
-            apiUrl,
-            username,
-            buildViewKeyForParams(params),
-            {
-              agenda: agendaData,
-              multiDayData:
-                params.mode === "multiday" ? multiDayResponse : null,
-              todoStates: statesData,
-              habitStatuses,
-              fetchedAt,
-            },
-          );
-        }
-      } catch (err) {
-        if (requestId !== requestIdRef.current) return;
-        console.error("Failed to load agenda:", err);
-        setError(
-          params.mode === "multiday"
-            ? "Failed to load multi-day agenda"
-            : "Failed to load agenda",
-        );
-      }
-    },
-    [api, apiUrl, username],
-  );
-
-  const currentFetchParams = useMemo<AgendaFetchParams>(
-    () => ({
-      mode: viewMode === "multiday" ? "multiday" : "day",
-      date: selectedDate,
-      rangeLength: multiDayRangeLength,
-      includeCompleted: showCompleted,
-    }),
-    [viewMode, selectedDate, multiDayRangeLength, showCompleted],
-  );
-
   // Reset showCompleted when date changes
   useEffect(() => {
     setShowCompleted(isPastDay(selectedDate));
   }, [selectedDate]);
-
-  // On mount / server change / view change: show the last-known data from the
-  // persistent cache immediately (when present), then refresh from the
-  // network in the background.
-  useEffect(() => {
-    let cancelled = false;
-    const params = currentFetchParams;
-
-    // A new view (or server) is loading: any error from the previous view no
-    // longer applies, so a stale "couldn't refresh" banner doesn't render
-    // over data it doesn't describe.
-    setError(null);
-
-    const applyCached = (cached: CachedAgendaData) => {
-      if (cached.agenda) setAgenda(cached.agenda);
-      if (cached.multiDayData) setMultiDayData(cached.multiDayData);
-      if (cached.todoStates) setTodoStates(cached.todoStates);
-      if (cached.habitStatuses) {
-        setHabitStatusMap(buildHabitStatusMap(cached.habitStatuses));
-      }
-      setLastFetchedAt(cached.fetchedAt);
-    };
-
-    async function load() {
-      if (!hasDataRef.current) {
-        setLoading(true);
-      }
-      let cached: CachedAgendaData | null = null;
-      if (apiUrl && username) {
-        cached = await getCachedAgenda(
-          apiUrl,
-          username,
-          buildViewKeyForParams(params),
-        );
-        if (cancelled) return;
-      }
-      if (cached) {
-        applyCached(cached);
-        setLoading(false);
-      } else {
-        // No cached entry for this view: whatever is in memory belongs to a
-        // previous view. Clear it so the spinner shows instead of another
-        // date's data, and so a failed fetch falls through to the
-        // full-screen error view rather than silently keeping stale data.
-        setAgenda(null);
-        setMultiDayData(null);
-        setLastFetchedAt(null);
-        setLoading(true);
-      }
-      await fetchAgendaData(params);
-      if (!cancelled) {
-        setLoading(false);
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiUrl, username, currentFetchParams, fetchAgendaData]);
-
-  // Refetch when mutations happen elsewhere
-  useMutationVersionEffect(
-    mutationVersion,
-    () => {
-      void fetchAgendaData(currentFetchParams);
-    },
-    { skipInitial: true },
-  );
 
   const goToPrevious = useCallback(() => {
     const newDate = new Date(selectedDate);
@@ -872,9 +597,9 @@ export default function AgendaScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchAgendaData(currentFetchParams);
+    await Promise.all([refetch(), refetchTodoStates(), refetchHabitStatuses()]);
     setRefreshing(false);
-  }, [fetchAgendaData, currentFetchParams]);
+  }, [refetch, refetchTodoStates, refetchHabitStatuses]);
 
   // Full-screen spinner only when there is nothing to render yet (no cached
   // or in-memory data).
@@ -928,7 +653,7 @@ export default function AgendaScreen() {
 
   return (
     <TodoEditingProvider
-      onTodoUpdated={handleTodoUpdated}
+      onTodoUpdated={updateTodoInView}
       todoStates={todoStates}
     >
       <ScreenContainer testID="agendaScreen">
@@ -1059,7 +784,7 @@ export default function AgendaScreen() {
                 { color: theme.colors.onErrorContainer },
               ]}
             >
-              {`Couldn't refresh — showing data from ${formatFetchedAgo(lastFetchedAt)}`}
+              {`Couldn't refresh — showing data from ${formatFetchedAgo(dataUpdatedAt)}`}
             </Text>
             <IconButton
               icon="refresh"

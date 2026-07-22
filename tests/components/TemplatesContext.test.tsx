@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, waitFor } from "@testing-library/react-native";
 import React, { useEffect } from "react";
 import { Text } from "react-native";
@@ -58,11 +58,14 @@ function Probe({ onValue }: { onValue: jest.Mock }) {
   return <Text>{context.templates?.default?.name ?? "loading"}</Text>;
 }
 
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+  });
+
 describe("TemplatesProvider", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-    (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
   });
 
   it("starts a fresh metadata request when the server identity changes mid-load", async () => {
@@ -84,10 +87,13 @@ describe("TemplatesProvider", () => {
     (useAuth as jest.Mock).mockImplementation(() => authState);
     (useApi as jest.Mock).mockImplementation(() => api);
 
+    const queryClient = createTestQueryClient();
     const { getByText, rerender } = render(
-      <TemplatesProvider>
-        <Probe onValue={onValue} />
-      </TemplatesProvider>,
+      <QueryClientProvider client={queryClient}>
+        <TemplatesProvider>
+          <Probe onValue={onValue} />
+        </TemplatesProvider>
+      </QueryClientProvider>,
     );
 
     await waitFor(() => {
@@ -102,9 +108,11 @@ describe("TemplatesProvider", () => {
     api = secondApi;
 
     rerender(
-      <TemplatesProvider>
-        <Probe onValue={onValue} />
-      </TemplatesProvider>,
+      <QueryClientProvider client={queryClient}>
+        <TemplatesProvider>
+          <Probe onValue={onValue} />
+        </TemplatesProvider>
+      </QueryClientProvider>,
     );
 
     await waitFor(() => {

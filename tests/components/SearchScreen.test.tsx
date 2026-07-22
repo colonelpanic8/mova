@@ -8,6 +8,7 @@
  * - Pull to refresh
  */
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import React from "react";
 import {
@@ -56,13 +57,6 @@ jest.mock("@react-native-community/datetimepicker", () => {
     default: () => null,
   };
 });
-jest.mock("../../context/MutationContext", () => ({
-  MutationProvider: ({ children }: { children: React.ReactNode }) => children,
-  useMutation: () => ({
-    mutationVersion: 0,
-    triggerRefresh: jest.fn(),
-  }),
-}));
 jest.mock("../../context/TemplatesContext", () => ({
   useTemplates: () => ({
     templates: null,
@@ -456,15 +450,23 @@ describe("SearchScreen UI Components", () => {
   });
 });
 
-// Helper to render with all required providers
+// Helper to render with all required providers. A fresh QueryClient per
+// render keeps query caches from leaking between tests.
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+  });
+
 const renderScreen = (component: React.ReactElement) => {
   return render(
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={MD3LightTheme}>
-        <SnackbarProvider>
-          <FilterProvider>{component}</FilterProvider>
-        </SnackbarProvider>
-      </PaperProvider>
+      <QueryClientProvider client={createTestQueryClient()}>
+        <PaperProvider theme={MD3LightTheme}>
+          <SnackbarProvider>
+            <FilterProvider>{component}</FilterProvider>
+          </SnackbarProvider>
+        </PaperProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>,
   );
 };

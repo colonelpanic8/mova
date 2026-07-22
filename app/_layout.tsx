@@ -2,14 +2,24 @@ import { ApiProvider } from "@/context/ApiContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
 import { FilterProvider } from "@/context/FilterContext";
-import { MutationProvider } from "@/context/MutationContext";
 import { OutboxProvider } from "@/context/OutboxContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { SnackbarProvider } from "@/context/SnackbarContext";
 import { TemplatesProvider } from "@/context/TemplatesContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
+import {
+  createAppPersister,
+  createAppQueryClient,
+  QUERY_CACHE_BUSTER,
+  QUERY_PERSIST_MAX_AGE_MS,
+  shouldPersistQueryKey,
+} from "@/services/queryClient";
 import { getTheme } from "@/theme";
+import {
+  PersistQueryClientProvider,
+  type PersistQueryClientOptions,
+} from "@tanstack/react-query-persist-client";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -23,6 +33,21 @@ import "react-native-reanimated";
 import "@/services/backgroundSync";
 
 SplashScreen.preventAutoHideAsync();
+
+// Module-level singletons so fast-refresh / re-renders of RootLayout never
+// recreate the cache. The persister restores agenda/metadata/habit queries
+// from AsyncStorage on launch for offline-first startup.
+const queryClient = createAppQueryClient();
+const queryPersister = createAppPersister();
+const persistOptions: Omit<PersistQueryClientOptions, "queryClient"> = {
+  persister: queryPersister,
+  buster: QUERY_CACHE_BUSTER,
+  maxAge: QUERY_PERSIST_MAX_AGE_MS,
+  dehydrateOptions: {
+    shouldDehydrateQuery: (query) =>
+      query.state.status === "success" && shouldPersistQueryKey(query.queryKey),
+  },
+};
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -88,7 +113,10 @@ export default function RootLayout() {
         <ColorPaletteProvider>
           <PaperProvider theme={theme}>
             <SettingsProvider>
-              <MutationProvider>
+              <PersistQueryClientProvider
+                client={queryClient}
+                persistOptions={persistOptions}
+              >
                 <AuthProvider>
                   <ApiProvider>
                     <OutboxProvider>
@@ -102,7 +130,7 @@ export default function RootLayout() {
                     </OutboxProvider>
                   </ApiProvider>
                 </AuthProvider>
-              </MutationProvider>
+              </PersistQueryClientProvider>
             </SettingsProvider>
           </PaperProvider>
         </ColorPaletteProvider>

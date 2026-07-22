@@ -9,8 +9,8 @@ import {
   todoToFormState,
 } from "@/components/todoForm";
 import { useApi } from "@/context/ApiContext";
-import { useMutation } from "@/context/MutationContext";
 import { AppSnackbar, useSnackbar } from "@/context/SnackbarContext";
+import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { Todo, TodoUpdates } from "@/services/api";
 import {
   formStringToTimestamp,
@@ -32,7 +32,7 @@ export default function EditScreen() {
   const theme = useTheme();
   const router = useRouter();
   const api = useApi();
-  const { triggerRefresh } = useMutation();
+  const invalidateServerData = useServerDataInvalidation();
 
   const params = useLocalSearchParams<{
     todo: string;
@@ -160,7 +160,7 @@ export default function EditScreen() {
         }
       }
 
-      triggerRefresh();
+      invalidateServerData();
       showSnackbar("Saved");
 
       // Navigate back after brief delay to show success
@@ -177,7 +177,7 @@ export default function EditScreen() {
     body,
     properties,
     originalTodo,
-    triggerRefresh,
+    invalidateServerData,
     router,
     api,
     showSnackbar,
@@ -190,7 +190,7 @@ export default function EditScreen() {
     try {
       const result = await api.deleteTodo(originalTodo);
       if (result.deleted) {
-        triggerRefresh();
+        invalidateServerData();
         router.back();
       } else {
         showSnackbar(result.message || "Failed to delete", { isError: true });
@@ -201,7 +201,7 @@ export default function EditScreen() {
     } finally {
       setIsDeleting(false);
     }
-  }, [originalTodo, triggerRefresh, router, api, showSnackbar]);
+  }, [originalTodo, invalidateServerData, router, api, showSnackbar]);
 
   return (
     <View

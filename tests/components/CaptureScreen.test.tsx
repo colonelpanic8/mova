@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -6,14 +7,12 @@ import { MD3LightTheme, PaperProvider } from "react-native-paper";
 import CaptureScreen from "../../app/(tabs)/capture";
 import { useApi } from "../../context/ApiContext";
 import { useAuth } from "../../context/AuthContext";
-import { useMutation } from "../../context/MutationContext";
 import { useOutbox } from "../../context/OutboxContext";
 import { useSettings } from "../../context/SettingsContext";
 import { useTemplates } from "../../context/TemplatesContext";
 
 jest.mock("../../context/ApiContext");
 jest.mock("../../context/AuthContext");
-jest.mock("../../context/MutationContext");
 jest.mock("../../context/OutboxContext");
 jest.mock("../../context/SettingsContext");
 jest.mock("../../context/TemplatesContext");
@@ -70,9 +69,17 @@ const mockCaptureOrEnqueue = jest.fn();
 const renderScreen = () =>
   render(
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={MD3LightTheme}>
-        <CaptureScreen />
-      </PaperProvider>
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+          })
+        }
+      >
+        <PaperProvider theme={MD3LightTheme}>
+          <CaptureScreen />
+        </PaperProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>,
   );
 
@@ -105,9 +112,6 @@ describe("CaptureScreen", () => {
     });
     (useSettings as jest.Mock).mockReturnValue({
       quickScheduleIncludeTime: false,
-    });
-    (useMutation as jest.Mock).mockReturnValue({
-      triggerRefresh: jest.fn(),
     });
     (useOutbox as jest.Mock).mockReturnValue({
       pendingCount: 0,
