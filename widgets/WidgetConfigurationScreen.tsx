@@ -213,7 +213,9 @@ export function WidgetConfigurationScreen({
         ))}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View
+        style={[styles.footer, { borderTopColor: theme.colors.outlineVariant }]}
+      >
         <Button mode="outlined" onPress={handleCancel} style={styles.button}>
           Cancel
         </Button>
@@ -257,7 +259,6 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
   },
   button: {
     minWidth: 100,

@@ -932,7 +932,12 @@ export default function AgendaScreen() {
       todoStates={todoStates}
     >
       <ScreenContainer testID="agendaScreen">
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: theme.colors.outlineVariant },
+          ]}
+        >
           <View style={styles.dateNavigation}>
             <IconButton
               icon="chevron-left"
@@ -1218,7 +1223,10 @@ export default function AgendaScreen() {
                 <View
                   style={[
                     styles.sectionHeader,
-                    { backgroundColor: theme.colors.background },
+                    {
+                      backgroundColor: theme.colors.background,
+                      borderBottomColor: theme.colors.outlineVariant,
+                    },
                   ]}
                 >
                   <Text
@@ -1254,7 +1262,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
   },
   dateNavigation: {
     flexDirection: "row",
@@ -1277,7 +1284,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
   },
   multiDaySectionHeader: {
     flexDirection: "row",

@@ -212,8 +212,11 @@ export default function LoginScreen() {
               disabled={switchingServerId !== null}
               style={({ pressed }) => [
                 styles.serverItem,
+                { borderBottomColor: theme.colors.outlineVariant },
                 pressed && { backgroundColor: theme.colors.surfaceVariant },
-                server.id === activeServerId && styles.activeServer,
+                server.id === activeServerId && {
+                  backgroundColor: theme.colors.secondaryContainer,
+                },
               ]}
             >
               <View style={styles.serverItemContent}>
@@ -318,6 +321,7 @@ export default function LoginScreen() {
                   onPressIn={() => handleUrlSelect(url)}
                   style={({ pressed }) => [
                     styles.suggestionItem,
+                    { borderBottomColor: theme.colors.outlineVariant },
                     pressed && { backgroundColor: theme.colors.surfaceVariant },
                   ]}
                 >
@@ -458,10 +462,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.1)",
-  },
-  activeServer: {
-    backgroundColor: "rgba(0,0,0,0.05)",
   },
   serverItemContent: {
     flex: 1,
@@ -508,7 +508,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.1)",
   },
   button: {
     marginTop: 8,

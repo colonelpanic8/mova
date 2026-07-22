@@ -61,7 +61,12 @@ function HabitStatsCard({ stats }: { stats: HabitStats }) {
             remaining today
           </Text>
         </View>
-        <View style={styles.statDivider} />
+        <View
+          style={[
+            styles.statDivider,
+            { backgroundColor: theme.colors.outlineVariant },
+          ]}
+        />
         <View style={styles.statItem}>
           <Text
             variant="headlineMedium"
@@ -76,7 +81,12 @@ function HabitStatsCard({ stats }: { stats: HabitStats }) {
             on track
           </Text>
         </View>
-        <View style={styles.statDivider} />
+        <View
+          style={[
+            styles.statDivider,
+            { backgroundColor: theme.colors.outlineVariant },
+          ]}
+        />
         <View style={styles.statItem}>
           <Text
             variant="headlineMedium"
@@ -455,7 +465,6 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: "#ccc",
   },
   emptyState: {
     flex: 1,
