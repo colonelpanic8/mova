@@ -30,12 +30,6 @@ module.exports = {
       moduleNameMapper: {
         "^@/(.*)$": "<rootDir>/$1",
       },
-      // Integration tests need longer timeout for container startup
-      globals: {
-        "ts-jest": {
-          // Integration test timeout handled via jest.setTimeout in test file
-        },
-      },
     },
     // Component tests - React Native environment
     {
