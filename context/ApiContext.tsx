@@ -41,15 +41,3 @@ export function ApiProvider({ children }: { children: ReactNode }) {
 export function useApi(): OrgAgendaApi | null {
   return useContext(ApiContext);
 }
-
-/**
- * Hook to access the API client, throwing if not authenticated.
- * Use this when you know the user must be authenticated.
- */
-export function useApiRequired(): OrgAgendaApi {
-  const api = useContext(ApiContext);
-  if (!api) {
-    throw new Error("useApiRequired called without authenticated API client");
-  }
-  return api;
-}

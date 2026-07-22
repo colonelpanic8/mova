@@ -33,15 +33,14 @@ function RootLayoutNav() {
   useDeepLinks();
 
   // Keep notifications synced for authenticated users even when navigating
-  // outside the tabs stack (e.g. /edit, /body-editor).
+  // outside the tabs stack (e.g. /edit).
   useNotificationSync();
 
   useEffect(() => {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "(tabs)";
-    const inAuthenticatedRoute =
-      inAuthGroup || segments[0] === "edit" || segments[0] === "body-editor";
+    const inAuthenticatedRoute = inAuthGroup || segments[0] === "edit";
 
     if (isAuthenticated && !inAuthenticatedRoute && segments[0] !== undefined) {
       router.replace("/(tabs)");
@@ -70,7 +69,6 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="body-editor" options={{ headerShown: false }} />
       <Stack.Screen name="edit" options={{ headerShown: false }} />
     </Stack>
   );

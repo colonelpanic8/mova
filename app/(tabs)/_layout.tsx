@@ -14,8 +14,6 @@ import Reanimated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-// Hidden routes that shouldn't appear in tab bar
-const HIDDEN_ROUTES = new Set<string>([]);
 const TAB_BAR_CONTENT_HEIGHT = 40;
 
 // Custom tab bar that includes CaptureBar above the tabs
@@ -53,11 +51,6 @@ function CustomTabBar(props: BottomTabBarProps) {
         >
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];
-
-            // Skip hidden tabs
-            if (HIDDEN_ROUTES.has(route.name)) {
-              return null;
-            }
 
             const isFocused = state.index === index;
             const color = isFocused

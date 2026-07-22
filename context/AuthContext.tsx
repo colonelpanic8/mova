@@ -72,7 +72,6 @@ interface AuthContextType extends AuthState {
     save?: boolean,
   ) => Promise<boolean>;
   logout: () => Promise<void>;
-  getAuthHeader: () => string | null;
   // Multi-server methods
   savedServers: SavedServer[];
   activeServerId: string | null;
@@ -342,20 +341,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function getAuthHeader(): string | null {
-    if (state.username && state.password) {
-      return `Basic ${base64Encode(`${state.username}:${state.password}`)}`;
-    }
-    return null;
-  }
-
   return (
     <AuthContext.Provider
       value={{
         ...state,
         login,
         logout,
-        getAuthHeader,
         savedServers,
         activeServerId,
         switchServer,

@@ -341,16 +341,6 @@ export async function getAllScheduledNotifications(): Promise<
 // Store for active notification identifiers (updated on each sync)
 let activeNotificationIds: Set<string> = new Set();
 
-export function updateActiveNotificationIds(
-  notifications: ServerNotification[],
-): void {
-  activeNotificationIds = new Set(
-    notifications.map((n, i) => getNotificationIdentifier(n, i)),
-  );
-  activeIdsLoadedFromStorage = true;
-  hasKnownActiveIds = true;
-}
-
 export function isNotificationActive(identifier: string): boolean {
   // Extract the base ID (before the timestamp suffix)
   const parts = identifier.split(":");
