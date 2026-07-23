@@ -1,5 +1,17 @@
 # Changelog
 
+## [6.0.0]
+
+- refactor!: replace the hand-rolled server-state layer with TanStack Query (per-server query caches, offline persistence, targeted invalidation)
+- fix(android)!: store widget and Wear credentials in EncryptedSharedPreferences with transparent migration, excluded from device backups
+- feat(android): sign releases with a real upload keystore, derive versionName/versionCode from package.json, and ship the Wear OS APK with releases
+- feat: surface server-provided API error messages instead of generic failures
+- fix: repair the notifications endpoint fallback, tolerate transient 401s instead of logging out, fix the home-screen widget configuration screen, add native capture timeouts
+- fix(theme): replace hardcoded light-mode colors with theme tokens so dark mode renders correctly
+- refactor: decompose the agenda screen and todo editing into focused components, share one todo form and cross-platform date picker, memoize all context providers
+- test: time-relative e2e fixtures, an integration CI job against the real backend, nightly e2e runs
+- chore: purge ~38MB of unused images and stray files from the repo and its history
+
 ## [5.22.0]
 
 - feat: add Wear OS quick capture with phone-synced configuration
