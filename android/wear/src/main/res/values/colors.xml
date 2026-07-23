@@ -1,8 +1,13 @@
 <resources>
   <color name="background">#101820</color>
   <color name="primary">#80CBC4</color>
+  <color name="primary_pressed">#5FB3AB</color>
+  <color name="on_primary">#0B141B</color>
   <color name="surface">#1B2630</color>
   <color name="surface_light">#243442</color>
+  <color name="surface_pressed">#2E4150</color>
+  <color name="outline">#37485A</color>
+  <color name="ripple">#33FFFFFF</color>
   <color name="text_primary">#F6F8FA</color>
   <color name="text_secondary">#B9C2CA</color>
 </resources>

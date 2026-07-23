@@ -86,34 +86,52 @@ open class MainActivity : Activity() {
       inputType = InputType.TYPE_CLASS_TEXT or
         InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
       imeOptions = EditorInfo.IME_ACTION_SEND
+      gravity = Gravity.CENTER
       setTextColor(getColor(R.color.text_primary))
       setHintTextColor(getColor(R.color.text_secondary))
-      setBackgroundColor(getColor(R.color.surface))
-      setPadding(dp(12), 0, dp(12), 0)
+      background = getDrawable(R.drawable.bg_input)
+      setPadding(dp(16), 0, dp(16), 0)
     }
 
     voiceButton = Button(this).apply {
       text = "Voice capture"
-      textSize = 18f
-      minHeight = dp(72)
+      textSize = 17f
+      isAllCaps = false
+      setTextColor(getColor(R.color.on_primary))
+      background = getDrawable(R.drawable.bg_button_primary)
+      stateListAnimator = null
+      minHeight = dp(64)
+      setPadding(dp(20), 0, dp(20), 0)
     }
 
     submitButton = Button(this).apply {
       text = "Capture"
-      minHeight = dp(44)
+      textSize = 15f
+      isAllCaps = false
+      setTextColor(getColor(R.color.text_primary))
+      background = getDrawable(R.drawable.bg_button_secondary)
+      stateListAnimator = null
+      minHeight = dp(48)
+      setPadding(dp(20), 0, dp(20), 0)
     }
 
     retryButton = Button(this).apply {
       text = "Retry queued"
-      minHeight = dp(40)
+      textSize = 14f
+      isAllCaps = false
+      setTextColor(getColor(R.color.text_secondary))
+      background = getDrawable(R.drawable.bg_button_tertiary)
+      stateListAnimator = null
+      minHeight = dp(44)
+      setPadding(dp(20), 0, dp(20), 0)
     }
 
     content.addView(heading, matchWrap())
     content.addView(statusText, matchWrap())
-    content.addView(voiceButton, matchWrap(bottomMargin = dp(8)))
+    content.addView(voiceButton, matchWrap(bottomMargin = dp(10)))
     content.addView(titleInput, matchFixedHeight(48))
-    content.addView(submitButton, matchWrap(topMargin = dp(8)))
-    content.addView(retryButton, matchWrap(topMargin = dp(4)))
+    content.addView(submitButton, matchWrap(topMargin = dp(10)))
+    content.addView(retryButton, matchWrap(topMargin = dp(6)))
     root.addView(content)
     return root
   }
@@ -279,10 +297,11 @@ open class MainActivity : Activity() {
   }
 
   private fun setBusy(isBusy: Boolean, status: String? = null) {
-    titleInput.isEnabled = !isBusy
-    voiceButton.isEnabled = !isBusy
-    submitButton.isEnabled = !isBusy
-    retryButton.isEnabled = !isBusy
+    val alpha = if (isBusy) 0.5f else 1f
+    for (control in listOf(titleInput, voiceButton, submitButton, retryButton)) {
+      control.isEnabled = !isBusy
+      control.alpha = alpha
+    }
     if (status != null) {
       setStatus(status)
     }
