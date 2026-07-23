@@ -5,6 +5,8 @@ import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
 import { PriorityLevel } from "@/types/colors";
+import { withAlpha } from "@/utils/color";
+import { formatLocalDate } from "@/utils/dateFormatting";
 import { formatRepeater } from "@/utils/repeaterFormatting";
 import {
   formatCompletedAt,
@@ -63,6 +65,16 @@ export const TodoItem = React.memo(function TodoItem({
   const internalRef = useRef<Swipeable>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const key = getTodoKey(todo);
+  // Tinted badge color; null for unknown priorities (falls back to neutral).
+  const priorityColor =
+    todo.priority &&
+    ["A", "B", "C", "D", "E"].includes(todo.priority.toUpperCase())
+      ? getPriorityColor(todo.priority.toUpperCase() as PriorityLevel)
+      : null;
+  const scheduledOverdue =
+    todo.scheduled != null &&
+    todo.scheduled.date < formatLocalDate(new Date()) &&
+    !todo.completedAt;
   const isCompleting = completingIds.has(key);
   const isUpdating = updatingIds.has(key);
   const isDeleting = deletingIds.has(key);
@@ -203,7 +215,7 @@ export const TodoItem = React.memo(function TodoItem({
             {todo.todo && (
               <StatePill
                 state={todo.todo}
-                selected={false}
+                dimWhenUnselected={false}
                 onPress={onTodoChipPress}
                 loading={isCompleting}
               />
@@ -215,26 +227,19 @@ export const TodoItem = React.memo(function TodoItem({
                 onPress={() => openPriorityModal(todo)}
                 style={[
                   styles.priorityChip,
-                  ["A", "B", "C", "D", "E"].includes(
-                    todo.priority.toUpperCase(),
-                  )
-                    ? {
-                        backgroundColor: getPriorityColor(
-                          todo.priority.toUpperCase() as PriorityLevel,
-                        ),
-                      }
-                    : { backgroundColor: theme.colors.surfaceVariant },
+                  {
+                    backgroundColor: priorityColor
+                      ? withAlpha(priorityColor, 0.15)
+                      : theme.colors.surfaceVariant,
+                  },
                 ]}
                 textStyle={{
                   fontSize: 10,
-                  color: ["A", "B", "C", "D", "E"].includes(
-                    todo.priority.toUpperCase(),
-                  )
-                    ? "white"
-                    : theme.colors.onSurfaceVariant,
+                  fontWeight: "700",
+                  color: priorityColor ?? theme.colors.onSurfaceVariant,
                 }}
               >
-                #{todo.priority}
+                {todo.priority.toUpperCase()}
               </Chip>
             )}
             <Text
@@ -283,7 +288,15 @@ export const TodoItem = React.memo(function TodoItem({
                 {todo.scheduled && (
                   <View style={styles.metaItem}>
                     <Text
-                      style={[styles.metaText, { color: theme.colors.primary }]}
+                      style={[
+                        styles.metaText,
+                        {
+                          color: scheduledOverdue
+                            ? theme.colors.error
+                            : theme.colors.primary,
+                          fontWeight: scheduledOverdue ? "600" : "normal",
+                        },
+                      ]}
                     >
                       S: {formatTimestamp(todo.scheduled)}
                     </Text>

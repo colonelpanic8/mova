@@ -89,3 +89,19 @@ export function adjustColorBrightness(color: string, percent: number): string {
 
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
+
+/**
+ * Return the color with the given alpha applied. Accepts #rgb/#rrggbb hex
+ * and rgb()/rgba() strings; falls back to the input color when unparseable.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  const rgbMatch = color.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgbMatch) {
+    return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${alpha})`;
+  }
+  const rgb = hexToRgb(color);
+  if (rgb) {
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+  }
+  return color;
+}
