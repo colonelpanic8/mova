@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.1.0]
+
+- style(wear): redesigned Wear OS capture UI with rounded pill buttons, visual hierarchy, and ripple feedback
+
 ## [6.0.1]
 
 - fix: agenda falls back to the single-day endpoint when the server rejects multi-day requests (servers without org-window-habit-mode could not load the agenda at all)
