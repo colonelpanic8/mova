@@ -25,9 +25,18 @@ class ConfigListenerService : WearableListenerService() {
           val apiUrl = dataMap.getString("apiUrl")
           val username = dataMap.getString("username")
           val password = dataMap.getString("password")
+          val customViewKey = dataMap.getString("customViewKey")
+          val customViewName = dataMap.getString("customViewName")
 
           if (!apiUrl.isNullOrBlank() && !username.isNullOrBlank() && password != null) {
-            MovaWearStorage.saveCredentials(this, apiUrl, username, password)
+            MovaWearStorage.saveCredentials(
+              this,
+              apiUrl,
+              username,
+              password,
+              customViewKey,
+              customViewName,
+            )
           }
         }
     } finally {

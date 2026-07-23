@@ -20,6 +20,8 @@ class WearSyncModule(
     apiUrl: String,
     username: String,
     password: String,
+    customViewKey: String,
+    customViewName: String,
     promise: Promise,
   ) {
     val request = PutDataMapRequest.create(CONFIG_PATH).apply {
@@ -27,6 +29,8 @@ class WearSyncModule(
       dataMap.putString("apiUrl", apiUrl)
       dataMap.putString("username", username)
       dataMap.putString("password", password)
+      dataMap.putString("customViewKey", customViewKey)
+      dataMap.putString("customViewName", customViewName)
       dataMap.putLong("updatedAt", System.currentTimeMillis())
     }.asPutDataRequest().setUrgent()
 

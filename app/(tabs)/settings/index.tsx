@@ -5,7 +5,11 @@ import { useTemplates } from "@/context/TemplatesContext";
 import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
-import { AgendaFilesResponse, VersionResponse } from "@/services/api";
+import {
+  AgendaFilesResponse,
+  CustomView,
+  VersionResponse,
+} from "@/services/api";
 import {
   getBackgroundSyncStatus,
   isBackgroundSyncRegistered,
@@ -31,7 +35,13 @@ import { formatRelativeTime } from "@/utils/timeFormatting";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -73,7 +83,8 @@ export default function SettingsScreen() {
   } = useSettings();
 
   const multiDayFutureDays = multiDayRangeLength - multiDayPastDays - 1;
-  const { templates, todoStates, exposedFunctions } = useTemplates();
+  const { templates, todoStates, customViews, exposedFunctions } =
+    useTemplates();
   const invalidateServerData = useServerDataInvalidation();
   const theme = useTheme();
   const router = useRouter();
@@ -110,6 +121,7 @@ export default function SettingsScreen() {
       registerBackgroundSync: false,
     });
   const [templateMenuVisible, setTemplateMenuVisible] = useState(false);
+  const [watchViewMenuVisible, setWatchViewMenuVisible] = useState(false);
   const [doneStateMenuVisible, setDoneStateMenuVisible] = useState(false);
   const [callingFunction, setCallingFunction] = useState<string | null>(null);
 
@@ -149,6 +161,18 @@ export default function SettingsScreen() {
       if (activeServerId) {
         await updateServer(activeServerId, {
           defaultCaptureTemplate: templateKey,
+        });
+      }
+    },
+    [activeServerId, updateServer],
+  );
+
+  const handleWatchViewSelect = useCallback(
+    async (view: CustomView | null) => {
+      setWatchViewMenuVisible(false);
+      if (activeServerId) {
+        await updateServer(activeServerId, {
+          watchCustomView: view ?? undefined,
         });
       }
     },
@@ -612,6 +636,39 @@ export default function SettingsScreen() {
             />
           ))}
         </Menu>
+        {Platform.OS === "android" && (
+          <Menu
+            visible={watchViewMenuVisible}
+            onDismiss={() => setWatchViewMenuVisible(false)}
+            anchor={
+              <List.Item
+                title="Watch Custom View"
+                description={activeServer?.watchCustomView?.name ?? "Not set"}
+                left={(props) => <List.Icon {...props} icon="watch" />}
+                onPress={() => setWatchViewMenuVisible(true)}
+                right={(props) => <List.Icon {...props} icon="chevron-down" />}
+              />
+            }
+          >
+            <Menu.Item
+              onPress={() => handleWatchViewSelect(null)}
+              title="None"
+              leadingIcon={activeServer?.watchCustomView ? undefined : "check"}
+            />
+            {customViews?.views.map((view) => (
+              <Menu.Item
+                key={view.key}
+                onPress={() => handleWatchViewSelect(view)}
+                title={view.name}
+                leadingIcon={
+                  activeServer?.watchCustomView?.key === view.key
+                    ? "check"
+                    : undefined
+                }
+              />
+            ))}
+          </Menu>
+        )}
       </List.Section>
 
       <Divider />

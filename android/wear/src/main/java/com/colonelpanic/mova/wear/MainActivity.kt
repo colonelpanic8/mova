@@ -15,10 +15,14 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.google.android.gms.wearable.DataClient
+import com.google.android.gms.wearable.DataEvent
+import com.google.android.gms.wearable.DataEventBuffer
+import com.google.android.gms.wearable.DataMap
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
 
-open class MainActivity : Activity() {
+open class MainActivity : Activity(), DataClient.OnDataChangedListener {
   private lateinit var titleInput: EditText
   private lateinit var voiceButton: Button
   private lateinit var submitButton: Button
@@ -26,8 +30,9 @@ open class MainActivity : Activity() {
   private lateinit var statusText: TextView
   private lateinit var pendingHeading: TextView
   private lateinit var pendingList: LinearLayout
-  private lateinit var recentHeading: TextView
-  private lateinit var recentList: LinearLayout
+  private lateinit var customViewHeading: TextView
+  private lateinit var customViewList: LinearLayout
+  private var customViewRequestId = 0
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -54,8 +59,15 @@ open class MainActivity : Activity() {
 
   override fun onResume() {
     super.onResume()
+    Wearable.getDataClient(this).addListener(this)
     refreshStatus()
+    refreshCustomView()
     syncConfigFromDataLayer()
+  }
+
+  override fun onPause() {
+    Wearable.getDataClient(this).removeListener(this)
+    super.onPause()
   }
 
   private fun buildContentView(): ScrollView {
@@ -135,8 +147,8 @@ open class MainActivity : Activity() {
     pendingList = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
     }
-    recentHeading = activityHeading("Recently created")
-    recentList = LinearLayout(this).apply {
+    customViewHeading = activityHeading("Watch view")
+    customViewList = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
     }
 
@@ -148,8 +160,8 @@ open class MainActivity : Activity() {
     content.addView(retryButton, matchWrap(topMargin = dp(6)))
     content.addView(pendingHeading, matchWrap(topMargin = dp(18)))
     content.addView(pendingList, matchWrap())
-    content.addView(recentHeading, matchWrap(topMargin = dp(14)))
-    content.addView(recentList, matchWrap(bottomMargin = dp(12)))
+    content.addView(customViewHeading, matchWrap(topMargin = dp(14)))
+    content.addView(customViewList, matchWrap(bottomMargin = dp(12)))
     root.addView(content)
     return root
   }
@@ -215,7 +227,6 @@ open class MainActivity : Activity() {
       runOnUiThread {
         setBusy(false)
         if (result.success) {
-          MovaWearStorage.recordCreatedTodo(this, text)
           titleInput.text.clear()
           processPendingTodos("Captured")
         } else {
@@ -237,6 +248,7 @@ open class MainActivity : Activity() {
     val pending = MovaWearStorage.getPendingTodos(this)
     if (pending.isEmpty()) {
       refreshStatus(successPrefix)
+      refreshCustomView()
       return
     }
 
@@ -247,7 +259,6 @@ open class MainActivity : Activity() {
         val result = CaptureClient.capture(credentials, todo.text)
         if (result.success) {
           MovaWearStorage.removePendingTodo(this, todo.timestamp)
-          MovaWearStorage.recordCreatedTodo(this, todo.text)
           captured += 1
         } else {
           runOnUiThread {
@@ -267,6 +278,7 @@ open class MainActivity : Activity() {
             else -> "Synced $captured queued"
           },
         )
+        refreshCustomView()
       }
     }.start()
   }
@@ -277,29 +289,77 @@ open class MainActivity : Activity() {
     val configText = if (configured) "Ready" else "Needs phone sync"
     val queueText = if (pendingCount > 0) " · $pendingCount queued" else ""
     setStatus(listOfNotNull(prefix, "$configText$queueText").joinToString("\n"))
-    refreshActivityLists()
+    refreshPendingList()
   }
 
-  private fun refreshActivityLists() {
+  private fun refreshPendingList() {
     val pending = MovaWearStorage.getPendingTodos(this)
     pendingHeading.text = "Pending (${pending.size})"
     populateActivityList(
       pendingList,
       pending.asReversed().take(MAX_VISIBLE_ACTIVITY_ITEMS).map {
-        ActivityItem(it.text, it.timestamp, "Queued")
+        ActivityItem(
+          text = it.text,
+          detail = "Queued ${relativeTime(it.timestamp)}",
+          label = "Queued",
+        )
       },
       "Nothing waiting to sync",
     )
+  }
 
-    val recent = MovaWearStorage.getRecentTodos(this)
-    recentHeading.text = "Recently created"
-    populateActivityList(
-      recentList,
-      recent.take(MAX_VISIBLE_ACTIVITY_ITEMS).map {
-        ActivityItem(it.text, it.timestamp, "Created")
-      },
-      "No recent captures",
-    )
+  private fun refreshCustomView() {
+    val requestId = ++customViewRequestId
+    val credentials = MovaWearStorage.getCredentials(this)
+    val selectedView = MovaWearStorage.getCustomView(this)
+
+    if (selectedView == null) {
+      customViewHeading.text = "Watch view"
+      populateActivityList(
+        customViewList,
+        emptyList(),
+        "Choose a custom view in Mova settings",
+      )
+      return
+    }
+
+    customViewHeading.text = selectedView.name
+    if (credentials == null) {
+      populateActivityList(
+        customViewList,
+        emptyList(),
+        "Open Mova on your phone to sync",
+      )
+      return
+    }
+
+    populateActivityList(customViewList, emptyList(), "Loading…")
+    Thread {
+      val result = CaptureClient.getCustomView(credentials, selectedView)
+      runOnUiThread {
+        val currentView = MovaWearStorage.getCustomView(this)
+        if (requestId != customViewRequestId || currentView?.key != selectedView.key) {
+          return@runOnUiThread
+        }
+
+        customViewHeading.text = result.name ?: selectedView.name
+        if (result.success) {
+          populateActivityList(
+            customViewList,
+            result.entries.take(MAX_VISIBLE_ACTIVITY_ITEMS).map { entry ->
+              ActivityItem(
+                text = entry.title,
+                detail = entry.detail,
+                label = "View item",
+              )
+            },
+            "No items",
+          )
+        } else {
+          populateActivityList(customViewList, emptyList(), result.message)
+        }
+      }
+    }.start()
   }
 
   private fun populateActivityList(
@@ -338,14 +398,16 @@ open class MainActivity : Activity() {
         },
         matchWrap(),
       )
-      row.addView(
-        TextView(this).apply {
-          text = "${item.label} ${relativeTime(item.timestamp)}"
-          textSize = 10f
-          setTextColor(getColor(R.color.text_secondary))
-        },
-        matchWrap(topMargin = dp(2)),
-      )
+      if (item.detail.isNotBlank()) {
+        row.addView(
+          TextView(this).apply {
+            text = item.detail
+            textSize = 10f
+            setTextColor(getColor(R.color.text_secondary))
+          },
+          matchWrap(topMargin = dp(2)),
+        )
+      }
       container.addView(row, matchWrap(bottomMargin = dp(5)))
     }
   }
@@ -370,38 +432,81 @@ open class MainActivity : Activity() {
   private fun syncConfigFromDataLayer() {
     Wearable.getDataClient(this).dataItems
       .addOnSuccessListener { dataItems ->
+        var configFound = false
         try {
           dataItems
             .filter { item -> item.uri.path == CONFIG_PATH }
             .forEach { item ->
               val dataMap = DataMapItem.fromDataItem(item).dataMap
-              val configured = dataMap.getBoolean("configured", false)
-
-              if (!configured) {
-                MovaWearStorage.clearCredentials(this)
-                return@forEach
-              }
-
-              val apiUrl = dataMap.getString("apiUrl")
-              val username = dataMap.getString("username")
-              val password = dataMap.getString("password")
-
-              if (!apiUrl.isNullOrBlank() && !username.isNullOrBlank() && password != null) {
-                MovaWearStorage.saveCredentials(this, apiUrl, username, password)
-              }
+              configFound = applyConfig(dataMap) || configFound
             }
         } finally {
           dataItems.release()
         }
-        if (
-          MovaWearStorage.getCredentials(this) != null &&
-          MovaWearStorage.getPendingTodos(this).isNotEmpty()
-        ) {
-          processPendingTodos()
-        } else {
-          refreshStatus()
+        if (configFound) {
+          handleConfigUpdated()
         }
       }
+  }
+
+  override fun onDataChanged(dataEvents: DataEventBuffer) {
+    var configChanged = false
+    try {
+      dataEvents
+        .filter { event ->
+          event.type == DataEvent.TYPE_CHANGED &&
+            event.dataItem.uri.path == CONFIG_PATH
+        }
+        .forEach { event ->
+          configChanged =
+            applyConfig(DataMapItem.fromDataItem(event.dataItem).dataMap) ||
+            configChanged
+        }
+    } finally {
+      dataEvents.release()
+    }
+
+    if (configChanged) {
+      runOnUiThread {
+        handleConfigUpdated()
+      }
+    }
+  }
+
+  private fun applyConfig(dataMap: DataMap): Boolean {
+    if (!dataMap.getBoolean("configured", false)) {
+      MovaWearStorage.clearCredentials(this)
+      return true
+    }
+
+    val apiUrl = dataMap.getString("apiUrl")
+    val username = dataMap.getString("username")
+    val password = dataMap.getString("password")
+    if (apiUrl.isNullOrBlank() || username.isNullOrBlank() || password == null) {
+      return false
+    }
+
+    MovaWearStorage.saveCredentials(
+      this,
+      apiUrl,
+      username,
+      password,
+      dataMap.getString("customViewKey"),
+      dataMap.getString("customViewName"),
+    )
+    return true
+  }
+
+  private fun handleConfigUpdated() {
+    if (
+      MovaWearStorage.getCredentials(this) != null &&
+      MovaWearStorage.getPendingTodos(this).isNotEmpty()
+    ) {
+      processPendingTodos()
+    } else {
+      refreshStatus()
+      refreshCustomView()
+    }
   }
 
   private fun setBusy(isBusy: Boolean, status: String? = null) {
@@ -447,7 +552,7 @@ open class MainActivity : Activity() {
 
   private data class ActivityItem(
     val text: String,
-    val timestamp: Long,
+    val detail: String,
     val label: String,
   )
 }

@@ -1,3 +1,4 @@
+import { WatchCustomView } from "@/types/server";
 import { NativeModules, Platform } from "react-native";
 
 // Native SharedStorage module for cross-process data sharing
@@ -27,6 +28,7 @@ export async function saveCredentialsToWidget(
   apiUrl: string,
   username: string,
   password: string,
+  watchCustomView?: WatchCustomView,
 ): Promise<void> {
   if (Platform.OS !== "android" || !SharedStorage) {
     console.log(
@@ -51,10 +53,16 @@ export async function saveCredentialsToWidget(
 
   if (WearSync) {
     try {
-      await WearSync.syncCredentials(apiUrl, username, password);
-      console.log("[Wear] Credentials synced to Wear OS");
+      await WearSync.syncCredentials(
+        apiUrl,
+        username,
+        password,
+        watchCustomView?.key ?? "",
+        watchCustomView?.name ?? "",
+      );
+      console.log("[Wear] Settings synced to Wear OS");
     } catch (error) {
-      console.error("[Wear] Failed to sync credentials:", error);
+      console.error("[Wear] Failed to sync settings:", error);
     }
   }
 }

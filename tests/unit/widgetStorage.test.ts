@@ -3,6 +3,8 @@
 // Node unit environment.
 
 const mockStore: Record<string, string> = {};
+const mockSyncCredentials = jest.fn().mockResolvedValue(undefined);
+const mockClearCredentials = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("react-native", () => ({
   Platform: { OS: "android" },
@@ -17,6 +19,10 @@ jest.mock("react-native", () => ({
       removeItem: jest.fn(async (key: string) => {
         delete mockStore[key];
       }),
+    },
+    WearSync: {
+      syncCredentials: mockSyncCredentials,
+      clearCredentials: mockClearCredentials,
     },
   },
 }));
@@ -46,6 +52,35 @@ describe("widget credential storage", () => {
     });
   });
 
+  it("syncs the selected custom view to Wear OS", async () => {
+    await saveCredentialsToWidget(
+      "https://org.example.com",
+      "ivan",
+      "hunter2",
+      { key: "recent", name: "Recently created" },
+    );
+
+    expect(mockSyncCredentials).toHaveBeenCalledWith(
+      "https://org.example.com",
+      "ivan",
+      "hunter2",
+      "recent",
+      "Recently created",
+    );
+  });
+
+  it("clears the Wear OS custom view when none is selected", async () => {
+    await saveCredentialsToWidget("https://org.example.com", "ivan", "hunter2");
+
+    expect(mockSyncCredentials).toHaveBeenCalledWith(
+      "https://org.example.com",
+      "ivan",
+      "hunter2",
+      "",
+      "",
+    );
+  });
+
   it("returns nulls when nothing is stored", async () => {
     const creds = await getWidgetCredentials();
     expect(creds).toEqual({ apiUrl: null, username: null, password: null });
@@ -57,5 +92,6 @@ describe("widget credential storage", () => {
 
     const creds = await getWidgetCredentials();
     expect(creds).toEqual({ apiUrl: null, username: null, password: null });
+    expect(mockClearCredentials).toHaveBeenCalled();
   });
 });

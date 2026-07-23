@@ -136,7 +136,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { apiUrl, username, password } = await getStoredCredentials();
 
         if (apiUrl && username && password) {
-          await saveCredentialsToWidget(apiUrl, username, password);
+          const configuredServer =
+            servers.find((server) => server.id === storedActiveId) ??
+            servers.find(
+              (server) =>
+                server.apiUrl === apiUrl && server.username === username,
+            );
+          await saveCredentialsToWidget(
+            apiUrl,
+            username,
+            password,
+            configuredServer?.watchCustomView,
+          );
           setState({
             apiUrl,
             username,
@@ -203,8 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (response.ok) {
           await storeCredentials({ apiUrl: normalizedUrl, username, password });
 
-          // Also save to SharedPreferences for widget access
-          await saveCredentialsToWidget(normalizedUrl, username, password);
+          let serverForSync: SavedServer | undefined;
 
           // Save to server list if requested
           if (save) {
@@ -219,17 +229,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 username,
                 password,
               });
+              serverForSync = newServer;
               await setActiveServerId(newServer.id);
               setActiveServerIdState(newServer.id);
               await refreshSavedServers();
             } else {
+              serverForSync = existing;
               // Always keep the stored password up to date (secure store).
               await updateServerInStorage(existing.id, { password });
               await refreshSavedServers();
               await setActiveServerId(existing.id);
               setActiveServerIdState(existing.id);
             }
+          } else {
+            const currentServers = await getSavedServers();
+            serverForSync = currentServers.find(
+              (server) =>
+                server.apiUrl === normalizedUrl && server.username === username,
+            );
           }
+
+          // Save for the Android widget and sync the selected per-server view
+          // to Wear OS after resolving which saved server is active.
+          await saveCredentialsToWidget(
+            normalizedUrl,
+            username,
+            password,
+            serverForSync?.watchCustomView,
+          );
 
           setState({
             apiUrl: normalizedUrl,
@@ -308,6 +335,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await setActiveServerId(newServer.id);
       setActiveServerIdState(newServer.id);
+      await saveCredentialsToWidget(
+        newServer.apiUrl,
+        newServer.username,
+        state.password,
+        newServer.watchCustomView,
+      );
       await refreshSavedServers();
       return newServer;
     },
@@ -327,6 +360,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             updated.apiUrl,
             updated.username,
             updated.password,
+            updated.watchCustomView,
           );
           setState((prev) => ({
             ...prev,

@@ -14,9 +14,9 @@ private const val PREFS_NAME = "mova_wear_prefs_secure"
 private const val KEY_API_URL = "mova_api_url"
 private const val KEY_USERNAME = "mova_username"
 private const val KEY_PASSWORD = "mova_password"
+private const val KEY_CUSTOM_VIEW_KEY = "mova_custom_view_key"
+private const val KEY_CUSTOM_VIEW_NAME = "mova_custom_view_name"
 private const val KEY_PENDING_TODOS = "mova_pending_todos"
-private const val KEY_RECENT_TODOS = "mova_recent_todos"
-private const val MAX_RECENT_TODOS = 10
 
 data class WearCredentials(
   val apiUrl: String,
@@ -29,9 +29,9 @@ data class PendingTodo(
   val timestamp: Long,
 )
 
-data class RecentTodo(
-  val text: String,
-  val timestamp: Long,
+data class WearCustomView(
+  val key: String,
+  val name: String,
 )
 
 object MovaWearStorage {
@@ -40,12 +40,26 @@ object MovaWearStorage {
     apiUrl: String,
     username: String,
     password: String,
+    customViewKey: String?,
+    customViewName: String?,
   ) {
-    prefs(context).edit()
+    val editor = prefs(context).edit()
       .putString(KEY_API_URL, apiUrl)
       .putString(KEY_USERNAME, username)
       .putString(KEY_PASSWORD, password)
-      .apply()
+    if (!customViewKey.isNullOrBlank()) {
+      editor
+        .putString(KEY_CUSTOM_VIEW_KEY, customViewKey)
+        .putString(
+          KEY_CUSTOM_VIEW_NAME,
+          customViewName?.takeIf { it.isNotBlank() } ?: customViewKey,
+        )
+    } else {
+      editor
+        .remove(KEY_CUSTOM_VIEW_KEY)
+        .remove(KEY_CUSTOM_VIEW_NAME)
+    }
+    editor.apply()
   }
 
   fun clearCredentials(context: Context) {
@@ -53,7 +67,20 @@ object MovaWearStorage {
       .remove(KEY_API_URL)
       .remove(KEY_USERNAME)
       .remove(KEY_PASSWORD)
+      .remove(KEY_CUSTOM_VIEW_KEY)
+      .remove(KEY_CUSTOM_VIEW_NAME)
       .apply()
+  }
+
+  fun getCustomView(context: Context): WearCustomView? {
+    val prefs = prefs(context)
+    val key = prefs.getString(KEY_CUSTOM_VIEW_KEY, null)
+    val name = prefs.getString(KEY_CUSTOM_VIEW_NAME, null)
+    return if (!key.isNullOrBlank()) {
+      WearCustomView(key, name?.takeIf { it.isNotBlank() } ?: key)
+    } else {
+      null
+    }
   }
 
   fun getCredentials(context: Context): WearCredentials? {
@@ -101,31 +128,6 @@ object MovaWearStorage {
     )
   }
 
-  fun recordCreatedTodo(context: Context, text: String) {
-    val recent = getRecentTodos(context).toMutableList()
-    recent.add(0, RecentTodo(text, System.currentTimeMillis()))
-    saveRecentTodos(context, recent.take(MAX_RECENT_TODOS))
-  }
-
-  fun getRecentTodos(context: Context): List<RecentTodo> {
-    val raw = prefs(context).getString(KEY_RECENT_TODOS, null) ?: return emptyList()
-    return try {
-      val array = JSONArray(raw)
-      (0 until array.length()).mapNotNull { index ->
-        val item = array.optJSONObject(index) ?: return@mapNotNull null
-        val text = item.optString("text", "")
-        val timestamp = item.optLong("timestamp", 0L)
-        if (text.isBlank() || timestamp == 0L) {
-          null
-        } else {
-          RecentTodo(text, timestamp)
-        }
-      }
-    } catch (_: Exception) {
-      emptyList()
-    }
-  }
-
   private fun savePendingTodos(context: Context, todos: List<PendingTodo>) {
     val array = JSONArray()
     todos.forEach { todo ->
@@ -137,20 +139,6 @@ object MovaWearStorage {
     }
     prefs(context).edit()
       .putString(KEY_PENDING_TODOS, array.toString())
-      .apply()
-  }
-
-  private fun saveRecentTodos(context: Context, todos: List<RecentTodo>) {
-    val array = JSONArray()
-    todos.forEach { todo ->
-      array.put(
-        JSONObject()
-          .put("text", todo.text)
-          .put("timestamp", todo.timestamp),
-      )
-    }
-    prefs(context).edit()
-      .putString(KEY_RECENT_TODOS, array.toString())
       .apply()
   }
 
