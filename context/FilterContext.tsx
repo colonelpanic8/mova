@@ -29,12 +29,7 @@ export interface FilterState {
 }
 
 export type FilterType =
-  | "tag"
-  | "state"
-  | "priority"
-  | "dateRange"
-  | "file"
-  | "category";
+  "tag" | "state" | "priority" | "dateRange" | "file" | "category";
 
 export interface ActiveFilter {
   type: FilterType;

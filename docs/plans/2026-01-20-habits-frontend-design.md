@@ -174,9 +174,7 @@ interface HabitStatus {
   status: string;
   id: string;
   title: string;
-  habit: {
-    /* config */
-  };
+  habit: {/* config */};
   currentState: HabitSummary;
   doneTimes: string[];
   graph: HabitStatusGraphEntry[];

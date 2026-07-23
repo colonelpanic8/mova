@@ -84,10 +84,7 @@ interface FilterState {
   states: string[];
   priorities: string[];
   dateRange:
-    | { start: Date | null; end: Date | null }
-    | "today"
-    | "week"
-    | "overdue";
+    { start: Date | null; end: Date | null } | "today" | "week" | "overdue";
   files: string[];
 }
 ```

@@ -61,11 +61,7 @@ export interface Todo {
 }
 
 export type DateRelevance =
-  | "scheduled"
-  | "deadline"
-  | "overdue"
-  | "habit_required"
-  | "completed";
+  "scheduled" | "deadline" | "overdue" | "habit_required" | "completed";
 
 export interface AgendaEntry extends Todo {
   agendaLine: string;

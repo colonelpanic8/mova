@@ -45,11 +45,7 @@ export const PRESET_COLORS = [
 
 // Action button types
 export type ActionButtonType =
-  | "complete"
-  | "tomorrow"
-  | "today"
-  | "schedule"
-  | "deadline";
+  "complete" | "tomorrow" | "today" | "schedule" | "deadline";
 
 // Priority levels
 export type PriorityLevel = "A" | "B" | "C" | "D" | "E";
