@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.3.0]
+
+- feat(wear): select a per-server custom view in Android settings and display its live server-backed items below the watch capture controls
+- fix(wear): replace watch-local recent capture history with authoritative custom-view results that include items created from any client
+
 ## [6.2.0]
 
 - feat(capture): show detailed pending captures in the mobile Capture screen with manual retry
