@@ -3,12 +3,13 @@ import { useAuth } from "@/context/AuthContext";
 import { invalidateServerData } from "@/hooks/queryKeys";
 import {
   CaptureDeliveryResponse,
-  countOutbox,
   deliverOutboxRequest,
   enqueueOutboxEntry,
   flushOutbox,
   getOutboxEntryTitle,
   isRetryableCaptureError,
+  listOutbox,
+  OutboxEntry,
   OutboxRequest,
 } from "@/services/captureOutbox";
 import { buildConfigIdentityKey } from "@/services/configMetadata";
@@ -38,6 +39,8 @@ export type CaptureOrEnqueueResult =
 interface OutboxContextType {
   /** Number of captures queued for the active server identity. */
   pendingCount: number;
+  /** Queued captures for the active server identity, oldest first. */
+  pendingEntries: OutboxEntry[];
   /**
    * Persist a capture for later delivery, then attempt an immediate flush in
    * the background. Throws if the capture could not be persisted, so callers
@@ -67,7 +70,7 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
   const api = useApi();
   const { apiUrl, username } = useAuth();
   const queryClient = useQueryClient();
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingEntries, setPendingEntries] = useState<OutboxEntry[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const flushingRef = useRef(false);
   const rerunRef = useRef(false);
@@ -110,7 +113,7 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
               : `Server rejected queued captures: ${titles}`,
           );
         }
-        setPendingCount(result.remaining);
+        setPendingEntries(await listOutbox(scopeKey));
       } while (rerunRef.current);
     } catch (error) {
       console.warn("Capture outbox flush failed:", error);
@@ -124,10 +127,7 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
       if (!scopeKey) {
         throw new Error("Cannot queue capture: not signed in");
       }
-      const { droppedCount, count } = await enqueueOutboxEntry(
-        scopeKey,
-        request,
-      );
+      const { droppedCount } = await enqueueOutboxEntry(scopeKey, request);
       if (droppedCount > 0) {
         setNotice(
           `Capture queue was full — dropped ${droppedCount} oldest queued capture${
@@ -135,7 +135,8 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
           }`,
         );
       }
-      setPendingCount(count);
+      const entries = await listOutbox(scopeKey);
+      setPendingEntries(entries);
       // Attempt immediate delivery in the background.
       void flushNow();
     },
@@ -169,12 +170,12 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
   // available or changes (app start, login, server switch).
   useEffect(() => {
     if (!scopeKey) {
-      setPendingCount(0);
+      setPendingEntries([]);
       return;
     }
     let cancelled = false;
-    void countOutbox(scopeKey).then((count) => {
-      if (!cancelled) setPendingCount(count);
+    void listOutbox(scopeKey).then((entries) => {
+      if (!cancelled) setPendingEntries(entries);
     });
     if (api) {
       void flushNow();
@@ -195,10 +196,12 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
   }, [flushNow]);
 
   const clearNotice = useCallback(() => setNotice(null), []);
+  const pendingCount = pendingEntries.length;
 
   const value = useMemo<OutboxContextType>(
     () => ({
       pendingCount,
+      pendingEntries,
       enqueueCapture,
       captureOrEnqueue,
       flushNow,
@@ -207,6 +210,7 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
     }),
     [
       pendingCount,
+      pendingEntries,
       enqueueCapture,
       captureOrEnqueue,
       flushNow,

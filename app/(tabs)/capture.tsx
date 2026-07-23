@@ -3,6 +3,7 @@ import {
   PromptField,
   PromptFieldHandle,
 } from "@/components/capture";
+import { PendingCapturesCard } from "@/components/capture/PendingCapturesCard";
 import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import {
@@ -63,7 +64,7 @@ export default function CaptureScreen() {
   const [form, setForm] = useState<TodoFormState>(emptyTodoFormState);
   const theme = useTheme();
   const invalidateServerData = useServerDataInvalidation();
-  const { captureOrEnqueue } = useOutbox();
+  const { captureOrEnqueue, pendingEntries, flushNow } = useOutbox();
   const menu = useMenuPickerWorkaround();
   const promptRefs = useRef<Record<string, PromptFieldHandle | null>>({});
   const formFieldsRef = useRef<TodoFormFieldsHandle>(null);
@@ -355,6 +356,13 @@ export default function CaptureScreen() {
           contentContainerStyle={styles.formContent}
           keyboardShouldPersistTaps="handled"
         >
+          <PendingCapturesCard
+            entries={pendingEntries}
+            onRetry={() => {
+              void flushNow();
+            }}
+          />
+
           {/* Category field for category type captures */}
           {selection?.type === "category" && (
             <CategoryField

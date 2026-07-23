@@ -15,6 +15,8 @@ private const val KEY_API_URL = "mova_api_url"
 private const val KEY_USERNAME = "mova_username"
 private const val KEY_PASSWORD = "mova_password"
 private const val KEY_PENDING_TODOS = "mova_pending_todos"
+private const val KEY_RECENT_TODOS = "mova_recent_todos"
+private const val MAX_RECENT_TODOS = 10
 
 data class WearCredentials(
   val apiUrl: String,
@@ -23,6 +25,11 @@ data class WearCredentials(
 )
 
 data class PendingTodo(
+  val text: String,
+  val timestamp: Long,
+)
+
+data class RecentTodo(
   val text: String,
   val timestamp: Long,
 )
@@ -94,6 +101,31 @@ object MovaWearStorage {
     )
   }
 
+  fun recordCreatedTodo(context: Context, text: String) {
+    val recent = getRecentTodos(context).toMutableList()
+    recent.add(0, RecentTodo(text, System.currentTimeMillis()))
+    saveRecentTodos(context, recent.take(MAX_RECENT_TODOS))
+  }
+
+  fun getRecentTodos(context: Context): List<RecentTodo> {
+    val raw = prefs(context).getString(KEY_RECENT_TODOS, null) ?: return emptyList()
+    return try {
+      val array = JSONArray(raw)
+      (0 until array.length()).mapNotNull { index ->
+        val item = array.optJSONObject(index) ?: return@mapNotNull null
+        val text = item.optString("text", "")
+        val timestamp = item.optLong("timestamp", 0L)
+        if (text.isBlank() || timestamp == 0L) {
+          null
+        } else {
+          RecentTodo(text, timestamp)
+        }
+      }
+    } catch (_: Exception) {
+      emptyList()
+    }
+  }
+
   private fun savePendingTodos(context: Context, todos: List<PendingTodo>) {
     val array = JSONArray()
     todos.forEach { todo ->
@@ -105,6 +137,20 @@ object MovaWearStorage {
     }
     prefs(context).edit()
       .putString(KEY_PENDING_TODOS, array.toString())
+      .apply()
+  }
+
+  private fun saveRecentTodos(context: Context, todos: List<RecentTodo>) {
+    val array = JSONArray()
+    todos.forEach { todo ->
+      array.put(
+        JSONObject()
+          .put("text", todo.text)
+          .put("timestamp", todo.timestamp),
+      )
+    }
+    prefs(context).edit()
+      .putString(KEY_RECENT_TODOS, array.toString())
       .apply()
   }
 

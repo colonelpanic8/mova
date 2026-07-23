@@ -24,6 +24,7 @@ const mockApi = {
 
 const mockOutbox = {
   pendingCount: 0,
+  pendingEntries: [],
   enqueueCapture: jest.fn(),
   captureOrEnqueue: jest.fn(),
   flushNow: jest.fn(),

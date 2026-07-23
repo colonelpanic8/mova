@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.text.InputType
+import android.text.format.DateUtils
 import android.view.Gravity
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
@@ -23,6 +24,10 @@ open class MainActivity : Activity() {
   private lateinit var submitButton: Button
   private lateinit var retryButton: Button
   private lateinit var statusText: TextView
+  private lateinit var pendingHeading: TextView
+  private lateinit var pendingList: LinearLayout
+  private lateinit var recentHeading: TextView
+  private lateinit var recentList: LinearLayout
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -126,12 +131,25 @@ open class MainActivity : Activity() {
       setPadding(dp(20), 0, dp(20), 0)
     }
 
+    pendingHeading = activityHeading("Pending")
+    pendingList = LinearLayout(this).apply {
+      orientation = LinearLayout.VERTICAL
+    }
+    recentHeading = activityHeading("Recently created")
+    recentList = LinearLayout(this).apply {
+      orientation = LinearLayout.VERTICAL
+    }
+
     content.addView(heading, matchWrap())
     content.addView(statusText, matchWrap())
     content.addView(voiceButton, matchWrap(bottomMargin = dp(10)))
     content.addView(titleInput, matchFixedHeight(48))
     content.addView(submitButton, matchWrap(topMargin = dp(10)))
     content.addView(retryButton, matchWrap(topMargin = dp(6)))
+    content.addView(pendingHeading, matchWrap(topMargin = dp(18)))
+    content.addView(pendingList, matchWrap())
+    content.addView(recentHeading, matchWrap(topMargin = dp(14)))
+    content.addView(recentList, matchWrap(bottomMargin = dp(12)))
     root.addView(content)
     return root
   }
@@ -197,6 +215,7 @@ open class MainActivity : Activity() {
       runOnUiThread {
         setBusy(false)
         if (result.success) {
+          MovaWearStorage.recordCreatedTodo(this, text)
           titleInput.text.clear()
           processPendingTodos("Captured")
         } else {
@@ -228,6 +247,7 @@ open class MainActivity : Activity() {
         val result = CaptureClient.capture(credentials, todo.text)
         if (result.success) {
           MovaWearStorage.removePendingTodo(this, todo.timestamp)
+          MovaWearStorage.recordCreatedTodo(this, todo.text)
           captured += 1
         } else {
           runOnUiThread {
@@ -257,7 +277,95 @@ open class MainActivity : Activity() {
     val configText = if (configured) "Ready" else "Needs phone sync"
     val queueText = if (pendingCount > 0) " · $pendingCount queued" else ""
     setStatus(listOfNotNull(prefix, "$configText$queueText").joinToString("\n"))
+    refreshActivityLists()
   }
+
+  private fun refreshActivityLists() {
+    val pending = MovaWearStorage.getPendingTodos(this)
+    pendingHeading.text = "Pending (${pending.size})"
+    populateActivityList(
+      pendingList,
+      pending.asReversed().take(MAX_VISIBLE_ACTIVITY_ITEMS).map {
+        ActivityItem(it.text, it.timestamp, "Queued")
+      },
+      "Nothing waiting to sync",
+    )
+
+    val recent = MovaWearStorage.getRecentTodos(this)
+    recentHeading.text = "Recently created"
+    populateActivityList(
+      recentList,
+      recent.take(MAX_VISIBLE_ACTIVITY_ITEMS).map {
+        ActivityItem(it.text, it.timestamp, "Created")
+      },
+      "No recent captures",
+    )
+  }
+
+  private fun populateActivityList(
+    container: LinearLayout,
+    items: List<ActivityItem>,
+    emptyText: String,
+  ) {
+    container.removeAllViews()
+    if (items.isEmpty()) {
+      container.addView(
+        TextView(this).apply {
+          text = emptyText
+          textSize = 12f
+          setTextColor(getColor(R.color.text_secondary))
+          gravity = Gravity.CENTER
+          setPadding(dp(8), dp(7), dp(8), dp(7))
+        },
+        matchWrap(),
+      )
+      return
+    }
+
+    items.forEach { item ->
+      val row = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        background = getDrawable(R.drawable.bg_activity_item)
+        setPadding(dp(12), dp(8), dp(12), dp(8))
+        contentDescription = "${item.label}: ${item.text}"
+      }
+      row.addView(
+        TextView(this).apply {
+          text = item.text
+          textSize = 13f
+          setTextColor(getColor(R.color.text_primary))
+          maxLines = 2
+        },
+        matchWrap(),
+      )
+      row.addView(
+        TextView(this).apply {
+          text = "${item.label} ${relativeTime(item.timestamp)}"
+          textSize = 10f
+          setTextColor(getColor(R.color.text_secondary))
+        },
+        matchWrap(topMargin = dp(2)),
+      )
+      container.addView(row, matchWrap(bottomMargin = dp(5)))
+    }
+  }
+
+  private fun relativeTime(timestamp: Long): CharSequence =
+    DateUtils.getRelativeTimeSpanString(
+      timestamp,
+      System.currentTimeMillis(),
+      DateUtils.MINUTE_IN_MILLIS,
+      DateUtils.FORMAT_ABBREV_RELATIVE,
+    )
+
+  private fun activityHeading(label: String): TextView =
+    TextView(this).apply {
+      text = label
+      textSize = 14f
+      setTextColor(getColor(R.color.primary))
+      gravity = Gravity.START
+      setPadding(dp(4), 0, dp(4), dp(5))
+    }
 
   private fun syncConfigFromDataLayer() {
     Wearable.getDataClient(this).dataItems
@@ -334,5 +442,12 @@ open class MainActivity : Activity() {
 
   private companion object {
     const val VOICE_CAPTURE_REQUEST = 1001
+    const val MAX_VISIBLE_ACTIVITY_ITEMS = 5
   }
+
+  private data class ActivityItem(
+    val text: String,
+    val timestamp: Long,
+    val label: String,
+  )
 }

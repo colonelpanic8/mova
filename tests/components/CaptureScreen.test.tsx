@@ -65,6 +65,7 @@ const mockApi = {
 };
 
 const mockCaptureOrEnqueue = jest.fn();
+const mockFlushNow = jest.fn();
 
 const renderScreen = () =>
   render(
@@ -115,9 +116,10 @@ describe("CaptureScreen", () => {
     });
     (useOutbox as jest.Mock).mockReturnValue({
       pendingCount: 0,
+      pendingEntries: [],
       enqueueCapture: jest.fn(),
       captureOrEnqueue: mockCaptureOrEnqueue,
-      flushNow: jest.fn(),
+      flushNow: mockFlushNow,
       notice: null,
       clearNotice: jest.fn(),
     });
@@ -136,5 +138,36 @@ describe("CaptureScreen", () => {
         values: { tags: ["work"] },
       });
     });
+  });
+
+  it("shows queued captures and lets the user retry them", () => {
+    (useOutbox as jest.Mock).mockReturnValue({
+      pendingCount: 1,
+      pendingEntries: [
+        {
+          id: "pending-1",
+          createdAt: new Date().toISOString(),
+          request: {
+            kind: "capture",
+            templateKey: "quick-capture",
+            values: { Title: "Send the proposal" },
+          },
+          retryCount: 1,
+          lastError: "offline",
+        },
+      ],
+      enqueueCapture: jest.fn(),
+      captureOrEnqueue: mockCaptureOrEnqueue,
+      flushNow: mockFlushNow,
+      notice: null,
+      clearNotice: jest.fn(),
+    });
+
+    const { getByText, getByTestId } = renderScreen();
+
+    expect(getByText("Pending captures")).toBeTruthy();
+    expect(getByText("Send the proposal")).toBeTruthy();
+    fireEvent.press(getByTestId("retryPendingCaptures"));
+    expect(mockFlushNow).toHaveBeenCalledTimes(1);
   });
 });
