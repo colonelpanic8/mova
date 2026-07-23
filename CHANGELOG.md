@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.2.0]
+
+- feat(capture): show detailed pending captures in the mobile Capture screen with manual retry
+- feat(wear): show pending and recently created captures below the Wear OS capture controls
+
 ## [6.1.0]
 
 - style(wear): redesigned Wear OS capture UI with rounded pill buttons, visual hierarchy, and ripple feedback
