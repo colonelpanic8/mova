@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.0.1]
+
+- fix: agenda falls back to the single-day endpoint when the server rejects multi-day requests (servers without org-window-habit-mode could not load the agenda at all)
+- style: full-color state pills on agenda rows, compact tinted priority badges, and bold error-colored overdue dates
+
 ## [6.0.0]
 
 - refactor!: replace the hand-rolled server-state layer with TanStack Query (per-server query caches, offline persistence, targeted invalidation)
