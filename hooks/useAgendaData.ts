@@ -6,6 +6,7 @@ import {
   SIGNED_OUT_IDENTITY,
 } from "@/hooks/queryKeys";
 import {
+  ApiError,
   MultiDayAgendaResponse,
   SingleDayAgendaResponse,
   Todo,
@@ -102,14 +103,34 @@ export function useAgendaData(params: AgendaDataParams): UseAgendaDataResult {
         );
       }
       // Use the multi-day endpoint even for a single day to get prospective
-      // habit scheduling (org-window-habit future required intervals).
-      return api!.getAgenda(
-        "week",
-        dateString,
-        dateString <= todayString,
-        includeCompleted,
-        dateString,
-      );
+      // habit scheduling (org-window-habit future required intervals). Some
+      // servers (e.g. without org-window-habit-mode) reject multi-day
+      // requests outright, so fall back to the plain single-day endpoint,
+      // which only lacks prospective habit entries.
+      try {
+        return await api!.getAgenda(
+          "week",
+          dateString,
+          dateString <= todayString,
+          includeCompleted,
+          dateString,
+        );
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        const single = await api!.getAgenda(
+          "day",
+          dateString,
+          dateString <= todayString,
+          includeCompleted,
+        );
+        return {
+          span: "custom",
+          startDate: dateString,
+          endDate: dateString,
+          today: todayString,
+          days: { [single.date ?? dateString]: single.entries },
+        };
+      }
     },
   });
 

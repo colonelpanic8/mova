@@ -102,6 +102,43 @@ describe("useAgendaData", () => {
       ),
     });
 
+  it("falls back to the single-day endpoint when the server rejects multi-day requests", async () => {
+    const queryClient = createTestQueryClient();
+    const date = new Date(2026, 6, 9); // 2026-07-09 local time
+
+    const { ApiError } = jest.requireActual("../../services/api");
+    mockApi.getAgenda.mockImplementation((span: string, startDate: string) => {
+      if (span === "week") {
+        return Promise.reject(new ApiError(500));
+      }
+      return Promise.resolve({
+        span: "day",
+        date: startDate,
+        entries: [buildEntry(`id-${startDate}`, `Task ${startDate}`)],
+      });
+    });
+
+    const { result } = renderAgendaHook(queryClient, {
+      mode: "day",
+      date,
+      rangeLength: 7,
+      includeCompleted: false,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.agenda?.entries.map((e) => e.title)).toEqual([
+      "Task 2026-07-09",
+    ]);
+    expect(mockApi.getAgenda).toHaveBeenCalledWith(
+      "day",
+      "2026-07-09",
+      true,
+      false,
+    );
+  });
+
   it("derives the single-day view from the multi-day payload and caches it under an identity-scoped view key", async () => {
     const queryClient = createTestQueryClient();
     const date = new Date(2026, 6, 9); // 2026-07-09 local time
