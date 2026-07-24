@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.3.4]
+
+- fix(auth): store server passwords under SecureStore-compatible keys — the old colon-prefixed keys threw on Android, leaving the saved-server list empty (per-server settings could never save) and, in 6.3.3, logging users out at startup and misreporting login as a connection failure
+- fix(android): remove the stale hermesc path override so release builds work with RN 0.86's Hermes V1 compiler
+
 ## [6.3.3]
 
 - fix(auth): repair the active-server link on startup so per-server settings (default capture template, watch custom view) persist again for sessions missing a saved-server entry or carrying a stale active server id
