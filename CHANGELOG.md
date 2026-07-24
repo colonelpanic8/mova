@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## [6.4.0]
 
 - feat(wear): add a swipe-accessible Quick Capture Tile that launches voice capture
+- fix(views): retry transient custom-view failures and provide explicit retry controls
 
 ## [6.3.4]
 
