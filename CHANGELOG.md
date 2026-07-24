@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.6.0]
+
+- feat(wear): add an agenda tile that shows the top of today's agenda and completes items with a tap, plus a full-screen scrollable agenda (with habits) reachable from the tile and the watch home
+
 ## [6.5.0]
 
 - feat(wear): redesign the watch app around a single capture surface — mic button, input pill, queued-sync chip and next actions now share one shape language and theme
