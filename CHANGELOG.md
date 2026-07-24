@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.3.1]
+
+- fix(android): upgrade React Native Paper to include the upstream Android menu selection fixes
+- chore: migrate to Expo SDK 57 and React Native 0.86
+- chore: refresh JavaScript, Android widget, Nix, and org-agenda-api dependencies
+
 ## [6.3.0]
 
 - feat(wear): select a per-server custom view in Android settings and display its live server-backed items below the watch capture controls
