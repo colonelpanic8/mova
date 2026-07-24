@@ -20,4 +20,13 @@
     <item name="android:gravity">top</item>
     <item name="colorPrimary">@color/colorPrimary</item>
   </style>
+  <style name="Theme.VoiceCapture" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowNoTitle">true</item>
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:backgroundDimEnabled">false</item>
+    <item name="android:windowAnimationStyle">@null</item>
+    <item name="colorPrimary">@color/colorPrimary</item>
+  </style>
 </resources>

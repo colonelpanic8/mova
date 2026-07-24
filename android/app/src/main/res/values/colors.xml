@@ -3,4 +3,15 @@
   <color name="iconBackground">#FDF6E3</color>
   <color name="colorPrimary">#9B4DB8</color>
   <color name="colorPrimaryDark">#7B3D98</color>
+
+  <!-- MD3 light palette shared by the quick-capture surfaces -->
+  <color name="md_primary">#6750A4</color>
+  <color name="md_on_primary">#FFFFFF</color>
+  <color name="md_primary_container">#EADDFF</color>
+  <color name="md_on_primary_container">#21005D</color>
+  <color name="md_surface">#FEF7FF</color>
+  <color name="md_surface_container">#F3EDF7</color>
+  <color name="md_on_surface">#1C1B1F</color>
+  <color name="md_on_surface_variant">#49454F</color>
+  <color name="md_outline_variant">#CAC4D0</color>
 </resources>

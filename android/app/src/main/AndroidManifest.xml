@@ -53,6 +53,20 @@
         <data android:scheme="mova" android:host="capture"/>
       </intent-filter>
     </activity>
+    <activity
+        android:name=".VoiceQuickCaptureActivity"
+        android:exported="true"
+        android:theme="@style/Theme.VoiceCapture"
+        android:excludeFromRecents="true"
+        android:launchMode="singleInstance"
+        android:taskAffinity="">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="mova" android:host="capture-voice"/>
+      </intent-filter>
+    </activity>
     <receiver android:name=".widget.QuickCaptureWidget" android:exported="true" android:label="Mova Quick Capture">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>

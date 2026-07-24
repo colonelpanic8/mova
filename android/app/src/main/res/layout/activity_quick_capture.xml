@@ -3,8 +3,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="@android:color/white">
+    android:layout_margin="8dp"
+    android:padding="20dp"
+    android:background="@drawable/quick_capture_surface">
 
     <TextView
         android:id="@+id/capture_title"
@@ -13,21 +14,41 @@
         android:text="Quick Capture"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="#1C1B1F"
+        android:textColor="@color/md_on_surface"
         android:layout_marginBottom="12dp" />
 
-    <EditText
-        android:id="@+id/capture_edit_text"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter task..."
-        android:inputType="text"
-        android:imeOptions="actionDone"
-        android:background="@drawable/edit_text_background"
-        android:padding="12dp"
-        android:textSize="16sp"
-        android:textColor="#1C1B1F"
-        android:textColorHint="#49454F" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/capture_edit_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Enter task..."
+            android:inputType="text"
+            android:imeOptions="actionDone"
+            android:background="@drawable/edit_text_background"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:textColor="@color/md_on_surface"
+            android:textColorHint="@color/md_on_surface_variant" />
+
+        <ImageButton
+            android:id="@+id/capture_mic_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_mic"
+            android:tint="@color/md_primary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"
+            android:contentDescription="Capture by voice" />
+
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -39,8 +60,8 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:text="Capture"
-            android:backgroundTint="#6750A4"
-            android:textColor="@android:color/white" />
+            android:backgroundTint="@color/md_primary"
+            android:textColor="@color/md_on_primary" />
 
         <ProgressBar
             android:id="@+id/capture_progress"
@@ -48,7 +69,7 @@
             android:layout_height="24dp"
             android:layout_gravity="center"
             android:visibility="gone"
-            android:indeterminateTint="@android:color/white" />
+            android:indeterminateTint="@color/md_on_primary" />
 
     </FrameLayout>
 
