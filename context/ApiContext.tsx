@@ -1,6 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, createApiClient, OrgAgendaApi } from "@/services/api";
-import React, {
+import {
   createContext,
   ReactNode,
   useContext,

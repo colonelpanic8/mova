@@ -1,7 +1,6 @@
 // components/capture/StatePicker.tsx
 import { StatePill } from "@/components/StatePill";
 import { useTemplates } from "@/context/TemplatesContext";
-import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Divider, Text, useTheme } from "react-native-paper";
 

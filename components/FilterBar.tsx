@@ -1,6 +1,6 @@
 import { FilterChip } from "@/components/FilterChip";
 import { useFilters } from "@/context/FilterContext";
-import React, { useState } from "react";
+import { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Icon, Text, useTheme } from "react-native-paper";
 import { FilterModal } from "./FilterModal";

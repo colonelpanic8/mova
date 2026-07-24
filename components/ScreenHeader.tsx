@@ -1,4 +1,3 @@
-import React from "react";
 import { Image, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

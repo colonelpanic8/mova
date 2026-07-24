@@ -7,7 +7,7 @@
 
 import { Repeater, RepeaterType, RepeaterUnit } from "@/services/api";
 import { formatRepeaterDisplay } from "@/utils/repeaterFormatting";
-import React, { useState } from "react";
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   Button,

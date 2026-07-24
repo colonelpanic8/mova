@@ -1,7 +1,7 @@
 import { PlatformDatePicker } from "@/components/PlatformDatePicker";
 import { StatePill } from "@/components/StatePill";
 import { Todo } from "@/services/api";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import {
   Button,

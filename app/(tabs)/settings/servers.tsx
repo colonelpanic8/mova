@@ -2,7 +2,7 @@ import { CursorStableTextInput } from "@/components/CursorStableTextInput";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useAuth } from "@/context/AuthContext";
 import { SavedServer, SavedServerInput } from "@/types/server";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,

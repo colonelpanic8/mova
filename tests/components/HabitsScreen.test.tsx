@@ -51,7 +51,7 @@ jest.mock("../../hooks/useTodoEditing", () => ({
 }));
 
 let mockRunFocusEffects = false;
-jest.mock("@react-navigation/native", () => {
+jest.mock("expo-router", () => {
   const React = require("react");
   return {
     useFocusEffect: (callback: () => void | (() => void)) => {

@@ -9,7 +9,6 @@ import {
   TodoUpdates,
 } from "@/services/api";
 import { dateToTimestamp } from "@/utils/timestampConversion";
-import React from "react";
 
 export type EditModalType =
   | "schedule"

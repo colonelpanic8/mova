@@ -4,7 +4,7 @@ import { Todo } from "@/services/api";
 import { formatHour, formatTime } from "@/utils/timeFormatting";
 import { getTodoKey } from "@/utils/todoKey";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   Pressable,
   RefreshControl,

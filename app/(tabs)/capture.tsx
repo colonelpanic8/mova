@@ -21,7 +21,7 @@ import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
 import { CategoryType, TemplatePrompt, Timestamp } from "@/services/api";
 import { OutboxRequest } from "@/services/captureOutbox";
 import { formStringToTimestamp } from "@/utils/timestampConversion";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,

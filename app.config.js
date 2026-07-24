@@ -59,6 +59,7 @@ export default {
     },
     plugins: [
       "expo-router",
+      "expo-status-bar",
       "expo-secure-store",
       [
         "expo-splash-screen",

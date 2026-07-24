@@ -1,5 +1,4 @@
 import { Todo } from "@/services/api";
-import React from "react";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
 export interface DeleteConfirmDialogProps {

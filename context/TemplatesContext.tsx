@@ -19,7 +19,7 @@ import {
   subscribeToConfigHash,
 } from "@/services/configMetadata";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import React, {
+import {
   createContext,
   ReactNode,
   useCallback,

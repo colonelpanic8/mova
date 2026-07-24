@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { TextInput, TextInputProps } from "react-native-paper";
 
 interface CursorStableTextInputProps extends Omit<

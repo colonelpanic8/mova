@@ -14,7 +14,7 @@ import {
   setShowHabitsInAgenda as saveShowHabitsInAgenda,
   setUseClientCompletionTime as saveUseClientCompletionTime,
 } from "@/services/settings";
-import React, {
+import {
   createContext,
   ReactNode,
   useCallback,

@@ -17,7 +17,7 @@ import {
   timestampToFormString,
 } from "@/utils/timestampConversion";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,

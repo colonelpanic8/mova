@@ -1,5 +1,5 @@
 import { LogbookEntry } from "@/services/api";
-import React, { useState } from "react";
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Chip, List, Text, useTheme } from "react-native-paper";
 

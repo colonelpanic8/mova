@@ -6,7 +6,7 @@ import { useTemplates } from "@/context/TemplatesContext";
 import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, Pressable, StyleSheet, View } from "react-native";
 import {
   Chip,

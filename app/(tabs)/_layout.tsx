@@ -1,8 +1,6 @@
 import { CaptureBar } from "@/components/CaptureBar";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Tabs } from "expo-router";
-import React from "react";
+import { BottomTabBarProps, Tabs } from "expo-router/js-tabs";
 import { Pressable, View } from "react-native";
 import {
   KeyboardStickyView,

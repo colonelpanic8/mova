@@ -15,7 +15,7 @@ import { GetAllTodosResponse, Todo } from "@/services/api";
 import { filterTodos } from "@/utils/filterTodos";
 import { getTodoKey } from "@/utils/todoKey";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   RefreshControl,

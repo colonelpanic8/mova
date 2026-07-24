@@ -577,7 +577,7 @@ yarn validate
 If prettier fails:
 
 ```bash
-yarn prettier:fix
+yarn format
 ```
 
 **Step 3: Bump version (minor)**

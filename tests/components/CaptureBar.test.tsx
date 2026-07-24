@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
-import React from "react";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
 
 import { CaptureBar } from "../../components/CaptureBar";

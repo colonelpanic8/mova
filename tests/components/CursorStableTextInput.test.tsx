@@ -1,5 +1,5 @@
 import { act, render, waitFor } from "@testing-library/react-native";
-import React, { useState } from "react";
+import { useState } from "react";
 
 import { CursorStableTextInput } from "../../components/CursorStableTextInput";
 

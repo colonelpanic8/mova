@@ -14,7 +14,7 @@ import {
   PRESET_COLORS,
   THEME_COLOR_OPTIONS,
 } from "@/types/colors";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   Button,

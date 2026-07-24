@@ -6,7 +6,7 @@ import { SavedServer } from "@/types/server";
 import { normalizeUrl } from "@/utils/url";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Image,
   Platform,

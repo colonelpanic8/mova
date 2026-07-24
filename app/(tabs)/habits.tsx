@@ -14,9 +14,9 @@ import { HabitStatus, Todo } from "@/services/api";
 import { computeHabitGraphWindow } from "@/utils/habitGraphLayout";
 import { isHabitTodo } from "@/utils/habits";
 import { getTodoKey } from "@/utils/todoKey";
-import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import React, { useCallback, useMemo } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useMemo } from "react";
 import {
   FlatList,
   RefreshControl,

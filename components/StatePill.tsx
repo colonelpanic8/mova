@@ -1,6 +1,5 @@
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { getContrastColor } from "@/utils/color";
-import React from "react";
 import { StyleSheet } from "react-native";
 import { Chip } from "react-native-paper";
 

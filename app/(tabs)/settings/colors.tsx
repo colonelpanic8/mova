@@ -18,7 +18,7 @@ import {
 } from "@/types/colors";
 import { getAutoColorForCategory } from "@/utils/categoryColors";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,

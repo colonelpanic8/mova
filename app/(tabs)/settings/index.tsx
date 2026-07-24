@@ -34,7 +34,7 @@ import {
 import { formatRelativeTime } from "@/utils/timeFormatting";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -142,7 +142,7 @@ export default function SettingsScreen() {
     if (!activeServer?.defaultCaptureTemplate || !templates) return "Not set";
     const template = templates[activeServer.defaultCaptureTemplate];
     return template?.name || "Not set";
-  }, [activeServer?.defaultCaptureTemplate, templates]);
+  }, [activeServer, templates]);
 
   // Effective default done state (setting or auto-detect)
   const effectiveDefaultDoneState = useEffectiveDoneState();

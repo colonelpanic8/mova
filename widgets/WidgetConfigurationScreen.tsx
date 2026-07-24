@@ -1,6 +1,6 @@
 import { createApiClient, TemplatesResponse } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NativeModules, ScrollView, StyleSheet, View } from "react-native";
 import type { WidgetConfigurationScreenProps } from "react-native-android-widget";
 import {

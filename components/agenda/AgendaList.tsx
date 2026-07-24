@@ -3,7 +3,6 @@ import { TodoItem } from "@/components/TodoItem";
 import { AgendaEntry, HabitStatus } from "@/services/api";
 import { isHabitTodo } from "@/utils/habits";
 import { getTodoKey } from "@/utils/todoKey";
-import React from "react";
 import {
   RefreshControl,
   SectionList,

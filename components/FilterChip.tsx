@@ -1,5 +1,4 @@
 import { ActiveFilter, FilterType } from "@/context/FilterContext";
-import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Icon, MD3Theme, Text, useTheme } from "react-native-paper";
 

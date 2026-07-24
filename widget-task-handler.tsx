@@ -1,4 +1,3 @@
-import React from "react";
 import { NativeModules } from "react-native";
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import { FlexWidget, TextWidget } from "react-native-android-widget";

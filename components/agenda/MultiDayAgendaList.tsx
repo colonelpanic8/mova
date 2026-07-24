@@ -3,7 +3,6 @@ import { Todo } from "@/services/api";
 import { MultiDaySectionItem } from "@/utils/habitAgenda";
 import { isHabitTodo } from "@/utils/habits";
 import { getTodoKey } from "@/utils/todoKey";
-import React from "react";
 import { RefreshControl, SectionList, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 

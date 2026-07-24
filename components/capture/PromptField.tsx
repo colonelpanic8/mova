@@ -5,7 +5,7 @@ import {
   formatLocalDate as formatDateForApi,
   formatDateForDisplay,
 } from "@/utils/dateFormatting";
-import React, {
+import {
   forwardRef,
   useImperativeHandle,
   useMemo,

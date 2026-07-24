@@ -1,5 +1,4 @@
 // components/capture/PriorityPicker.tsx
-import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Chip, Text } from "react-native-paper";
 

@@ -5,7 +5,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { Repeater, Todo } from "@/services/api";
 import { timestampToFormString } from "@/utils/timestampConversion";
-import React, { forwardRef, useImperativeHandle, useRef } from "react";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import { DateFieldWithQuickActions } from "./DateFieldWithQuickActions";
 
 /** The org-mode fields shared by the capture and edit forms. */

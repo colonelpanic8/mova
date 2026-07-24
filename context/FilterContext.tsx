@@ -1,5 +1,5 @@
 import { useSettings } from "@/context/SettingsContext";
-import React, {
+import {
   createContext,
   ReactNode,
   useCallback,

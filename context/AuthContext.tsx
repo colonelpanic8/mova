@@ -20,7 +20,7 @@ import {
   saveCredentialsToWidget,
 } from "@/widgets/storage";
 import { useQueryClient } from "@tanstack/react-query";
-import React, {
+import {
   createContext,
   ReactNode,
   useCallback,

@@ -8,7 +8,7 @@ import {
   getAllScheduledNotifications,
   ScheduledNotificationInfo,
 } from "@/services/notifications";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,

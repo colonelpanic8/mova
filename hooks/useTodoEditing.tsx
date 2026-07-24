@@ -9,7 +9,7 @@ import { Todo, TodoStatesResponse } from "@/services/api";
 import { formatLocalDate } from "@/utils/dateFormatting";
 import { dateToTimestamp, timestampToDate } from "@/utils/timestampConversion";
 import { getTodoKey } from "@/utils/todoKey";
-import React, {
+import {
   createContext,
   ReactNode,
   useCallback,

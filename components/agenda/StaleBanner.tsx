@@ -1,5 +1,4 @@
 import { formatRelativeTime } from "@/utils/timeFormatting";
-import React from "react";
 import { StyleSheet, View } from "react-native";
 import { IconButton, Text, useTheme } from "react-native-paper";
 

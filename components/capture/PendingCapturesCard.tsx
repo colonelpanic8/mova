@@ -2,7 +2,6 @@ import {
   getOutboxEntryTitle,
   type OutboxEntry,
 } from "@/services/captureOutbox";
-import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, Icon, Surface, Text, useTheme } from "react-native-paper";
 
