@@ -3,6 +3,9 @@
   <string name="voice_capture_name">Mova Voice Capture</string>
   <string name="quick_capture_tile_label">Mova Quick Capture</string>
   <string name="quick_capture_tile_description">Capture a todo by voice from the Wear OS tile carousel</string>
+  <string name="agenda_tile_label">Mova Agenda</string>
+  <string name="agenda_tile_description">See today\'s agenda and check items off from the Wear OS tile carousel</string>
+  <string name="agenda_activity_name">Mova Agenda</string>
 
   <string name="voice_prompt">What should Mova capture?</string>
   <string name="mic_button_description">Capture a todo by voice</string>

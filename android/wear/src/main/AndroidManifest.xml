@@ -37,6 +37,11 @@
       </intent-filter>
     </activity>
 
+    <activity
+        android:name=".AgendaActivity"
+        android:exported="true"
+        android:label="@string/agenda_activity_name"/>
+
     <service
         android:name=".ConfigListenerService"
         android:exported="true">
@@ -62,6 +67,21 @@
       <meta-data
           android:name="androidx.wear.tiles.PREVIEW"
           android:resource="@drawable/tile_preview"/>
+    </service>
+
+    <service
+        android:name=".AgendaTileService"
+        android:description="@string/agenda_tile_description"
+        android:exported="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/agenda_tile_label"
+        android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+      <intent-filter>
+        <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER"/>
+      </intent-filter>
+      <meta-data
+          android:name="androidx.wear.tiles.PREVIEW"
+          android:resource="@drawable/agenda_tile_preview"/>
     </service>
   </application>
 </manifest>

@@ -28,6 +28,7 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
   private lateinit var titleInput: EditText
   private lateinit var micButton: ImageButton
   private lateinit var sendButton: ImageButton
+  private lateinit var agendaChip: LinearLayout
   private lateinit var syncChip: LinearLayout
   private lateinit var syncChipLabel: TextView
   private lateinit var statusText: TextView
@@ -42,6 +43,9 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
     super.onCreate(savedInstanceState)
     setContentView(buildContentView())
 
+    agendaChip.setOnClickListener {
+      startActivity(Intent(this, AgendaActivity::class.java))
+    }
     micButton.setOnClickListener {
       launchVoiceCapture()
     }
@@ -105,6 +109,36 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
       gravity = Gravity.CENTER
       setPadding(0, dp(4), 0, dp(12))
     }
+
+    agendaChip = LinearLayout(this).apply {
+      orientation = LinearLayout.HORIZONTAL
+      gravity = Gravity.CENTER
+      background = getDrawable(R.drawable.bg_chip)
+      setPadding(dp(14), dp(6), dp(16), dp(6))
+      isClickable = true
+      contentDescription = "Open today's agenda"
+    }
+    agendaChip.addView(
+      ImageView(this).apply {
+        setImageResource(R.drawable.ic_list)
+        // ic_list is tinted dark for the teal tile edge button; on the dark
+        // chip it needs the light secondary tint instead.
+        setColorFilter(getColor(R.color.text_secondary))
+      },
+      LinearLayout.LayoutParams(dp(16), dp(16)),
+    )
+    agendaChip.addView(
+      TextView(this).apply {
+        text = "Today's agenda"
+        textSize = 12f
+        isAllCaps = false
+        setTextColor(getColor(R.color.text_secondary))
+      },
+      LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+      ).apply { marginStart = dp(6) },
+    )
 
     micButton = ImageButton(this).apply {
       background = getDrawable(R.drawable.bg_icon_primary)
@@ -195,6 +229,14 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
 
     content.addView(heading, matchWrap())
     content.addView(statusText, matchWrap())
+    content.addView(
+      agendaChip,
+      wrap(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        bottomMargin = dp(12),
+      ),
+    )
     content.addView(micButton, wrap(dp(56), dp(56)))
     content.addView(inputRow, matchWrap(topMargin = dp(12), fixedHeight = dp(44)))
     content.addView(

@@ -10,4 +10,5 @@
   <color name="ripple">#33FFFFFF</color>
   <color name="text_primary">#F6F8FA</color>
   <color name="text_secondary">#B9C2CA</color>
+  <color name="warn">#F2B85C</color>
 </resources>
