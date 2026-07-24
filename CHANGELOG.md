@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [6.5.0]
 
 - feat(wear): redesign the watch app around a single capture surface — mic button, input pill, queued-sync chip and next actions now share one shape language and theme
 - feat(wear): capture by voice instantly — the tile and the app's mic button launch the recognizer immediately and submit (or queue) the result without extra taps
