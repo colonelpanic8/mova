@@ -136,17 +136,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { apiUrl, username, password } = await getStoredCredentials();
 
         if (apiUrl && username && password) {
-          const configuredServer =
+          // Repair the active-server linkage. Sessions from older versions can
+          // have credentials without a saved-server entry, or an active id
+          // pointing at a server that no longer exists. Settings stored on the
+          // active server (default capture template, watch custom view) then
+          // silently fail to save.
+          let activeServer =
             servers.find((server) => server.id === storedActiveId) ??
             servers.find(
               (server) =>
                 server.apiUrl === apiUrl && server.username === username,
             );
+          if (!activeServer) {
+            activeServer = await saveServerToStorage({
+              apiUrl,
+              username,
+              password,
+            });
+            await refreshSavedServers();
+          }
+          if (activeServer.id !== storedActiveId) {
+            await setActiveServerId(activeServer.id);
+            setActiveServerIdState(activeServer.id);
+          }
           await saveCredentialsToWidget(
             apiUrl,
             username,
             password,
-            configuredServer?.watchCustomView,
+            activeServer.watchCustomView,
           );
           setState({
             apiUrl,
@@ -163,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setState((prev) => ({ ...prev, isLoading: false }));
       }
     }
-  }, []);
+  }, [refreshSavedServers]);
 
   const login = useCallback(
     async (

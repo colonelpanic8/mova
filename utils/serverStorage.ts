@@ -107,17 +107,19 @@ export async function updateServer(
 ): Promise<void> {
   const servers = await getSavedServers();
   const index = servers.findIndex((s) => s.id === id);
-  if (index !== -1) {
-    if (typeof updates.password === "string") {
-      await setServerPassword(id, updates.password);
-    }
-    const { password: _password, ...rest } = updates;
-    servers[index] = { ...servers[index], ...rest };
-    await AsyncStorage.setItem(
-      STORAGE_KEYS.SAVED_SERVERS,
-      JSON.stringify(servers.map(({ hasPassword, ...s }) => s)),
-    );
+  if (index === -1) {
+    console.warn(`updateServer: no saved server with id ${id}; update dropped`);
+    return;
   }
+  if (typeof updates.password === "string") {
+    await setServerPassword(id, updates.password);
+  }
+  const { password: _password, ...rest } = updates;
+  servers[index] = { ...servers[index], ...rest };
+  await AsyncStorage.setItem(
+    STORAGE_KEYS.SAVED_SERVERS,
+    JSON.stringify(servers.map(({ hasPassword, ...s }) => s)),
+  );
 }
 
 export async function deleteServer(id: string): Promise<void> {
