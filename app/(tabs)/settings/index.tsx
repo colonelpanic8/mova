@@ -4,6 +4,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
+import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
 import {
   AgendaFilesResponse,
@@ -99,11 +100,11 @@ export default function SettingsScreen() {
   const [syncIntervalMinutes, setSyncIntervalMinutesState] = useState<number>(
     DEFAULT_SYNC_INTERVAL_MINUTES,
   );
-  const [syncIntervalMenuVisible, setSyncIntervalMenuVisible] = useState(false);
+  const syncIntervalMenu = useMenuPickerWorkaround();
   const [horizonDays, setHorizonDaysState] = useState<number>(
     DEFAULT_NOTIFICATION_HORIZON_DAYS,
   );
-  const [horizonMenuVisible, setHorizonMenuVisible] = useState(false);
+  const horizonMenu = useMenuPickerWorkaround();
   const [showPassword, setShowPassword] = useState(false);
   const [backendVersion, setBackendVersion] = useState<VersionResponse | null>(
     null,
@@ -120,9 +121,9 @@ export default function SettingsScreen() {
       prefireVerification: false,
       registerBackgroundSync: false,
     });
-  const [templateMenuVisible, setTemplateMenuVisible] = useState(false);
-  const [watchViewMenuVisible, setWatchViewMenuVisible] = useState(false);
-  const [doneStateMenuVisible, setDoneStateMenuVisible] = useState(false);
+  const templateMenu = useMenuPickerWorkaround();
+  const watchViewMenu = useMenuPickerWorkaround();
+  const doneStateMenu = useMenuPickerWorkaround();
   const [callingFunction, setCallingFunction] = useState<string | null>(null);
 
   const activeServer = useMemo(
@@ -148,35 +149,38 @@ export default function SettingsScreen() {
   const effectiveDefaultDoneState = useEffectiveDoneState();
 
   const handleDoneStateSelect = useCallback(
-    async (state: string | null) => {
-      setDoneStateMenuVisible(false);
-      await setDefaultDoneState(state);
+    (state: string | null) => {
+      doneStateMenu.select(() => {
+        void setDefaultDoneState(state);
+      });
     },
-    [setDefaultDoneState],
+    [doneStateMenu, setDefaultDoneState],
   );
 
   const handleTemplateSelect = useCallback(
-    async (templateKey: string) => {
-      setTemplateMenuVisible(false);
-      if (activeServerId) {
-        await updateServer(activeServerId, {
-          defaultCaptureTemplate: templateKey,
-        });
-      }
+    (templateKey: string) => {
+      templateMenu.select(() => {
+        if (activeServerId) {
+          void updateServer(activeServerId, {
+            defaultCaptureTemplate: templateKey,
+          });
+        }
+      });
     },
-    [activeServerId, updateServer],
+    [activeServerId, templateMenu, updateServer],
   );
 
   const handleWatchViewSelect = useCallback(
-    async (view: CustomView | null) => {
-      setWatchViewMenuVisible(false);
-      if (activeServerId) {
-        await updateServer(activeServerId, {
-          watchCustomView: view ?? undefined,
-        });
-      }
+    (view: CustomView | null) => {
+      watchViewMenu.select(() => {
+        if (activeServerId) {
+          void updateServer(activeServerId, {
+            watchCustomView: view ?? undefined,
+          });
+        }
+      });
     },
-    [activeServerId, updateServer],
+    [activeServerId, updateServer, watchViewMenu],
   );
 
   const handleCallFunction = useCallback(
@@ -299,31 +303,33 @@ export default function SettingsScreen() {
   );
 
   const handleSyncIntervalSelect = useCallback(
-    async (minutes: number) => {
-      const effective = await setNotificationSyncIntervalMinutes(minutes);
-      setSyncIntervalMinutesState(effective);
-      setSyncIntervalMenuVisible(false);
+    (minutes: number) => {
+      syncIntervalMenu.select(async () => {
+        const effective = await setNotificationSyncIntervalMinutes(minutes);
+        setSyncIntervalMinutesState(effective);
 
-      // Apply immediately to background fetch scheduling, when notifications are enabled.
-      if (notificationsEnabled) {
-        await registerBackgroundSync();
-        refreshBackgroundSyncInfo();
-      }
+        // Apply immediately to background fetch scheduling, when notifications are enabled.
+        if (notificationsEnabled) {
+          await registerBackgroundSync();
+          refreshBackgroundSyncInfo();
+        }
+      });
     },
-    [notificationsEnabled, refreshBackgroundSyncInfo],
+    [notificationsEnabled, refreshBackgroundSyncInfo, syncIntervalMenu],
   );
 
   const handleHorizonSelect = useCallback(
-    async (days: number) => {
-      const effective = await setNotificationHorizonDays(days);
-      setHorizonDaysState(effective);
-      setHorizonMenuVisible(false);
-      if (notificationsEnabled) {
-        // Re-sync now so we have enough notifications scheduled ahead.
-        syncNotifications();
-      }
+    (days: number) => {
+      horizonMenu.select(async () => {
+        const effective = await setNotificationHorizonDays(days);
+        setHorizonDaysState(effective);
+        if (notificationsEnabled) {
+          // Re-sync now so we have enough notifications scheduled ahead.
+          syncNotifications();
+        }
+      });
     },
-    [notificationsEnabled, syncNotifications],
+    [horizonMenu, notificationsEnabled, syncNotifications],
   );
 
   const formatLastSync = (date: Date | null): string =>
@@ -403,15 +409,15 @@ export default function SettingsScreen() {
               title="Sync Interval"
               description={`Every ${syncIntervalMinutes} min (best-effort)`}
               left={(props) => <List.Icon {...props} icon="timer-outline" />}
-              onPress={() => setSyncIntervalMenuVisible(true)}
+              onPress={syncIntervalMenu.open}
               right={() => (
                 <Menu
-                  visible={syncIntervalMenuVisible}
-                  onDismiss={() => setSyncIntervalMenuVisible(false)}
+                  visible={syncIntervalMenu.visible}
+                  onDismiss={syncIntervalMenu.close}
                   anchor={
                     <IconButton
                       icon="chevron-down"
-                      onPress={() => setSyncIntervalMenuVisible(true)}
+                      onPress={syncIntervalMenu.open}
                     />
                   }
                 >
@@ -446,15 +452,15 @@ export default function SettingsScreen() {
               title="Schedule Ahead"
               description={`${horizonDays} day${horizonDays === 1 ? "" : "s"} (limited by OS)`}
               left={(props) => <List.Icon {...props} icon="calendar-range" />}
-              onPress={() => setHorizonMenuVisible(true)}
+              onPress={horizonMenu.open}
               right={() => (
                 <Menu
-                  visible={horizonMenuVisible}
-                  onDismiss={() => setHorizonMenuVisible(false)}
+                  visible={horizonMenu.visible}
+                  onDismiss={horizonMenu.close}
                   anchor={
                     <IconButton
                       icon="chevron-down"
-                      onPress={() => setHorizonMenuVisible(true)}
+                      onPress={horizonMenu.open}
                     />
                   }
                 >
@@ -580,8 +586,8 @@ export default function SettingsScreen() {
           )}
         />
         <Menu
-          visible={doneStateMenuVisible}
-          onDismiss={() => setDoneStateMenuVisible(false)}
+          visible={doneStateMenu.visible}
+          onDismiss={doneStateMenu.close}
           anchor={
             <List.Item
               title="Default Done State"
@@ -589,7 +595,7 @@ export default function SettingsScreen() {
                 defaultDoneState || `Auto (${effectiveDefaultDoneState})`
               }
               left={(props) => <List.Icon {...props} icon="check-circle" />}
-              onPress={() => setDoneStateMenuVisible(true)}
+              onPress={doneStateMenu.open}
               right={(props) => <List.Icon {...props} icon="chevron-down" />}
             />
           }
@@ -609,8 +615,8 @@ export default function SettingsScreen() {
           ))}
         </Menu>
         <Menu
-          visible={templateMenuVisible}
-          onDismiss={() => setTemplateMenuVisible(false)}
+          visible={templateMenu.visible}
+          onDismiss={templateMenu.close}
           anchor={
             <List.Item
               title="Default Capture Template"
@@ -618,7 +624,7 @@ export default function SettingsScreen() {
               left={(props) => (
                 <List.Icon {...props} icon="file-document-edit" />
               )}
-              onPress={() => setTemplateMenuVisible(true)}
+              onPress={templateMenu.open}
               right={(props) => <List.Icon {...props} icon="chevron-down" />}
             />
           }
@@ -638,14 +644,14 @@ export default function SettingsScreen() {
         </Menu>
         {Platform.OS === "android" && (
           <Menu
-            visible={watchViewMenuVisible}
-            onDismiss={() => setWatchViewMenuVisible(false)}
+            visible={watchViewMenu.visible}
+            onDismiss={watchViewMenu.close}
             anchor={
               <List.Item
                 title="Watch Custom View"
                 description={activeServer?.watchCustomView?.name ?? "Not set"}
                 left={(props) => <List.Icon {...props} icon="watch" />}
-                onPress={() => setWatchViewMenuVisible(true)}
+                onPress={watchViewMenu.open}
                 right={(props) => <List.Icon {...props} icon="chevron-down" />}
               />
             }
