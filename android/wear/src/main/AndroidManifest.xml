@@ -48,5 +48,20 @@
             android:pathPrefix="/mova"/>
       </intent-filter>
     </service>
+
+    <service
+        android:name=".QuickCaptureTileService"
+        android:description="@string/quick_capture_tile_description"
+        android:exported="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/quick_capture_tile_label"
+        android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+      <intent-filter>
+        <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER"/>
+      </intent-filter>
+      <meta-data
+          android:name="androidx.wear.tiles.PREVIEW"
+          android:resource="@drawable/tile_preview"/>
+    </service>
   </application>
 </manifest>

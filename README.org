@@ -242,6 +242,10 @@ Note: the home-screen widget, quick-capture activity, and Wear OS
 companion app are Android-only; iOS currently has no counterpart for
 these capture surfaces.
 
+The Wear OS companion also provides a =Mova Quick Capture= Tile. Add it
+from the watch's tile picker to launch voice capture directly by swiping
+from the watch face and tapping =Capture=.
+
 ** Configuration
 :PROPERTIES:
 :CUSTOM_ID: configuration

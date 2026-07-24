@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- feat(wear): add a swipe-accessible Quick Capture Tile that launches voice capture
+
 ## [6.3.4]
 
 - fix(auth): store server passwords under SecureStore-compatible keys — the old colon-prefixed keys threw on Android, leaving the saved-server list empty (per-server settings could never save) and, in 6.3.3, logging users out at startup and misreporting login as a connection failure
