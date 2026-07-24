@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.3.3]
+
+- fix(auth): repair the active-server link on startup so per-server settings (default capture template, watch custom view) persist again for sessions missing a saved-server entry or carrying a stale active server id
+
 ## [6.3.2]
 
 - fix(settings): make dropdown selections apply reliably after their menus close
