@@ -26,10 +26,13 @@ import {
 } from "react-native";
 import {
   ActivityIndicator,
+  Button,
   IconButton,
   Text,
   useTheme,
 } from "react-native-paper";
+
+const INITIAL_LOAD_RETRY_DELAY_MS = 750;
 
 export default function ViewsScreen() {
   const [selectedViewKey, setSelectedViewKey] = useState<string | null>(null);
@@ -45,6 +48,8 @@ export default function ViewsScreen() {
     queryKey: queryKeys.views(identity ?? SIGNED_OUT_IDENTITY),
     enabled: Boolean(api && identity),
     queryFn: () => api!.getCustomViews(),
+    retry: 1,
+    retryDelay: INITIAL_LOAD_RETRY_DELAY_MS,
   });
   const { refetch: refetchViews } = viewsQuery;
   const views = viewsQuery.data?.views ?? [];
@@ -61,6 +66,8 @@ export default function ViewsScreen() {
     queryKey: entriesKey,
     enabled: Boolean(api && identity && selectedViewKey),
     queryFn: () => api!.getCustomView(selectedViewKey!),
+    retry: 1,
+    retryDelay: INITIAL_LOAD_RETRY_DELAY_MS,
   });
   const { refetch: refetchEntries } = entriesQuery;
   const selectedView = selectedViewKey ? (entriesQuery.data ?? null) : null;
@@ -103,12 +110,15 @@ export default function ViewsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (selectedViewKey) {
-      await refetchEntries();
-    } else {
-      await refetchViews();
+    try {
+      if (selectedViewKey) {
+        await refetchEntries();
+      } else {
+        await refetchViews();
+      }
+    } finally {
+      setRefreshing(false);
     }
-    setRefreshing(false);
   }, [selectedViewKey, refetchEntries, refetchViews]);
 
   const handleViewPress = useCallback((view: CustomView) => {
@@ -132,9 +142,36 @@ export default function ViewsScreen() {
   if (error) {
     return (
       <ScreenContainer>
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: theme.colors.outlineVariant },
+          ]}
+        >
+          {selectedViewKey ? (
+            <IconButton
+              icon="arrow-left"
+              onPress={handleBack}
+              testID="viewBackButton"
+            />
+          ) : (
+            <View style={{ width: 48 }} />
+          )}
+          <Text variant="titleMedium" style={styles.headerTitle}>
+            {selectedViewKey ? "View" : "Views"}
+          </Text>
+          <IconButton
+            icon="refresh"
+            onPress={onRefresh}
+            disabled={refreshing}
+            testID={
+              selectedViewKey ? "viewRefreshButton" : "viewsRefreshButton"
+            }
+          />
+        </View>
         <ScrollView
           testID="viewsErrorView"
-          contentContainerStyle={[styles.centered, { flexGrow: 1 }]}
+          contentContainerStyle={styles.errorState}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -146,6 +183,22 @@ export default function ViewsScreen() {
           >
             {error}
           </Text>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            Pull to refresh or tap retry.
+          </Text>
+          <Button
+            mode="outlined"
+            icon="refresh"
+            onPress={onRefresh}
+            loading={refreshing}
+            disabled={refreshing}
+            testID={selectedViewKey ? "viewRetryButton" : "viewsRetryButton"}
+          >
+            Retry
+          </Button>
         </ScrollView>
       </ScreenContainer>
     );
@@ -274,6 +327,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  errorState: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    padding: 24,
   },
   header: {
     flexDirection: "row",
