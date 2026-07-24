@@ -11,14 +11,34 @@ const STORAGE_KEYS = {
   ACTIVE_SERVER_ID: "mova_active_server_id",
 };
 
-const SERVER_PASSWORD_PREFIX = "mova_server_password:";
+// Native SecureStore only accepts alphanumeric keys plus ".", "-", and "_".
+// The legacy prefix used a colon, so every native secret write threw and, via
+// getSavedServers's catch-all, made the whole saved-server list unreadable.
+const SERVER_PASSWORD_PREFIX = "mova_server_password.";
+const LEGACY_SERVER_PASSWORD_PREFIX = "mova_server_password:";
 
 function passwordKey(id: string) {
   return `${SERVER_PASSWORD_PREFIX}${id}`;
 }
 
 async function getServerPassword(id: string): Promise<string | null> {
-  return await getSecret(passwordKey(id));
+  const password = await getSecret(passwordKey(id));
+  if (password !== null) {
+    return password;
+  }
+  // Colon-prefixed keys could only ever be written on web (AsyncStorage
+  // backend); migrate them. On native the read itself throws — nothing was
+  // ever stored there.
+  try {
+    const legacy = await getSecret(`${LEGACY_SERVER_PASSWORD_PREFIX}${id}`);
+    if (legacy !== null) {
+      await setSecret(passwordKey(id), legacy);
+      await deleteSecret(`${LEGACY_SERVER_PASSWORD_PREFIX}${id}`);
+    }
+    return legacy;
+  } catch {
+    return null;
+  }
 }
 
 async function setServerPassword(id: string, password: string): Promise<void> {
@@ -52,29 +72,36 @@ export async function getSavedServers(): Promise<SavedServer[]> {
     // Drop malformed entries (no usable id) instead of passing them through.
     const entries = Array.isArray(parsed) ? parsed.filter(isStoredServer) : [];
 
-    // Migrate legacy stored passwords into secure store, and remove from AsyncStorage.
+    // Migrate legacy stored passwords into secure store, and remove from
+    // AsyncStorage. A failed migration keeps that entry's plaintext password
+    // in place so a later read can retry — it must never invalidate the list.
     let didMigrate = false;
-    const sanitized: Omit<SavedServer, "hasPassword">[] = await Promise.all(
-      entries.map(async (s) => {
-        if (typeof s.password === "string" && s.password.length > 0) {
-          await setServerPassword(s.id, s.password);
+    const persisted: StoredServer[] = [];
+    for (const entry of entries) {
+      let stored = entry;
+      if (typeof entry.password === "string" && entry.password.length > 0) {
+        try {
+          await setServerPassword(entry.id, entry.password);
           didMigrate = true;
+          const { password: _password, ...rest } = entry;
+          stored = rest;
+        } catch (error) {
+          console.warn("Failed to migrate stored server password:", error);
         }
-        const { password: _password, ...rest } = s;
-        return rest;
-      }),
-    );
+      }
+      persisted.push(stored);
+    }
 
     if (didMigrate) {
       await AsyncStorage.setItem(
         STORAGE_KEYS.SAVED_SERVERS,
-        JSON.stringify(sanitized),
+        JSON.stringify(persisted),
       );
     }
 
     const withFlags: SavedServer[] = await Promise.all(
-      sanitized.map(async (s) => {
-        const pw = await getServerPassword(s.id);
+      persisted.map(async ({ password, ...s }) => {
+        const pw = password ?? (await getServerPassword(s.id));
         return { ...s, hasPassword: !!pw };
       }),
     );

@@ -142,6 +142,21 @@ describe("active-server repair on startup", () => {
     expect(stored[0].defaultCaptureTemplate).toBe("todo");
   });
 
+  it("stays authenticated when saved-server storage fails during repair", async () => {
+    seedCredentials();
+    const { setSecret } = jest.requireMock("../../utils/secretStore");
+    (setSecret as jest.Mock).mockImplementation((key: string) =>
+      key.startsWith("mova_server_password")
+        ? Promise.reject(new Error("Invalid key provided to SecureStore"))
+        : Promise.resolve(),
+    );
+
+    const result = await renderAuth();
+
+    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current.apiUrl).toBe("https://server1.com");
+  });
+
   it("keeps a valid active id untouched", async () => {
     seedCredentials();
     mockAsyncStore.set("mova_active_server_id", "srv2");

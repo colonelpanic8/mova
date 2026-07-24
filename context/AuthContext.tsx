@@ -147,23 +147,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               (server) =>
                 server.apiUrl === apiUrl && server.username === username,
             );
-          if (!activeServer) {
-            activeServer = await saveServerToStorage({
-              apiUrl,
-              username,
-              password,
-            });
-            await refreshSavedServers();
-          }
-          if (activeServer.id !== storedActiveId) {
-            await setActiveServerId(activeServer.id);
-            setActiveServerIdState(activeServer.id);
+          try {
+            if (!activeServer) {
+              activeServer = await saveServerToStorage({
+                apiUrl,
+                username,
+                password,
+              });
+              await refreshSavedServers();
+            }
+            if (activeServer.id !== storedActiveId) {
+              await setActiveServerId(activeServer.id);
+              setActiveServerIdState(activeServer.id);
+            }
+          } catch (error) {
+            // The repair is best-effort: a storage failure here must never
+            // log the user out of an otherwise-valid session.
+            console.error("Failed to repair active server:", error);
           }
           await saveCredentialsToWidget(
             apiUrl,
             username,
             password,
-            activeServer.watchCustomView,
+            activeServer?.watchCustomView,
           );
           setState({
             apiUrl,
@@ -233,37 +239,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           let serverForSync: SavedServer | undefined;
 
-          // Save to server list if requested
-          if (save) {
-            // Check if server already exists
-            const currentServers = await getSavedServers();
-            const existing = currentServers.find(
-              (s) => s.apiUrl === normalizedUrl && s.username === username,
-            );
-            if (!existing) {
-              const newServer = await saveServerToStorage({
-                apiUrl: normalizedUrl,
-                username,
-                password,
-              });
-              serverForSync = newServer;
-              await setActiveServerId(newServer.id);
-              setActiveServerIdState(newServer.id);
-              await refreshSavedServers();
+          // Server-list bookkeeping must never fail an otherwise-successful
+          // login — the credentials are validated and already stored above.
+          try {
+            // Save to server list if requested
+            if (save) {
+              // Check if server already exists
+              const currentServers = await getSavedServers();
+              const existing = currentServers.find(
+                (s) => s.apiUrl === normalizedUrl && s.username === username,
+              );
+              if (!existing) {
+                const newServer = await saveServerToStorage({
+                  apiUrl: normalizedUrl,
+                  username,
+                  password,
+                });
+                serverForSync = newServer;
+                await setActiveServerId(newServer.id);
+                setActiveServerIdState(newServer.id);
+                await refreshSavedServers();
+              } else {
+                serverForSync = existing;
+                // Always keep the stored password up to date (secure store).
+                await updateServerInStorage(existing.id, { password });
+                await refreshSavedServers();
+                await setActiveServerId(existing.id);
+                setActiveServerIdState(existing.id);
+              }
             } else {
-              serverForSync = existing;
-              // Always keep the stored password up to date (secure store).
-              await updateServerInStorage(existing.id, { password });
-              await refreshSavedServers();
-              await setActiveServerId(existing.id);
-              setActiveServerIdState(existing.id);
+              const currentServers = await getSavedServers();
+              serverForSync = currentServers.find(
+                (server) =>
+                  server.apiUrl === normalizedUrl &&
+                  server.username === username,
+              );
             }
-          } else {
-            const currentServers = await getSavedServers();
-            serverForSync = currentServers.find(
-              (server) =>
-                server.apiUrl === normalizedUrl && server.username === username,
-            );
+          } catch (error) {
+            console.error("Failed to update saved servers after login:", error);
           }
 
           // Save for the Android widget and sync the selected per-server view

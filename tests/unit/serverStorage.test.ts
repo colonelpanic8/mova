@@ -144,6 +144,131 @@ describe("serverStorage", () => {
     });
   });
 
+  describe("native SecureStore key compatibility", () => {
+    // Native SecureStore rejects keys outside this charset. The mock enforces
+    // it so any key regression fails here instead of only on-device.
+    const VALID_KEY = /^[\w.-]+$/;
+    let secretMap: Map<string, string>;
+
+    function invalidKey(key: string) {
+      return Promise.reject(
+        new Error(
+          `Invalid key provided to SecureStore: ${key}. Keys must not be ` +
+            'empty and contain only alphanumeric characters, ".", "-", and "_".',
+        ),
+      );
+    }
+
+    beforeEach(() => {
+      secretMap = new Map();
+      const { getSecret, setSecret, deleteSecret } = jest.requireMock(
+        "../../utils/secretStore",
+      );
+      (getSecret as jest.Mock).mockImplementation((key: string) =>
+        VALID_KEY.test(key)
+          ? Promise.resolve(secretMap.get(key) ?? null)
+          : invalidKey(key),
+      );
+      (setSecret as jest.Mock).mockImplementation(
+        (key: string, value: string) => {
+          if (!VALID_KEY.test(key)) return invalidKey(key);
+          secretMap.set(key, value);
+          return Promise.resolve();
+        },
+      );
+      (deleteSecret as jest.Mock).mockImplementation((key: string) => {
+        if (!VALID_KEY.test(key)) return invalidKey(key);
+        secretMap.delete(key);
+        return Promise.resolve();
+      });
+    });
+
+    it("saveServer stores the password under a key native SecureStore accepts", async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+      const server = await saveServer({
+        apiUrl: "https://server1.com",
+        username: "user1",
+        password: "pass1",
+      });
+      expect(secretMap.get(`mova_server_password.${server.id}`)).toBe("pass1");
+    });
+
+    it("getSavedServers migrates plaintext passwords without wiping the list", async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify([
+          {
+            id: "abc123",
+            apiUrl: "https://server1.com",
+            username: "user1",
+            password: "pass1",
+          },
+        ]),
+      );
+
+      const servers = await getSavedServers();
+
+      expect(servers).toHaveLength(1);
+      expect(servers[0].hasPassword).toBe(true);
+      expect(secretMap.get("mova_server_password.abc123")).toBe("pass1");
+    });
+
+    it("keeps the server list readable when a password migration fails", async () => {
+      const { setSecret } = jest.requireMock("../../utils/secretStore");
+      (setSecret as jest.Mock).mockRejectedValue(
+        new Error("storage unavailable"),
+      );
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify([
+          {
+            id: "abc123",
+            apiUrl: "https://server1.com",
+            username: "user1",
+            password: "pass1",
+          },
+        ]),
+      );
+
+      const servers = await getSavedServers();
+
+      expect(servers).toHaveLength(1);
+      expect(servers[0].hasPassword).toBe(true);
+      // The plaintext copy must survive (no rewrite) so migration can retry.
+      expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+    });
+
+    it("migrates web-stored passwords from the legacy colon-prefixed key", async () => {
+      // Web's AsyncStorage backend accepted the colon key; emulate it with a
+      // permissive store seeded with a legacy entry.
+      secretMap.set("mova_server_password:abc123", "pass1");
+      const { getSecret, setSecret, deleteSecret } = jest.requireMock(
+        "../../utils/secretStore",
+      );
+      (getSecret as jest.Mock).mockImplementation((key: string) =>
+        Promise.resolve(secretMap.get(key) ?? null),
+      );
+      (setSecret as jest.Mock).mockImplementation(
+        (key: string, value: string) => {
+          secretMap.set(key, value);
+          return Promise.resolve();
+        },
+      );
+      (deleteSecret as jest.Mock).mockImplementation((key: string) => {
+        secretMap.delete(key);
+        return Promise.resolve();
+      });
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify([
+          { id: "abc123", apiUrl: "https://server1.com", username: "user1" },
+        ]),
+      );
+
+      const servers = await getSavedServers();
+
+      expect(servers[0].hasPassword).toBe(true);
+      expect(secretMap.get("mova_server_password.abc123")).toBe("pass1");
+    });
+  });
+
   describe("getActiveServerId", () => {
     it("should return stored active server id", async () => {
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue("server-123");
