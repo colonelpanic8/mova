@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- feat(wear): redesign the watch app around a single capture surface — mic button, input pill, queued-sync chip and next actions now share one shape language and theme
+- feat(wear): capture by voice instantly — the tile and the app's mic button launch the recognizer immediately and submit (or queue) the result without extra taps
+- feat(widget): add a mic button to the phone quick-capture widget that starts voice capture directly, and restyle the widget and capture dialog to match the app's MD3 theme
+
 ## [6.4.0]
 
 - feat(wear): add a swipe-accessible Quick Capture Tile that launches voice capture

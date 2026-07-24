@@ -2,19 +2,21 @@ package com.colonelpanic.mova.wear
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.text.InputType
 import android.text.format.DateUtils
 import android.view.Gravity
+import android.view.View
 import android.view.inputmethod.EditorInfo
-import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.wear.tiles.TileService
 import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
@@ -22,12 +24,14 @@ import com.google.android.gms.wearable.DataMap
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
 
-open class MainActivity : Activity(), DataClient.OnDataChangedListener {
+class MainActivity : Activity(), DataClient.OnDataChangedListener {
   private lateinit var titleInput: EditText
-  private lateinit var voiceButton: Button
-  private lateinit var submitButton: Button
-  private lateinit var retryButton: Button
+  private lateinit var micButton: ImageButton
+  private lateinit var sendButton: ImageButton
+  private lateinit var syncChip: LinearLayout
+  private lateinit var syncChipLabel: TextView
   private lateinit var statusText: TextView
+  private lateinit var pendingSection: LinearLayout
   private lateinit var pendingHeading: TextView
   private lateinit var pendingList: LinearLayout
   private lateinit var customViewHeading: TextView
@@ -38,13 +42,13 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
     super.onCreate(savedInstanceState)
     setContentView(buildContentView())
 
-    voiceButton.setOnClickListener {
+    micButton.setOnClickListener {
       launchVoiceCapture()
     }
-    submitButton.setOnClickListener {
+    sendButton.setOnClickListener {
       submitCurrentText()
     }
-    retryButton.setOnClickListener {
+    syncChip.setOnClickListener {
       processPendingTodos()
     }
     titleInput.setOnEditorActionListener { _, actionId, _ ->
@@ -71,7 +75,12 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
   }
 
   private fun buildContentView(): ScrollView {
-    val padding = dp(18)
+    val metrics = resources.displayMetrics
+    // Round-screen insets scale with the display so content clears the bezel.
+    val horizontalInset = (metrics.widthPixels * 0.10f).toInt()
+    val topInset = (metrics.heightPixels * 0.12f).toInt()
+    val bottomInset = (metrics.heightPixels * 0.14f).toInt()
+
     val root = ScrollView(this).apply {
       setBackgroundColor(getColor(R.color.background))
       isFillViewport = true
@@ -80,99 +89,136 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
     val content = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
       gravity = Gravity.CENTER_HORIZONTAL
-      setPadding(padding, padding, padding, padding)
+      setPadding(horizontalInset, topInset, horizontalInset, bottomInset)
     }
 
     val heading = TextView(this).apply {
       text = "Mova"
-      textSize = 20f
+      textSize = 16f
       setTextColor(getColor(R.color.text_primary))
       gravity = Gravity.CENTER
     }
 
     statusText = TextView(this).apply {
-      textSize = 12f
+      textSize = 11f
       setTextColor(getColor(R.color.text_secondary))
       gravity = Gravity.CENTER
-      setPadding(0, dp(6), 0, dp(10))
+      setPadding(0, dp(4), 0, dp(12))
+    }
+
+    micButton = ImageButton(this).apply {
+      background = getDrawable(R.drawable.bg_icon_primary)
+      setImageResource(R.drawable.ic_mic)
+      scaleType = ImageView.ScaleType.CENTER_INSIDE
+      stateListAnimator = null
+      contentDescription = getString(R.string.mic_button_description)
+    }
+
+    val inputRow = LinearLayout(this).apply {
+      orientation = LinearLayout.HORIZONTAL
+      gravity = Gravity.CENTER_VERTICAL
+      background = getDrawable(R.drawable.bg_input)
     }
 
     titleInput = EditText(this).apply {
-      hint = "Todo"
+      hint = "Add a todo"
       setSingleLine(true)
       inputType = InputType.TYPE_CLASS_TEXT or
         InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
       imeOptions = EditorInfo.IME_ACTION_SEND
-      gravity = Gravity.CENTER
       setTextColor(getColor(R.color.text_primary))
       setHintTextColor(getColor(R.color.text_secondary))
-      background = getDrawable(R.drawable.bg_input)
-      setPadding(dp(16), 0, dp(16), 0)
-    }
-
-    voiceButton = Button(this).apply {
-      text = "Voice capture"
-      textSize = 17f
-      isAllCaps = false
-      setTextColor(getColor(R.color.on_primary))
-      background = getDrawable(R.drawable.bg_button_primary)
-      stateListAnimator = null
-      minHeight = dp(64)
-      setPadding(dp(20), 0, dp(20), 0)
-    }
-
-    submitButton = Button(this).apply {
-      text = "Capture"
-      textSize = 15f
-      isAllCaps = false
-      setTextColor(getColor(R.color.text_primary))
-      background = getDrawable(R.drawable.bg_button_secondary)
-      stateListAnimator = null
-      minHeight = dp(48)
-      setPadding(dp(20), 0, dp(20), 0)
-    }
-
-    retryButton = Button(this).apply {
-      text = "Retry queued"
       textSize = 14f
+      background = null
+      setPadding(dp(16), 0, dp(8), 0)
+    }
+
+    sendButton = ImageButton(this).apply {
+      background = getDrawable(R.drawable.bg_icon_primary)
+      setImageResource(R.drawable.ic_send)
+      scaleType = ImageView.ScaleType.CENTER_INSIDE
+      stateListAnimator = null
+      contentDescription = getString(R.string.send_button_description)
+    }
+
+    inputRow.addView(
+      titleInput,
+      LinearLayout.LayoutParams(0, dp(36), 1f),
+    )
+    inputRow.addView(
+      sendButton,
+      LinearLayout.LayoutParams(dp(34), dp(34)).apply {
+        marginEnd = dp(4)
+      },
+    )
+
+    syncChip = LinearLayout(this).apply {
+      orientation = LinearLayout.HORIZONTAL
+      gravity = Gravity.CENTER_VERTICAL
+      background = getDrawable(R.drawable.bg_chip)
+      setPadding(dp(14), dp(6), dp(16), dp(6))
+      isClickable = true
+      visibility = View.GONE
+    }
+    val syncChipIcon = ImageView(this).apply {
+      setImageResource(R.drawable.ic_sync)
+    }
+    syncChipLabel = TextView(this).apply {
+      textSize = 12f
       isAllCaps = false
       setTextColor(getColor(R.color.text_secondary))
-      background = getDrawable(R.drawable.bg_button_tertiary)
-      stateListAnimator = null
-      minHeight = dp(44)
-      setPadding(dp(20), 0, dp(20), 0)
     }
+    syncChip.addView(syncChipIcon, LinearLayout.LayoutParams(dp(16), dp(16)))
+    syncChip.addView(
+      syncChipLabel,
+      LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+      ).apply { marginStart = dp(6) },
+    )
 
-    pendingHeading = activityHeading("Pending")
+    pendingHeading = sectionHeading("Pending")
     pendingList = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
     }
-    customViewHeading = activityHeading("Watch view")
+    pendingSection = LinearLayout(this).apply {
+      orientation = LinearLayout.VERTICAL
+      visibility = View.GONE
+    }
+    pendingSection.addView(pendingHeading, matchWrap())
+    pendingSection.addView(pendingList, matchWrap())
+
+    customViewHeading = sectionHeading("Watch view")
     customViewList = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
     }
 
     content.addView(heading, matchWrap())
     content.addView(statusText, matchWrap())
-    content.addView(voiceButton, matchWrap(bottomMargin = dp(10)))
-    content.addView(titleInput, matchFixedHeight(48))
-    content.addView(submitButton, matchWrap(topMargin = dp(10)))
-    content.addView(retryButton, matchWrap(topMargin = dp(6)))
-    content.addView(pendingHeading, matchWrap(topMargin = dp(18)))
-    content.addView(pendingList, matchWrap())
+    content.addView(micButton, wrap(dp(56), dp(56)))
+    content.addView(inputRow, matchWrap(topMargin = dp(12), fixedHeight = dp(44)))
+    content.addView(
+      syncChip,
+      wrap(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        topMargin = dp(10),
+      ),
+    )
+    content.addView(pendingSection, matchWrap(topMargin = dp(16)))
     content.addView(customViewHeading, matchWrap(topMargin = dp(14)))
-    content.addView(customViewList, matchWrap(bottomMargin = dp(12)))
+    content.addView(customViewList, matchWrap(bottomMargin = dp(4)))
     root.addView(content)
     return root
   }
 
-  protected fun launchVoiceCapture() {
+  private fun launchVoiceCapture() {
     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
       putExtra(
         RecognizerIntent.EXTRA_LANGUAGE_MODEL,
         RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
       )
-      putExtra(RecognizerIntent.EXTRA_PROMPT, "What should Mova capture?")
+      putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt))
       putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
     }
 
@@ -284,17 +330,33 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
   }
 
   private fun refreshStatus(prefix: String? = null) {
+    TileService.getUpdater(this).requestUpdate(QuickCaptureTileService::class.java)
     val configured = MovaWearStorage.getCredentials(this) != null
     val pendingCount = MovaWearStorage.getPendingTodos(this).size
     val configText = if (configured) "Ready" else "Needs phone sync"
     val queueText = if (pendingCount > 0) " · $pendingCount queued" else ""
     setStatus(listOfNotNull(prefix, "$configText$queueText").joinToString("\n"))
-    refreshPendingList()
+
+    if (configured && pendingCount > 0) {
+      syncChipLabel.text = "Sync $pendingCount queued"
+      syncChip.visibility = View.VISIBLE
+    } else {
+      syncChip.visibility = View.GONE
+    }
+
+    refreshPendingList(pendingCount)
   }
 
-  private fun refreshPendingList() {
+  private fun refreshPendingList(pendingCount: Int) {
+    if (pendingCount == 0) {
+      pendingSection.visibility = View.GONE
+      pendingList.removeAllViews()
+      return
+    }
+
     val pending = MovaWearStorage.getPendingTodos(this)
-    pendingHeading.text = "Pending (${pending.size})"
+    pendingSection.visibility = View.VISIBLE
+    pendingHeading.text = "Pending · ${pending.size}"
     populateActivityList(
       pendingList,
       pending.asReversed().take(MAX_VISIBLE_ACTIVITY_ITEMS).map {
@@ -304,7 +366,7 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
           label = "Queued",
         )
       },
-      "Nothing waiting to sync",
+      "",
     )
   }
 
@@ -369,6 +431,9 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
   ) {
     container.removeAllViews()
     if (items.isEmpty()) {
+      if (emptyText.isBlank()) {
+        return
+      }
       container.addView(
         TextView(this).apply {
           text = emptyText
@@ -385,8 +450,8 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
     items.forEach { item ->
       val row = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        background = getDrawable(R.drawable.bg_activity_item)
-        setPadding(dp(12), dp(8), dp(12), dp(8))
+        background = getDrawable(R.drawable.bg_card)
+        setPadding(dp(12), dp(10), dp(12), dp(10))
         contentDescription = "${item.label}: ${item.text}"
       }
       row.addView(
@@ -408,7 +473,7 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
           matchWrap(topMargin = dp(2)),
         )
       }
-      container.addView(row, matchWrap(bottomMargin = dp(5)))
+      container.addView(row, matchWrap(bottomMargin = dp(6)))
     }
   }
 
@@ -420,13 +485,13 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
       DateUtils.FORMAT_ABBREV_RELATIVE,
     )
 
-  private fun activityHeading(label: String): TextView =
+  private fun sectionHeading(label: String): TextView =
     TextView(this).apply {
       text = label
-      textSize = 14f
+      textSize = 12f
       setTextColor(getColor(R.color.primary))
       gravity = Gravity.START
-      setPadding(dp(4), 0, dp(4), dp(5))
+      setPadding(dp(4), 0, dp(4), dp(6))
     }
 
   private fun syncConfigFromDataLayer() {
@@ -511,7 +576,7 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
 
   private fun setBusy(isBusy: Boolean, status: String? = null) {
     val alpha = if (isBusy) 0.5f else 1f
-    for (control in listOf(titleInput, voiceButton, submitButton, retryButton)) {
+    for (control in listOf(titleInput, micButton, sendButton, syncChip)) {
       control.isEnabled = !isBusy
       control.alpha = alpha
     }
@@ -527,20 +592,26 @@ open class MainActivity : Activity(), DataClient.OnDataChangedListener {
   private fun matchWrap(
     topMargin: Int = 0,
     bottomMargin: Int = 0,
+    fixedHeight: Int = LinearLayout.LayoutParams.WRAP_CONTENT,
   ): LinearLayout.LayoutParams =
     LinearLayout.LayoutParams(
       LinearLayout.LayoutParams.MATCH_PARENT,
-      LinearLayout.LayoutParams.WRAP_CONTENT,
+      fixedHeight,
     ).apply {
       this.topMargin = topMargin
       this.bottomMargin = bottomMargin
     }
 
-  private fun matchFixedHeight(height: Int): LinearLayout.LayoutParams =
-    LinearLayout.LayoutParams(
-      LinearLayout.LayoutParams.MATCH_PARENT,
-      height,
-    )
+  private fun wrap(
+    width: Int,
+    height: Int,
+    topMargin: Int = 0,
+    bottomMargin: Int = 0,
+  ): LinearLayout.LayoutParams =
+    LinearLayout.LayoutParams(width, height).apply {
+      this.topMargin = topMargin
+      this.bottomMargin = bottomMargin
+    }
 
   private fun dp(value: Int): Int =
     (value * resources.displayMetrics.density).toInt()

@@ -5,17 +5,17 @@
     </shape>
   </item>
   <item
-      android:width="48dp"
-      android:height="4dp"
+      android:width="60dp"
+      android:height="5dp"
       android:gravity="top|center_horizontal"
-      android:top="36dp">
+      android:top="38dp">
     <shape android:shape="rectangle">
       <corners android:radius="2dp"/>
       <solid android:color="@color/text_primary"/>
     </shape>
   </item>
   <item
-      android:width="112dp"
+      android:width="120dp"
       android:height="4dp"
       android:gravity="center">
     <shape android:shape="rectangle">
@@ -24,19 +24,29 @@
     </shape>
   </item>
   <item
-      android:width="144dp"
-      android:height="42dp"
-      android:bottom="24dp"
+      android:width="140dp"
+      android:height="44dp"
+      android:bottom="22dp"
       android:gravity="bottom|center_horizontal">
     <shape android:shape="rectangle">
-      <corners android:radius="21dp"/>
+      <corners android:radius="22dp"/>
       <solid android:color="@color/primary"/>
     </shape>
   </item>
   <item
-      android:width="58dp"
+      android:width="11dp"
+      android:height="17dp"
+      android:bottom="40dp"
+      android:gravity="bottom|center_horizontal">
+    <shape android:shape="rectangle">
+      <corners android:radius="6dp"/>
+      <solid android:color="@color/on_primary"/>
+    </shape>
+  </item>
+  <item
+      android:width="19dp"
       android:height="4dp"
-      android:bottom="43dp"
+      android:bottom="34dp"
       android:gravity="bottom|center_horizontal">
     <shape android:shape="rectangle">
       <corners android:radius="2dp"/>
