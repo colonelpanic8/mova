@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.3.2]
+
+- fix(settings): make dropdown selections apply reliably after their menus close
+
 ## [6.3.1]
 
 - fix(android): upgrade React Native Paper to include the upstream Android menu selection fixes
