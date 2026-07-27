@@ -27,6 +27,7 @@ import com.google.android.gms.wearable.Wearable
 class MainActivity : Activity(), DataClient.OnDataChangedListener {
   private lateinit var titleInput: EditText
   private lateinit var micButton: ImageButton
+  private lateinit var assistantButton: ImageButton
   private lateinit var sendButton: ImageButton
   private lateinit var agendaChip: LinearLayout
   private lateinit var syncChip: LinearLayout
@@ -48,6 +49,9 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
     }
     micButton.setOnClickListener {
       launchVoiceCapture()
+    }
+    assistantButton.setOnClickListener {
+      startActivity(Intent(this, AssistantVoiceActivity::class.java))
     }
     sendButton.setOnClickListener {
       submitCurrentText()
@@ -147,6 +151,26 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
       stateListAnimator = null
       contentDescription = getString(R.string.mic_button_description)
     }
+    assistantButton = ImageButton(this).apply {
+      background = getDrawable(R.drawable.bg_icon_primary)
+      setImageResource(R.drawable.ic_auto_awesome)
+      scaleType = ImageView.ScaleType.CENTER_INSIDE
+      stateListAnimator = null
+      contentDescription = getString(R.string.assistant_button_description)
+    }
+
+    val voiceActionRow = LinearLayout(this).apply {
+      orientation = LinearLayout.HORIZONTAL
+      gravity = Gravity.CENTER
+    }
+    voiceActionRow.addView(
+      micButton,
+      LinearLayout.LayoutParams(dp(56), dp(56)).apply { marginEnd = dp(6) },
+    )
+    voiceActionRow.addView(
+      assistantButton,
+      LinearLayout.LayoutParams(dp(56), dp(56)).apply { marginStart = dp(6) },
+    )
 
     val inputRow = LinearLayout(this).apply {
       orientation = LinearLayout.HORIZONTAL
@@ -237,7 +261,7 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
         bottomMargin = dp(12),
       ),
     )
-    content.addView(micButton, wrap(dp(56), dp(56)))
+    content.addView(voiceActionRow, matchWrap())
     content.addView(inputRow, matchWrap(topMargin = dp(12), fixedHeight = dp(44)))
     content.addView(
       syncChip,
@@ -542,10 +566,18 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
         var configFound = false
         try {
           dataItems
-            .filter { item -> item.uri.path == CONFIG_PATH }
+            .filter { item ->
+              item.uri.path == CONFIG_PATH ||
+                item.uri.path == ASSISTANT_CONFIG_PATH
+            }
             .forEach { item ->
               val dataMap = DataMapItem.fromDataItem(item).dataMap
-              configFound = applyConfig(dataMap) || configFound
+              val applied = when (item.uri.path) {
+                CONFIG_PATH -> applyConfig(dataMap)
+                ASSISTANT_CONFIG_PATH -> applyAssistantConfig(dataMap)
+                else -> false
+              }
+              configFound = applied || configFound
             }
         } finally {
           dataItems.release()
@@ -562,12 +594,19 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
       dataEvents
         .filter { event ->
           event.type == DataEvent.TYPE_CHANGED &&
-            event.dataItem.uri.path == CONFIG_PATH
+            (
+              event.dataItem.uri.path == CONFIG_PATH ||
+                event.dataItem.uri.path == ASSISTANT_CONFIG_PATH
+              )
         }
         .forEach { event ->
-          configChanged =
-            applyConfig(DataMapItem.fromDataItem(event.dataItem).dataMap) ||
-            configChanged
+          val dataMap = DataMapItem.fromDataItem(event.dataItem).dataMap
+          val applied = when (event.dataItem.uri.path) {
+            CONFIG_PATH -> applyConfig(dataMap)
+            ASSISTANT_CONFIG_PATH -> applyAssistantConfig(dataMap)
+            else -> false
+          }
+          configChanged = applied || configChanged
         }
     } finally {
       dataEvents.release()
@@ -604,6 +643,20 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
     return true
   }
 
+  private fun applyAssistantConfig(dataMap: DataMap): Boolean {
+    if (!dataMap.getBoolean("configured", false)) {
+      MovaWearStorage.clearOpenAiSettings(this)
+      return true
+    }
+    val apiKey = dataMap.getString("apiKey")
+    val model = dataMap.getString("model")
+    if (apiKey.isNullOrBlank() || model.isNullOrBlank()) {
+      return false
+    }
+    MovaWearStorage.saveOpenAiSettings(this, apiKey, model)
+    return true
+  }
+
   private fun handleConfigUpdated() {
     if (
       MovaWearStorage.getCredentials(this) != null &&
@@ -618,7 +671,7 @@ class MainActivity : Activity(), DataClient.OnDataChangedListener {
 
   private fun setBusy(isBusy: Boolean, status: String? = null) {
     val alpha = if (isBusy) 0.5f else 1f
-    for (control in listOf(titleInput, micButton, sendButton, syncChip)) {
+    for (control in listOf(titleInput, micButton, assistantButton, sendButton, syncChip)) {
       control.isEnabled = !isBusy
       control.alpha = alpha
     }

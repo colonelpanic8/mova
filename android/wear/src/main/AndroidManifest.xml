@@ -42,6 +42,17 @@
         android:exported="true"
         android:label="@string/agenda_activity_name"/>
 
+    <activity
+        android:name=".AssistantVoiceActivity"
+        android:exported="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/assistant_voice_name">
+      <intent-filter>
+        <action android:name="com.colonelpanic.mova.action.ASSISTANT_VOICE"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
+    </activity>
+
     <service
         android:name=".ConfigListenerService"
         android:exported="true">

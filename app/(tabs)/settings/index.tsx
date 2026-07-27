@@ -1,3 +1,4 @@
+import { PasswordInput } from "@/components/PasswordInput";
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -32,7 +33,17 @@ import {
   getNotificationSyncIntervalMinutes,
   setNotificationSyncIntervalMinutes,
 } from "@/services/notificationSyncConfig";
+import {
+  clearOpenAiSettings,
+  DEFAULT_OPENAI_MODEL,
+  getOpenAiSettings,
+  saveOpenAiSettings,
+} from "@/services/openAiSettings";
 import { formatRelativeTime } from "@/utils/timeFormatting";
+import {
+  clearAssistantSettingsFromWatch,
+  syncAssistantSettingsToWatch,
+} from "@/widgets/storage";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -52,6 +63,7 @@ import {
   Menu,
   Switch,
   Text,
+  TextInput,
   useTheme,
 } from "react-native-paper";
 
@@ -125,6 +137,11 @@ export default function SettingsScreen() {
   const watchViewMenu = useMenuPickerWorkaround();
   const doneStateMenu = useMenuPickerWorkaround();
   const [callingFunction, setCallingFunction] = useState<string | null>(null);
+  const [openAiApiKey, setOpenAiApiKey] = useState("");
+  const [openAiModel, setOpenAiModel] = useState(DEFAULT_OPENAI_MODEL);
+  const [openAiConfigured, setOpenAiConfigured] = useState(false);
+  const [savingOpenAi, setSavingOpenAi] = useState(false);
+  const [openAiStatus, setOpenAiStatus] = useState<string | null>(null);
 
   const activeServer = useMemo(
     () => savedServers.find((s) => s.id === activeServerId),
@@ -224,6 +241,20 @@ export default function SettingsScreen() {
       .then(setHorizonDaysState)
       .catch(() => {
         // Keep default.
+      });
+  }, []);
+
+  useEffect(() => {
+    getOpenAiSettings()
+      .then((settings) => {
+        if (!settings) return;
+        setOpenAiApiKey(settings.apiKey);
+        setOpenAiModel(settings.model);
+        setOpenAiConfigured(true);
+      })
+      .catch((error) => {
+        console.error("Failed to load OpenAI settings:", error);
+        setOpenAiStatus("Could not load the saved OpenAI settings");
       });
   }, []);
 
@@ -349,6 +380,48 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleSaveOpenAi = async () => {
+    const apiKey = openAiApiKey.trim();
+    const model = openAiModel.trim() || DEFAULT_OPENAI_MODEL;
+    if (!apiKey) {
+      setOpenAiStatus("Enter an OpenAI API key");
+      return;
+    }
+
+    setSavingOpenAi(true);
+    setOpenAiStatus(null);
+    try {
+      await saveOpenAiSettings({ apiKey, model });
+      await syncAssistantSettingsToWatch(apiKey, model);
+      setOpenAiModel(model);
+      setOpenAiConfigured(true);
+      setOpenAiStatus("Saved and queued for watch sync");
+    } catch (error) {
+      console.error("Failed to save OpenAI settings:", error);
+      setOpenAiStatus("Could not save the OpenAI settings");
+    } finally {
+      setSavingOpenAi(false);
+    }
+  };
+
+  const handleClearOpenAi = async () => {
+    setSavingOpenAi(true);
+    setOpenAiStatus(null);
+    try {
+      await clearOpenAiSettings();
+      await clearAssistantSettingsFromWatch();
+      setOpenAiApiKey("");
+      setOpenAiModel(DEFAULT_OPENAI_MODEL);
+      setOpenAiConfigured(false);
+      setOpenAiStatus("OpenAI disconnected");
+    } catch (error) {
+      console.error("Failed to clear OpenAI settings:", error);
+      setOpenAiStatus("Could not clear the OpenAI settings");
+    } finally {
+      setSavingOpenAi(false);
+    }
+  };
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -382,6 +455,66 @@ export default function SettingsScreen() {
           onPress={() => router.navigate("/(tabs)/settings/servers")}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
         />
+      </List.Section>
+
+      <Divider />
+
+      <List.Section>
+        <List.Subheader>Watch Assistant</List.Subheader>
+        <Text style={styles.sectionDescription}>
+          Dictated watch requests go directly to OpenAI, which can use your
+          connected org-agenda-api through Mova&apos;s tool allowlist. The key
+          is stored securely on the phone and watch.
+        </Text>
+        <PasswordInput
+          testID="openAiApiKeyInput"
+          label="OpenAI API key"
+          value={openAiApiKey}
+          onChangeText={setOpenAiApiKey}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.providerInput}
+        />
+        <TextInput
+          testID="openAiModelInput"
+          label="Model"
+          value={openAiModel}
+          onChangeText={setOpenAiModel}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.providerInput}
+        />
+        {openAiStatus && (
+          <Text
+            style={[
+              styles.providerStatus,
+              !openAiConfigured && { color: theme.colors.error },
+            ]}
+          >
+            {openAiStatus}
+          </Text>
+        )}
+        <View style={styles.providerActions}>
+          <Button
+            mode="contained"
+            icon="content-save"
+            onPress={handleSaveOpenAi}
+            loading={savingOpenAi}
+            disabled={savingOpenAi || !openAiApiKey.trim()}
+          >
+            Save
+          </Button>
+          {openAiConfigured && (
+            <Button
+              mode="text"
+              icon="link-off"
+              onPress={handleClearOpenAi}
+              disabled={savingOpenAi}
+            >
+              Disconnect
+            </Button>
+          )}
+        </View>
       </List.Section>
 
       <Divider />
@@ -857,5 +990,24 @@ const styles = StyleSheet.create({
     minWidth: 24,
     textAlign: "center",
     fontSize: 16,
+  },
+  sectionDescription: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    opacity: 0.75,
+  },
+  providerInput: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  providerStatus: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  providerActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
 });

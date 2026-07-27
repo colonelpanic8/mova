@@ -77,4 +77,6 @@ dependencies {
     implementation("androidx.wear.protolayout:protolayout:1.4.1")
     implementation("androidx.wear.protolayout:protolayout-material3:1.4.1")
     implementation("com.google.guava:guava:33.4.8-android")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20250517")
 }

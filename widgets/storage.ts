@@ -94,6 +94,36 @@ export async function clearWidgetCredentials(): Promise<void> {
 }
 
 /**
+ * Sync the OpenAI provider configuration separately from org server
+ * credentials. The Wear data item is durable, so a temporarily disconnected
+ * watch receives the setting when it reconnects.
+ */
+export async function syncAssistantSettingsToWatch(
+  apiKey: string,
+  model: string,
+): Promise<void> {
+  if (Platform.OS !== "android" || !WearSync) return;
+
+  try {
+    await WearSync.syncAssistantSettings(apiKey, model);
+    console.log("[Wear] Assistant settings synced to Wear OS");
+  } catch (error) {
+    console.error("[Wear] Failed to sync assistant settings:", error);
+  }
+}
+
+export async function clearAssistantSettingsFromWatch(): Promise<void> {
+  if (Platform.OS !== "android" || !WearSync) return;
+
+  try {
+    await WearSync.clearAssistantSettings();
+    console.log("[Wear] Assistant settings cleared on Wear OS");
+  } catch (error) {
+    console.error("[Wear] Failed to clear assistant settings:", error);
+  }
+}
+
+/**
  * Get credentials from native SharedPreferences
  * Used by widget background task
  */

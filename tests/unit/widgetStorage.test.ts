@@ -5,6 +5,8 @@
 const mockStore: Record<string, string> = {};
 const mockSyncCredentials = jest.fn().mockResolvedValue(undefined);
 const mockClearCredentials = jest.fn().mockResolvedValue(undefined);
+const mockSyncAssistantSettings = jest.fn().mockResolvedValue(undefined);
+const mockClearAssistantSettings = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("react-native", () => ({
   Platform: { OS: "android" },
@@ -23,14 +25,18 @@ jest.mock("react-native", () => ({
     WearSync: {
       syncCredentials: mockSyncCredentials,
       clearCredentials: mockClearCredentials,
+      syncAssistantSettings: mockSyncAssistantSettings,
+      clearAssistantSettings: mockClearAssistantSettings,
     },
   },
 }));
 
 import {
+  clearAssistantSettingsFromWatch,
   clearWidgetCredentials,
   getWidgetCredentials,
   saveCredentialsToWidget,
+  syncAssistantSettingsToWatch,
 } from "../../widgets/storage";
 
 describe("widget credential storage", () => {
@@ -93,5 +99,16 @@ describe("widget credential storage", () => {
     const creds = await getWidgetCredentials();
     expect(creds).toEqual({ apiUrl: null, username: null, password: null });
     expect(mockClearCredentials).toHaveBeenCalled();
+  });
+
+  it("syncs and clears OpenAI settings independently of org credentials", async () => {
+    await syncAssistantSettingsToWatch("sk-test", "gpt-5.6-luna");
+    expect(mockSyncAssistantSettings).toHaveBeenCalledWith(
+      "sk-test",
+      "gpt-5.6-luna",
+    );
+
+    await clearAssistantSettingsFromWatch();
+    expect(mockClearAssistantSettings).toHaveBeenCalled();
   });
 });
