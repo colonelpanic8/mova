@@ -89,23 +89,45 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/mova-upload.keystore"
-            {
-              echo "MOVA_UPLOAD_STORE_FILE=$RUNNER_TEMP/mova-upload.keystore"
-              echo "MOVA_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
-              echo "MOVA_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS"
-              echo "MOVA_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
-            } >> "$GITHUB_ENV"
-            echo "Release keystore configured from secrets."
-          else
-            echo "No ANDROID_KEYSTORE_BASE64 secret available; release APKs will be signed with the debug keystore."
-          fi
+          for variable in \
+            ANDROID_KEYSTORE_BASE64 \
+            ANDROID_KEYSTORE_PASSWORD \
+            ANDROID_KEY_ALIAS \
+            ANDROID_KEY_PASSWORD; do
+            if [ -z "${!variable}" ]; then
+              echo "Release signing requires the $variable secret." >&2
+              exit 1
+            fi
+          done
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/mova-upload.keystore"
+          {
+            echo "MOVA_UPLOAD_STORE_FILE=$RUNNER_TEMP/mova-upload.keystore"
+            echo "MOVA_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "MOVA_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "MOVA_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+          echo "Release keystore configured from secrets."
 
       - name: Build APKs
         run: |
           cd android
           ./gradlew :app:assembleRelease :wear:assembleRelease -PreactNativeArchitectures=arm64-v8a
+
+      - name: Report APK sizes
+        run: |
+          ls -lh \
+            android/app/build/outputs/apk/release/app-release.apk \
+            android/wear/build/outputs/apk/release/wear-release.apk
+          {
+            echo "### Release APK sizes"
+            echo
+            for apk in \
+              android/app/build/outputs/apk/release/app-release.apk \
+              android/wear/build/outputs/apk/release/wear-release.apk; do
+              echo "- \`$(basename "$apk")\`: $(stat -c '%s bytes' "$apk")"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

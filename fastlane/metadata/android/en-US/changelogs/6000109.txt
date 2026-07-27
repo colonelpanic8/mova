@@ -1,0 +1,2 @@
+* fix: agenda falls back to the single-day endpoint when the server rejects multi-day requests (servers without org-window-habit-mode could not load the agenda at all)
+* style: full-color state pills on agenda rows, compact tinted priority badges, and bold error-colored overdue dates

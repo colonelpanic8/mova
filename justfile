@@ -20,6 +20,17 @@ build-android-device:
 release-android:
     cd android && ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
 
+# Regenerate fastlane store changelogs from CHANGELOG.md and tagged package
+# versions. Pass --check to verify the committed files (what CI runs).
+fdroid-changelogs *args:
+    ./scripts/fdroid/changelogs.py "$@"
+
+# Build the self-hosted F-Droid repository into target/fdroid.
+# Requires fdroidserver, GitHub CLI authentication, and an index signing key;
+# see docs/fdroid.md.
+fdroid-repo:
+    ./scripts/fdroid/build-repo.sh
+
 # Clean Android build
 clean-android:
     cd android && ./gradlew clean

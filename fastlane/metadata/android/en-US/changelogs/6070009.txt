@@ -1,0 +1,3 @@
+* feat(fdroid): publish signed phone APK releases through a self-hosted F-Droid repository on GitHub Pages
+* perf(android): reduce the arm64 phone APK from 45.7 MB to 19.4 MB with R8, resource shrinking, optimized ProGuard defaults, and compressed native libraries
+* fix(release): require a private Android signing key and keep each F-Droid upgrade history on a single APK signer

@@ -25,6 +25,10 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+# Python helper caches
+__pycache__/
+*.py[cod]
+
 # ad-hoc debug e2e tests (must never be committed; may contain real credentials)
 e2e/debug-*.test.ts
 
@@ -68,6 +72,10 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
 fastlane/test_output
+
+# Generated F-Droid repository and GitHub Pages site
+/target/
+/site/
 
 # Editor backup files
 *~

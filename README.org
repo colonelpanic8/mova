@@ -16,6 +16,22 @@ Mova is a React Native/Expo application that connects to an org-agenda-api serve
 - Running custom agenda views
 - Receiving notifications for upcoming tasks
 
+** App Downloads
+:PROPERTIES:
+:CUSTOM_ID: app-downloads
+:END:
+On Android, add the Mova F-Droid repository to receive updates automatically:
+
+- https://colonelpanic8.github.io/mova/
+
+The phone and Wear OS APKs are also attached to each GitHub release:
+
+- https://github.com/colonelpanic8/mova/releases/latest
+
+The F-Droid repository serves the same signed phone APKs as the releases page,
+so installs from either source upgrade in place. See
+[[file:docs/fdroid.md][docs/fdroid.md]] for publication and repository setup details.
+
 ** Relationship to org-agenda-api
 :PROPERTIES:
 :CUSTOM_ID: relationship-to-org-agenda-api

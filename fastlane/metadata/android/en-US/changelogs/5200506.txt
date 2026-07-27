@@ -1,0 +1,2 @@
+* fix: normalize bare server hostnames to HTTPS before connecting
+* fix: keep server URL input cursor stable while editing

@@ -1,0 +1,100 @@
+name: Publish F-Droid Repository
+
+# Rebuilds https://colonelpanic8.github.io/mova/ from the signed phone APKs
+# attached to recent releases. "Build and Release APK" uploads the asset before
+# this workflow starts.
+
+on:
+  workflow_run:
+    workflows: ["Build and Release APK"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      release_count:
+        description: How many recent releases to index.
+        required: false
+        default: "4"
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and deploy F-Droid repository
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Changelog generation reads build numbers from release tags.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install fdroidserver
+        run: pip install --disable-pip-version-check fdroidserver
+
+      - name: Build F-Droid repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FDROID_OUT_DIR: ${{ github.workspace }}/target/fdroid
+          FDROID_RELEASE_COUNT: ${{ inputs.release_count || '4' }}
+          FDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          FDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          FDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          FDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./scripts/fdroid/build-repo.sh
+
+      - name: Assemble Pages site
+        run: |
+          set -euo pipefail
+          mkdir -p site/fdroid
+          cp -r target/fdroid/repo site/fdroid/repo
+          ./scripts/fdroid/landing-page.py target/fdroid site/index.html
+
+          echo "Site contents:"
+          du -sh site
+          ls -lh site/fdroid/repo
+
+      - name: Summarize
+        run: |
+          set -euo pipefail
+          {
+            echo "### F-Droid repository published"
+            echo
+            echo "Repo URL: \`$(sed -n 's/^repo_url:[[:space:]]*//p' fdroid/config.yml)\`"
+            if [ -f target/fdroid/fingerprint.txt ]; then
+              echo
+              echo "Fingerprint: \`$(cat target/fdroid/fingerprint.txt)\`"
+            fi
+            echo
+            echo "Indexed APKs:"
+            echo
+            for apk in site/fdroid/repo/*.apk; do
+              echo "- \`$(basename "$apk")\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
