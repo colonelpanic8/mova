@@ -8,8 +8,9 @@ import androidx.wear.protolayout.ResourceBuilders.Resources
 import androidx.wear.protolayout.TimelineBuilders.Timeline
 import androidx.wear.protolayout.material3.ColorScheme
 import androidx.wear.protolayout.material3.Typography.BODY_MEDIUM
+import androidx.wear.protolayout.material3.buttonGroup
 import androidx.wear.protolayout.material3.icon
-import androidx.wear.protolayout.material3.iconEdgeButton
+import androidx.wear.protolayout.material3.iconButton
 import androidx.wear.protolayout.material3.materialScope
 import androidx.wear.protolayout.material3.primaryLayout
 import androidx.wear.protolayout.material3.text
@@ -59,6 +60,15 @@ class QuickCaptureTileService : TileService() {
         ),
         id = "voice-capture",
       )
+      val assistantAction = clickable(
+        action = ActionBuilders.launchAction(
+          ComponentName(
+            this@QuickCaptureTileService,
+            AssistantVoiceActivity::class.java,
+          ),
+        ),
+        id = "assistant-voice",
+      )
 
       primaryLayout(
         titleSlot = {
@@ -77,11 +87,21 @@ class QuickCaptureTileService : TileService() {
           )
         },
         bottomSlot = {
-          iconEdgeButton(
-            onClick = voiceCaptureAction,
-            modifier = LayoutModifier.contentDescription("Capture a todo by voice"),
-          ) {
-            icon(protoLayoutResourceId = MIC_ICON_ID)
+          buttonGroup {
+            buttonGroupItem {
+              iconButton(
+                onClick = voiceCaptureAction,
+                modifier = LayoutModifier.contentDescription("Capture a todo by voice"),
+                iconContent = { icon(protoLayoutResourceId = MIC_ICON_ID) },
+              )
+            }
+            buttonGroupItem {
+              iconButton(
+                onClick = assistantAction,
+                modifier = LayoutModifier.contentDescription("Ask Mova by voice"),
+                iconContent = { icon(protoLayoutResourceId = ASSISTANT_ICON_ID) },
+              )
+            }
           }
         },
       )
@@ -111,12 +131,23 @@ class QuickCaptureTileService : TileService() {
             )
             .build(),
         )
+        .addIdToImageMapping(
+          ASSISTANT_ICON_ID,
+          ImageResource.Builder()
+            .setAndroidResourceByResId(
+              AndroidImageResourceByResId.Builder()
+                .setResourceId(R.drawable.ic_auto_awesome)
+                .build(),
+            )
+            .build(),
+        )
         .build(),
     )
 
   private companion object {
-    const val RESOURCES_VERSION = "2"
+    const val RESOURCES_VERSION = "3"
     const val MIC_ICON_ID = "mic"
+    const val ASSISTANT_ICON_ID = "assistant"
 
     // Teal-on-dark brand palette matching the watch app (see res/values/colors.xml).
     private val MOVA_COLOR_SCHEME = ColorScheme(

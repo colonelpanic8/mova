@@ -260,12 +260,39 @@ these capture surfaces.
 
 The Wear OS companion also provides a =Mova Quick Capture= Tile. Add it
 from the watch's tile picker to launch voice capture directly by swiping
-from the watch face and tapping =Capture=.
+from the watch face and tapping =Capture=. A second assistant button uses
+system dictation to send a text instruction to OpenAI, then lets the model
+read or change org data through an allowlisted set of org-agenda-api tools.
+Raw microphone audio is handled by the Wear OS speech recognizer and is not
+sent to OpenAI by Mova.
 
 ** Configuration
 :PROPERTIES:
 :CUSTOM_ID: configuration
 :END:
+*** Watch Assistant
+:PROPERTIES:
+:CUSTOM_ID: watch-assistant
+:END:
+
+To enable natural-language requests from Wear OS:
+
+1. Open Mova's Settings screen on the phone.
+2. Under =Watch Assistant=, enter an OpenAI API key and model.
+3. Tap =Save= while the watch is paired.
+
+The default model is =gpt-5.6-luna= for a latency/cost-sensitive watch
+workflow. The OpenAI key is kept in secure storage on the phone and in
+encrypted preferences on the watch. Assistant requests go directly from the
+watch to OpenAI's Responses API; tool calls then go directly from the watch to
+the configured org-agenda-api server.
+
+The assistant can search and count todos, inspect agendas and habits, capture,
+update, complete, or explicitly delete tasks, and use other allowlisted API
+operations. It resolves mutation targets to an org ID or exact file position
+before acting and asks for clarification rather than guessing when a target is
+ambiguous.
+
 *** Capture Templates
 :PROPERTIES:
 :CUSTOM_ID: capture-templates

@@ -17,6 +17,8 @@ private const val KEY_PASSWORD = "mova_password"
 private const val KEY_CUSTOM_VIEW_KEY = "mova_custom_view_key"
 private const val KEY_CUSTOM_VIEW_NAME = "mova_custom_view_name"
 private const val KEY_PENDING_TODOS = "mova_pending_todos"
+private const val KEY_OPENAI_API_KEY = "mova_openai_api_key"
+private const val KEY_OPENAI_MODEL = "mova_openai_model"
 
 data class WearCredentials(
   val apiUrl: String,
@@ -32,6 +34,11 @@ data class PendingTodo(
 data class WearCustomView(
   val key: String,
   val name: String,
+)
+
+data class WearOpenAiSettings(
+  val apiKey: String,
+  val model: String,
 )
 
 object MovaWearStorage {
@@ -91,6 +98,35 @@ object MovaWearStorage {
 
     return if (!apiUrl.isNullOrBlank() && !username.isNullOrBlank() && password != null) {
       WearCredentials(apiUrl, username, password)
+    } else {
+      null
+    }
+  }
+
+  fun saveOpenAiSettings(
+    context: Context,
+    apiKey: String,
+    model: String,
+  ) {
+    prefs(context).edit()
+      .putString(KEY_OPENAI_API_KEY, apiKey)
+      .putString(KEY_OPENAI_MODEL, model)
+      .apply()
+  }
+
+  fun clearOpenAiSettings(context: Context) {
+    prefs(context).edit()
+      .remove(KEY_OPENAI_API_KEY)
+      .remove(KEY_OPENAI_MODEL)
+      .apply()
+  }
+
+  fun getOpenAiSettings(context: Context): WearOpenAiSettings? {
+    val prefs = prefs(context)
+    val apiKey = prefs.getString(KEY_OPENAI_API_KEY, null)
+    val model = prefs.getString(KEY_OPENAI_MODEL, null)
+    return if (!apiKey.isNullOrBlank() && !model.isNullOrBlank()) {
+      WearOpenAiSettings(apiKey, model)
     } else {
       null
     }

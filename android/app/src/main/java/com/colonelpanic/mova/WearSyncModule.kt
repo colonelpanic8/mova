@@ -8,6 +8,7 @@ import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
 
 private const val CONFIG_PATH = "/mova/config"
+private const val ASSISTANT_CONFIG_PATH = "/mova/assistant-config"
 
 class WearSyncModule(
   private val reactContext: ReactApplicationContext,
@@ -54,6 +55,42 @@ class WearSyncModule(
       .addOnSuccessListener { promise.resolve(null) }
       .addOnFailureListener { error ->
         promise.reject("WEAR_SYNC_FAILED", error)
+      }
+  }
+
+  @ReactMethod
+  fun syncAssistantSettings(
+    apiKey: String,
+    model: String,
+    promise: Promise,
+  ) {
+    val request = PutDataMapRequest.create(ASSISTANT_CONFIG_PATH).apply {
+      dataMap.putBoolean("configured", true)
+      dataMap.putString("apiKey", apiKey)
+      dataMap.putString("model", model)
+      dataMap.putLong("updatedAt", System.currentTimeMillis())
+    }.asPutDataRequest().setUrgent()
+
+    Wearable.getDataClient(reactContext)
+      .putDataItem(request)
+      .addOnSuccessListener { promise.resolve(null) }
+      .addOnFailureListener { error ->
+        promise.reject("WEAR_ASSISTANT_SYNC_FAILED", error)
+      }
+  }
+
+  @ReactMethod
+  fun clearAssistantSettings(promise: Promise) {
+    val request = PutDataMapRequest.create(ASSISTANT_CONFIG_PATH).apply {
+      dataMap.putBoolean("configured", false)
+      dataMap.putLong("updatedAt", System.currentTimeMillis())
+    }.asPutDataRequest().setUrgent()
+
+    Wearable.getDataClient(reactContext)
+      .putDataItem(request)
+      .addOnSuccessListener { promise.resolve(null) }
+      .addOnFailureListener { error ->
+        promise.reject("WEAR_ASSISTANT_SYNC_FAILED", error)
       }
   }
 }

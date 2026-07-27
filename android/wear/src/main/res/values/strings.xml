@@ -1,6 +1,7 @@
 <resources>
   <string name="app_name">Mova</string>
   <string name="voice_capture_name">Mova Voice Capture</string>
+  <string name="assistant_voice_name">Mova Assistant</string>
   <string name="quick_capture_tile_label">Mova Quick Capture</string>
   <string name="quick_capture_tile_description">Capture a todo by voice from the Wear OS tile carousel</string>
   <string name="agenda_tile_label">Mova Agenda</string>
@@ -8,6 +9,12 @@
   <string name="agenda_activity_name">Mova Agenda</string>
 
   <string name="voice_prompt">What should Mova capture?</string>
+  <string name="assistant_voice_prompt">What should Mova do?</string>
+  <string name="assistant_button_description">Ask Mova by voice</string>
+  <string name="assistant_listening">Ask Mova</string>
+  <string name="assistant_working">Working…</string>
+  <string name="assistant_result">Mova</string>
+  <string name="assistant_error">Couldn\'t complete</string>
   <string name="mic_button_description">Capture a todo by voice</string>
   <string name="send_button_description">Add todo</string>
   <string name="capturing">Capturing…</string>
