@@ -1,0 +1,20 @@
+Mova is a mobile client for org-agenda-api, bringing an Emacs org-mode task
+system to Android.
+
+Use Mova to:
+
+* Browse a daily or multi-day agenda
+* Capture tasks from templates
+* Search and edit TODO items
+* Run custom org-agenda views
+* Track habits
+* Receive local reminders
+* Queue captures while offline
+* Capture quickly from an Android home-screen widget
+
+Mova connects directly to an org-agenda-api server that you choose. The server
+is open source and self-hostable, and your org files remain under your control.
+
+An optional Wear OS companion provides voice capture, a quick-capture tile, and
+an agenda tile. The Wear APK is distributed separately on the GitHub releases
+page.

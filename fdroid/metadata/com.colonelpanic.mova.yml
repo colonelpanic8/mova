@@ -1,0 +1,23 @@
+Categories:
+  - Time
+License: GPL-3.0-only
+AuthorName: Ivan Malison
+WebSite: https://github.com/colonelpanic8/mova
+SourceCode: https://github.com/colonelpanic8/mova
+IssueTracker: https://github.com/colonelpanic8/mova/issues
+Changelog: https://github.com/colonelpanic8/mova/blob/master/CHANGELOG.md
+
+# The optional Wear OS integration uses Google Play services. The phone agenda,
+# capture, search, and notification features work without a watch.
+AntiFeatures:
+  NonFreeDep:
+    en-US: >-
+      Optional Wear OS synchronization uses the proprietary Google Play services
+      wearable library. The phone app's core org-agenda features do not require
+      a watch.
+
+# Localized name, summary, description, and changelogs come from
+# fastlane/metadata/android/. Versions are discovered from the release APKs by
+# scripts/fdroid/build-repo.sh, so there is no source-build recipe or update
+# checker here.
+UpdateCheckMode: None

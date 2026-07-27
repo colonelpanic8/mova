@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.7.0]
+
+- feat(fdroid): publish signed phone APK releases through a self-hosted F-Droid repository on GitHub Pages
+- perf(android): reduce the arm64 phone APK from 45.7 MB to 19.4 MB with R8, resource shrinking, optimized ProGuard defaults, and compressed native libraries
+- fix(release): require a private Android signing key and keep each F-Droid upgrade history on a single APK signer
+
 ## [6.6.0]
 
 - feat(wear): add an agenda tile that shows the top of today's agenda and completes items with a tap, plus a full-screen scrollable agenda (with habits) reachable from the tile and the watch home

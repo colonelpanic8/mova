@@ -1,0 +1,2 @@
+* feat(capture): show detailed pending captures in the mobile Capture screen with manual retry
+* feat(wear): show pending and recently created captures below the Wear OS capture controls

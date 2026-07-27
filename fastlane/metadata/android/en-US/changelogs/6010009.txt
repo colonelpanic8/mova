@@ -1,0 +1,1 @@
+* style(wear): redesigned Wear OS capture UI with rounded pill buttons, visual hierarchy, and ripple feedback

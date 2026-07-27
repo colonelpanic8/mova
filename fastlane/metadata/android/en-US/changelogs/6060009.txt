@@ -1,0 +1,1 @@
+* feat(wear): add an agenda tile that shows the top of today's agenda and completes items with a tap, plus a full-screen scrollable agenda (with habits) reachable from the tile and the watch home

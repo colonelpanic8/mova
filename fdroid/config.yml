@@ -1,0 +1,29 @@
+# Configuration for the self-hosted Mova F-Droid repository.
+#
+# `scripts/fdroid/build-repo.sh` copies this file into a scratch repo directory,
+# populates `repo/` with phone APKs from GitHub releases, and runs
+# `fdroid update`. GitHub Pages deploys the resulting signed index.
+#
+# fdroidserver resolves the `{env: ...}` values at update time, so signing
+# credentials never live in the repository.
+
+repo_url: https://colonelpanic8.github.io/mova/fdroid/repo
+repo_name: Mova
+repo_icon: icon.png
+repo_description: >-
+  Official repository for Mova, a mobile org-mode agenda and capture client.
+  These are the same signed phone APKs attached to GitHub releases, so they
+  upgrade in place from a manually installed APK.
+
+# Every retained version stays in the main repo; there is no separate archive
+# section to deploy or link to.
+archive_older: 0
+
+# Reuse the APK release keystore for the repository index so only one signing
+# secret needs to be managed.
+keystore: keystore.jks
+repo_keyalias: { env: FDROID_KEY_ALIAS }
+keystorepass: { env: FDROID_KEYSTORE_PASSWORD }
+keypass: { env: FDROID_KEY_PASSWORD }
+
+make_current_version_link: false

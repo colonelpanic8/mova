@@ -1,0 +1,1 @@
+* fix(settings): make dropdown selections apply reliably after their menus close

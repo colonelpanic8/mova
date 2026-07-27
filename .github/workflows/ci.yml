@@ -13,6 +13,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # The F-Droid changelog check reads package.json at release tags to
+          # recover each published Android build number.
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,6 +32,9 @@ jobs:
 
       - name: Run Prettier
         run: yarn format:check
+
+      - name: Check fastlane changelogs are current
+        run: python3 scripts/fdroid/changelogs.py --check
 
       - name: Run TypeScript
         run: yarn typecheck
