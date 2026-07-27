@@ -117,13 +117,19 @@ for tag in "${tags[@]}"; do
   fi
 
   source_apk="$tag_dir/app-release.apk"
+  if ! cert_output="$("$apksigner_bin" verify --print-certs "$source_apk" 2>&1)"; then
+    echo "$tag: APK signature verification failed" >&2
+    printf '%s\n' "$cert_output" >&2
+    exit 1
+  fi
   signer="$(
-    "$apksigner_bin" verify --print-certs "$source_apk" \
-      | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' \
+    printf '%s\n' "$cert_output" \
+      | sed -nE 's/^.*certificate SHA-256 digest:[[:space:]]*//p' \
       | head -1
   )"
   if [[ -z "$signer" ]]; then
     echo "$tag: could not read the APK signing certificate" >&2
+    printf '%s\n' "$cert_output" >&2
     exit 1
   fi
   if [[ -z "$apk_signer" ]]; then
