@@ -9,6 +9,11 @@ buildscript {
     classpath('com.android.tools.build:gradle')
     classpath('com.facebook.react:react-native-gradle-plugin')
     classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+    // KSP is needed by the androidx.appfunctions compiler (see android/app/build.gradle).
+    // The version is pinned to the Kotlin version that Expo/React Native resolves
+    // (Kotlin 2.1.20 -> KSP 2.1.20-2.0.1). If the RN/Expo Kotlin version changes, bump
+    // this to the matching KSP release, otherwise the KSP plugin will refuse to load.
+    classpath("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.1.20-2.0.1")
   }
 }
 
