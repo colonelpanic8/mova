@@ -98,7 +98,12 @@ export async function widgetTaskHandlerEntry(props: WidgetTaskHandlerProps) {
     const templateName = await getTemplateName(widgetInfo.widgetId);
 
     renderWidget(
-      <Widget widgetId={widgetInfo.widgetId} templateName={templateName} />,
+      <Widget
+        widgetId={widgetInfo.widgetId}
+        templateName={templateName}
+        width={widgetInfo.width}
+        height={widgetInfo.height}
+      />,
     );
   } catch (error) {
     console.error("[Widget] Error:", error);

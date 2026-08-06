@@ -4,7 +4,14 @@ interface QuickCaptureWidgetProps {
   status?: "idle" | "submitting" | "success" | "error" | "offline";
   widgetId?: number;
   templateName?: string;
+  /** Current widget size in dp, as reported by the task handler. */
+  width?: number;
+  height?: number;
 }
+
+// Below this width there is no room for a usable text field, so the widget
+// collapses to just the two action buttons (voice + type).
+const COMPACT_WIDTH_DP = 170;
 
 const DEFAULT_TEMPLATE_NAME = "Quick Capture";
 
@@ -27,7 +34,13 @@ export function QuickCaptureWidget({
   status = "idle",
   widgetId,
   templateName = DEFAULT_TEMPLATE_NAME,
+  width,
+  height,
 }: QuickCaptureWidgetProps) {
+  const compact = typeof width === "number" && width < COMPACT_WIDTH_DP;
+  // Pill shrinks with the widget so a 1-cell-tall placement isn't clipped.
+  const pillHeight = Math.max(40, Math.min(56, height ?? 56));
+  const buttonSize = pillHeight - 16;
   // Status recolors the pill but keeps the same shape.
   const getContainerColor = () => {
     switch (status) {
@@ -73,12 +86,13 @@ export function QuickCaptureWidget({
       {/* Single pill row: mic | text | send. borderRadius = half of height. */}
       <FlexWidget
         style={{
-          height: 56,
+          height: pillHeight,
           width: "match_parent",
           flexDirection: "row",
           alignItems: "center",
+          justifyContent: compact ? "space-between" : "flex-start",
           backgroundColor: getContainerColor(),
-          borderRadius: 28,
+          borderRadius: pillHeight / 2,
           paddingLeft: 8,
           paddingRight: 8,
         }}
@@ -89,9 +103,9 @@ export function QuickCaptureWidget({
         {/* Mic circle -> voice trampoline (no app launch) */}
         <FlexWidget
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
+            width: buttonSize,
+            height: buttonSize,
+            borderRadius: buttonSize / 2,
             backgroundColor: MIC_FILL,
             justifyContent: "center",
             alignItems: "center",
@@ -103,30 +117,33 @@ export function QuickCaptureWidget({
           <SvgWidget svg={micSvg(MIC_ICON)} style={{ width: 22, height: 22 }} />
         </FlexWidget>
 
-        {/* Text area -> typing dialog (inherits pill clickAction) */}
-        <FlexWidget
-          style={{
-            flex: 1,
-            height: 56,
-            justifyContent: "center",
-            paddingLeft: 14,
-            paddingRight: 10,
-          }}
-        >
-          <TextWidget
-            text={getText()}
-            truncate="END"
-            maxLines={1}
-            style={{ fontSize: 15, color: TEXT_COLOR }}
-          />
-        </FlexWidget>
+        {/* Text area -> typing dialog (inherits pill clickAction).
+            Dropped entirely when the widget is too narrow to show it. */}
+        {compact ? null : (
+          <FlexWidget
+            style={{
+              flex: 1,
+              height: pillHeight,
+              justifyContent: "center",
+              paddingLeft: 14,
+              paddingRight: 10,
+            }}
+          >
+            <TextWidget
+              text={getText()}
+              truncate="END"
+              maxLines={1}
+              style={{ fontSize: 15, color: TEXT_COLOR }}
+            />
+          </FlexWidget>
+        )}
 
         {/* Send circle -> typing dialog (inherits pill clickAction) */}
         <FlexWidget
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
+            width: buttonSize,
+            height: buttonSize,
+            borderRadius: buttonSize / 2,
             backgroundColor: SEND_FILL,
             justifyContent: "center",
             alignItems: "center",
