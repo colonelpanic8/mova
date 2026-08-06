@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.8.0]
+
+- feat(wear): add an OpenAI-powered watch assistant
+- feat(widget): let the phone quick-capture widget shrink to 2x1 — it collapses to mic + send when narrow, since capture always happens in a popup
+- fix(release): tolerate apksigner certificate output when verifying signed APKs
+
 ## [6.7.0]
 
 - feat(fdroid): publish signed phone APK releases through a self-hosted F-Droid repository on GitHub Pages
