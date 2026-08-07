@@ -185,6 +185,9 @@ describe("selectAgendaWidgetItems", () => {
           dateRelevance: "overdue",
         }),
       ]),
+      // Pin "today" so the fixture's dates never drift into derived-overdue
+      // as the real clock advances (this suite runs in CI on UTC).
+      { today: "2026-08-06" },
     );
 
     expect(items.map((item) => item.title)).toEqual([
@@ -245,6 +248,7 @@ describe("selectAgendaWidgetItems", () => {
           deadline: { date: "2026-08-06", time: "17:30" },
         }),
       ]),
+      { today: "2026-08-06" },
     );
 
     expect(items[0].timeLabel).toBe("17:30");
