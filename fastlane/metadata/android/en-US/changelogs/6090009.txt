@@ -1,0 +1,1 @@
+* feat(widget): add a home-screen agenda widget that lists today's items (overdue first) and completes them with a tap on their circle, without opening the app; rows deep-link into the agenda and the app keeps placed widgets in sync after every change

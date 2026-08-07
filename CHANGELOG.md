@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.9.0]
+
+- feat(widget): add a home-screen agenda widget that lists today's items (overdue first) and completes them with a tap on their circle, without opening the app; rows deep-link into the agenda and the app keeps placed widgets in sync after every change
+
 ## [6.8.0]
 
 - feat(wear): add an OpenAI-powered watch assistant
