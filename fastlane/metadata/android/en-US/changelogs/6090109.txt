@@ -1,0 +1,1 @@
+* fix(android): preserve Expo's manifest-loaded headless app loader in minified releases so background notification sync no longer crashes the app

@@ -11,4 +11,7 @@
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 
+# Loaded by name from expo-modules-core's AndroidManifest metadata.
+-keep class expo.modules.adapters.react.apploader.RNHeadlessAppLoader { public <init>(); }
+
 # Add any project specific keep options here:

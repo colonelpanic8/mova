@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.9.1]
+
+- fix(android): preserve Expo's manifest-loaded headless app loader in minified releases so background notification sync no longer crashes the app
+
 ## [6.9.0]
 
 - feat(widget): add a home-screen agenda widget that lists today's items (overdue first) and completes them with a tap on their circle, without opening the app; rows deep-link into the agenda and the app keeps placed widgets in sync after every change
