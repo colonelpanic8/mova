@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget-picker preview for the agenda widget: the MD3 surface with three
+  stand-in rows, each showing the completion circle the widget is built around.
+  Drawn as a vector so it stays crisp at every launcher density.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="250dp"
+    android:height="160dp"
+    android:viewportWidth="250"
+    android:viewportHeight="160">
+
+  <path
+      android:fillColor="@color/md_surface"
+      android:pathData="M0,24 A24,24 0 0,1 24,0 L226,0 A24,24 0 0,1 250,24 L250,136 A24,24 0 0,1 226,160 L24,160 A24,24 0 0,1 0,136 Z" />
+
+  <!-- Header: "Today" plus the item count. -->
+  <path
+      android:fillColor="@color/md_on_surface"
+      android:pathData="M20,18 L64,18 L64,26 L20,26 Z" />
+  <path
+      android:fillColor="@color/md_on_surface_variant"
+      android:pathData="M72,19 L102,19 L102,25 L72,25 Z" />
+
+  <!-- Row 1 -->
+  <path
+      android:fillColor="@color/md_surface_container"
+      android:pathData="M16,40 L234,40 A12,12 0 0,1 234,72 L16,72 A12,12 0 0,1 16,40 Z" />
+  <path
+      android:fillColor="@color/md_primary"
+      android:pathData="M34,56 m-11,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 m11,-8 a8,8 0 1,1 0,16 a8,8 0 1,1 0,-16 Z" />
+  <path
+      android:fillColor="@color/md_on_surface"
+      android:pathData="M58,52 L170,52 L170,60 L58,60 Z" />
+
+  <!-- Row 2 -->
+  <path
+      android:fillColor="@color/md_surface_container"
+      android:pathData="M16,80 L234,80 A12,12 0 0,1 234,112 L16,112 A12,12 0 0,1 16,80 Z" />
+  <path
+      android:fillColor="@color/md_primary"
+      android:pathData="M34,96 m-11,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 m11,-8 a8,8 0 1,1 0,16 a8,8 0 1,1 0,-16 Z" />
+  <path
+      android:fillColor="@color/md_on_surface"
+      android:pathData="M58,92 L146,92 L146,100 L58,100 Z" />
+
+  <!-- Row 3 -->
+  <path
+      android:fillColor="@color/md_surface_container"
+      android:pathData="M16,120 L234,120 A12,12 0 0,1 234,152 L16,152 A12,12 0 0,1 16,120 Z" />
+  <path
+      android:fillColor="@color/md_primary"
+      android:pathData="M34,136 m-11,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 m11,-8 a8,8 0 1,1 0,16 a8,8 0 1,1 0,-16 Z" />
+  <path
+      android:fillColor="@color/md_on_surface"
+      android:pathData="M58,132 L192,132 L192,140 L58,140 Z" />
+</vector>

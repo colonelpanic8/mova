@@ -74,5 +74,12 @@
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_quickcapturewidget"/>
     </receiver>
+    <receiver android:name=".widget.AgendaWidget" android:exported="true" android:label="Mova Agenda">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+        <action android:name="com.colonelpanic.mova.WIDGET_CLICK"/>
+      </intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_agendawidget"/>
+    </receiver>
   </application>
 </manifest>

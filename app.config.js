@@ -90,6 +90,22 @@ export default {
               targetCellWidth: 2,
               targetCellHeight: 1,
             },
+            {
+              name: "AgendaWidget",
+              label: "Mova Agenda",
+              minWidth: "180dp",
+              minHeight: "110dp",
+              minResizeWidth: "180dp",
+              minResizeHeight: "110dp",
+              description: "Complete today's agenda from your home screen",
+              previewImage: "./assets/images/widget-preview.png",
+              resizeMode: "horizontal|vertical",
+              targetCellWidth: 4,
+              targetCellHeight: 3,
+              // Android's floor for automatic updates; taps refresh on demand
+              // and the app redraws the widget after every mutation.
+              updatePeriodMillis: 1800000,
+            },
           ],
         },
       ],

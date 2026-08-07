@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { buildConfigIdentityKey } from "@/services/configMetadata";
+import { refreshAgendaWidgets } from "@/widgets/agendaWidgetRefresh";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
@@ -63,11 +64,16 @@ export const queryKeys = {
  * agenda views, the all-todos listing, habit statuses, and custom view
  * results. Config-ish data (metadata, todo states) is left alone — it changes
  * via server config, which the config-hash observer handles.
+ *
+ * The home-screen agenda widget lives outside the query cache, so it is
+ * redrawn here too — this is the one funnel every org mutation passes through.
  */
 export function invalidateServerData(
   queryClient: QueryClient,
   identity: string,
 ): Promise<void> {
+  refreshAgendaWidgets();
+
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.agenda(identity) }),
     queryClient.invalidateQueries({ queryKey: queryKeys.todos(identity) }),
