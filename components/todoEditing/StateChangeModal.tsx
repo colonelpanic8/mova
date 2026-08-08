@@ -72,18 +72,28 @@ export function StateChangeModal({
           value={selectedState}
         >
           {states.map((state) => (
-            <Pressable
-              key={state}
-              onPress={() => setSelectedState(state)}
-              style={styles.stateRow}
-            >
-              <RadioButton value={state} />
-              <StatePill
-                state={state}
-                selected={state === selectedState}
-                dimWhenUnselected={false}
-              />
-            </Pressable>
+            <View key={state} style={styles.stateRow}>
+              <Pressable
+                onPress={() => setSelectedState(state)}
+                style={styles.stateSelection}
+              >
+                <RadioButton value={state} />
+                <StatePill
+                  state={state}
+                  selected={state === selectedState}
+                  dimWhenUnselected={false}
+                />
+              </Pressable>
+              <Button
+                compact
+                mode="text"
+                accessibilityLabel={`Quick set ${state}`}
+                onPress={() => onConfirm(state, null)}
+                disabled={state === todo?.todo}
+              >
+                Quick Set
+              </Button>
+            </View>
           ))}
         </RadioButton.Group>
 
@@ -167,6 +177,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
+  },
+  stateSelection: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   overrideDateItem: {
