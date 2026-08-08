@@ -37,6 +37,12 @@ const checkCircleSvg = (color: string) =>
 const refreshSvg = (color: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${color}" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-8 8s3.58 8 8 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>`;
 
+const micSvg = (color: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${color}" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>`;
+
+const addSvg = (color: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${color}" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`;
+
 export interface AgendaWidgetProps {
   items?: AgendaWidgetItem[];
   status?: "ok" | "unauthenticated" | "error";
@@ -167,9 +173,8 @@ function AgendaRow({
 }
 
 /**
- * Today's agenda on the home screen, built around one interaction: tap an
- * item's circle to complete it. Everything else (the title, the header) opens
- * the app, so a stray tap navigates rather than mutating org data.
+ * Today's agenda on the home screen. Item circles complete in place, while
+ * the header offers typed capture, voice capture, refresh, and app navigation.
  */
 export function AgendaWidget({
   items = [],
@@ -177,8 +182,11 @@ export function AgendaWidget({
   notice,
   pendingKey,
   width,
+  height,
 }: AgendaWidgetProps) {
   const compact = typeof width === "number" && width < COMPACT_WIDTH_DP;
+  const listHeight =
+    typeof height === "number" ? Math.max(40, height - 48) : "match_parent";
   const outstanding = items.filter((item) => !item.completedToday).length;
   const label = headerLabel(status, notice, outstanding);
 
@@ -220,12 +228,47 @@ export function AgendaWidget({
             text="Today"
             style={{ fontSize: 15, fontWeight: "bold", color: ON_SURFACE }}
           />
-          <TextWidget
-            text={label.text}
-            truncate="END"
-            maxLines={1}
-            style={{ fontSize: 12, marginLeft: 8, color: label.color }}
+          {compact ? null : (
+            <TextWidget
+              text={label.text}
+              truncate="END"
+              maxLines={1}
+              style={{ fontSize: 12, marginLeft: 8, color: label.color }}
+            />
+          )}
+        </FlexWidget>
+
+        <FlexWidget
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          clickAction="OPEN_URI"
+          clickActionData={{ uri: "mova://capture-voice" }}
+          accessibilityLabel="Capture by voice"
+        >
+          <SvgWidget
+            svg={micSvg(ON_SURFACE_VARIANT)}
+            style={{ width: 18, height: 18 }}
           />
+        </FlexWidget>
+
+        <FlexWidget
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          clickAction="OPEN_URI"
+          clickActionData={{ uri: "mova://capture" }}
+          accessibilityLabel="Quick capture"
+        >
+          <SvgWidget svg={addSvg(PRIMARY)} style={{ width: 20, height: 20 }} />
         </FlexWidget>
 
         <FlexWidget
@@ -270,21 +313,16 @@ export function AgendaWidget({
           />
         </FlexWidget>
       ) : (
-        // ListWidget is rendered as a separate Android collection overlay.
-        // Give it the remaining height so it cannot extend past the header
-        // and the rounded surface's bottom padding.
-        <FlexWidget style={{ flex: 1, height: 0, width: "match_parent" }}>
-          <ListWidget style={{ width: "match_parent", height: "match_parent" }}>
-            {items.map((item) => (
-              <AgendaRow
-                key={item.key}
-                item={item}
-                pending={item.key === pendingKey}
-                compact={compact}
-              />
-            ))}
-          </ListWidget>
-        </FlexWidget>
+        <ListWidget style={{ width: "match_parent", height: listHeight }}>
+          {items.map((item) => (
+            <AgendaRow
+              key={item.key}
+              item={item}
+              pending={item.key === pendingKey}
+              compact={compact}
+            />
+          ))}
+        </ListWidget>
       )}
     </FlexWidget>
   );
