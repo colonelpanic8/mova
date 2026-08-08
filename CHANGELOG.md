@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.11.0]
+
+- feat(widget): add persisted Tasks and Habits tabs to the agenda widget
+- feat(widget): show scheduled and deadline dates/times beneath item titles
+- feat(widget): show two agenda cards per row when the widget is at least 420dp wide
+
 ## [6.10.1]
 
 - fix(widget): keep the agenda collection overlay above the rounded bottom corners without collapsing the list
