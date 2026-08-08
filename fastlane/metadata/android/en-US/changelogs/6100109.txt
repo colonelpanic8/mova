@@ -1,0 +1,1 @@
+* fix(widget): keep the agenda collection overlay above the rounded bottom corners without collapsing the list

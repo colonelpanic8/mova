@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.10.1]
+
+- fix(widget): keep the agenda collection overlay above the rounded bottom corners without collapsing the list
+
 ## [6.10.0]
 
 - fix(widget): restore the agenda list after the v6.9.2 layout regression
