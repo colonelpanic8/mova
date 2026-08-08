@@ -20,9 +20,13 @@ jest.mock("../../components/PlatformDatePicker", () => ({
 }));
 
 jest.mock("../../components/StatePill", () => ({
-  StatePill: ({ state }: { state: string }) => {
-    const { Text } = require("react-native");
-    return <Text>{state}</Text>;
+  StatePill: ({ state, onPress }: { state: string; onPress?: () => void }) => {
+    const { Pressable, Text } = require("react-native");
+    return (
+      <Pressable accessibilityLabel={`${state} state badge`} onPress={onPress}>
+        <Text>{state}</Text>
+      </Pressable>
+    );
   },
 }));
 
@@ -63,16 +67,16 @@ describe("StateChangeModal", () => {
 
     fireEvent.press(getByText("Effective Date"));
     fireEvent.press(getByText("Pick date"));
-    fireEvent.press(getByLabelText("Quick set DONE"));
+    fireEvent.press(getByLabelText("DONE state badge"));
 
     expect(onConfirm).toHaveBeenCalledWith("DONE", null);
   });
 
-  it("disables quick set for the todo's current state", () => {
+  it("uses the radio button only to select a state", () => {
     const onConfirm = jest.fn();
-    const { getByLabelText } = renderModal(onConfirm);
+    const { getAllByRole } = renderModal(onConfirm);
 
-    fireEvent.press(getByLabelText("Quick set TODO"));
+    fireEvent.press(getAllByRole("radio")[1]);
 
     expect(onConfirm).not.toHaveBeenCalled();
   });
