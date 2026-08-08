@@ -120,7 +120,9 @@ You need a running org-agenda-api instance for Mova to connect to. See the [[htt
 - Configurable template per widget instance
 - Agenda widget listing today's items (overdue first), each with a
   tap-to-complete circle that finishes the item without opening the app, plus
-  typed and voice quick-capture actions in the header
+  task/habit tabs and typed and voice quick-capture actions in the header;
+  scheduled/deadline timestamps appear on cards, with two cards per row at
+  wider sizes
 
 *** Notifications
 :PROPERTIES:

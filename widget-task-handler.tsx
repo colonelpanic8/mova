@@ -5,6 +5,8 @@ import {
   AGENDA_WIDGET_NAME,
   AgendaWidget,
   COMPLETE_ITEM_ACTION,
+  SHOW_AGENDA_ACTION,
+  SHOW_HABITS_ACTION,
 } from "./widgets/AgendaWidget";
 import {
   AgendaWidgetData,
@@ -13,6 +15,11 @@ import {
   loadAgendaWidgetData,
   readAgendaWidgetCache,
 } from "./widgets/agendaWidgetData";
+import {
+  clearAgendaWidgetView,
+  getAgendaWidgetView,
+  setAgendaWidgetView,
+} from "./widgets/agendaWidgetState";
 import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
 import { getWidgetCredentials } from "./widgets/storage";
 import { getWidgetTemplate } from "./widgets/WidgetConfigurationScreen";
@@ -109,7 +116,12 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
     renderWidget,
   } = props;
 
-  if (widgetAction === "WIDGET_DELETED") return;
+  if (widgetAction === "WIDGET_DELETED") {
+    await clearAgendaWidgetView(widgetInfo.widgetId);
+    return;
+  }
+
+  let view = await getAgendaWidgetView(widgetInfo.widgetId);
 
   const draw = (
     data: AgendaWidgetData,
@@ -118,12 +130,26 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
     renderWidget(
       <AgendaWidget
         items={data.items}
+        habits={data.habits}
+        view={view}
         status={data.status}
         width={widgetInfo.width}
         height={widgetInfo.height}
         {...extra}
       />,
     );
+
+  if (
+    widgetAction === "WIDGET_CLICK" &&
+    (clickAction === SHOW_AGENDA_ACTION || clickAction === SHOW_HABITS_ACTION)
+  ) {
+    view = clickAction === SHOW_HABITS_ACTION ? "habits" : "agenda";
+    await setAgendaWidgetView(widgetInfo.widgetId, view);
+    const cached = await readAgendaWidgetCache();
+    if (cached) draw(cached);
+    if (!cached || cached.fetchedAt === 0) draw(await loadAgendaWidgetData());
+    return;
+  }
 
   if (widgetAction === "WIDGET_CLICK" && clickAction === COMPLETE_ITEM_ACTION) {
     const ref = (clickActionData ?? {}) as AgendaWidgetItemRef;

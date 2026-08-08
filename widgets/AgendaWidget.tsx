@@ -6,6 +6,7 @@ import {
   TextWidget,
 } from "react-native-android-widget";
 import { AgendaWidgetItem, buildItemRef } from "./agendaWidgetData";
+import type { AgendaWidgetView } from "./agendaWidgetState";
 
 /** Must match the widget registered in app.config.js and the manifest. */
 export const AGENDA_WIDGET_NAME = "AgendaWidget";
@@ -14,10 +15,13 @@ export const AGENDA_WIDGET_NAME = "AgendaWidget";
 export const COMPLETE_ITEM_ACTION = "COMPLETE_AGENDA_ITEM";
 /** Click action the header's refresh button emits. */
 export const REFRESH_AGENDA_ACTION = "REFRESH_AGENDA";
+export const SHOW_AGENDA_ACTION = "SHOW_AGENDA";
+export const SHOW_HABITS_ACTION = "SHOW_HABITS";
 
-// Below this width the row's trailing metadata (time, category) is dropped so
-// the title keeps a usable amount of room.
+// Below this width date/time metadata is dropped so the title and controls
+// keep a usable amount of room.
 const COMPACT_WIDTH_DP = 220;
+const TWO_COLUMN_WIDTH_DP = 420;
 const HEADER_HEIGHT_DP = 32;
 const SURFACE_PADDING_DP = 8;
 const SURFACE_RADIUS_DP = 24;
@@ -28,6 +32,7 @@ const CONTAINER = "#F3EDF7"; // surfaceContainer
 const ON_SURFACE = "#1D1B20";
 const ON_SURFACE_VARIANT = "#49454F";
 const PRIMARY = "#6750A4";
+const PRIMARY_CONTAINER = "#EADDFF";
 const ERROR = "#B3261E";
 const OUTLINE = "#79747E";
 
@@ -48,6 +53,8 @@ const addSvg = (color: string) =>
 
 export interface AgendaWidgetProps {
   items?: AgendaWidgetItem[];
+  habits?: AgendaWidgetItem[];
+  view?: AgendaWidgetView;
   status?: "ok" | "unauthenticated" | "error";
   /** Transient line shown in place of the item count (e.g. "Done"). */
   notice?: string;
@@ -58,37 +65,39 @@ export interface AgendaWidgetProps {
   height?: number;
 }
 
-function headerLabel(
+function statusLabel(
   status: AgendaWidgetProps["status"],
   notice: string | undefined,
-  outstanding: number,
-): { text: string; color: ColorProp } {
+): { text: string; color: ColorProp } | null {
   if (notice) return { text: notice, color: PRIMARY };
   if (status === "unauthenticated") return { text: "Log in", color: ERROR };
   if (status === "error") return { text: "Offline", color: ERROR };
-  if (outstanding === 0)
-    return { text: "All clear", color: ON_SURFACE_VARIANT };
-  return { text: `${outstanding} left`, color: ON_SURFACE_VARIANT };
+  return null;
 }
 
-function emptyMessage(status: AgendaWidgetProps["status"]): string {
+function emptyMessage(
+  status: AgendaWidgetProps["status"],
+  view: AgendaWidgetView,
+): string {
   switch (status) {
     case "unauthenticated":
       return "Log in to the app to see your agenda";
     case "error":
       return "Couldn't reach the server — tap ⟳ to retry";
     default:
-      return "Nothing left on today's agenda";
+      return view === "habits"
+        ? "No habits scheduled for today"
+        : "Nothing left on today's agenda";
   }
 }
 
-/** Trailing metadata for a row: time of day, or the overdue/habit marker. */
 function metaLabel(item: AgendaWidgetItem): string | null {
-  if (item.isOverdue) return item.timeLabel ? `! ${item.timeLabel}` : "!";
-  return item.timeLabel;
+  const timestamp = item.timestampLabel ?? item.timeLabel;
+  if (item.isOverdue) return timestamp ? `! ${timestamp}` : "! Overdue";
+  return timestamp;
 }
 
-function AgendaRow({
+function AgendaCard({
   item,
   pending,
   compact,
@@ -101,15 +110,19 @@ function AgendaRow({
   const meta = metaLabel(item);
   const iconColor = done || pending ? PRIMARY : OUTLINE;
 
-  // List rows are rendered to bitmaps sized to the row's own bounds, so the
-  // gap between rows has to come from padding on a transparent wrapper rather
-  // than a margin on the card.
   return (
     <FlexWidget
       style={{
-        width: "match_parent",
+        flex: 1,
+        width: 0,
         height: "wrap_content",
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: CONTAINER,
+        borderRadius: 16,
+        paddingTop: 4,
         paddingBottom: 4,
+        paddingRight: 10,
       }}
       clickAction="OPEN_URI"
       clickActionData={{ uri: "mova://agenda" }}
@@ -117,55 +130,40 @@ function AgendaRow({
     >
       <FlexWidget
         style={{
-          width: "match_parent",
-          height: "wrap_content",
-          flexDirection: "row",
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          justifyContent: "center",
           alignItems: "center",
-          backgroundColor: CONTAINER,
-          borderRadius: 16,
-          paddingTop: 4,
-          paddingBottom: 4,
-          paddingRight: 10,
         }}
+        clickAction={COMPLETE_ITEM_ACTION}
+        clickActionData={buildItemRef(item)}
+        accessibilityLabel={`Complete ${item.title}`}
       >
-        {/* The only completion affordance: a tap target sized for a launcher. */}
-        <FlexWidget
+        <SvgWidget
+          svg={done ? checkCircleSvg(iconColor) : circleSvg(iconColor)}
+          style={{ width: 24, height: 24 }}
+        />
+      </FlexWidget>
+
+      <FlexWidget style={{ flex: 1, width: 0, height: "wrap_content" }}>
+        <TextWidget
+          text={item.title}
+          truncate="END"
+          maxLines={2}
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            justifyContent: "center",
-            alignItems: "center",
+            fontSize: 14,
+            color: done || pending ? ON_SURFACE_VARIANT : ON_SURFACE,
           }}
-          clickAction={COMPLETE_ITEM_ACTION}
-          clickActionData={buildItemRef(item)}
-          accessibilityLabel={`Complete ${item.title}`}
-        >
-          <SvgWidget
-            svg={done ? checkCircleSvg(iconColor) : circleSvg(iconColor)}
-            style={{ width: 24, height: 24 }}
-          />
-        </FlexWidget>
-
-        <FlexWidget style={{ flex: 1, height: "wrap_content" }}>
-          <TextWidget
-            text={item.title}
-            truncate="END"
-            maxLines={2}
-            style={{
-              fontSize: 14,
-              color: done || pending ? ON_SURFACE_VARIANT : ON_SURFACE,
-            }}
-          />
-        </FlexWidget>
-
+        />
         {compact || !meta ? null : (
           <TextWidget
             text={meta}
+            truncate="END"
             maxLines={1}
             style={{
-              fontSize: 12,
-              marginLeft: 6,
+              fontSize: 11,
+              marginTop: 2,
               color: item.isOverdue ? ERROR : ON_SURFACE_VARIANT,
             }}
           />
@@ -175,12 +173,61 @@ function AgendaRow({
   );
 }
 
+function AgendaItemsRow({
+  items,
+  pendingKey,
+  compact,
+  columns,
+}: {
+  items: AgendaWidgetItem[];
+  pendingKey?: string;
+  compact: boolean;
+  columns: 1 | 2;
+}) {
+  return (
+    <FlexWidget
+      style={{
+        width: "match_parent",
+        height: "wrap_content",
+        flexDirection: "row",
+        flexGap: 4,
+        paddingBottom: 4,
+      }}
+    >
+      {items.map((item) => (
+        <AgendaCard
+          key={item.key}
+          item={item}
+          pending={item.key === pendingKey}
+          compact={compact}
+        />
+      ))}
+      {columns === 2 && items.length === 1 ? (
+        <FlexWidget style={{ flex: 1, width: 0, height: 1 }} />
+      ) : null}
+    </FlexWidget>
+  );
+}
+
+function groupItems(
+  items: AgendaWidgetItem[],
+  columns: 1 | 2,
+): AgendaWidgetItem[][] {
+  const rows: AgendaWidgetItem[][] = [];
+  for (let index = 0; index < items.length; index += columns) {
+    rows.push(items.slice(index, index + columns));
+  }
+  return rows;
+}
+
 /**
- * Today's agenda on the home screen. Item circles complete in place, while
- * the header offers typed capture, voice capture, refresh, and app navigation.
+ * Today's tasks and habits on the home screen. Item circles complete in place,
+ * while the header switches views and offers capture and refresh controls.
  */
 export function AgendaWidget({
   items = [],
+  habits = [],
+  view = "agenda",
   status = "ok",
   notice,
   pendingKey,
@@ -188,6 +235,8 @@ export function AgendaWidget({
   height,
 }: AgendaWidgetProps) {
   const compact = typeof width === "number" && width < COMPACT_WIDTH_DP;
+  const columns: 1 | 2 =
+    typeof width === "number" && width >= TWO_COLUMN_WIDTH_DP ? 2 : 1;
   const listHeight =
     typeof height === "number"
       ? Math.max(
@@ -196,7 +245,10 @@ export function AgendaWidget({
         )
       : "match_parent";
   const outstanding = items.filter((item) => !item.completedToday).length;
-  const label = headerLabel(status, notice, outstanding);
+  const habitsLeft = habits.filter((item) => !item.completedToday).length;
+  const label = statusLabel(status, notice);
+  const visibleItems = view === "habits" ? habits : items;
+  const rows = groupItems(visibleItems, columns);
 
   return (
     <FlexWidget
@@ -224,26 +276,86 @@ export function AgendaWidget({
         <FlexWidget
           style={{
             flex: 1,
+            width: 0,
             height: "match_parent",
             flexDirection: "row",
             alignItems: "center",
+            flexGap: 4,
           }}
-          clickAction="OPEN_URI"
-          clickActionData={{ uri: "mova://agenda" }}
-          accessibilityLabel="Open agenda"
         >
-          <TextWidget
-            text="Today"
-            style={{ fontSize: 15, fontWeight: "bold", color: ON_SURFACE }}
-          />
-          {compact ? null : (
+          <FlexWidget
+            style={{
+              flex: 1,
+              width: 0,
+              height: 28,
+              borderRadius: 14,
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor:
+                view === "agenda" ? PRIMARY_CONTAINER : "#00000000",
+            }}
+            clickAction={SHOW_AGENDA_ACTION}
+            accessibilityLabel={`${outstanding} tasks left`}
+          >
             <TextWidget
-              text={label.text}
+              text={
+                view === "agenda" && label
+                  ? label.text
+                  : compact
+                    ? "T"
+                    : `Tasks ${outstanding}`
+              }
               truncate="END"
               maxLines={1}
-              style={{ fontSize: 12, marginLeft: 8, color: label.color }}
+              style={{
+                fontSize: 12,
+                fontWeight: view === "agenda" ? "bold" : "normal",
+                color:
+                  view === "agenda" && label
+                    ? label.color
+                    : view === "agenda"
+                      ? PRIMARY
+                      : ON_SURFACE_VARIANT,
+              }}
             />
-          )}
+          </FlexWidget>
+
+          <FlexWidget
+            style={{
+              flex: 1,
+              width: 0,
+              height: 28,
+              borderRadius: 14,
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor:
+                view === "habits" ? PRIMARY_CONTAINER : "#00000000",
+            }}
+            clickAction={SHOW_HABITS_ACTION}
+            accessibilityLabel={`${habitsLeft} habits left`}
+          >
+            <TextWidget
+              text={
+                view === "habits" && label
+                  ? label.text
+                  : compact
+                    ? "H"
+                    : `Habits ${habitsLeft}`
+              }
+              truncate="END"
+              maxLines={1}
+              style={{
+                fontSize: 12,
+                fontWeight: view === "habits" ? "bold" : "normal",
+                color:
+                  view === "habits" && label
+                    ? label.color
+                    : view === "habits"
+                      ? PRIMARY
+                      : ON_SURFACE_VARIANT,
+              }}
+            />
+          </FlexWidget>
         </FlexWidget>
 
         <FlexWidget
@@ -297,7 +409,7 @@ export function AgendaWidget({
         </FlexWidget>
       </FlexWidget>
 
-      {items.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <FlexWidget
           style={{
             width: "match_parent",
@@ -311,7 +423,7 @@ export function AgendaWidget({
           clickActionData={{ uri: "mova://agenda" }}
         >
           <TextWidget
-            text={emptyMessage(status)}
+            text={emptyMessage(status, view)}
             maxLines={3}
             style={{
               fontSize: 13,
@@ -322,12 +434,13 @@ export function AgendaWidget({
         </FlexWidget>
       ) : (
         <ListWidget style={{ width: "match_parent", height: listHeight }}>
-          {items.map((item) => (
-            <AgendaRow
-              key={item.key}
-              item={item}
-              pending={item.key === pendingKey}
+          {rows.map((row) => (
+            <AgendaItemsRow
+              key={row.map((item) => item.key).join(":")}
+              items={row}
+              pendingKey={pendingKey}
               compact={compact}
+              columns={columns}
             />
           ))}
         </ListWidget>

@@ -6,7 +6,6 @@ import {
 } from "@/services/api";
 import {
   getDefaultDoneState,
-  getShowHabitsInAgenda,
   getUseClientCompletionTime,
 } from "@/services/settings";
 import { formatLocalDate, formatLocalDateTime } from "@/utils/dateFormatting";
@@ -37,6 +36,8 @@ export interface AgendaWidgetItem {
   state: string;
   /** Scheduled/deadline time of day, when the entry has one. */
   timeLabel: string | null;
+  /** Display label such as "S 2026-08-08 09:00 · D 2026-08-09". */
+  timestampLabel: string | null;
   category: string | null;
   priority: string | null;
   isOverdue: boolean;
@@ -53,6 +54,7 @@ export type AgendaWidgetStatus = "ok" | "unauthenticated" | "error";
 export interface AgendaWidgetData {
   status: AgendaWidgetStatus;
   items: AgendaWidgetItem[];
+  habits: AgendaWidgetItem[];
   /** Human-facing explanation when status isn't "ok". */
   message?: string;
   /** When `items` was fetched (ms epoch), for stale-data reporting. */
@@ -85,6 +87,18 @@ export function buildItemRef(item: AgendaWidgetItem): AgendaWidgetItemRef {
 /** Prefer a scheduled time-of-day, falling back to a deadline time. */
 function timeLabelOf(entry: AgendaEntry): string | null {
   return entry.scheduled?.time || entry.deadline?.time || null;
+}
+
+function timestampLabelOf(entry: AgendaEntry): string | null {
+  const label = (
+    kind: "S" | "D",
+    timestamp: NonNullable<AgendaEntry["scheduled"]>,
+  ) => `${kind} ${timestamp.date}${timestamp.time ? ` ${timestamp.time}` : ""}`;
+  const labels = [
+    entry.scheduled ? label("S", entry.scheduled) : null,
+    entry.deadline ? label("D", entry.deadline) : null,
+  ].filter((value): value is string => value !== null);
+  return labels.length > 0 ? labels.join(" · ") : null;
 }
 
 /**
@@ -128,6 +142,7 @@ function toWidgetItem(
     title,
     state: entry.todo || "",
     timeLabel: timeLabelOf(entry),
+    timestampLabel: timestampLabelOf(entry),
     category: entry.effectiveCategory || entry.category || null,
     priority: entry.priority || null,
     isOverdue: isOverdueEntry(entry, today),
@@ -147,6 +162,24 @@ function flattenEntries(response: AgendaResponse): AgendaEntry[] {
   return Object.keys(days)
     .sort()
     .flatMap((date) => days[date] ?? []);
+}
+
+function dedupeItems(items: AgendaWidgetItem[]): AgendaWidgetItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.key)) return false;
+    seen.add(item.key);
+    return true;
+  });
+}
+
+function compareItems(a: AgendaWidgetItem, b: AgendaWidgetItem): number {
+  if (a.completedToday !== b.completedToday) return a.completedToday ? 1 : -1;
+  if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
+  if ((a.timeLabel === null) !== (b.timeLabel === null)) {
+    return a.timeLabel === null ? 1 : -1;
+  }
+  return (a.timeLabel ?? "").localeCompare(b.timeLabel ?? "");
 }
 
 /**
@@ -176,25 +209,32 @@ export function selectAgendaWidgetItems(
 
   // Overdue items are echoed onto today by the server, so the same entry can
   // arrive twice; keep the first occurrence.
-  const seen = new Set<string>();
-  const deduped = items.filter((item) => {
-    if (seen.has(item.key)) return false;
-    seen.add(item.key);
-    return true;
-  });
-
   // Outstanding work first: overdue, then timed (in clock order), then the
   // rest. Habits already logged today sink to the bottom.
-  const sorted = deduped.sort((a, b) => {
-    if (a.completedToday !== b.completedToday) return a.completedToday ? 1 : -1;
-    if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
-    if ((a.timeLabel === null) !== (b.timeLabel === null)) {
-      return a.timeLabel === null ? 1 : -1;
-    }
-    return (a.timeLabel ?? "").localeCompare(b.timeLabel ?? "");
-  });
+  const sorted = dedupeItems(items).sort(compareItems);
 
   return sorted.slice(0, MAX_AGENDA_WIDGET_ITEMS);
+}
+
+export function selectAgendaWidgetHabits(
+  response: AgendaResponse,
+  options: {
+    today?: string;
+    doneStates?: string[];
+  } = {},
+): AgendaWidgetItem[] {
+  const {
+    today = formatLocalDate(new Date()),
+    doneStates = [FALLBACK_DONE_STATE],
+  } = options;
+
+  const habits = flattenEntries(response)
+    .map((entry) => toWidgetItem(entry, today, doneStates))
+    .filter((item): item is AgendaWidgetItem => item?.isHabit === true);
+
+  return dedupeItems(habits)
+    .sort(compareItems)
+    .slice(0, MAX_AGENDA_WIDGET_ITEMS);
 }
 
 async function readCache(): Promise<AgendaWidgetData | null> {
@@ -204,7 +244,12 @@ async function readCache(): Promise<AgendaWidgetData | null> {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AgendaWidgetData;
     if (!Array.isArray(parsed.items)) return null;
-    return parsed;
+    const hasHabitCache = Array.isArray(parsed.habits);
+    return {
+      ...parsed,
+      habits: hasHabitCache ? parsed.habits : [],
+      fetchedAt: hasHabitCache ? parsed.fetchedAt : 0,
+    };
   } catch {
     return null;
   }
@@ -245,22 +290,24 @@ export async function removeCachedAgendaItem(key: string): Promise<void> {
 export async function loadAgendaWidgetData(): Promise<AgendaWidgetData> {
   const { apiUrl, username, password } = await getWidgetCredentials();
   if (!apiUrl || !username || !password) {
-    return { status: "unauthenticated", items: [], fetchedAt: Date.now() };
+    return {
+      status: "unauthenticated",
+      items: [],
+      habits: [],
+      fetchedAt: Date.now(),
+    };
   }
 
   try {
     const api = createApiClient(apiUrl, username, password);
-    const [response, includeHabits, doneStates] = await Promise.all([
+    const [response, doneStates] = await Promise.all([
       api.getAgenda("day", undefined, true),
-      getShowHabitsInAgenda(),
       getDoneStates(api),
     ]);
     const data: AgendaWidgetData = {
       status: "ok",
-      items: selectAgendaWidgetItems(response, {
-        includeHabits,
-        doneStates,
-      }),
+      items: selectAgendaWidgetItems(response, { doneStates }),
+      habits: selectAgendaWidgetHabits(response, { doneStates }),
       fetchedAt: Date.now(),
     };
     await writeCache(data);
@@ -271,6 +318,7 @@ export async function loadAgendaWidgetData(): Promise<AgendaWidgetData> {
     return {
       status: "error",
       items: cached?.items ?? [],
+      habits: cached?.habits ?? [],
       message: error instanceof Error ? error.message : String(error),
       fetchedAt: cached?.fetchedAt ?? 0,
     };

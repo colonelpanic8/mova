@@ -5,6 +5,7 @@ import type { WidgetInfo } from "react-native-android-widget";
 import { requestWidgetUpdate } from "react-native-android-widget";
 import { AGENDA_WIDGET_NAME, AgendaWidget } from "./AgendaWidget";
 import { AgendaWidgetData, loadAgendaWidgetData } from "./agendaWidgetData";
+import { getAgendaWidgetView } from "./agendaWidgetState";
 
 /**
  * Mutations arrive in bursts (a completion invalidates several queries), and
@@ -25,10 +26,15 @@ async function redrawAgendaWidgets(): Promise<void> {
     widgetName: AGENDA_WIDGET_NAME,
     renderWidget: async (info: WidgetInfo) => {
       data = data ?? loadAgendaWidgetData();
-      const loaded = await data;
+      const [loaded, view] = await Promise.all([
+        data,
+        getAgendaWidgetView(info.widgetId),
+      ]);
       return (
         <AgendaWidget
           items={loaded.items}
+          habits={loaded.habits}
+          view={view}
           status={loaded.status}
           width={info.width}
           height={info.height}

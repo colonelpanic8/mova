@@ -43,6 +43,7 @@ import {
   loadAgendaWidgetData,
   MAX_AGENDA_WIDGET_ITEMS,
   readAgendaWidgetCache,
+  selectAgendaWidgetHabits,
   selectAgendaWidgetItems,
 } from "../../widgets/agendaWidgetData";
 
@@ -252,6 +253,40 @@ describe("selectAgendaWidgetItems", () => {
     );
 
     expect(items[0].timeLabel).toBe("17:30");
+    expect(items[0].timestampLabel).toBe("D 2026-08-06 17:30");
+  });
+
+  it("labels scheduled items with their date and time", () => {
+    const items = selectAgendaWidgetItems(
+      dayResponse([
+        entry({
+          id: "a",
+          title: "Scheduled",
+          scheduled: { date: "2026-08-07", time: "09:15" },
+        }),
+      ]),
+      { today: "2026-08-06" },
+    );
+
+    expect(items[0].timestampLabel).toBe("S 2026-08-07 09:15");
+  });
+
+  it("shows both timestamps when an item is scheduled and has a deadline", () => {
+    const items = selectAgendaWidgetItems(
+      dayResponse([
+        entry({
+          id: "a",
+          title: "Both",
+          scheduled: { date: "2026-08-07", time: "09:15" },
+          deadline: { date: "2026-08-08", time: "17:30" },
+        }),
+      ]),
+      { today: "2026-08-06" },
+    );
+
+    expect(items[0].timestampLabel).toBe(
+      "S 2026-08-07 09:15 · D 2026-08-08 17:30",
+    );
   });
 
   it("de-duplicates entries echoed across days and caps the list", () => {
@@ -276,6 +311,28 @@ describe("selectAgendaWidgetItems", () => {
   });
 });
 
+describe("selectAgendaWidgetHabits", () => {
+  it("returns only habits and keeps today's completed habits visible", () => {
+    const habits = selectAgendaWidgetHabits(
+      dayResponse([
+        entry({ id: "todo", title: "Ship it" }),
+        entry({ id: "open", title: "Stretch", isWindowHabit: true }),
+        entry({
+          id: "done",
+          title: "Read",
+          isWindowHabit: true,
+          habitCompletedOnQueryDate: true,
+        }),
+      ]),
+    );
+
+    expect(habits.map((item) => [item.title, item.completedToday])).toEqual([
+      ["Stretch", false],
+      ["Read", true],
+    ]);
+  });
+});
+
 describe("loadAgendaWidgetData", () => {
   beforeEach(() => {
     for (const key of Object.keys(mockStore)) delete mockStore[key];
@@ -290,13 +347,35 @@ describe("loadAgendaWidgetData", () => {
     expect(data.items).toEqual([]);
   });
 
+  it("marks a pre-habit-tab cache stale so it will be refreshed", async () => {
+    mockStore.mova_agenda_widget_cache = JSON.stringify({
+      status: "ok",
+      items: [],
+      fetchedAt: 123,
+    });
+
+    await expect(readAgendaWidgetCache()).resolves.toMatchObject({
+      habits: [],
+      fetchedAt: 0,
+    });
+  });
+
   it("fetches today's agenda including overdue items and caches it", async () => {
     seedCredentials();
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       headers: { get: () => null },
       text: async () =>
-        JSON.stringify(dayResponse([entry({ id: "a", title: "Ship it" })])),
+        JSON.stringify(
+          dayResponse([
+            entry({ id: "a", title: "Ship it" }),
+            entry({
+              id: "habit",
+              title: "Stretch",
+              isWindowHabit: true,
+            }),
+          ]),
+        ),
     });
     global.fetch = fetchMock as unknown as typeof fetch;
 
@@ -304,6 +383,7 @@ describe("loadAgendaWidgetData", () => {
 
     expect(data.status).toBe("ok");
     expect(data.items.map((item) => item.title)).toEqual(["Ship it"]);
+    expect(data.habits.map((item) => item.title)).toEqual(["Stretch"]);
     expect(fetchMock.mock.calls[0][0]).toContain("include_overdue=true");
     await expect(readAgendaWidgetCache()).resolves.toMatchObject({
       items: [expect.objectContaining({ title: "Ship it" })],
