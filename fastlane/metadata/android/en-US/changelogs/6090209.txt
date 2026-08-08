@@ -1,0 +1,1 @@
+* fix(widget): keep agenda items within the rounded widget surface below the header

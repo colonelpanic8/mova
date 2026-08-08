@@ -270,16 +270,21 @@ export function AgendaWidget({
           />
         </FlexWidget>
       ) : (
-        <ListWidget style={{ width: "match_parent", height: "match_parent" }}>
-          {items.map((item) => (
-            <AgendaRow
-              key={item.key}
-              item={item}
-              pending={item.key === pendingKey}
-              compact={compact}
-            />
-          ))}
-        </ListWidget>
+        // ListWidget is rendered as a separate Android collection overlay.
+        // Give it the remaining height so it cannot extend past the header
+        // and the rounded surface's bottom padding.
+        <FlexWidget style={{ flex: 1, height: 0, width: "match_parent" }}>
+          <ListWidget style={{ width: "match_parent", height: "match_parent" }}>
+            {items.map((item) => (
+              <AgendaRow
+                key={item.key}
+                item={item}
+                pending={item.key === pendingKey}
+                compact={compact}
+              />
+            ))}
+          </ListWidget>
+        </FlexWidget>
       )}
     </FlexWidget>
   );

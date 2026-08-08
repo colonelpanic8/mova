@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.9.2]
+
+- fix(widget): keep agenda items within the rounded widget surface below the header
+
 ## [6.9.1]
 
 - fix(android): preserve Expo's manifest-loaded headless app loader in minified releases so background notification sync no longer crashes the app
