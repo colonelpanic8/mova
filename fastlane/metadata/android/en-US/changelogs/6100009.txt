@@ -1,0 +1,2 @@
+* fix(widget): restore the agenda list after the v6.9.2 layout regression
+* feat(widget): add typed and voice quick-capture actions to the agenda widget header

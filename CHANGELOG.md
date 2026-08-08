@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.10.0]
+
+- fix(widget): restore the agenda list after the v6.9.2 layout regression
+- feat(widget): add typed and voice quick-capture actions to the agenda widget header
+
 ## [6.9.2]
 
 - fix(widget): keep agenda items within the rounded widget surface below the header
