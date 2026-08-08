@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.12.0]
+
+- feat(state): add one-tap quick-set actions that apply a state without a custom effective date
+
 ## [6.11.0]
 
 - feat(widget): add persisted Tasks and Habits tabs to the agenda widget
