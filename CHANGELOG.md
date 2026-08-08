@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.12.1]
+
+- fix(state): use state badges for one-tap changes and reserve radio buttons for custom-date selection
+
 ## [6.12.0]
 
 - feat(state): add one-tap quick-set actions that apply a state without a custom effective date
