@@ -18,6 +18,9 @@ export const REFRESH_AGENDA_ACTION = "REFRESH_AGENDA";
 // Below this width the row's trailing metadata (time, category) is dropped so
 // the title keeps a usable amount of room.
 const COMPACT_WIDTH_DP = 220;
+const HEADER_HEIGHT_DP = 32;
+const SURFACE_PADDING_DP = 8;
+const SURFACE_RADIUS_DP = 24;
 
 // MD3 light palette, kept coherent with the app and the quick-capture widget.
 const SURFACE = "#FEF7FF"; // surface
@@ -186,7 +189,12 @@ export function AgendaWidget({
 }: AgendaWidgetProps) {
   const compact = typeof width === "number" && width < COMPACT_WIDTH_DP;
   const listHeight =
-    typeof height === "number" ? Math.max(40, height - 48) : "match_parent";
+    typeof height === "number"
+      ? Math.max(
+          40,
+          height - SURFACE_PADDING_DP - HEADER_HEIGHT_DP - SURFACE_RADIUS_DP,
+        )
+      : "match_parent";
   const outstanding = items.filter((item) => !item.completedToday).length;
   const label = headerLabel(status, notice, outstanding);
 
@@ -207,7 +215,7 @@ export function AgendaWidget({
       <FlexWidget
         style={{
           width: "match_parent",
-          height: 32,
+          height: HEADER_HEIGHT_DP,
           flexDirection: "row",
           alignItems: "center",
           paddingLeft: 8,

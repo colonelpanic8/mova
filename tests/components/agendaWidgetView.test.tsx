@@ -25,7 +25,7 @@ function descendants(node: unknown): React.ReactElement<any>[] {
 }
 
 describe("AgendaWidget", () => {
-  it("gives the agenda collection the space below the header", () => {
+  it("keeps the collection above the rounded bottom corners", () => {
     const elements = descendants(
       AgendaWidget({ items: [item], width: 320, height: 200 }),
     );
@@ -34,7 +34,7 @@ describe("AgendaWidget", () => {
     expect(list).toBeDefined();
     expect(list?.props.style).toMatchObject({
       width: "match_parent",
-      height: 152,
+      height: 136,
     });
   });
 
