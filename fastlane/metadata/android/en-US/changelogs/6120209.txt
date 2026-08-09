@@ -1,0 +1,1 @@
+* fix(widget): honor launcher-provided Android 12 sizes when min/max bounds form an invalid foldable widget size

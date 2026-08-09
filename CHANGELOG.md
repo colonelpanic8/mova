@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.12.2]
+
+- fix(widget): honor launcher-provided Android 12 sizes when min/max bounds form an invalid foldable widget size
+
 ## [6.12.1]
 
 - fix(state): use state badges for one-tap changes and reserve radio buttons for custom-date selection
