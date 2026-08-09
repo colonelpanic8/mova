@@ -1,0 +1,92 @@
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
+index a057c09..569339a 100644
+--- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
+@@ -6,7 +6,10 @@ import android.appwidget.AppWidgetManager;
+ import android.appwidget.AppWidgetProviderInfo;
+ import android.content.ComponentName;
+ import android.content.Context;
++import android.os.Build;
++import android.os.Bundle;
+ import android.util.DisplayMetrics;
++import android.util.SizeF;
+ import android.util.TypedValue;
+ 
+ import com.facebook.react.bridge.Arguments;
+@@ -14,25 +17,55 @@ import com.facebook.react.bridge.ReactApplicationContext;
+ import com.facebook.react.bridge.WritableArray;
+ import com.facebook.react.bridge.WritableMap;
+ 
++import java.util.ArrayList;
+ import java.util.List;
+ 
+ public class RNWidgetUtil {
+     public static int getWidgetWidth(Context context, int widgetId) {
+-        boolean isPortrait = context.getResources().getConfiguration().orientation == ORIENTATION_PORTRAIT;
+-        if (isPortrait) {
+-            return getWidgetSizeInDp(context, widgetId, AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
+-        } else {
+-            return getWidgetSizeInDp(context, widgetId, AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH);
+-        }
++        return Math.round(getWidgetSize(context, widgetId).getWidth());
+     }
+ 
+     public static int getWidgetHeight(Context context, int widgetId) {
++        return Math.round(getWidgetSize(context, widgetId).getHeight());
++    }
++
++    private static SizeF getWidgetSize(Context context, int widgetId) {
+         boolean isPortrait = context.getResources().getConfiguration().orientation == ORIENTATION_PORTRAIT;
+-        if (isPortrait) {
+-            return getWidgetSizeInDp(context, widgetId, AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
+-        } else {
+-            return getWidgetSizeInDp(context, widgetId, AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT);
++        Bundle options = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId);
++        float legacyWidth = options.getInt(
++            isPortrait
++                ? AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH
++                : AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
++            0
++        );
++        float legacyHeight = options.getInt(
++            isPortrait
++                ? AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT
++                : AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,
++            0
++        );
++
++        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
++            return new SizeF(legacyWidth, legacyHeight);
++        }
++
++        ArrayList<SizeF> sizes = options.getParcelableArrayList(
++            AppWidgetManager.OPTION_APPWIDGET_SIZES
++        );
++        if (sizes == null || sizes.isEmpty()) {
++            return new SizeF(legacyWidth, legacyHeight);
+         }
++
++        for (SizeF size : sizes) {
++            if (Math.round(size.getWidth()) == Math.round(legacyWidth)
++                && Math.round(size.getHeight()) == Math.round(legacyHeight)) {
++                return size;
++            }
++        }
++
++        // Foldable launchers can expose independent bounds whose legacy
++        // min/max combination is not a size the host will actually display.
++        return sizes.get(0);
+     }
+ 
+     public static int dpToPx(Context context, double dpValue) {
+@@ -44,10 +77,6 @@ public class RNWidgetUtil {
+         return pxValue / displayMetrics.density;
+     }
+ 
+-    private static int getWidgetSizeInDp(Context context, int widgetId, String key) {
+-        return AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId).getInt(key, 0);
+-    }
+-
+     public static WritableArray getWidgetInfo(ReactApplicationContext context, String widgetName) {
+         int[] widgetIds = getWidgetIds(context, widgetName);
+ 
