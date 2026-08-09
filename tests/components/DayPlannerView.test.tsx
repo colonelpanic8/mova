@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react-native";
 import { PaperProvider } from "react-native-paper";
 import { DayPlannerView } from "../../components/DayPlannerView";
-import { Todo } from "../../services/api";
+import { DateRelevance, Todo } from "../../services/api";
 
 const mockEditingContext = {
   completingIds: new Set<string>(),
@@ -34,7 +34,9 @@ jest.mock("../../context/ColorPaletteContext", () => ({
   }),
 }));
 
-const todo = (updates: Partial<Todo>): Todo => ({
+type PlannerTodo = Todo & { dateRelevance?: DateRelevance };
+
+const todo = (updates: Partial<PlannerTodo>): PlannerTodo => ({
   id: "todo-1",
   title: "Task",
   todo: "TODO",
@@ -54,7 +56,7 @@ const todo = (updates: Partial<Todo>): Todo => ({
 
 describe("DayPlannerView", () => {
   it("keeps untimed items in a right-hand queue beside the timeline", () => {
-    const { getByTestId, getByText, queryByTestId } = render(
+    const { getByTestId, getByText } = render(
       <PaperProvider>
         <DayPlannerView
           date="2026-08-09"
@@ -73,6 +75,13 @@ describe("DayPlannerView", () => {
               id: "overdue",
               title: "Old overdue task",
               scheduled: { date: "2026-08-08" },
+              dateRelevance: "overdue",
+            }),
+            todo({
+              id: "habit",
+              title: "Take vitamins",
+              isWindowHabit: true,
+              dateRelevance: "habit_required",
             }),
           ]}
         />
@@ -84,9 +93,11 @@ describe("DayPlannerView", () => {
     expect(getByTestId("plannerQueue")).toBeTruthy();
     expect(getByText("Drag onto the timeline")).toBeTruthy();
     expect(getByText("Morning standup")).toBeTruthy();
+    expect(getByTestId("plannerTimelineItem-timed")).toBeTruthy();
     expect(getByText("Outline the proposal")).toBeTruthy();
     expect(getByTestId("plannerQueueItem-untimed")).toBeTruthy();
-    expect(queryByTestId("plannerQueueItem-overdue")).toBeNull();
+    expect(getByTestId("plannerQueueItem-overdue")).toBeTruthy();
+    expect(getByTestId("plannerQueueItem-habit")).toBeTruthy();
   });
 
   it("shows a clear empty queue state when every item has a time", () => {

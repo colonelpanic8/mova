@@ -1,11 +1,14 @@
-import { Todo } from "../../services/api";
+import { DateRelevance, Todo } from "../../services/api";
 import {
   buildScheduledTimestamp,
   getSnappedDropTime,
   getTimeFromEntry,
+  isPlanningQueueEntry,
 } from "../../utils/dayPlanning";
 
-const todo = (updates: Partial<Todo> = {}): Todo => ({
+type PlanningTodo = Todo & { dateRelevance?: DateRelevance };
+
+const todo = (updates: Partial<PlanningTodo> = {}): PlanningTodo => ({
   id: "todo-1",
   title: "Plan the afternoon",
   todo: "TODO",
@@ -80,5 +83,41 @@ describe("day planning", () => {
       time: "09:05",
       repeater: { type: "+", value: 1, unit: "w" },
     });
+  });
+
+  it("queues date-only scheduled, overdue, and required habit entries", () => {
+    expect(
+      isPlanningQueueEntry(
+        todo({ scheduled: { date: "2026-08-09" } }),
+        "2026-08-09",
+      ),
+    ).toBe(true);
+    expect(
+      isPlanningQueueEntry(
+        todo({
+          scheduled: { date: "2026-08-08" },
+          dateRelevance: "overdue",
+        }),
+        "2026-08-09",
+      ),
+    ).toBe(true);
+    expect(
+      isPlanningQueueEntry(
+        todo({ isWindowHabit: true, dateRelevance: "habit_required" }),
+        "2026-08-09",
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps timed habits on the timeline instead of in the queue", () => {
+    expect(
+      isPlanningQueueEntry(
+        todo({
+          isWindowHabit: true,
+          scheduled: { date: "2026-08-09", time: "07:30" },
+        }),
+        "2026-08-09",
+      ),
+    ).toBe(false);
   });
 });

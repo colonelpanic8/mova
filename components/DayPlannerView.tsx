@@ -1,11 +1,12 @@
 import { StatePill } from "@/components/StatePill";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
-import { Todo } from "@/services/api";
+import { DateRelevance, Todo } from "@/services/api";
 import { formatLocalDate } from "@/utils/dateFormatting";
 import {
   buildScheduledTimestamp,
   getSnappedDropTime,
   getTimeFromEntry,
+  isPlanningQueueEntry,
   ScheduleTime,
 } from "@/utils/dayPlanning";
 import { formatHour, formatTime } from "@/utils/timeFormatting";
@@ -25,7 +26,10 @@ import {
 } from "react-native";
 import { ActivityIndicator, Text, useTheme } from "react-native-paper";
 
-type PlannerEntry = Todo & { completedAt?: string | null };
+type PlannerEntry = Todo & {
+  completedAt?: string | null;
+  dateRelevance?: DateRelevance;
+};
 
 interface DayPlannerViewProps {
   date: string;
@@ -63,6 +67,14 @@ function isHorizontalDrag(gesture: PanResponderGestureState): boolean {
   return (
     Math.abs(gesture.dx) > 6 && Math.abs(gesture.dx) > Math.abs(gesture.dy)
   );
+}
+
+function isDragGesture(
+  gesture: PanResponderGestureState,
+  dragAxis: "horizontal" | "any",
+): boolean {
+  if (dragAxis === "horizontal") return isHorizontalDrag(gesture);
+  return Math.hypot(gesture.dx, gesture.dy) > 6;
 }
 
 function positionTimedEntries(entries: PlannerEntry[]): TimedEntry[] {
@@ -167,12 +179,18 @@ function PlannerCard({
 function DraggablePlannerCard({
   todo,
   dragging,
+  dragAxis,
+  testID,
+  accessibilityHint,
   onDragStart,
   onDragMove,
   onDragEnd,
 }: {
   todo: PlannerEntry;
   dragging: boolean;
+  dragAxis: "horizontal" | "any";
+  testID: string;
+  accessibilityHint: string;
   onDragStart: (todo: PlannerEntry, pageX: number, pageY: number) => void;
   onDragMove: (pageX: number, pageY: number) => void;
   onDragEnd: (pageX: number, pageY: number) => void;
@@ -184,11 +202,11 @@ function DraggablePlannerCard({
         onMoveShouldSetPanResponder: (
           _event: GestureResponderEvent,
           gesture: PanResponderGestureState,
-        ) => isHorizontalDrag(gesture),
+        ) => isDragGesture(gesture, dragAxis),
         onMoveShouldSetPanResponderCapture: (
           _event: GestureResponderEvent,
           gesture: PanResponderGestureState,
-        ) => isHorizontalDrag(gesture),
+        ) => isDragGesture(gesture, dragAxis),
         onPanResponderGrant: (event) => {
           onDragStart(todo, event.nativeEvent.pageX, event.nativeEvent.pageY);
         },
@@ -203,14 +221,14 @@ function DraggablePlannerCard({
         },
         onPanResponderTerminationRequest: () => false,
       }),
-    [onDragEnd, onDragMove, onDragStart, todo],
+    [dragAxis, onDragEnd, onDragMove, onDragStart, todo],
   );
 
   return (
     <View
       {...responder.panHandlers}
-      testID={`plannerQueueItem-${getTodoKey(todo)}`}
-      accessibilityHint="Drag left onto a time slot to schedule"
+      testID={testID}
+      accessibilityHint={accessibilityHint}
     >
       <PlannerCard todo={todo} dragging={dragging} />
     </View>
@@ -248,11 +266,7 @@ export function DayPlannerView({
 
   const { positionedEntries, untimedEntries } = useMemo(() => {
     const untimed = entries.filter(
-      (entry) =>
-        entry.scheduled?.date === date &&
-        !entry.scheduled.time &&
-        !getTimeFromEntry(entry) &&
-        !isCompleted(entry),
+      (entry) => isPlanningQueueEntry(entry, date) && !isCompleted(entry),
     );
     return {
       positionedEntries: positionTimedEntries(entries),
@@ -383,6 +397,7 @@ export function DayPlannerView({
           <ScrollView
             ref={timelineScrollRef}
             style={styles.timelineScroll}
+            scrollEnabled={!drag}
             onScroll={(event) => {
               scrollOffset.current = event.nativeEvent.contentOffset.y;
             }}
@@ -471,21 +486,40 @@ export function DayPlannerView({
               ) : null}
 
               {positionedEntries.map(
-                ({ entry, time, column, totalColumns }) => (
-                  <View
-                    key={getTodoKey(entry)}
-                    style={[
-                      styles.timedEntry,
-                      {
-                        top: positionForTime(time),
-                        left: `${(column / totalColumns) * 100}%`,
-                        width: `${100 / totalColumns}%`,
-                      },
-                    ]}
-                  >
-                    <PlannerCard todo={entry} completed={isCompleted(entry)} />
-                  </View>
-                ),
+                ({ entry, time, column, totalColumns }) => {
+                  const completed = isCompleted(entry);
+                  return (
+                    <View
+                      key={getTodoKey(entry)}
+                      style={[
+                        styles.timedEntry,
+                        {
+                          top: positionForTime(time),
+                          left: `${(column / totalColumns) * 100}%`,
+                          width: `${100 / totalColumns}%`,
+                        },
+                      ]}
+                    >
+                      {completed ? (
+                        <PlannerCard todo={entry} completed />
+                      ) : (
+                        <DraggablePlannerCard
+                          todo={entry}
+                          dragging={
+                            drag != null &&
+                            getTodoKey(drag.entry) === getTodoKey(entry)
+                          }
+                          dragAxis="any"
+                          testID={`plannerTimelineItem-${getTodoKey(entry)}`}
+                          accessibilityHint="Drag to another time slot to reschedule"
+                          onDragStart={handleDragStart}
+                          onDragMove={handleDragMove}
+                          onDragEnd={handleDragEnd}
+                        />
+                      )}
+                    </View>
+                  );
+                },
               )}
             </View>
           </ScrollView>
@@ -539,6 +573,9 @@ export function DayPlannerView({
                   dragging={
                     drag != null && getTodoKey(drag.entry) === getTodoKey(entry)
                   }
+                  dragAxis="horizontal"
+                  testID={`plannerQueueItem-${getTodoKey(entry)}`}
+                  accessibilityHint="Drag left onto a time slot to schedule"
                   onDragStart={handleDragStart}
                   onDragMove={handleDragMove}
                   onDragEnd={handleDragEnd}

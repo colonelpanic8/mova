@@ -105,10 +105,12 @@ export default function AgendaScreen() {
   const hasData = viewMode === "multiday" ? multiDayData !== null : !!agenda;
 
   // Apply filters to agenda entries and split into active/completed
-  const baseFilteredEntries = useMemo(
-    () => (agenda ? filterTodos(agenda.entries, filters) : []),
-    [agenda, filters],
-  );
+  const baseFilteredEntries = useMemo(() => {
+    if (!agenda) return [];
+    const effectiveFilters =
+      viewMode === "plan" ? { ...filters, showHabits: true } : filters;
+    return filterTodos(agenda.entries, effectiveFilters);
+  }, [agenda, filters, viewMode]);
   const doneStates = useMemo(() => todoStates?.done ?? [], [todoStates?.done]);
 
   // Add synthetic entries for completed habits that aren't in the API response

@@ -1,4 +1,6 @@
-import { Timestamp, Todo } from "@/services/api";
+import { DateRelevance, Timestamp, Todo } from "@/services/api";
+
+type PlanningEntry = Todo & { dateRelevance?: DateRelevance };
 
 export interface ScheduleTime {
   hours: number;
@@ -82,4 +84,18 @@ export function buildScheduledTimestamp(
     time: `${String(time.hours).padStart(2, "0")}:${String(time.minutes).padStart(2, "0")}`,
     ...(todo.scheduled?.repeater ? { repeater: todo.scheduled.repeater } : {}),
   };
+}
+
+export function isPlanningQueueEntry(
+  todo: PlanningEntry,
+  date: string,
+): boolean {
+  if (getTimeFromEntry(todo)) return false;
+
+  return Boolean(
+    todo.isWindowHabit ||
+    todo.dateRelevance === "habit_required" ||
+    todo.dateRelevance === "overdue" ||
+    (todo.scheduled?.date && todo.scheduled.date <= date),
+  );
 }
