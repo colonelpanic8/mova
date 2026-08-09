@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.13.3]
+
+- fix(agenda): keep habit times as date-specific day-planning metadata instead of changing recurring schedules
+
 ## [6.13.2]
 
 - fix(widget): constrain the native agenda collection overlay to the rendered widget bounds so launcher host-size mismatches cannot bleed rows outside the rounded surface
