@@ -90,3 +90,25 @@ index a057c09..569339a 100644
      public static WritableArray getWidgetInfo(ReactApplicationContext context, String widgetName) {
          int[] widgetIds = getWidgetIds(context, widgetName);
  
+diff --git a/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_list.xml b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_list.xml
+index 6935b86..739f259 100644
+--- a/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_list.xml
++++ b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_list.xml
+@@ -6,4 +6,7 @@
+     <FrameLayout
+         android:id="@+id/rn_widget_list_0_wrapper"
+         android:layout_width="match_parent"
+-        android:layout_height="match_parent">
++        android:layout_height="match_parent"
++        android:clipChildren="true"
++        android:clipToOutline="true"
++        android:outlineProvider="bounds">
+@@ -19,4 +22,7 @@
+     <FrameLayout
+         android:id="@+id/rn_widget_list_1_wrapper"
+         android:layout_width="match_parent"
+-        android:layout_height="match_parent">
++        android:layout_height="match_parent"
++        android:clipChildren="true"
++        android:clipToOutline="true"
++        android:outlineProvider="bounds">
