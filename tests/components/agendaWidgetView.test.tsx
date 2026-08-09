@@ -39,16 +39,23 @@ function descendants(node: unknown): React.ReactElement<any>[] {
 }
 
 describe("AgendaWidget", () => {
-  it("keeps the collection above the rounded bottom corners", () => {
+  it("uses the full padded interior without extending past the surface", () => {
     const elements = descendants(
       AgendaWidget({ items: [item], width: 320, height: 200 }),
     );
     const list = elements.find((element) => element.type === ListWidget);
+    const surface = elements[0];
 
     expect(list).toBeDefined();
     expect(list?.props.style).toMatchObject({
       width: "match_parent",
-      height: 136,
+      height: 152,
+    });
+    expect(surface.props.style).toMatchObject({
+      borderRadius: 24,
+      overflow: "hidden",
+      paddingTop: 8,
+      paddingBottom: 8,
     });
   });
 

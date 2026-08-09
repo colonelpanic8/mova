@@ -24,7 +24,6 @@ const COMPACT_WIDTH_DP = 220;
 const TWO_COLUMN_WIDTH_DP = 420;
 const HEADER_HEIGHT_DP = 32;
 const SURFACE_PADDING_DP = 8;
-const SURFACE_RADIUS_DP = 24;
 
 // MD3 light palette, kept coherent with the app and the quick-capture widget.
 const SURFACE = "#FEF7FF"; // surface
@@ -239,10 +238,7 @@ export function AgendaWidget({
     typeof width === "number" && width >= TWO_COLUMN_WIDTH_DP ? 2 : 1;
   const listHeight =
     typeof height === "number"
-      ? Math.max(
-          40,
-          height - SURFACE_PADDING_DP - HEADER_HEIGHT_DP - SURFACE_RADIUS_DP,
-        )
+      ? Math.max(40, height - SURFACE_PADDING_DP * 2 - HEADER_HEIGHT_DP)
       : "match_parent";
   const outstanding = items.filter((item) => !item.completedToday).length;
   const habitsLeft = habits.filter((item) => !item.completedToday).length;
@@ -258,6 +254,7 @@ export function AgendaWidget({
         flexDirection: "column",
         backgroundColor: SURFACE,
         borderRadius: 24,
+        overflow: "hidden",
         paddingTop: 8,
         paddingBottom: 8,
         paddingLeft: 8,
