@@ -4,11 +4,12 @@ import { DateRelevance, Todo } from "@/services/api";
 import { formatLocalDate } from "@/utils/dateFormatting";
 import {
   buildScheduledTimestamp,
+  getPlannerTime,
   getSnappedDropTime,
-  getTimeFromEntry,
   isPlanningQueueEntry,
   ScheduleTime,
 } from "@/utils/dayPlanning";
+import { isHabitTodo } from "@/utils/habits";
 import { formatHour, formatTime } from "@/utils/timeFormatting";
 import { getTodoKey } from "@/utils/todoKey";
 import { useRouter } from "expo-router";
@@ -77,10 +78,13 @@ function isDragGesture(
   return Math.hypot(gesture.dx, gesture.dy) > 6;
 }
 
-function positionTimedEntries(entries: PlannerEntry[]): TimedEntry[] {
+function positionTimedEntries(
+  entries: PlannerEntry[],
+  date: string,
+): TimedEntry[] {
   const positioned: TimedEntry[] = entries
     .map((entry) => {
-      let time = getTimeFromEntry(entry);
+      let time = getPlannerTime(entry, date);
       if (!time && entry.completedAt) {
         const completedDate = new Date(entry.completedAt);
         if (!Number.isNaN(completedDate.getTime())) {
@@ -247,7 +251,7 @@ export function DayPlannerView({
 }: DayPlannerViewProps) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
-  const { scheduleTodo } = useTodoEditingContext();
+  const { scheduleTodo, planTodoForDay } = useTodoEditingContext();
   const rootRef = useRef<View>(null);
   const timelineRef = useRef<View>(null);
   const timelineScrollRef = useRef<ScrollView>(null);
@@ -269,7 +273,7 @@ export function DayPlannerView({
       (entry) => isPlanningQueueEntry(entry, date) && !isCompleted(entry),
     );
     return {
-      positionedEntries: positionTimedEntries(entries),
+      positionedEntries: positionTimedEntries(entries, date),
       untimedEntries: untimed,
     };
   }, [date, entries, isCompleted]);
@@ -363,13 +367,17 @@ export function DayPlannerView({
       const time = previewForPoint(pageX, pageY);
       const entry = dragEntryRef.current;
       if (entry && time) {
-        void scheduleTodo(entry, buildScheduledTimestamp(entry, date, time));
+        if (isHabitTodo(entry)) {
+          void planTodoForDay(entry, date, time);
+        } else {
+          void scheduleTodo(entry, buildScheduledTimestamp(entry, date, time));
+        }
       }
       dragEntryRef.current = null;
       setDrag(null);
       setDropPreview(null);
     },
-    [date, previewForPoint, scheduleTodo],
+    [date, planTodoForDay, previewForPoint, scheduleTodo],
   );
 
   const now = new Date();

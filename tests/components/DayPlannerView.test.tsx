@@ -11,6 +11,7 @@ const mockEditingContext = {
   closeOtherSwipeables: jest.fn(),
   handleTodoPress: jest.fn(),
   scheduleTodo: jest.fn().mockResolvedValue(undefined),
+  planTodoForDay: jest.fn().mockResolvedValue(undefined),
   scheduleToday: jest.fn(),
   scheduleTomorrow: jest.fn(),
   openScheduleModal: jest.fn(),

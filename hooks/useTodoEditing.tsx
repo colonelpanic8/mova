@@ -7,6 +7,7 @@ import { AppSnackbar } from "@/context/SnackbarContext";
 import { useTodoMutations } from "@/hooks/useTodoMutations";
 import { Timestamp, Todo, TodoStatesResponse } from "@/services/api";
 import { formatLocalDate } from "@/utils/dateFormatting";
+import { ScheduleTime } from "@/utils/dayPlanning";
 import { dateToTimestamp, timestampToDate } from "@/utils/timestampConversion";
 import { getTodoKey } from "@/utils/todoKey";
 import {
@@ -35,6 +36,11 @@ export interface TodoEditingContextValue {
   // Actions
   handleTodoPress: (todo: Todo) => void;
   scheduleTodo: (todo: Todo, timestamp: Timestamp) => Promise<void>;
+  planTodoForDay: (
+    todo: Todo,
+    date: string,
+    time: ScheduleTime,
+  ) => Promise<void>;
   scheduleToday: (todo: Todo) => void;
   scheduleTomorrow: (todo: Todo) => void;
   openScheduleModal: (todo: Todo) => void;
@@ -69,7 +75,13 @@ export function TodoEditingProvider({
 }: TodoEditingProviderProps) {
   const { quickScheduleIncludeTime } = useSettings();
   const mutations = useTodoMutations({ onTodoUpdated });
-  const { scheduleTodo, updateTodo, changeTodoState, deleteTodo } = mutations;
+  const {
+    scheduleTodo,
+    planTodoForDay,
+    updateTodo,
+    changeTodoState,
+    deleteTodo,
+  } = mutations;
 
   // Modal orchestration state
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -244,6 +256,7 @@ export function TodoEditingProvider({
       closeOtherSwipeables,
       handleTodoPress,
       scheduleTodo,
+      planTodoForDay,
       scheduleToday,
       scheduleTomorrow,
       openScheduleModal,
@@ -260,6 +273,7 @@ export function TodoEditingProvider({
       closeOtherSwipeables,
       handleTodoPress,
       scheduleTodo,
+      planTodoForDay,
       scheduleToday,
       scheduleTomorrow,
       openScheduleModal,

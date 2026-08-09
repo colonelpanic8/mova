@@ -4,6 +4,11 @@ import { useSnackbar } from "@/context/SnackbarContext";
 import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { OrgAgendaApi, Timestamp, Todo, TodoUpdates } from "@/services/api";
 import { completeTodoWithNotificationSync } from "@/services/todoCompletion";
+import {
+  buildDailyPlanValue,
+  DAILY_PLAN_PROPERTY,
+  ScheduleTime,
+} from "@/utils/dayPlanning";
 import { getTodoKey } from "@/utils/todoKey";
 import { Dispatch, SetStateAction, useCallback, useState } from "react";
 
@@ -27,6 +32,11 @@ export interface UseTodoMutationsResult {
   updatingIds: Set<string>;
   deletingIds: Set<string>;
   scheduleTodo: (todo: Todo, timestamp: Timestamp) => Promise<void>;
+  planTodoForDay: (
+    todo: Todo,
+    date: string,
+    time: ScheduleTime,
+  ) => Promise<void>;
   updateTodo: (todo: Todo, updates: TodoUpdates) => Promise<void>;
   changeTodoState: (
     todo: Todo,
@@ -107,6 +117,35 @@ export function useTodoMutations(
           }
         },
       }),
+    [runTodoMutation, showSnackbar, onTodoUpdated, invalidateServerData],
+  );
+
+  const planTodoForDay = useCallback(
+    (todo: Todo, date: string, time: ScheduleTime) => {
+      const plannedProperties = {
+        [DAILY_PLAN_PROPERTY]: buildDailyPlanValue(date, time),
+      };
+      return runTodoMutation(todo, setUpdatingIds, {
+        errorLog: "Failed to plan todo:",
+        errorMessage: "Failed to plan todo",
+        run: async (client) => {
+          const result = await client.updateTodo(todo, {
+            properties: plannedProperties,
+          });
+          if (result.status === "updated") {
+            showSnackbar(`Planned: ${todo.title}`);
+            onTodoUpdated?.(todo, {
+              properties: { ...todo.properties, ...plannedProperties },
+            });
+            invalidateServerData();
+          } else {
+            showSnackbar(result.message || "Failed to plan", {
+              isError: true,
+            });
+          }
+        },
+      });
+    },
     [runTodoMutation, showSnackbar, onTodoUpdated, invalidateServerData],
   );
 
@@ -195,6 +234,7 @@ export function useTodoMutations(
     updatingIds,
     deletingIds,
     scheduleTodo,
+    planTodoForDay,
     updateTodo,
     changeTodoState,
     deleteTodo,

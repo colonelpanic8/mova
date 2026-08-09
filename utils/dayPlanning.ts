@@ -1,4 +1,5 @@
 import { DateRelevance, Timestamp, Todo } from "@/services/api";
+import { isHabitTodo } from "@/utils/habits";
 
 type PlanningEntry = Todo & { dateRelevance?: DateRelevance };
 
@@ -6,6 +7,8 @@ export interface ScheduleTime {
   hours: number;
   minutes: number;
 }
+
+export const DAILY_PLAN_PROPERTY = "MOVA_PLANNED_AT";
 
 interface DropTimeOptions {
   dropY: number;
@@ -36,6 +39,38 @@ export function getTimeFromEntry(entry: Todo): ScheduleTime | null {
   }
 
   return null;
+}
+
+function parseTime(value: string | undefined): ScheduleTime | null {
+  if (!value) return null;
+
+  const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const hours = Number(match[2]);
+  const minutes = Number(match[3]);
+  if (hours >= 24 || minutes >= 60) return null;
+
+  return { hours, minutes };
+}
+
+export function getDailyPlanTime(
+  entry: Todo,
+  date: string,
+): ScheduleTime | null {
+  const value = entry.properties?.[DAILY_PLAN_PROPERTY];
+  if (!value?.startsWith(`${date}T`)) return null;
+  return parseTime(value);
+}
+
+export function getPlannerTime(entry: Todo, date: string): ScheduleTime | null {
+  return isHabitTodo(entry)
+    ? (getDailyPlanTime(entry, date) ?? getTimeFromEntry(entry))
+    : getTimeFromEntry(entry);
+}
+
+export function buildDailyPlanValue(date: string, time: ScheduleTime): string {
+  return `${date}T${String(time.hours).padStart(2, "0")}:${String(time.minutes).padStart(2, "0")}`;
 }
 
 export function getSnappedDropTime({
@@ -90,10 +125,10 @@ export function isPlanningQueueEntry(
   todo: PlanningEntry,
   date: string,
 ): boolean {
-  if (getTimeFromEntry(todo)) return false;
+  if (getPlannerTime(todo, date)) return false;
 
   return Boolean(
-    todo.isWindowHabit ||
+    isHabitTodo(todo) ||
     todo.dateRelevance === "habit_required" ||
     todo.dateRelevance === "overdue" ||
     (todo.scheduled?.date && todo.scheduled.date <= date),
