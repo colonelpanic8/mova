@@ -1,3 +1,24 @@
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
+--- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
+@@ -218,3 +218,17 @@ public class RNWidget {
+     private void addCollectionViews(int widgetId, RemoteViews remoteWidgetView, WidgetWithViews widgetWithViews) {
+         remoteWidgetView.removeAllViews(R.id.rn_widget_collection_container);
++
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
++            remoteWidgetView.setViewLayoutWidth(
++                R.id.rn_widget_collection_container,
++                RNWidgetUtil.getWidgetWidth(appContext, widgetId),
++                TypedValue.COMPLEX_UNIT_DIP
++            );
++            remoteWidgetView.setViewLayoutHeight(
++                R.id.rn_widget_collection_container,
++                RNWidgetUtil.getWidgetHeight(appContext, widgetId),
++                TypedValue.COMPLEX_UNIT_DIP
++            );
++        }
++
+         ViewGroup rootView = (ViewGroup) widgetWithViews.getRootView();
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
 index a057c09..569339a 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
