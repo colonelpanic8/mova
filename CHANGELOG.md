@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.13.2]
+
+- fix(widget): constrain the native agenda collection overlay to the rendered widget bounds so launcher host-size mismatches cannot bleed rows outside the rounded surface
+
 ## [6.13.1]
 
 - fix(agenda): include required habits and overdue items in the day planner queue and allow timed items to be dragged to a new time

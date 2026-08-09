@@ -1,0 +1,1 @@
+* fix(widget): constrain the native agenda collection overlay to the rendered widget bounds so launcher host-size mismatches cannot bleed rows outside the rounded surface
