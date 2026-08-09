@@ -2,7 +2,7 @@ import { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { IconButton, Menu, Text, useTheme } from "react-native-paper";
 
-export type AgendaViewMode = "list" | "schedule" | "multiday";
+export type AgendaViewMode = "list" | "schedule" | "plan" | "multiday";
 
 interface AgendaHeaderProps {
   /** Formatted date (single day) or date range (multi-day) for the title. */
@@ -46,6 +46,7 @@ export function AgendaHeader({
   const getViewModeIcon = () => {
     if (viewMode === "list") return "view-list";
     if (viewMode === "schedule") return "clock-outline";
+    if (viewMode === "plan") return "calendar-clock";
     return "calendar-range";
   };
 
@@ -112,6 +113,12 @@ export function AgendaHeader({
             onPress={() => selectViewMode("schedule")}
             title="Schedule"
             testID="viewModeSchedule"
+          />
+          <Menu.Item
+            leadingIcon="calendar-clock"
+            onPress={() => selectViewMode("plan")}
+            title="Plan day"
+            testID="viewModePlan"
           />
           <Menu.Item
             leadingIcon="calendar-range"

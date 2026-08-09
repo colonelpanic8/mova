@@ -6,6 +6,7 @@ import {
 } from "@/components/agenda/AgendaList";
 import { MultiDayAgendaList } from "@/components/agenda/MultiDayAgendaList";
 import { StaleBanner } from "@/components/agenda/StaleBanner";
+import { DayPlannerView } from "@/components/DayPlannerView";
 import { DayScheduleView } from "@/components/DayScheduleView";
 import { FilterBar } from "@/components/FilterBar";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -402,6 +403,14 @@ export default function AgendaScreen() {
           </View>
         ) : viewMode === "schedule" ? (
           <DayScheduleView
+            entries={showCompleted ? visibleEntries : activeEntries}
+            doneStates={doneStates}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        ) : viewMode === "plan" ? (
+          <DayPlannerView
+            date={formatDateForApi(selectedDate)}
             entries={showCompleted ? visibleEntries : activeEntries}
             doneStates={doneStates}
             refreshing={refreshing}

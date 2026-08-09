@@ -1,6 +1,7 @@
 import { StatePill } from "@/components/StatePill";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
+import { getTimeFromEntry } from "@/utils/dayPlanning";
 import { formatHour, formatTime } from "@/utils/timeFormatting";
 import { getTodoKey } from "@/utils/todoKey";
 import { useRouter } from "expo-router";
@@ -34,23 +35,6 @@ type PositionedEntry = TimedEntry & {
   column: number;
   totalColumns: number;
 };
-
-function getTimeFromEntry(
-  entry: Todo,
-): { hours: number; minutes: number } | null {
-  // Check scheduled first, then deadline
-  const timestamp = entry.scheduled || entry.deadline;
-  if (!timestamp) return null;
-
-  // Check if it has a time component
-  if (!timestamp.time) return null;
-
-  // Parse time string (HH:MM format)
-  const [hours, minutes] = timestamp.time.split(":").map(Number);
-  if (isNaN(hours) || isNaN(minutes)) return null;
-
-  return { hours, minutes };
-}
 
 // Compact todo item for schedule view
 function CompactTodoItem({

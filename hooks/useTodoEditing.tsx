@@ -5,7 +5,7 @@ import {
 import { useSettings } from "@/context/SettingsContext";
 import { AppSnackbar } from "@/context/SnackbarContext";
 import { useTodoMutations } from "@/hooks/useTodoMutations";
-import { Todo, TodoStatesResponse } from "@/services/api";
+import { Timestamp, Todo, TodoStatesResponse } from "@/services/api";
 import { formatLocalDate } from "@/utils/dateFormatting";
 import { dateToTimestamp, timestampToDate } from "@/utils/timestampConversion";
 import { getTodoKey } from "@/utils/todoKey";
@@ -34,6 +34,7 @@ export interface TodoEditingContextValue {
 
   // Actions
   handleTodoPress: (todo: Todo) => void;
+  scheduleTodo: (todo: Todo, timestamp: Timestamp) => Promise<void>;
   scheduleToday: (todo: Todo) => void;
   scheduleTomorrow: (todo: Todo) => void;
   openScheduleModal: (todo: Todo) => void;
@@ -242,6 +243,7 @@ export function TodoEditingProvider({
       registerSwipeable,
       closeOtherSwipeables,
       handleTodoPress,
+      scheduleTodo,
       scheduleToday,
       scheduleTomorrow,
       openScheduleModal,
@@ -257,6 +259,7 @@ export function TodoEditingProvider({
       registerSwipeable,
       closeOtherSwipeables,
       handleTodoPress,
+      scheduleTodo,
       scheduleToday,
       scheduleTomorrow,
       openScheduleModal,
