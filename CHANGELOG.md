@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.13.0]
+
+- feat(agenda): add a single-day planning view with timed items beside a draggable queue of date-only scheduled tasks, snapping drops to 15-minute slots
+- feat(android): add a Quick Capture settings tile
+
 ## [6.12.4]
 
 - fix(widget): clip the native agenda collection overlay to its measured viewport so rows cannot paint under the header or beyond the widget surface
