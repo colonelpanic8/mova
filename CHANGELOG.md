@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.13.1]
+
+- fix(agenda): include required habits and overdue items in the day planner queue and allow timed items to be dragged to a new time
+
 ## [6.13.0]
 
 - feat(agenda): add a single-day planning view with timed items beside a draggable queue of date-only scheduled tasks, snapping drops to 15-minute slots
