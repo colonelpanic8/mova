@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.12.4]
+
+- fix(widget): clip the native agenda collection overlay to its measured viewport so rows cannot paint under the header or beyond the widget surface
+
 ## [6.12.3]
 
 - fix(widget): use the full padded agenda list area while retaining rounded-surface overflow clipping
