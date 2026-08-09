@@ -1,1 +1,1 @@
-Keep habit planning times separate from recurring schedules.
+* fix(agenda): keep habit times as date-specific day-planning metadata instead of changing recurring schedules
