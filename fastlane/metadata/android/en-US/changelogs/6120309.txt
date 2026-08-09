@@ -1,0 +1,1 @@
+* fix(widget): use the full padded agenda list area while retaining rounded-surface overflow clipping
