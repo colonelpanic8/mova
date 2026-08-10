@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.14.2]
+
+- fix(planner): allow shifted events to move into an adjacent day
+
 ## [6.14.1]
 
 - fix(planner): replace the duration stepper with cutoff and target time pickers, default shifts later, and support shifting in either direction
