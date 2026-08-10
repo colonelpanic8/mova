@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.14.0]
+
+- feat(planner): shift all unfinished timed events at or after a selected cutoff earlier by a shared duration, with an affected-count preview and explicit confirmation
+
 ## [6.13.3]
 
 - fix(agenda): keep habit times as date-specific day-planning metadata instead of changing recurring schedules

@@ -1,0 +1,1 @@
+* feat(planner): shift all unfinished timed events at or after a selected cutoff earlier by a shared duration, with an affected-count preview and explicit confirmation
