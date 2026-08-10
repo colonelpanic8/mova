@@ -10,7 +10,7 @@ import {
   isPlanningQueueEntry,
   ScheduleTime,
   scheduleTimeToMinutes,
-  shiftScheduleTime,
+  shiftScheduleDateTime,
 } from "@/utils/dayPlanning";
 import { isHabitTodo } from "@/utils/habits";
 import { formatHour, formatTime } from "@/utils/timeFormatting";
@@ -76,6 +76,7 @@ interface DragState {
 
 interface ShiftCandidate {
   entry: PlannerEntry;
+  shiftedDate: string;
   shiftedTime: ScheduleTime;
 }
 
@@ -351,22 +352,28 @@ export function DayPlannerView({
   const shiftCandidates = useMemo(
     () =>
       affectedShiftEntries.reduce<ShiftCandidate[]>((candidates, item) => {
-        const shiftedTime = shiftScheduleTime(item.time, shiftDeltaMinutes);
-        if (shiftedTime) {
-          candidates.push({ entry: item.entry, shiftedTime });
+        const shifted = shiftScheduleDateTime(
+          date,
+          item.time,
+          shiftDeltaMinutes,
+        );
+        if (shifted) {
+          candidates.push({
+            entry: item.entry,
+            shiftedDate: shifted.date,
+            shiftedTime: shifted.time,
+          });
         }
         return candidates;
       }, []),
-    [affectedShiftEntries, shiftDeltaMinutes],
+    [affectedShiftEntries, date, shiftDeltaMinutes],
   );
 
-  const shiftCrossesDayBoundary =
-    shiftDeltaMinutes !== 0 &&
-    shiftCandidates.length !== affectedShiftEntries.length;
   const canConfirmShift =
-    shiftDeltaMinutes !== 0 &&
-    affectedShiftEntries.length > 0 &&
-    !shiftCrossesDayBoundary;
+    shiftDeltaMinutes !== 0 && affectedShiftEntries.length > 0;
+  const crossDayShiftCount = shiftCandidates.filter(
+    ({ shiftedDate }) => shiftedDate !== date,
+  ).length;
 
   const handleShiftTimeSelected = useCallback(
     (selectedTime: Date) => {
@@ -403,12 +410,12 @@ export function DayPlannerView({
     setShifting(true);
     try {
       await Promise.all(
-        shiftCandidates.map(({ entry, shiftedTime }) =>
+        shiftCandidates.map(({ entry, shiftedDate, shiftedTime }) =>
           isHabitTodo(entry)
-            ? planTodoForDay(entry, date, shiftedTime)
+            ? planTodoForDay(entry, shiftedDate, shiftedTime)
             : scheduleTodo(
                 entry,
-                buildScheduledTimestamp(entry, date, shiftedTime),
+                buildScheduledTimestamp(entry, shiftedDate, shiftedTime),
               ),
         ),
       );
@@ -418,7 +425,6 @@ export function DayPlannerView({
     }
   }, [
     canConfirmShift,
-    date,
     planTodoForDay,
     scheduleTodo,
     shiftCandidates,
@@ -815,18 +821,18 @@ export function DayPlannerView({
                 ? "No unfinished timed events are at or after this cutoff."
                 : shiftDeltaMinutes === 0
                   ? "Choose a different target time to shift these events."
-                  : shiftCrossesDayBoundary
-                    ? `Moving ${formatDuration(Math.abs(shiftDeltaMinutes))} ${
-                        shiftDeltaMinutes > 0 ? "later" : "earlier"
-                      } would move an event outside this day.`
-                    : `${shiftCandidates.length} unfinished ${
-                        shiftCandidates.length === 1 ? "event" : "events"
-                      } at or after ${formatTime(
-                        shiftCutoff.hours,
-                        shiftCutoff.minutes,
-                      )} will move ${formatDuration(
-                        Math.abs(shiftDeltaMinutes),
-                      )} ${shiftDeltaMinutes > 0 ? "later" : "earlier"}.`}
+                  : `${shiftCandidates.length} unfinished ${
+                      shiftCandidates.length === 1 ? "event" : "events"
+                    } at or after ${formatTime(
+                      shiftCutoff.hours,
+                      shiftCutoff.minutes,
+                    )} will move ${formatDuration(
+                      Math.abs(shiftDeltaMinutes),
+                    )} ${shiftDeltaMinutes > 0 ? "later" : "earlier"}.${
+                      crossDayShiftCount > 0
+                        ? ` ${crossDayShiftCount} will move to another day.`
+                        : ""
+                    }`}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>

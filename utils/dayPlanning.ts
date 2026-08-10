@@ -8,22 +8,47 @@ export interface ScheduleTime {
   minutes: number;
 }
 
+export interface ScheduledDateTime {
+  date: string;
+  time: ScheduleTime;
+}
+
 export function scheduleTimeToMinutes(time: ScheduleTime): number {
   return time.hours * 60 + time.minutes;
 }
 
-export function shiftScheduleTime(
+export function shiftScheduleDateTime(
+  date: string,
   time: ScheduleTime,
   deltaMinutes: number,
-): ScheduleTime | null {
+): ScheduledDateTime | null {
   if (!Number.isInteger(deltaMinutes) || deltaMinutes === 0) return null;
 
   const shiftedMinutes = scheduleTimeToMinutes(time) + deltaMinutes;
-  if (shiftedMinutes < 0 || shiftedMinutes >= 24 * 60) return null;
+  const dayOffset = Math.floor(shiftedMinutes / (24 * 60));
+  const minutesInDay = ((shiftedMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!dateMatch) return null;
+
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const shiftedDate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    shiftedDate.getUTCFullYear() !== year ||
+    shiftedDate.getUTCMonth() !== month - 1 ||
+    shiftedDate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  shiftedDate.setUTCDate(shiftedDate.getUTCDate() + dayOffset);
 
   return {
-    hours: Math.floor(shiftedMinutes / 60),
-    minutes: shiftedMinutes % 60,
+    date: shiftedDate.toISOString().slice(0, 10),
+    time: {
+      hours: Math.floor(minutesInDay / 60),
+      minutes: minutesInDay % 60,
+    },
   };
 }
 

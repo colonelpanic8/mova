@@ -222,6 +222,38 @@ describe("DayPlannerView", () => {
     );
   });
 
+  it("shifts late events into the next day", async () => {
+    const { getByTestId, getByText } = render(
+      <PaperProvider>
+        <DayPlannerView
+          date="2026-08-09"
+          entries={[
+            todo({
+              id: "late-event",
+              scheduled: { date: "2026-08-09", time: "23:55" },
+            }),
+          ]}
+        />
+      </PaperProvider>,
+    );
+
+    fireEvent.press(getByTestId("plannerShiftButton"));
+    expect(
+      getByText(
+        "1 unfinished event at or after 12:00 PM will move 15 min later. 1 will move to another day.",
+      ),
+    ).toBeTruthy();
+
+    fireEvent.press(getByTestId("plannerShiftConfirmButton"));
+
+    await waitFor(() =>
+      expect(mockEditingContext.scheduleTodo).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "late-event" }),
+        { date: "2026-08-10", time: "00:10" },
+      ),
+    );
+  });
+
   it("does not shift events when the confirmation is cancelled", () => {
     const { getByTestId, getByText } = render(
       <PaperProvider>

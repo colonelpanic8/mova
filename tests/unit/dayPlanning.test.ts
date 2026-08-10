@@ -9,7 +9,7 @@ import {
   getTimeFromEntry,
   isPlanningQueueEntry,
   scheduleTimeToMinutes,
-  shiftScheduleTime,
+  shiftScheduleDateTime,
 } from "../../utils/dayPlanning";
 
 type PlanningTodo = Todo & { dateRelevance?: DateRelevance };
@@ -177,19 +177,33 @@ describe("day planning", () => {
   });
 
   it("shifts a planner time in either direction by a shared minute delta", () => {
-    expect(shiftScheduleTime({ hours: 14, minutes: 15 }, -45)).toEqual({
-      hours: 13,
-      minutes: 30,
+    expect(
+      shiftScheduleDateTime("2026-08-09", { hours: 14, minutes: 15 }, -45),
+    ).toEqual({
+      date: "2026-08-09",
+      time: { hours: 13, minutes: 30 },
     });
-    expect(shiftScheduleTime({ hours: 14, minutes: 15 }, 45)).toEqual({
-      hours: 15,
-      minutes: 0,
+    expect(
+      shiftScheduleDateTime("2026-08-09", { hours: 14, minutes: 15 }, 45),
+    ).toEqual({
+      date: "2026-08-09",
+      time: { hours: 15, minutes: 0 },
     });
     expect(scheduleTimeToMinutes({ hours: 13, minutes: 30 })).toBe(810);
   });
 
-  it("rejects shifts that cross a day boundary", () => {
-    expect(shiftScheduleTime({ hours: 0, minutes: 15 }, -30)).toBeNull();
-    expect(shiftScheduleTime({ hours: 23, minutes: 45 }, 30)).toBeNull();
+  it("shifts planner times across day boundaries", () => {
+    expect(
+      shiftScheduleDateTime("2026-08-09", { hours: 0, minutes: 15 }, -30),
+    ).toEqual({
+      date: "2026-08-08",
+      time: { hours: 23, minutes: 45 },
+    });
+    expect(
+      shiftScheduleDateTime("2026-08-09", { hours: 23, minutes: 45 }, 30),
+    ).toEqual({
+      date: "2026-08-10",
+      time: { hours: 0, minutes: 15 },
+    });
   });
 });
