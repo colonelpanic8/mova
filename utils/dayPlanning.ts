@@ -12,14 +12,14 @@ export function scheduleTimeToMinutes(time: ScheduleTime): number {
   return time.hours * 60 + time.minutes;
 }
 
-export function shiftScheduleTimeEarlier(
+export function shiftScheduleTime(
   time: ScheduleTime,
   deltaMinutes: number,
 ): ScheduleTime | null {
-  if (!Number.isInteger(deltaMinutes) || deltaMinutes <= 0) return null;
+  if (!Number.isInteger(deltaMinutes) || deltaMinutes === 0) return null;
 
-  const shiftedMinutes = scheduleTimeToMinutes(time) - deltaMinutes;
-  if (shiftedMinutes < 0) return null;
+  const shiftedMinutes = scheduleTimeToMinutes(time) + deltaMinutes;
+  if (shiftedMinutes < 0 || shiftedMinutes >= 24 * 60) return null;
 
   return {
     hours: Math.floor(shiftedMinutes / 60),

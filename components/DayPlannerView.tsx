@@ -10,7 +10,7 @@ import {
   isPlanningQueueEntry,
   ScheduleTime,
   scheduleTimeToMinutes,
-  shiftScheduleTimeEarlier,
+  shiftScheduleTime,
 } from "@/utils/dayPlanning";
 import { isHabitTodo } from "@/utils/habits";
 import { formatHour, formatTime } from "@/utils/timeFormatting";
@@ -32,7 +32,6 @@ import {
   ActivityIndicator,
   Button,
   Dialog,
-  IconButton,
   Portal,
   Text,
   useTheme,
@@ -80,8 +79,6 @@ interface ShiftCandidate {
   shiftedTime: ScheduleTime;
 }
 
-const SHIFT_STEP_MINUTES = 15;
-
 function formatDuration(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -96,18 +93,11 @@ function timeOnDate(date: string, time: ScheduleTime): Date {
   );
 }
 
-function snapCutoffTime(time: ScheduleTime): ScheduleTime {
-  const snappedMinutes = Math.max(
-    SHIFT_STEP_MINUTES,
-    Math.min(
-      24 * 60 - SHIFT_STEP_MINUTES,
-      Math.round(scheduleTimeToMinutes(time) / SHIFT_STEP_MINUTES) *
-        SHIFT_STEP_MINUTES,
-    ),
-  );
+function timeFromMinutes(totalMinutes: number): ScheduleTime {
+  const clampedMinutes = Math.max(0, Math.min(24 * 60 - 1, totalMinutes));
   return {
-    hours: Math.floor(snappedMinutes / 60),
-    minutes: snappedMinutes % 60,
+    hours: Math.floor(clampedMinutes / 60),
+    minutes: clampedMinutes % 60,
   };
 }
 
@@ -309,12 +299,17 @@ export function DayPlannerView({
   const [drag, setDrag] = useState<DragState | null>(null);
   const [dropPreview, setDropPreview] = useState<ScheduleTime | null>(null);
   const [shiftDialogVisible, setShiftDialogVisible] = useState(false);
-  const [cutoffPickerVisible, setCutoffPickerVisible] = useState(false);
+  const [shiftTimePicker, setShiftTimePicker] = useState<
+    "cutoff" | "target" | null
+  >(null);
   const [shiftCutoff, setShiftCutoff] = useState<ScheduleTime>({
     hours: 12,
     minutes: 0,
   });
-  const [shiftDeltaMinutes, setShiftDeltaMinutes] = useState(15);
+  const [shiftTarget, setShiftTarget] = useState<ScheduleTime>({
+    hours: 12,
+    minutes: 15,
+  });
   const [shifting, setShifting] = useState(false);
 
   const isCompleted = useCallback(
@@ -333,33 +328,64 @@ export function DayPlannerView({
     };
   }, [date, entries, isCompleted]);
 
-  const shiftCandidates = useMemo(() => {
+  const affectedShiftEntries = useMemo(() => {
     const cutoffMinutes = scheduleTimeToMinutes(shiftCutoff);
 
-    return entries.reduce<ShiftCandidate[]>((candidates, entry) => {
-      if (isCompleted(entry)) return candidates;
-      const time = getPlannerTime(entry, date);
-      if (!time || scheduleTimeToMinutes(time) < cutoffMinutes) {
+    return entries.reduce<{ entry: PlannerEntry; time: ScheduleTime }[]>(
+      (affected, entry) => {
+        if (isCompleted(entry)) return affected;
+        const time = getPlannerTime(entry, date);
+        if (!time || scheduleTimeToMinutes(time) < cutoffMinutes) {
+          return affected;
+        }
+        affected.push({ entry, time });
+        return affected;
+      },
+      [],
+    );
+  }, [date, entries, isCompleted, shiftCutoff]);
+
+  const shiftDeltaMinutes =
+    scheduleTimeToMinutes(shiftTarget) - scheduleTimeToMinutes(shiftCutoff);
+
+  const shiftCandidates = useMemo(
+    () =>
+      affectedShiftEntries.reduce<ShiftCandidate[]>((candidates, item) => {
+        const shiftedTime = shiftScheduleTime(item.time, shiftDeltaMinutes);
+        if (shiftedTime) {
+          candidates.push({ entry: item.entry, shiftedTime });
+        }
         return candidates;
+      }, []),
+    [affectedShiftEntries, shiftDeltaMinutes],
+  );
+
+  const shiftCrossesDayBoundary =
+    shiftDeltaMinutes !== 0 &&
+    shiftCandidates.length !== affectedShiftEntries.length;
+  const canConfirmShift =
+    shiftDeltaMinutes !== 0 &&
+    affectedShiftEntries.length > 0 &&
+    !shiftCrossesDayBoundary;
+
+  const handleShiftTimeSelected = useCallback(
+    (selectedTime: Date) => {
+      const selected = {
+        hours: selectedTime.getHours(),
+        minutes: selectedTime.getMinutes(),
+      };
+      if (shiftTimePicker === "cutoff") {
+        const currentDelta = shiftDeltaMinutes || 15;
+        setShiftCutoff(selected);
+        setShiftTarget(
+          timeFromMinutes(scheduleTimeToMinutes(selected) + currentDelta),
+        );
+      } else if (shiftTimePicker === "target") {
+        setShiftTarget(selected);
       }
-      const shiftedTime = shiftScheduleTimeEarlier(time, shiftDeltaMinutes);
-      if (shiftedTime) candidates.push({ entry, shiftedTime });
-      return candidates;
-    }, []);
-  }, [date, entries, isCompleted, shiftCutoff, shiftDeltaMinutes]);
-
-  const maximumShiftDelta = scheduleTimeToMinutes(shiftCutoff);
-
-  const changeShiftDelta = useCallback(
-    (change: number) => {
-      setShiftDeltaMinutes((current) =>
-        Math.max(
-          SHIFT_STEP_MINUTES,
-          Math.min(maximumShiftDelta, current + change),
-        ),
-      );
+      setShiftTimePicker(null);
     },
-    [maximumShiftDelta],
+    [shiftDeltaMinutes, shiftTimePicker],
   );
 
   const openShiftDialog = useCallback(() => {
@@ -368,12 +394,12 @@ export function DayPlannerView({
 
   const dismissShiftDialog = useCallback(() => {
     if (shifting) return;
-    setCutoffPickerVisible(false);
+    setShiftTimePicker(null);
     setShiftDialogVisible(false);
   }, [shifting]);
 
   const confirmShift = useCallback(async () => {
-    if (shiftCandidates.length === 0 || shifting) return;
+    if (!canConfirmShift || shifting) return;
     setShifting(true);
     try {
       await Promise.all(
@@ -390,7 +416,14 @@ export function DayPlannerView({
     } finally {
       setShifting(false);
     }
-  }, [date, planTodoForDay, scheduleTodo, shiftCandidates, shifting]);
+  }, [
+    canConfirmShift,
+    date,
+    planTodoForDay,
+    scheduleTodo,
+    shiftCandidates,
+    shifting,
+  ]);
 
   const totalHeight = (endHour - startHour) * hourHeight;
   const queueWidth = Math.max(148, Math.min(320, width * 0.36));
@@ -517,12 +550,12 @@ export function DayPlannerView({
       >
         <Button
           compact
-          icon="clock-minus-outline"
+          icon="clock-outline"
           mode="text"
           onPress={openShiftDialog}
           testID="plannerShiftButton"
         >
-          Shift events earlier
+          Shift events
         </Button>
       </View>
       <View style={styles.columns}>
@@ -749,63 +782,51 @@ export function DayPlannerView({
           onDismiss={dismissShiftDialog}
           testID="plannerShiftDialog"
         >
-          <Dialog.Title>Shift events earlier</Dialog.Title>
+          <Dialog.Title>Shift events</Dialog.Title>
           <Dialog.Content>
-            <Text variant="labelLarge">Cutoff time</Text>
+            <Text variant="labelLarge">Move events at or after</Text>
             <Button
               mode="outlined"
               icon="clock-outline"
-              onPress={() => setCutoffPickerVisible(true)}
-              style={styles.shiftCutoffButton}
+              onPress={() => setShiftTimePicker("cutoff")}
+              style={styles.shiftTimeButton}
               testID="plannerShiftCutoffButton"
             >
               {formatTime(shiftCutoff.hours, shiftCutoff.minutes)}
             </Button>
 
-            <Text variant="labelLarge">Move earlier by</Text>
-            <View style={styles.shiftDeltaRow}>
-              <IconButton
-                icon="minus"
-                mode="outlined"
-                disabled={shifting || shiftDeltaMinutes <= SHIFT_STEP_MINUTES}
-                onPress={() => changeShiftDelta(-SHIFT_STEP_MINUTES)}
-                testID="plannerShiftDeltaDecrease"
-                accessibilityLabel="Decrease shift by 15 minutes"
-              />
-              <Text
-                variant="titleMedium"
-                style={styles.shiftDeltaValue}
-                testID="plannerShiftDeltaValue"
-              >
-                {formatDuration(shiftDeltaMinutes)}
-              </Text>
-              <IconButton
-                icon="plus"
-                mode="outlined"
-                disabled={
-                  shifting ||
-                  maximumShiftDelta < SHIFT_STEP_MINUTES ||
-                  shiftDeltaMinutes >= maximumShiftDelta
-                }
-                onPress={() => changeShiftDelta(SHIFT_STEP_MINUTES)}
-                testID="plannerShiftDeltaIncrease"
-                accessibilityLabel="Increase shift by 15 minutes"
-              />
-            </View>
+            <Text variant="labelLarge">Shift that time to</Text>
+            <Button
+              mode="outlined"
+              icon="clock-fast"
+              onPress={() => setShiftTimePicker("target")}
+              style={styles.shiftTimeButton}
+              testID="plannerShiftTargetButton"
+            >
+              {formatTime(shiftTarget.hours, shiftTarget.minutes)}
+            </Button>
 
             <Text
               variant="bodyMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
               testID="plannerShiftSummary"
             >
-              {shiftCandidates.length === 0
+              {affectedShiftEntries.length === 0
                 ? "No unfinished timed events are at or after this cutoff."
-                : `${shiftCandidates.length} unfinished ${
-                    shiftCandidates.length === 1 ? "event" : "events"
-                  } at or after ${formatTime(
-                    shiftCutoff.hours,
-                    shiftCutoff.minutes,
-                  )} will move ${formatDuration(shiftDeltaMinutes)} earlier.`}
+                : shiftDeltaMinutes === 0
+                  ? "Choose a different target time to shift these events."
+                  : shiftCrossesDayBoundary
+                    ? `Moving ${formatDuration(Math.abs(shiftDeltaMinutes))} ${
+                        shiftDeltaMinutes > 0 ? "later" : "earlier"
+                      } would move an event outside this day.`
+                    : `${shiftCandidates.length} unfinished ${
+                        shiftCandidates.length === 1 ? "event" : "events"
+                      } at or after ${formatTime(
+                        shiftCutoff.hours,
+                        shiftCutoff.minutes,
+                      )} will move ${formatDuration(
+                        Math.abs(shiftDeltaMinutes),
+                      )} ${shiftDeltaMinutes > 0 ? "later" : "earlier"}.`}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
@@ -814,7 +835,7 @@ export function DayPlannerView({
             </Button>
             <Button
               loading={shifting}
-              disabled={shifting || shiftCandidates.length === 0}
+              disabled={shifting || !canConfirmShift}
               onPress={() => void confirmShift()}
               testID="plannerShiftConfirmButton"
             >
@@ -826,20 +847,13 @@ export function DayPlannerView({
 
       <PlatformDatePicker
         mode="time"
-        visible={cutoffPickerVisible}
-        value={timeOnDate(date, shiftCutoff)}
-        onChange={(selectedTime) => {
-          const nextCutoff = snapCutoffTime({
-            hours: selectedTime.getHours(),
-            minutes: selectedTime.getMinutes(),
-          });
-          setShiftCutoff(nextCutoff);
-          setShiftDeltaMinutes((current) =>
-            Math.min(current, scheduleTimeToMinutes(nextCutoff)),
-          );
-          setCutoffPickerVisible(false);
-        }}
-        onDismiss={() => setCutoffPickerVisible(false)}
+        visible={shiftTimePicker !== null}
+        value={timeOnDate(
+          date,
+          shiftTimePicker === "target" ? shiftTarget : shiftCutoff,
+        )}
+        onChange={handleShiftTimeSelected}
+        onDismiss={() => setShiftTimePicker(null)}
       />
     </View>
   );
@@ -973,19 +987,10 @@ const styles = StyleSheet.create({
     zIndex: 20,
     elevation: 8,
   },
-  shiftCutoffButton: {
+  shiftTimeButton: {
     alignSelf: "flex-start",
     marginTop: 6,
     marginBottom: 18,
-  },
-  shiftDeltaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  shiftDeltaValue: {
-    minWidth: 116,
-    textAlign: "center",
   },
 });
 

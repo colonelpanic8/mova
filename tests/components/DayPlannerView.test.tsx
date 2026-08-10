@@ -162,26 +162,63 @@ describe("DayPlannerView", () => {
 
     expect(
       getByText(
-        "2 unfinished events at or after 12:00 PM will move 15 min earlier.",
+        "2 unfinished events at or after 12:00 PM will move 15 min later.",
       ),
     ).toBeTruthy();
     expect(mockEditingContext.scheduleTodo).not.toHaveBeenCalled();
 
-    fireEvent.press(getByTestId("plannerShiftDeltaIncrease"));
-    expect(getByTestId("plannerShiftDeltaValue").props.children).toBe("30 min");
     fireEvent.press(getByTestId("plannerShiftConfirmButton"));
 
     await waitFor(() =>
       expect(mockEditingContext.scheduleTodo).toHaveBeenCalledWith(
         expect.objectContaining({ id: "after-cutoff" }),
-        { date: "2026-08-09", time: "12:30" },
+        { date: "2026-08-09", time: "13:15" },
       ),
     );
     expect(mockEditingContext.scheduleTodo).toHaveBeenCalledTimes(1);
     expect(mockEditingContext.planTodoForDay).toHaveBeenCalledWith(
       expect.objectContaining({ id: "habit" }),
       "2026-08-09",
-      { hours: 13, minutes: 0 },
+      { hours: 13, minutes: 45 },
+    );
+  });
+
+  it("derives an earlier shift from the selected target time", async () => {
+    const { getByTestId, getByText, UNSAFE_getByType } = render(
+      <PaperProvider>
+        <DayPlannerView
+          date="2026-08-09"
+          entries={[
+            todo({
+              id: "afternoon",
+              scheduled: { date: "2026-08-09", time: "13:00" },
+            }),
+          ]}
+        />
+      </PaperProvider>,
+    );
+
+    fireEvent.press(getByTestId("plannerShiftButton"));
+    fireEvent.press(getByTestId("plannerShiftTargetButton"));
+    fireEvent(
+      UNSAFE_getByType("DateTimePicker" as never),
+      "onChange",
+      { type: "set" },
+      new Date("2026-08-09T11:30:00"),
+    );
+
+    expect(
+      getByText(
+        "1 unfinished event at or after 12:00 PM will move 30 min earlier.",
+      ),
+    ).toBeTruthy();
+    fireEvent.press(getByTestId("plannerShiftConfirmButton"));
+
+    await waitFor(() =>
+      expect(mockEditingContext.scheduleTodo).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "afternoon" }),
+        { date: "2026-08-09", time: "12:30" },
+      ),
     );
   });
 
