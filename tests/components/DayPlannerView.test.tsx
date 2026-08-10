@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react-native";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { PaperProvider } from "react-native-paper";
 import { DayPlannerView } from "../../components/DayPlannerView";
 import { DateRelevance, Todo } from "../../services/api";
@@ -56,6 +56,10 @@ const todo = (updates: Partial<PlannerTodo>): PlannerTodo => ({
 });
 
 describe("DayPlannerView", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("keeps untimed items in a right-hand queue beside the timeline", () => {
     const { getByTestId, getByText } = render(
       <PaperProvider>
@@ -118,5 +122,87 @@ describe("DayPlannerView", () => {
 
     expect(getByTestId("plannerQueueEmpty")).toBeTruthy();
     expect(getByText("Everything has a time")).toBeTruthy();
+  });
+
+  it("previews and confirms shifting every unfinished event after the cutoff", async () => {
+    const { getByTestId, getByText } = render(
+      <PaperProvider>
+        <DayPlannerView
+          date="2026-08-09"
+          doneStates={["DONE"]}
+          entries={[
+            todo({
+              id: "before-cutoff",
+              title: "Morning task",
+              scheduled: { date: "2026-08-09", time: "11:45" },
+            }),
+            todo({
+              id: "after-cutoff",
+              title: "Afternoon task",
+              scheduled: { date: "2026-08-09", time: "13:00" },
+            }),
+            todo({
+              id: "completed",
+              title: "Completed task",
+              todo: "DONE",
+              scheduled: { date: "2026-08-09", time: "14:00" },
+            }),
+            todo({
+              id: "habit",
+              title: "Afternoon habit",
+              isWindowHabit: true,
+              scheduled: { date: "2026-08-09", time: "13:30" },
+            }),
+          ]}
+        />
+      </PaperProvider>,
+    );
+
+    fireEvent.press(getByTestId("plannerShiftButton"));
+
+    expect(
+      getByText(
+        "2 unfinished events at or after 12:00 PM will move 15 min earlier.",
+      ),
+    ).toBeTruthy();
+    expect(mockEditingContext.scheduleTodo).not.toHaveBeenCalled();
+
+    fireEvent.press(getByTestId("plannerShiftDeltaIncrease"));
+    expect(getByTestId("plannerShiftDeltaValue").props.children).toBe("30 min");
+    fireEvent.press(getByTestId("plannerShiftConfirmButton"));
+
+    await waitFor(() =>
+      expect(mockEditingContext.scheduleTodo).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "after-cutoff" }),
+        { date: "2026-08-09", time: "12:30" },
+      ),
+    );
+    expect(mockEditingContext.scheduleTodo).toHaveBeenCalledTimes(1);
+    expect(mockEditingContext.planTodoForDay).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "habit" }),
+      "2026-08-09",
+      { hours: 13, minutes: 0 },
+    );
+  });
+
+  it("does not shift events when the confirmation is cancelled", () => {
+    const { getByTestId, getByText } = render(
+      <PaperProvider>
+        <DayPlannerView
+          date="2026-08-09"
+          entries={[
+            todo({
+              id: "afternoon",
+              scheduled: { date: "2026-08-09", time: "13:00" },
+            }),
+          ]}
+        />
+      </PaperProvider>,
+    );
+
+    fireEvent.press(getByTestId("plannerShiftButton"));
+    fireEvent.press(getByText("Cancel"));
+
+    expect(mockEditingContext.scheduleTodo).not.toHaveBeenCalled();
   });
 });

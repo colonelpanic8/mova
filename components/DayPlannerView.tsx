@@ -1,3 +1,4 @@
+import { PlatformDatePicker } from "@/components/PlatformDatePicker";
 import { StatePill } from "@/components/StatePill";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { DateRelevance, Todo } from "@/services/api";
@@ -8,6 +9,8 @@ import {
   getSnappedDropTime,
   isPlanningQueueEntry,
   ScheduleTime,
+  scheduleTimeToMinutes,
+  shiftScheduleTimeEarlier,
 } from "@/utils/dayPlanning";
 import { isHabitTodo } from "@/utils/habits";
 import { formatHour, formatTime } from "@/utils/timeFormatting";
@@ -25,7 +28,15 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { ActivityIndicator, Text, useTheme } from "react-native-paper";
+import {
+  ActivityIndicator,
+  Button,
+  Dialog,
+  IconButton,
+  Portal,
+  Text,
+  useTheme,
+} from "react-native-paper";
 
 type PlannerEntry = Todo & {
   completedAt?: string | null;
@@ -62,6 +73,42 @@ interface DragState {
   entry: PlannerEntry;
   pageX: number;
   pageY: number;
+}
+
+interface ShiftCandidate {
+  entry: PlannerEntry;
+  shiftedTime: ScheduleTime;
+}
+
+const SHIFT_STEP_MINUTES = 15;
+
+function formatDuration(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  if (minutes === 0) return `${hours} hr`;
+  return `${hours} hr ${minutes} min`;
+}
+
+function timeOnDate(date: string, time: ScheduleTime): Date {
+  return new Date(
+    `${date}T${String(time.hours).padStart(2, "0")}:${String(time.minutes).padStart(2, "0")}:00`,
+  );
+}
+
+function snapCutoffTime(time: ScheduleTime): ScheduleTime {
+  const snappedMinutes = Math.max(
+    SHIFT_STEP_MINUTES,
+    Math.min(
+      24 * 60 - SHIFT_STEP_MINUTES,
+      Math.round(scheduleTimeToMinutes(time) / SHIFT_STEP_MINUTES) *
+        SHIFT_STEP_MINUTES,
+    ),
+  );
+  return {
+    hours: Math.floor(snappedMinutes / 60),
+    minutes: snappedMinutes % 60,
+  };
 }
 
 function isHorizontalDrag(gesture: PanResponderGestureState): boolean {
@@ -261,6 +308,14 @@ export function DayPlannerView({
   const dragEntryRef = useRef<PlannerEntry | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [dropPreview, setDropPreview] = useState<ScheduleTime | null>(null);
+  const [shiftDialogVisible, setShiftDialogVisible] = useState(false);
+  const [cutoffPickerVisible, setCutoffPickerVisible] = useState(false);
+  const [shiftCutoff, setShiftCutoff] = useState<ScheduleTime>({
+    hours: 12,
+    minutes: 0,
+  });
+  const [shiftDeltaMinutes, setShiftDeltaMinutes] = useState(15);
+  const [shifting, setShifting] = useState(false);
 
   const isCompleted = useCallback(
     (entry: PlannerEntry) =>
@@ -277,6 +332,65 @@ export function DayPlannerView({
       untimedEntries: untimed,
     };
   }, [date, entries, isCompleted]);
+
+  const shiftCandidates = useMemo(() => {
+    const cutoffMinutes = scheduleTimeToMinutes(shiftCutoff);
+
+    return entries.reduce<ShiftCandidate[]>((candidates, entry) => {
+      if (isCompleted(entry)) return candidates;
+      const time = getPlannerTime(entry, date);
+      if (!time || scheduleTimeToMinutes(time) < cutoffMinutes) {
+        return candidates;
+      }
+      const shiftedTime = shiftScheduleTimeEarlier(time, shiftDeltaMinutes);
+      if (shiftedTime) candidates.push({ entry, shiftedTime });
+      return candidates;
+    }, []);
+  }, [date, entries, isCompleted, shiftCutoff, shiftDeltaMinutes]);
+
+  const maximumShiftDelta = scheduleTimeToMinutes(shiftCutoff);
+
+  const changeShiftDelta = useCallback(
+    (change: number) => {
+      setShiftDeltaMinutes((current) =>
+        Math.max(
+          SHIFT_STEP_MINUTES,
+          Math.min(maximumShiftDelta, current + change),
+        ),
+      );
+    },
+    [maximumShiftDelta],
+  );
+
+  const openShiftDialog = useCallback(() => {
+    setShiftDialogVisible(true);
+  }, []);
+
+  const dismissShiftDialog = useCallback(() => {
+    if (shifting) return;
+    setCutoffPickerVisible(false);
+    setShiftDialogVisible(false);
+  }, [shifting]);
+
+  const confirmShift = useCallback(async () => {
+    if (shiftCandidates.length === 0 || shifting) return;
+    setShifting(true);
+    try {
+      await Promise.all(
+        shiftCandidates.map(({ entry, shiftedTime }) =>
+          isHabitTodo(entry)
+            ? planTodoForDay(entry, date, shiftedTime)
+            : scheduleTodo(
+                entry,
+                buildScheduledTimestamp(entry, date, shiftedTime),
+              ),
+        ),
+      );
+      setShiftDialogVisible(false);
+    } finally {
+      setShifting(false);
+    }
+  }, [date, planTodoForDay, scheduleTodo, shiftCandidates, shifting]);
 
   const totalHeight = (endHour - startHour) * hourHeight;
   const queueWidth = Math.max(148, Math.min(320, width * 0.36));
@@ -395,6 +509,22 @@ export function DayPlannerView({
       style={styles.container}
       onLayout={measureRoot}
     >
+      <View
+        style={[
+          styles.plannerToolbar,
+          { borderBottomColor: theme.colors.outlineVariant },
+        ]}
+      >
+        <Button
+          compact
+          icon="clock-minus-outline"
+          mode="text"
+          onPress={openShiftDialog}
+          testID="plannerShiftButton"
+        >
+          Shift events earlier
+        </Button>
+      </View>
       <View style={styles.columns}>
         <View
           ref={timelineRef}
@@ -612,6 +742,105 @@ export function DayPlannerView({
           <Text numberOfLines={1}>{drag.entry.title}</Text>
         </View>
       ) : null}
+
+      <Portal>
+        <Dialog
+          visible={shiftDialogVisible}
+          onDismiss={dismissShiftDialog}
+          testID="plannerShiftDialog"
+        >
+          <Dialog.Title>Shift events earlier</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="labelLarge">Cutoff time</Text>
+            <Button
+              mode="outlined"
+              icon="clock-outline"
+              onPress={() => setCutoffPickerVisible(true)}
+              style={styles.shiftCutoffButton}
+              testID="plannerShiftCutoffButton"
+            >
+              {formatTime(shiftCutoff.hours, shiftCutoff.minutes)}
+            </Button>
+
+            <Text variant="labelLarge">Move earlier by</Text>
+            <View style={styles.shiftDeltaRow}>
+              <IconButton
+                icon="minus"
+                mode="outlined"
+                disabled={shifting || shiftDeltaMinutes <= SHIFT_STEP_MINUTES}
+                onPress={() => changeShiftDelta(-SHIFT_STEP_MINUTES)}
+                testID="plannerShiftDeltaDecrease"
+                accessibilityLabel="Decrease shift by 15 minutes"
+              />
+              <Text
+                variant="titleMedium"
+                style={styles.shiftDeltaValue}
+                testID="plannerShiftDeltaValue"
+              >
+                {formatDuration(shiftDeltaMinutes)}
+              </Text>
+              <IconButton
+                icon="plus"
+                mode="outlined"
+                disabled={
+                  shifting ||
+                  maximumShiftDelta < SHIFT_STEP_MINUTES ||
+                  shiftDeltaMinutes >= maximumShiftDelta
+                }
+                onPress={() => changeShiftDelta(SHIFT_STEP_MINUTES)}
+                testID="plannerShiftDeltaIncrease"
+                accessibilityLabel="Increase shift by 15 minutes"
+              />
+            </View>
+
+            <Text
+              variant="bodyMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+              testID="plannerShiftSummary"
+            >
+              {shiftCandidates.length === 0
+                ? "No unfinished timed events are at or after this cutoff."
+                : `${shiftCandidates.length} unfinished ${
+                    shiftCandidates.length === 1 ? "event" : "events"
+                  } at or after ${formatTime(
+                    shiftCutoff.hours,
+                    shiftCutoff.minutes,
+                  )} will move ${formatDuration(shiftDeltaMinutes)} earlier.`}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button disabled={shifting} onPress={dismissShiftDialog}>
+              Cancel
+            </Button>
+            <Button
+              loading={shifting}
+              disabled={shifting || shiftCandidates.length === 0}
+              onPress={() => void confirmShift()}
+              testID="plannerShiftConfirmButton"
+            >
+              Confirm shift
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <PlatformDatePicker
+        mode="time"
+        visible={cutoffPickerVisible}
+        value={timeOnDate(date, shiftCutoff)}
+        onChange={(selectedTime) => {
+          const nextCutoff = snapCutoffTime({
+            hours: selectedTime.getHours(),
+            minutes: selectedTime.getMinutes(),
+          });
+          setShiftCutoff(nextCutoff);
+          setShiftDeltaMinutes((current) =>
+            Math.min(current, scheduleTimeToMinutes(nextCutoff)),
+          );
+          setCutoffPickerVisible(false);
+        }}
+        onDismiss={() => setCutoffPickerVisible(false)}
+      />
     </View>
   );
 }
@@ -624,6 +853,12 @@ const styles = StyleSheet.create({
   columns: {
     flex: 1,
     flexDirection: "row",
+  },
+  plannerToolbar: {
+    minHeight: 40,
+    alignItems: "flex-start",
+    justifyContent: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   timelineViewport: {
     flex: 1,
@@ -737,6 +972,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 20,
     elevation: 8,
+  },
+  shiftCutoffButton: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    marginBottom: 18,
+  },
+  shiftDeltaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  shiftDeltaValue: {
+    minWidth: 116,
+    textAlign: "center",
   },
 });
 

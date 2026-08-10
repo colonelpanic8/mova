@@ -8,6 +8,25 @@ export interface ScheduleTime {
   minutes: number;
 }
 
+export function scheduleTimeToMinutes(time: ScheduleTime): number {
+  return time.hours * 60 + time.minutes;
+}
+
+export function shiftScheduleTimeEarlier(
+  time: ScheduleTime,
+  deltaMinutes: number,
+): ScheduleTime | null {
+  if (!Number.isInteger(deltaMinutes) || deltaMinutes <= 0) return null;
+
+  const shiftedMinutes = scheduleTimeToMinutes(time) - deltaMinutes;
+  if (shiftedMinutes < 0) return null;
+
+  return {
+    hours: Math.floor(shiftedMinutes / 60),
+    minutes: shiftedMinutes % 60,
+  };
+}
+
 export const DAILY_PLAN_PROPERTY = "MOVA_PLANNED_AT";
 
 interface DropTimeOptions {

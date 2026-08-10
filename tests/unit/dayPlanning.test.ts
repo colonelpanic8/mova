@@ -8,6 +8,8 @@ import {
   getSnappedDropTime,
   getTimeFromEntry,
   isPlanningQueueEntry,
+  scheduleTimeToMinutes,
+  shiftScheduleTimeEarlier,
 } from "../../utils/dayPlanning";
 
 type PlanningTodo = Todo & { dateRelevance?: DateRelevance };
@@ -172,5 +174,17 @@ describe("day planning", () => {
     expect(buildDailyPlanValue("2026-08-09", { hours: 9, minutes: 5 })).toBe(
       "2026-08-09T09:05",
     );
+  });
+
+  it("shifts a planner time earlier by a shared minute delta", () => {
+    expect(shiftScheduleTimeEarlier({ hours: 14, minutes: 15 }, 45)).toEqual({
+      hours: 13,
+      minutes: 30,
+    });
+    expect(scheduleTimeToMinutes({ hours: 13, minutes: 30 })).toBe(810);
+  });
+
+  it("rejects shifts that cross the beginning of the day", () => {
+    expect(shiftScheduleTimeEarlier({ hours: 0, minutes: 15 }, 30)).toBeNull();
   });
 });
