@@ -7,4 +7,5 @@
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
   <string name="shortcut_capture_short">Capture</string>
   <string name="shortcut_capture_long">Quick Capture</string>
+  <string name="quick_capture_launcher_label">Mova Capture</string>
 </resources>

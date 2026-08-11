@@ -12,7 +12,6 @@
   </queries>
   <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:fullBackupContent="@xml/full_backup_content" android:dataExtractionRules="@xml/data_extraction_rules" android:theme="@style/AppTheme" android:supportsRtl="true" android:enableOnBackInvokedCallback="false">
     <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
-    <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
     <service android:name="com.reactnativeandroidwidget.RNWidgetCollectionService" android:permission="android.permission.BIND_REMOTEVIEWS"/>
@@ -43,6 +42,7 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
+      <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts"/>
     </activity>
     <activity android:name=".WidgetConfigurationActivity" android:exported="true">
       <intent-filter>
@@ -55,6 +55,8 @@
         android:theme="@style/Theme.QuickCapture"
         android:excludeFromRecents="true"
         android:launchMode="singleInstance"
+        android:showWhenLocked="true"
+        android:turnScreenOn="true"
         android:taskAffinity="">
       <intent-filter>
         <action android:name="android.intent.action.VIEW"/>
@@ -69,6 +71,8 @@
         android:theme="@style/Theme.VoiceCapture"
         android:excludeFromRecents="true"
         android:launchMode="singleInstance"
+        android:showWhenLocked="true"
+        android:turnScreenOn="true"
         android:taskAffinity="">
       <intent-filter>
         <action android:name="android.intent.action.VIEW"/>
@@ -77,6 +81,17 @@
         <data android:scheme="mova" android:host="capture-voice"/>
       </intent-filter>
     </activity>
+    <activity-alias
+        android:name=".QuickCaptureLauncherActivity"
+        android:targetActivity=".QuickCaptureActivity"
+        android:exported="true"
+        android:icon="@drawable/ic_shortcut_capture"
+        android:label="@string/quick_capture_launcher_label">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
     <receiver android:name=".widget.QuickCaptureWidget" android:exported="true" android:label="Mova Quick Capture">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
