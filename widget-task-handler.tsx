@@ -16,6 +16,12 @@ import {
   readAgendaWidgetCache,
 } from "./widgets/agendaWidgetData";
 import {
+  agendaWidgetSignature,
+  buildAgendaWidgetProps,
+  clearLastDrawnSignature,
+  setLastDrawnSignature,
+} from "./widgets/agendaWidgetDraw";
+import {
   clearAgendaWidgetView,
   getAgendaWidgetView,
   setAgendaWidgetView,
@@ -118,26 +124,30 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
 
   if (widgetAction === "WIDGET_DELETED") {
     await clearAgendaWidgetView(widgetInfo.widgetId);
+    await clearLastDrawnSignature(widgetInfo.widgetId);
     return;
   }
 
   let view = await getAgendaWidgetView(widgetInfo.widgetId);
 
-  const draw = (
+  // Each renderWidget call swaps the launcher's RemoteViews, a visible blink,
+  // so consecutive draws of identical content are collapsed. Only draws after
+  // the first are skipped: this task may be the one repainting a widget the
+  // launcher reset (reboot, launcher restart), so the first draw must land no
+  // matter what was drawn before.
+  let lastDrawn: string | null = null;
+
+  const draw = async (
     data: AgendaWidgetData,
     extra: { notice?: string; pendingKey?: string } = {},
-  ) =>
-    renderWidget(
-      <AgendaWidget
-        items={data.items}
-        habits={data.habits}
-        view={view}
-        status={data.status}
-        width={widgetInfo.width}
-        height={widgetInfo.height}
-        {...extra}
-      />,
-    );
+  ) => {
+    const props = buildAgendaWidgetProps(data, view, widgetInfo, extra);
+    const signature = agendaWidgetSignature(props);
+    if (signature === lastDrawn) return;
+    lastDrawn = signature;
+    renderWidget(<AgendaWidget {...props} />);
+    await setLastDrawnSignature(widgetInfo.widgetId, signature);
+  };
 
   if (
     widgetAction === "WIDGET_CLICK" &&
@@ -146,8 +156,10 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
     view = clickAction === SHOW_HABITS_ACTION ? "habits" : "agenda";
     await setAgendaWidgetView(widgetInfo.widgetId, view);
     const cached = await readAgendaWidgetCache();
-    if (cached) draw(cached);
-    if (!cached || cached.fetchedAt === 0) draw(await loadAgendaWidgetData());
+    if (cached) await draw(cached);
+    if (!cached || cached.fetchedAt === 0) {
+      await draw(await loadAgendaWidgetData());
+    }
     return;
   }
 
@@ -157,17 +169,17 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
     // Acknowledge the tap immediately: the headless task plus the round trip
     // to the server is far too slow to leave the row looking untouched.
     const cached = await readAgendaWidgetCache();
-    if (cached) draw(cached, { pendingKey: ref.key });
+    if (cached) await draw(cached, { pendingKey: ref.key });
 
     const result = await completeAgendaWidgetItem(ref);
     const refreshed = await loadAgendaWidgetData();
-    draw(refreshed, { notice: result.message });
+    await draw(refreshed, { notice: result.message });
 
     // Confirmation is a flash, not a state: settle back to the item count.
     // A failure message stays up, since it's the only place the user sees it.
     if (result.ok) {
       await new Promise((resolve) => setTimeout(resolve, NOTICE_LINGER_MS));
-      draw(refreshed);
+      await draw(refreshed);
     }
     return;
   }
@@ -175,7 +187,7 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
   // A resize only changes layout, so reuse a recent agenda instead of
   // refetching on every drag step.
   const cached = await readAgendaWidgetCache();
-  if (cached) draw(cached);
+  if (cached) await draw(cached);
   if (
     widgetAction === "WIDGET_RESIZED" &&
     cached &&
@@ -184,7 +196,7 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
     return;
   }
 
-  draw(await loadAgendaWidgetData());
+  await draw(await loadAgendaWidgetData());
 }
 
 // Renders the home-screen widget. Tapping the quick-capture widget is handled
