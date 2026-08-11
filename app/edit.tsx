@@ -12,6 +12,7 @@ import { useApi } from "@/context/ApiContext";
 import { AppSnackbar, useSnackbar } from "@/context/SnackbarContext";
 import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { Todo, TodoUpdates } from "@/services/api";
+import { getEditableProperties } from "@/utils/properties";
 import {
   formStringToTimestamp,
   timestampToFormString,
@@ -67,6 +68,11 @@ export default function EditScreen() {
     };
   }, [params.todo]);
 
+  const originalEditableProperties = useMemo(
+    () => getEditableProperties(originalTodo.properties),
+    [originalTodo.properties],
+  );
+
   // Form state
   const [title, setTitle] = useState(originalTodo.title || "");
   const [form, setForm] = useState<TodoFormState>(() =>
@@ -75,7 +81,7 @@ export default function EditScreen() {
   const [body, setBody] = useState(originalTodo.body || "");
   const [bodyExpanded, setBodyExpanded] = useState(!!originalTodo.body);
   const [properties, setProperties] = useState<Record<string, string>>(
-    originalTodo.properties || {},
+    () => originalEditableProperties,
   );
 
   // UI state
@@ -137,7 +143,7 @@ export default function EditScreen() {
       }
       if (
         JSON.stringify(properties) !==
-        JSON.stringify(originalTodo.properties || {})
+        JSON.stringify(originalEditableProperties)
       ) {
         updates.properties =
           Object.keys(properties).length > 0 ? properties : null;
@@ -177,6 +183,7 @@ export default function EditScreen() {
     body,
     properties,
     originalTodo,
+    originalEditableProperties,
     invalidateServerData,
     router,
     api,
