@@ -1,8 +1,15 @@
 # Changelog
 
+## [6.15.0]
+
+- feat(android): add a Mova Capture launcher icon and allow quick capture and voice capture from the lock screen
+- fix(widget): skip agenda widget redraws when nothing visible changed so refreshes stop flickering the launcher
+- fix(edit): keep read-only org properties like CATEGORY out of the property editor
+
 ## [6.14.2]
 
 - fix(planner): allow shifted events to move into an adjacent day
+
 
 ## [6.14.1]
 
