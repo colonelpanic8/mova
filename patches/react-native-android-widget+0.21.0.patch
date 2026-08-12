@@ -1,7 +1,37 @@
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
+index a7079f9..5efb00c 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
 +++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
-@@ -218,3 +218,17 @@ public class RNWidget {
+@@ -62,6 +62,7 @@ public class RNWidget {
+     public void drawWidget(int widgetId) throws Exception {
+         ReadableMap light = config.getMap("light");
+         ReadableMap dark = config.getMap("dark");
++        boolean partially = config.hasKey("partially") && config.getBoolean("partially");
+ 
+         ReadableMap configClone = Arguments.makeNativeMap(light.toHashMap());
+         RemoteViews remoteWidgetView = new RemoteViews(appContext.getPackageName(), R.layout.rn_widget);
+@@ -116,8 +117,17 @@ public class RNWidget {
+         }
+         addCollectionViews(widgetId, remoteWidgetView, widgetWithViews);
+ 
+-        AppWidgetManager.getInstance(appContext)
+-            .updateAppWidget(widgetId, remoteWidgetView);
++        // A full updateAppWidget makes the launcher re-inflate the widget,
++        // which shows as a blink. A partial update applies the same actions
++        // to the live view hierarchy in place; the system merges it into the
++        // stored views, so hosts that re-inflate later still get this state.
++        if (partially) {
++            AppWidgetManager.getInstance(appContext)
++                .partiallyUpdateAppWidget(widgetId, remoteWidgetView);
++        } else {
++            AppWidgetManager.getInstance(appContext)
++                .updateAppWidget(widgetId, remoteWidgetView);
++        }
+     }
+ 
+     public WritableMap createPreview(int width, int height) throws Exception {
+@@ -217,6 +227,20 @@ public class RNWidget {
+ 
      private void addCollectionViews(int widgetId, RemoteViews remoteWidgetView, WidgetWithViews widgetWithViews) {
          remoteWidgetView.removeAllViews(R.id.rn_widget_collection_container);
 +
@@ -19,6 +49,8 @@ diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/
 +        }
 +
          ViewGroup rootView = (ViewGroup) widgetWithViews.getRootView();
+         List<CollectionView> collectionViews = widgetWithViews.getCollectionViews();
+ 
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
 index a057c09..569339a 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
@@ -115,7 +147,7 @@ diff --git a/node_modules/react-native-android-widget/android/src/main/res/layou
 index 6935b86..739f259 100644
 --- a/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_list.xml
 +++ b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_list.xml
-@@ -6,4 +6,7 @@
+@@ -6,7 +6,10 @@
      <FrameLayout
          android:id="@+id/rn_widget_list_0_wrapper"
          android:layout_width="match_parent"
@@ -124,7 +156,10 @@ index 6935b86..739f259 100644
 +        android:clipChildren="true"
 +        android:clipToOutline="true"
 +        android:outlineProvider="bounds">
-@@ -19,4 +22,7 @@
+ 
+         <ListView
+             android:id="@+id/rn_widget_list_0"
+@@ -19,7 +22,10 @@
      <FrameLayout
          android:id="@+id/rn_widget_list_1_wrapper"
          android:layout_width="match_parent"
@@ -133,3 +168,216 @@ index 6935b86..739f259 100644
 +        android:clipChildren="true"
 +        android:clipToOutline="true"
 +        android:outlineProvider="bounds">
+ 
+         <ListView
+             android:id="@+id/rn_widget_list_1"
+diff --git a/node_modules/react-native-android-widget/lib/commonjs/api/register-widget-task-handler.js b/node_modules/react-native-android-widget/lib/commonjs/api/register-widget-task-handler.js
+index 9bd6111..0c305ee 100644
+--- a/node_modules/react-native-android-widget/lib/commonjs/api/register-widget-task-handler.js
++++ b/node_modules/react-native-android-widget/lib/commonjs/api/register-widget-task-handler.js
+@@ -21,13 +21,14 @@ function registerWidgetTaskHandler(handler) {
+       clickActionData,
+       ...widgetInfo
+     } = _ref;
+-    function renderWidget(widgetComponent) {
++    function renderWidget(widgetComponent, options) {
+       if (widgetAction === 'WIDGET_DELETED') return;
+       const lightWidget = 'light' in widgetComponent ? (0, _buildWidgetTree.buildWidgetTree)(widgetComponent.light) : (0, _buildWidgetTree.buildWidgetTree)(widgetComponent);
+       const darkWidget = 'dark' in widgetComponent ? (0, _buildWidgetTree.buildWidgetTree)(widgetComponent.dark) : null;
+       const config = {
+         light: lightWidget,
+-        dark: darkWidget
++        dark: darkWidget,
++        partially: (options === null || options === void 0 ? void 0 : options.partially) === true
+       };
+       _AndroidWidget.AndroidWidget.drawWidgetById(config, widgetInfo.widgetName, widgetInfo.widgetId);
+     }
+diff --git a/node_modules/react-native-android-widget/lib/commonjs/api/request-widget-update-by-id.js b/node_modules/react-native-android-widget/lib/commonjs/api/request-widget-update-by-id.js
+index 639ed50..467e59e 100644
+--- a/node_modules/react-native-android-widget/lib/commonjs/api/request-widget-update-by-id.js
++++ b/node_modules/react-native-android-widget/lib/commonjs/api/request-widget-update-by-id.js
+@@ -17,7 +17,8 @@ async function requestWidgetUpdateById(_ref) {
+     widgetName,
+     widgetId,
+     renderWidget,
+-    widgetNotFound
++    widgetNotFound,
++    partially
+   } = _ref;
+   const widgetsInfo = await _AndroidWidget.AndroidWidget.getWidgetInfo(widgetName);
+   const widgetInfo = widgetsInfo.find(widget => widget.widgetId === widgetId);
+@@ -30,7 +31,8 @@ async function requestWidgetUpdateById(_ref) {
+   const darkWidget = 'dark' in widgetComponent ? (0, _buildWidgetTree.buildWidgetTree)(widgetComponent.dark) : null;
+   const config = {
+     light: lightWidget,
+-    dark: darkWidget
++    dark: darkWidget,
++    partially: partially === true
+   };
+   _AndroidWidget.AndroidWidget.drawWidgetById(config, widgetName, widgetInfo.widgetId);
+ }
+diff --git a/node_modules/react-native-android-widget/lib/module/api/register-widget-task-handler.js b/node_modules/react-native-android-widget/lib/module/api/register-widget-task-handler.js
+index 1751c8e..0f4f004 100644
+--- a/node_modules/react-native-android-widget/lib/module/api/register-widget-task-handler.js
++++ b/node_modules/react-native-android-widget/lib/module/api/register-widget-task-handler.js
+@@ -15,13 +15,14 @@ export function registerWidgetTaskHandler(handler) {
+       clickActionData,
+       ...widgetInfo
+     } = _ref;
+-    function renderWidget(widgetComponent) {
++    function renderWidget(widgetComponent, options) {
+       if (widgetAction === 'WIDGET_DELETED') return;
+       const lightWidget = 'light' in widgetComponent ? buildWidgetTree(widgetComponent.light) : buildWidgetTree(widgetComponent);
+       const darkWidget = 'dark' in widgetComponent ? buildWidgetTree(widgetComponent.dark) : null;
+       const config = {
+         light: lightWidget,
+-        dark: darkWidget
++        dark: darkWidget,
++        partially: (options === null || options === void 0 ? void 0 : options.partially) === true
+       };
+       AndroidWidget.drawWidgetById(config, widgetInfo.widgetName, widgetInfo.widgetId);
+     }
+diff --git a/node_modules/react-native-android-widget/lib/module/api/request-widget-update-by-id.js b/node_modules/react-native-android-widget/lib/module/api/request-widget-update-by-id.js
+index 396d216..825c4fb 100644
+--- a/node_modules/react-native-android-widget/lib/module/api/request-widget-update-by-id.js
++++ b/node_modules/react-native-android-widget/lib/module/api/request-widget-update-by-id.js
+@@ -11,7 +11,8 @@ export async function requestWidgetUpdateById(_ref) {
+     widgetName,
+     widgetId,
+     renderWidget,
+-    widgetNotFound
++    widgetNotFound,
++    partially
+   } = _ref;
+   const widgetsInfo = await AndroidWidget.getWidgetInfo(widgetName);
+   const widgetInfo = widgetsInfo.find(widget => widget.widgetId === widgetId);
+@@ -24,7 +25,8 @@ export async function requestWidgetUpdateById(_ref) {
+   const darkWidget = 'dark' in widgetComponent ? buildWidgetTree(widgetComponent.dark) : null;
+   const config = {
+     light: lightWidget,
+-    dark: darkWidget
++    dark: darkWidget,
++    partially: partially === true
+   };
+   AndroidWidget.drawWidgetById(config, widgetName, widgetInfo.widgetId);
+ }
+diff --git a/node_modules/react-native-android-widget/lib/typescript/api/register-widget-task-handler.d.ts b/node_modules/react-native-android-widget/lib/typescript/api/register-widget-task-handler.d.ts
+index a87052d..be5cd71 100644
+--- a/node_modules/react-native-android-widget/lib/typescript/api/register-widget-task-handler.d.ts
++++ b/node_modules/react-native-android-widget/lib/typescript/api/register-widget-task-handler.d.ts
+@@ -19,7 +19,16 @@ export interface WidgetTaskHandlerProps {
+     /**
+      * Function that needs to be called with the Widget JSX to render
+      */
+-    renderWidget: (widgetComponent: WidgetRepresentation) => void;
++    renderWidget: (widgetComponent: WidgetRepresentation, options?: RenderWidgetOptions) => void;
++}
++export interface RenderWidgetOptions {
++    /**
++     * Apply the update to the existing widget view hierarchy
++     * (AppWidgetManager.partiallyUpdateAppWidget) instead of replacing it,
++     * avoiding the relayout blink on launchers. Only use when the widget has
++     * already been drawn with a full update.
++     */
++    partially?: boolean;
+ }
+ export type WidgetTaskHandler = (props: WidgetTaskHandlerProps) => Promise<void>;
+ /**
+diff --git a/node_modules/react-native-android-widget/lib/typescript/api/request-widget-update-by-id.d.ts b/node_modules/react-native-android-widget/lib/typescript/api/request-widget-update-by-id.d.ts
+index cd814d6..a862319 100644
+--- a/node_modules/react-native-android-widget/lib/typescript/api/request-widget-update-by-id.d.ts
++++ b/node_modules/react-native-android-widget/lib/typescript/api/request-widget-update-by-id.d.ts
+@@ -18,6 +18,13 @@ export interface RequestWidgetUpdateByIdProps {
+      * It can be used to clean up background tasks that update the widget periodically
+      */
+     widgetNotFound?: () => void;
++    /**
++     * Apply the update to the existing widget view hierarchy
++     * (AppWidgetManager.partiallyUpdateAppWidget) instead of replacing it,
++     * avoiding the relayout blink on launchers. Only use when the widget has
++     * already been drawn with a full update.
++     */
++    partially?: boolean;
+ }
+ /**
+  * Request widget update for a given widget name and id
+diff --git a/node_modules/react-native-android-widget/src/api/register-widget-task-handler.tsx b/node_modules/react-native-android-widget/src/api/register-widget-task-handler.tsx
+index f5751be..33bfb64 100644
+--- a/node_modules/react-native-android-widget/src/api/register-widget-task-handler.tsx
++++ b/node_modules/react-native-android-widget/src/api/register-widget-task-handler.tsx
+@@ -42,7 +42,20 @@ export interface WidgetTaskHandlerProps {
+   /**
+    * Function that needs to be called with the Widget JSX to render
+    */
+-  renderWidget: (widgetComponent: WidgetRepresentation) => void;
++  renderWidget: (
++    widgetComponent: WidgetRepresentation,
++    options?: RenderWidgetOptions
++  ) => void;
++}
++
++export interface RenderWidgetOptions {
++  /**
++   * Apply the update to the existing widget view hierarchy
++   * (AppWidgetManager.partiallyUpdateAppWidget) instead of replacing it,
++   * avoiding the relayout blink on launchers. Only use when the widget has
++   * already been drawn with a full update.
++   */
++  partially?: boolean;
+ }
+ 
+ export type WidgetTaskHandler = (
+@@ -61,7 +74,10 @@ export function registerWidgetTaskHandler(handler: WidgetTaskHandler): void {
+     clickActionData,
+     ...widgetInfo
+   }: NativeTaskInfo) {
+-    function renderWidget(widgetComponent: WidgetRepresentation) {
++    function renderWidget(
++      widgetComponent: WidgetRepresentation,
++      options?: RenderWidgetOptions
++    ) {
+       if (widgetAction === 'WIDGET_DELETED') return;
+ 
+       const lightWidget =
+@@ -76,6 +92,7 @@ export function registerWidgetTaskHandler(handler: WidgetTaskHandler): void {
+       const config = {
+         light: lightWidget,
+         dark: darkWidget,
++        partially: options?.partially === true,
+       };
+ 
+       AndroidWidget.drawWidgetById(
+diff --git a/node_modules/react-native-android-widget/src/api/request-widget-update-by-id.tsx b/node_modules/react-native-android-widget/src/api/request-widget-update-by-id.tsx
+index 12512eb..888329e 100644
+--- a/node_modules/react-native-android-widget/src/api/request-widget-update-by-id.tsx
++++ b/node_modules/react-native-android-widget/src/api/request-widget-update-by-id.tsx
+@@ -24,6 +24,13 @@ export interface RequestWidgetUpdateByIdProps {
+    * It can be used to clean up background tasks that update the widget periodically
+    */
+   widgetNotFound?: () => void;
++  /**
++   * Apply the update to the existing widget view hierarchy
++   * (AppWidgetManager.partiallyUpdateAppWidget) instead of replacing it,
++   * avoiding the relayout blink on launchers. Only use when the widget has
++   * already been drawn with a full update.
++   */
++  partially?: boolean;
+ }
+ 
+ /**
+@@ -37,6 +44,7 @@ export async function requestWidgetUpdateById({
+   widgetId,
+   renderWidget,
+   widgetNotFound,
++  partially,
+ }: RequestWidgetUpdateByIdProps): Promise<void> {
+   const widgetsInfo = await AndroidWidget.getWidgetInfo(widgetName);
+   const widgetInfo = widgetsInfo.find((widget) => widget.widgetId === widgetId);
+@@ -60,6 +68,7 @@ export async function requestWidgetUpdateById({
+   const config = {
+     light: lightWidget,
+     dark: darkWidget,
++    partially: partially === true,
+   };
+ 
+   AndroidWidget.drawWidgetById(config, widgetName, widgetInfo.widgetId);

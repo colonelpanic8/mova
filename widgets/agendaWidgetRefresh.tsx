@@ -44,10 +44,14 @@ async function redrawAgendaWidgets(): Promise<void> {
       // handler repaints unconditionally on every widget event.
       if (signature === (await getLastDrawnSignature(info.widgetId))) return;
 
+      // Patch the live view in place (no RemoteViews re-inflate) so the
+      // launcher doesn't blink; the periodic widget update still does full
+      // draws, which anchor the state partial updates merge into.
       await requestWidgetUpdateById({
         widgetName: AGENDA_WIDGET_NAME,
         widgetId: info.widgetId,
         renderWidget: () => <AgendaWidget {...props} />,
+        partially: true,
       });
       await setLastDrawnSignature(info.widgetId, signature);
     }),

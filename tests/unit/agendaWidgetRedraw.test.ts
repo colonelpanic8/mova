@@ -117,13 +117,17 @@ const widgetInfo = {
   height: 180,
 };
 
-function handlerProps(renderWidget: jest.Mock): WidgetTaskHandlerProps {
+function handlerProps(
+  renderWidget: jest.Mock,
+  overrides: { widgetAction?: string; clickAction?: string } = {},
+): WidgetTaskHandlerProps {
   return {
     widgetInfo,
     widgetAction: "WIDGET_UPDATE",
     renderWidget,
     clickAction: undefined,
     clickActionData: undefined,
+    ...overrides,
   } as unknown as WidgetTaskHandlerProps;
 }
 
@@ -157,6 +161,32 @@ describe("agenda widget task handler redraws", () => {
     const render = jest.fn();
     await widgetTaskHandlerEntry(handlerProps(render));
     expect(render).toHaveBeenCalledTimes(2);
+  });
+
+  it("patches the live view on clicks but does full draws on lifecycle events", async () => {
+    mockAgendaFetch(dayResponse([entry({ title: "Water plants" })]));
+
+    // Lifecycle events replace the RemoteViews so the launcher always has a
+    // full anchor state to merge partial updates into.
+    const updateRender = jest.fn();
+    await widgetTaskHandlerEntry(handlerProps(updateRender));
+    expect(updateRender).toHaveBeenLastCalledWith(expect.anything(), {
+      partially: false,
+    });
+
+    // A click happens on a live widget, so its redraws patch it in place —
+    // this is what keeps completing an item from flashing the whole widget.
+    const clickRender = jest.fn();
+    await widgetTaskHandlerEntry(
+      handlerProps(clickRender, {
+        widgetAction: "WIDGET_CLICK",
+        clickAction: "SHOW_HABITS",
+      }),
+    );
+    expect(clickRender).toHaveBeenCalled();
+    for (const call of clickRender.mock.calls) {
+      expect(call[1]).toEqual({ partially: true });
+    }
   });
 });
 

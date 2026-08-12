@@ -137,6 +137,12 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
   // matter what was drawn before.
   let lastDrawn: string | null = null;
 
+  // A click proves the widget is live on screen, so its draws can patch the
+  // existing view in place instead of re-inflating it — that's what keeps the
+  // complete-item sequence (pending → done → settle) from blinking. Lifecycle
+  // events keep full updates, which double as the persisted anchor state.
+  const partially = widgetAction === "WIDGET_CLICK";
+
   const draw = async (
     data: AgendaWidgetData,
     extra: { notice?: string; pendingKey?: string } = {},
@@ -145,7 +151,7 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
     const signature = agendaWidgetSignature(props);
     if (signature === lastDrawn) return;
     lastDrawn = signature;
-    renderWidget(<AgendaWidget {...props} />);
+    renderWidget(<AgendaWidget {...props} />, { partially });
     await setLastDrawnSignature(widgetInfo.widgetId, signature);
   };
 
