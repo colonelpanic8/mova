@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.15.1]
+
+- fix(widget): apply agenda widget updates to the live view in place (partiallyUpdateAppWidget) so completing an item no longer flashes the widget
+
 ## [6.15.0]
 
 - feat(android): add a Mova Capture launcher icon and allow quick capture and voice capture from the lock screen
