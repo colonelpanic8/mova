@@ -20,8 +20,6 @@ export type EditModalType =
   | "quickScheduleTime"
   | null;
 
-const DEFAULT_STATES = ["TODO", "NEXT", "WAITING", "DONE"];
-
 export interface TodoEditModalsProps {
   modalType: EditModalType;
   editingTodo: Todo | null;
@@ -65,10 +63,6 @@ export function TodoEditModals({
   onConfirmDelete,
   onDismissDelete,
 }: TodoEditModalsProps) {
-  const allStates = todoStates
-    ? [...todoStates.active, ...todoStates.done]
-    : DEFAULT_STATES;
-
   const isDateModal = modalType === "schedule" || modalType === "deadline";
   const isTimeModal =
     modalType === "scheduleTime" || modalType === "deadlineTime";
@@ -140,7 +134,7 @@ export function TodoEditModals({
       <StateChangeModal
         visible={modalType === "state"}
         todo={editingTodo}
-        states={allStates}
+        todoStates={todoStates}
         onDismiss={onClose}
         onConfirm={onConfirmState}
       />

@@ -53,7 +53,7 @@ const renderModal = (onConfirm: jest.Mock) =>
       <StateChangeModal
         visible
         todo={todo}
-        states={["TODO", "DONE"]}
+        todoStates={{ active: ["TODO"], done: ["DONE"] }}
         onDismiss={jest.fn()}
         onConfirm={onConfirm}
       />

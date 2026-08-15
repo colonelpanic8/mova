@@ -1,10 +1,11 @@
 import { PlatformDatePicker } from "@/components/PlatformDatePicker";
 import { StatePill } from "@/components/StatePill";
-import { Todo } from "@/services/api";
+import { Todo, TodoStatesResponse } from "@/services/api";
 import { useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import {
   Button,
+  Divider,
   List,
   Modal,
   Portal,
@@ -16,8 +17,7 @@ import {
 export interface StateChangeModalProps {
   visible: boolean;
   todo: Todo | null;
-  /** All selectable states (active + done). */
-  states: string[];
+  todoStates?: TodoStatesResponse | null;
   onDismiss: () => void;
   onConfirm: (state: string, overrideDate: Date | null) => void;
 }
@@ -25,7 +25,7 @@ export interface StateChangeModalProps {
 export function StateChangeModal({
   visible,
   todo,
-  states,
+  todoStates,
   onDismiss,
   onConfirm,
 }: StateChangeModalProps) {
@@ -33,6 +33,23 @@ export function StateChangeModal({
   const [selectedState, setSelectedState] = useState(todo?.todo || "");
   const [overrideDate, setOverrideDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const activeStates = todoStates?.active || ["TODO", "NEXT", "WAITING"];
+  const doneStates = todoStates?.done || ["DONE"];
+
+  const renderStateRow = (state: string) => (
+    <View key={state} style={styles.stateRow}>
+      <RadioButton value={state} />
+      <StatePill
+        state={state}
+        selected={state === selectedState}
+        dimWhenUnselected={false}
+        onPress={
+          state === todo?.todo ? undefined : () => onConfirm(state, null)
+        }
+      />
+    </View>
+  );
 
   // Re-seed local state each time the modal opens (render-phase adjustment
   // avoids a flash of stale selection).
@@ -71,21 +88,29 @@ export function StateChangeModal({
           onValueChange={setSelectedState}
           value={selectedState}
         >
-          {states.map((state) => (
-            <View key={state} style={styles.stateRow}>
-              <RadioButton value={state} />
-              <StatePill
-                state={state}
-                selected={state === selectedState}
-                dimWhenUnselected={false}
-                onPress={
-                  state === todo?.todo
-                    ? undefined
-                    : () => onConfirm(state, null)
-                }
-              />
-            </View>
-          ))}
+          <Text
+            variant="labelSmall"
+            style={[
+              styles.groupLabel,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
+          >
+            Active
+          </Text>
+          {activeStates.map(renderStateRow)}
+
+          <Divider style={styles.groupDivider} />
+
+          <Text
+            variant="labelSmall"
+            style={[
+              styles.groupLabel,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
+          >
+            Completed
+          </Text>
+          {doneStates.map(renderStateRow)}
         </RadioButton.Group>
 
         {/* Override date option */}
@@ -169,6 +194,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     gap: 8,
+  },
+  groupLabel: {
+    marginBottom: 2,
+    marginTop: 4,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  groupDivider: {
+    marginVertical: 8,
   },
   overrideDateItem: {
     marginTop: 8,
