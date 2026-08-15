@@ -32,6 +32,31 @@ import { getAutoColorForCategory } from "../utils/categoryColors";
 
 const STORAGE_KEY = "mova_color_palette";
 
+export function mergeWithDefaultPalette(
+  parsed: Partial<ColorPaletteConfig>,
+): ColorPaletteConfig {
+  return {
+    ...DEFAULT_COLOR_PALETTE,
+    ...parsed,
+    todoStateColors: {
+      ...DEFAULT_COLOR_PALETTE.todoStateColors,
+      ...parsed.todoStateColors,
+    },
+    actionColors: {
+      ...DEFAULT_COLOR_PALETTE.actionColors,
+      ...parsed.actionColors,
+    },
+    priorityColors: {
+      ...DEFAULT_COLOR_PALETTE.priorityColors,
+      ...parsed.priorityColors,
+    },
+    habitColors: {
+      ...DEFAULT_COLOR_PALETTE.habitColors,
+      ...parsed.habitColors,
+    },
+  };
+}
+
 interface ColorPaletteContextType {
   // Raw configuration
   config: ColorPaletteConfig;
@@ -66,6 +91,8 @@ interface ColorPaletteContextType {
   clearCategoryColor: (category: string) => Promise<void>;
   randomizeTodoStateColors: (states: string[]) => Promise<void>;
   resetToDefaults: () => Promise<void>;
+  /** Replace the palette with a server-stored config (merged with defaults). */
+  hydrateFromRemote: (remote: Partial<ColorPaletteConfig>) => Promise<void>;
 }
 
 const ColorPaletteContext = createContext<ColorPaletteContextType | undefined>(
@@ -89,26 +116,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
         if (stored) {
           const parsed = JSON.parse(stored) as ColorPaletteConfig;
           // Merge with defaults to handle new fields in updates
-          setConfig({
-            ...DEFAULT_COLOR_PALETTE,
-            ...parsed,
-            todoStateColors: {
-              ...DEFAULT_COLOR_PALETTE.todoStateColors,
-              ...parsed.todoStateColors,
-            },
-            actionColors: {
-              ...DEFAULT_COLOR_PALETTE.actionColors,
-              ...parsed.actionColors,
-            },
-            priorityColors: {
-              ...DEFAULT_COLOR_PALETTE.priorityColors,
-              ...parsed.priorityColors,
-            },
-            habitColors: {
-              ...DEFAULT_COLOR_PALETTE.habitColors,
-              ...parsed.habitColors,
-            },
-          });
+          setConfig(mergeWithDefaultPalette(parsed));
         }
       } catch (error) {
         console.error("Failed to load color palette:", error);
@@ -324,6 +332,13 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
     setConfig(DEFAULT_COLOR_PALETTE);
   }, []);
 
+  const hydrateFromRemote = useCallback(
+    async (remote: Partial<ColorPaletteConfig>) => {
+      await saveConfig(mergeWithDefaultPalette(remote));
+    },
+    [saveConfig],
+  );
+
   const value = useMemo<ColorPaletteContextType>(
     () => ({
       config,
@@ -343,6 +358,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       clearCategoryColor,
       randomizeTodoStateColors,
       resetToDefaults,
+      hydrateFromRemote,
     }),
     [
       config,
@@ -362,6 +378,7 @@ export function ColorPaletteProvider({ children }: { children: ReactNode }) {
       clearCategoryColor,
       randomizeTodoStateColors,
       resetToDefaults,
+      hydrateFromRemote,
     ],
   );
 

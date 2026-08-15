@@ -1,6 +1,7 @@
 import { ApiProvider } from "@/context/ApiContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ColorPaletteProvider } from "@/context/ColorPaletteContext";
+import { ColorPaletteRemoteSync } from "@/context/ColorPaletteRemoteSync";
 import { FilterProvider } from "@/context/FilterContext";
 import { OutboxProvider } from "@/context/OutboxContext";
 import { SettingsProvider } from "@/context/SettingsContext";
@@ -123,6 +124,7 @@ export default function RootLayout() {
                       <TemplatesProvider>
                         <FilterProvider>
                           <SnackbarProvider>
+                            <ColorPaletteRemoteSync />
                             <RootLayoutNav />
                           </SnackbarProvider>
                         </FilterProvider>

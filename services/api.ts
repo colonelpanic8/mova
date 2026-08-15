@@ -358,7 +358,21 @@ export interface MetadataResponse {
   categoryTypes: CategoryTypesResponse | null;
   habitConfig: HabitConfig | null;
   exposedFunctions: ExposedFunction[] | null;
+  /** Server-stored app config blobs, keyed by namespace. */
+  appConfig?: Record<string, unknown> | null;
   errors: string[];
+}
+
+export interface AppConfigResponse {
+  namespace: string;
+  exists: boolean;
+  config: unknown;
+}
+
+export interface AppConfigWriteResponse {
+  status: string;
+  namespace?: string;
+  message?: string;
 }
 
 export interface ApiClientOptions {
@@ -782,6 +796,25 @@ export class OrgAgendaApi {
 
   async getMetadata(): Promise<MetadataResponse> {
     return this.request<MetadataResponse>("/metadata");
+  }
+
+  async getAppConfig(namespace: string): Promise<AppConfigResponse> {
+    return this.request<AppConfigResponse>(
+      `/app-config/${encodeURIComponent(namespace)}`,
+    );
+  }
+
+  async putAppConfig(
+    namespace: string,
+    config: unknown,
+  ): Promise<AppConfigWriteResponse> {
+    return this.request<AppConfigWriteResponse>(
+      `/app-config/${encodeURIComponent(namespace)}`,
+      {
+        method: "POST",
+        body: JSON.stringify(config),
+      },
+    );
   }
 
   async getCategoryTypes(): Promise<CategoryTypesResponse> {
