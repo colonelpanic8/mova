@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.18.0]
+
+- feat(capture): send an unsynced capture to the share sheet (so it can reach a desktop, email, or any other app) or open it as a prefilled GitHub issue, so its text is never lost to a discard
+
 ## [6.17.0]
 
 - feat(capture): manage unsynced captures from a dedicated Settings view showing queued time, attempts, and last error, with explicit confirmation before discarding (replaces the inline discard from 6.16.2)

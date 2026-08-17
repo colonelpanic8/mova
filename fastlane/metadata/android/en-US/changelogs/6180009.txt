@@ -1,0 +1,1 @@
+* feat(capture): send an unsynced capture to the share sheet (so it can reach a desktop, email, or any other app) or open it as a prefilled GitHub issue, so its text is never lost to a discard
