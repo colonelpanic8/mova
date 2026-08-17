@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.17.0]
+
+- feat(capture): manage unsynced captures from a dedicated Settings view showing queued time, attempts, and last error, with explicit confirmation before discarding (replaces the inline discard from 6.16.2)
+
 ## [6.16.2]
 
 - feat(capture): discard a pending capture that keeps failing, instead of it sitting in the queue forever

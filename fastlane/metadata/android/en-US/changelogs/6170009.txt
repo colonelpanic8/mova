@@ -1,0 +1,1 @@
+* feat(capture): manage unsynced captures from a dedicated Settings view showing queued time, attempts, and last error, with explicit confirmation before discarding (replaces the inline discard from 6.16.2)
