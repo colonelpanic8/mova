@@ -1,16 +1,13 @@
 /**
  * E2E tests for the Capture screen functionality.
  *
- * Tests the capture flow with different templates:
- * - Quick Capture (simple todo)
- * - Template-based capture with various prompt types
+ * Tests the capture flow with different templates.
  *
- * Test templates available:
+ * The template list comes from the server, so these tests only rely on the
+ * templates the E2E org-agenda-api container defines:
  * - todo: Title (string)
  * - scheduled-todo: Title (string), When (date)
- * - tagged-todo: Title (string), Tags (tags)
- * - note: Title (string)
- * - meeting: Title (string), Date (date), Attendees (tags), Notes (string)
+ * - deadline-todo: Title (string), When (date)
  */
 
 import { by, device, element, expect, waitFor } from "detox";
@@ -53,17 +50,15 @@ describe("Capture Screen", () => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
   });
 
-  describe("Quick Capture", () => {
-    it("should capture a simple todo using Quick Capture", async () => {
+  describe("Simple Capture", () => {
+    it("should capture a simple todo using the Todo template", async () => {
       await navigateToCaptureScreen();
       await device.disableSynchronization();
       try {
-        // Ensure Quick Capture is selected (it should be default)
-        // If not, select it from the menu
+        // Pick the simplest server template (Title only)
         await element(by.id("templateSelector")).tap();
         await new Promise((resolve) => setTimeout(resolve, 300));
-        // Use atIndex(0) to get the menu item, not the button text
-        await element(by.text("Quick Capture")).atIndex(0).tap();
+        await element(by.id("menuItem-todo")).tap();
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         // Tap on Title field to focus and type
@@ -102,11 +97,9 @@ describe("Capture Screen", () => {
         await element(by.id("templateSelector")).tap();
         await new Promise((resolve) => setTimeout(resolve, 800));
 
-        // Verify Quick Capture option is shown using testID
-        await expect(element(by.id("menuItem-quick-capture"))).toBeVisible();
-
-        // Verify Todo template is shown using testID
+        // Verify the server-provided templates are listed
         await expect(element(by.id("menuItem-todo"))).toBeVisible();
+        await expect(element(by.id("menuItem-scheduled-todo"))).toBeVisible();
 
         // Dismiss menu
         await device.pressBack();
@@ -173,10 +166,10 @@ describe("Capture Screen", () => {
       await navigateToCaptureScreen();
       await device.disableSynchronization();
       try {
-        // Select Quick Capture template
+        // Select the Todo template
         await element(by.id("templateSelector")).tap();
         await new Promise((resolve) => setTimeout(resolve, 300));
-        await element(by.text("Quick Capture")).atIndex(0).tap();
+        await element(by.id("menuItem-todo")).tap();
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         // Verify Title field is visible before keyboard
