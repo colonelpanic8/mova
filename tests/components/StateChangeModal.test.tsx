@@ -72,6 +72,16 @@ describe("StateChangeModal", () => {
     expect(onConfirm).toHaveBeenCalledWith("DONE", null);
   });
 
+  it("lists completed states above active ones", () => {
+    const { getAllByText } = renderModal(jest.fn());
+
+    const rendered = getAllByText(/^(Completed|Active|DONE|TODO)$/).map(
+      (node) => node.props.children,
+    );
+
+    expect(rendered).toEqual(["Completed", "DONE", "Active", "TODO"]);
+  });
+
   it("uses the radio button only to select a state", () => {
     const onConfirm = jest.fn();
     const { getAllByRole } = renderModal(onConfirm);

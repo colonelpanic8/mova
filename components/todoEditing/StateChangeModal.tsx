@@ -95,9 +95,9 @@ export function StateChangeModal({
               { color: theme.colors.onSurfaceVariant },
             ]}
           >
-            Active
+            Completed
           </Text>
-          {activeStates.map(renderStateRow)}
+          {doneStates.map(renderStateRow)}
 
           <Divider style={styles.groupDivider} />
 
@@ -108,9 +108,9 @@ export function StateChangeModal({
               { color: theme.colors.onSurfaceVariant },
             ]}
           >
-            Completed
+            Active
           </Text>
-          {doneStates.map(renderStateRow)}
+          {activeStates.map(renderStateRow)}
         </RadioButton.Group>
 
         {/* Override date option */}
