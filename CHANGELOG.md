@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.16.1]
+
+- fix(edit): list completed states above active ones in the state-change modal
+- fix(e2e): compile detox tests with the e2e tsconfig so scheduled E2E runs work again
+
 ## [6.16.0]
 
 - feat: sync the color palette through the server so it is stored in the org repo and shared across devices
