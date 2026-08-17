@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.16.2]
+
+- feat(capture): discard a pending capture that keeps failing, instead of it sitting in the queue forever
+- fix(a11y): announce bottom tab buttons by name — they were icon-only with no accessible label
+- fix(e2e): repair the detox suite so scheduled runs pass again
+
 ## [6.16.1]
 
 - fix(edit): list completed states above active ones in the state-change modal
