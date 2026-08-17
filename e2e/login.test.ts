@@ -20,8 +20,8 @@ describe("Login Screen", () => {
   });
 
   it("should show error when submitting empty fields", async () => {
-    // Dismiss any keyboard that might be open
-    await device.pressBack();
+    // No keyboard is open on a freshly launched app, so pressing back here
+    // would leave the activity instead of dismissing anything.
     await element(by.id("connectButton")).tap();
     await expect(element(by.text("All fields are required"))).toBeVisible();
   });
