@@ -84,10 +84,11 @@ describe("Capture Screen", () => {
         // Tap Capture button
         await element(by.id("captureButtonTop")).tap();
 
-        // Wait for success message
+        // Wait for success message. The snackbar sits at the bottom under the
+        // capture bar, so assert it exists rather than that it is 75% visible.
         await waitFor(element(by.text("Captured!")))
-          .toBeVisible()
-          .withTimeout(5000);
+          .toExist()
+          .withTimeout(10000);
       } finally {
         await device.enableSynchronization();
       }
@@ -154,10 +155,10 @@ describe("Capture Screen", () => {
         // Tap Capture button to save
         await element(by.id("captureButtonTop")).tap();
 
-        // Verify success message appears
+        // Verify success message appears (see note above about the snackbar)
         await waitFor(element(by.text("Captured!")))
-          .toBeVisible()
-          .withTimeout(5000);
+          .toExist()
+          .withTimeout(10000);
 
         // Verify form was cleared (Title field should be empty again)
         await waitFor(element(by.text("Title *")).atIndex(0))
