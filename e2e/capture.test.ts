@@ -73,16 +73,16 @@ describe("Capture Screen", () => {
           .atIndex(0)
           .typeText(todoTitle);
 
-        // Dismiss keyboard before tapping capture button. Synchronization is
-        // off, so wait for the button to actually clear the keyboard rather
-        // than assuming the layout has settled.
+        // Dismiss the keyboard, then use the capture button above the optional
+        // org fields -- the one at the end of the form sits below the fold, so
+        // Espresso refuses to tap it. Both submit the same handler.
         await device.pressBack();
-        await waitFor(element(by.id("captureButton")))
+        await waitFor(element(by.id("captureButtonTop")))
           .toBeVisible()
           .withTimeout(10000);
 
         // Tap Capture button
-        await element(by.id("captureButton")).tap();
+        await element(by.id("captureButtonTop")).tap();
 
         // Wait for success message
         await waitFor(element(by.text("Captured!")))
@@ -145,14 +145,14 @@ describe("Capture Screen", () => {
           .atIndex(0)
           .typeText(todoTitle);
 
-        // Dismiss keyboard, then wait for the button to clear it (see above).
+        // Dismiss the keyboard and submit from the top button (see above).
         await device.pressBack();
-        await waitFor(element(by.id("captureButton")))
+        await waitFor(element(by.id("captureButtonTop")))
           .toBeVisible()
           .withTimeout(10000);
 
         // Tap Capture button to save
-        await element(by.id("captureButton")).tap();
+        await element(by.id("captureButtonTop")).tap();
 
         // Verify success message appears
         await waitFor(element(by.text("Captured!")))
