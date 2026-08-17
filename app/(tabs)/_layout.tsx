@@ -86,7 +86,11 @@ function CustomTabBar(props: BottomTabBarProps) {
                 key={route.key}
                 accessibilityRole="button"
                 accessibilityState={isFocused ? { selected: true } : {}}
-                accessibilityLabel={options.tabBarAccessibilityLabel}
+                accessibilityLabel={
+                  options.tabBarAccessibilityLabel ??
+                  options.title ??
+                  route.name
+                }
                 testID={(() => {
                   const o = options as unknown as {
                     tabBarButtonTestID?: unknown;
