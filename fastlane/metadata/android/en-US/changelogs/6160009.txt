@@ -1,0 +1,2 @@
+* feat: sync the color palette through the server so it is stored in the org repo and shared across devices
+* feat(edit): group the state-change modal by active vs completed states

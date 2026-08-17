@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.16.0]
+
+- feat: sync the color palette through the server so it is stored in the org repo and shared across devices
+- feat(edit): group the state-change modal by active vs completed states
+
 ## [6.15.1]
 
 - fix(widget): apply agenda widget updates to the live view in place (partiallyUpdateAppWidget) so completing an item no longer flashes the widget
@@ -13,7 +18,6 @@
 ## [6.14.2]
 
 - fix(planner): allow shifted events to move into an adjacent day
-
 
 ## [6.14.1]
 
