@@ -1,24 +1,58 @@
 import { formatQueuedAt } from "@/components/capture/PendingCapturesCard";
 import { useOutbox } from "@/context/OutboxContext";
 import { getOutboxEntryTitle, OutboxEntry } from "@/services/captureOutbox";
+import {
+  buildIssueUrl,
+  formatOutboxEntryForExport,
+} from "@/services/outboxExport";
+import Constants from "expo-constants";
+import * as Linking from "expo-linking";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Platform, ScrollView, Share, StyleSheet, View } from "react-native";
 import {
   Button,
   Dialog,
   Divider,
   Icon,
+  IconButton,
   List,
   Portal,
   Text,
   useTheme,
 } from "react-native-paper";
 
+/**
+ * Hand the capture to the OS share sheet so it can be sent anywhere -- to a
+ * desktop over KDE Connect, to email, to another app. Web has no share sheet
+ * on every browser, so fall back to the clipboard there.
+ */
+async function shareEntry(entry: OutboxEntry): Promise<void> {
+  const message = formatOutboxEntryForExport(entry);
+  const title = getOutboxEntryTitle(entry);
+
+  if (Platform.OS === "web") {
+    const nav = globalThis.navigator as
+      | (Navigator & {
+          share?: (data: { title: string; text: string }) => Promise<void>;
+        })
+      | undefined;
+    if (nav?.share) {
+      await nav.share({ title, text: message });
+      return;
+    }
+    await nav?.clipboard?.writeText(message);
+    return;
+  }
+
+  await Share.share({ message, title });
+}
+
 export default function UnsyncedScreen() {
   const theme = useTheme();
   const { pendingEntries, flushNow, discardEntry } = useOutbox();
   const [confirming, setConfirming] = useState<OutboxEntry | null>(null);
   const [discarding, setDiscarding] = useState(false);
+  const appVersion = Constants.expoConfig?.version;
 
   const confirmDiscard = async () => {
     if (!confirming) return;
@@ -99,16 +133,38 @@ export default function UnsyncedScreen() {
                 <List.Icon {...props} icon="cloud-upload-outline" />
               )}
               right={() => (
-                <Button
-                  compact
-                  mode="text"
-                  textColor={theme.colors.error}
-                  onPress={() => setConfirming(entry)}
-                  testID={`discardPendingCapture-${entry.id}`}
-                  accessibilityLabel={`Discard capture "${getOutboxEntryTitle(entry)}"`}
-                >
-                  Discard
-                </Button>
+                <View style={styles.entryActions}>
+                  <IconButton
+                    icon="share-variant"
+                    size={20}
+                    onPress={() => {
+                      void shareEntry(entry);
+                    }}
+                    testID={`sharePendingCapture-${entry.id}`}
+                    accessibilityLabel={`Share capture "${getOutboxEntryTitle(entry)}"`}
+                  />
+                  <IconButton
+                    icon="github"
+                    size={20}
+                    onPress={() => {
+                      void Linking.openURL(
+                        buildIssueUrl(entry, { appVersion }),
+                      );
+                    }}
+                    testID={`reportPendingCapture-${entry.id}`}
+                    accessibilityLabel={`Report capture "${getOutboxEntryTitle(entry)}" on GitHub`}
+                  />
+                  <Button
+                    compact
+                    mode="text"
+                    textColor={theme.colors.error}
+                    onPress={() => setConfirming(entry)}
+                    testID={`discardPendingCapture-${entry.id}`}
+                    accessibilityLabel={`Discard capture "${getOutboxEntryTitle(entry)}"`}
+                  >
+                    Discard
+                  </Button>
+                </View>
               )}
             />
           ))}
@@ -153,6 +209,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 16,
     paddingBottom: 16,
+  },
+  entryActions: {
+    alignItems: "center",
+    flexDirection: "row",
   },
   emptyState: {
     alignItems: "center",

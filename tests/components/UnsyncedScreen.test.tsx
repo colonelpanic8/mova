@@ -1,4 +1,5 @@
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { Share } from "react-native";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
 
 const mockOutbox = {
@@ -11,6 +12,15 @@ const mockOutbox = {
 jest.mock("../../context/OutboxContext", () => ({
   useOutbox: () => mockOutbox,
 }));
+
+const mockOpenURL = jest.fn();
+jest.mock("expo-linking", () => ({
+  openURL: (url: string) => mockOpenURL(url),
+}));
+
+const shareSpy = jest
+  .spyOn(Share, "share")
+  .mockResolvedValue({ action: "sharedAction" as never });
 
 import UnsyncedScreen from "../../app/(tabs)/settings/unsynced";
 
@@ -65,6 +75,28 @@ describe("UnsyncedScreen", () => {
     await waitFor(() =>
       expect(mockOutbox.discardEntry).toHaveBeenCalledWith("entry-1"),
     );
+  });
+
+  it("shares the capture through the share sheet", async () => {
+    mockOutbox.pendingEntries = [entry];
+    const { getByTestId } = renderScreen();
+
+    fireEvent.press(getByTestId("sharePendingCapture-entry-1"));
+
+    await waitFor(() => expect(shareSpy).toHaveBeenCalled());
+    expect(shareSpy.mock.calls[0][0].message).toContain("Stuck capture");
+  });
+
+  it("opens a prefilled GitHub issue", () => {
+    mockOutbox.pendingEntries = [entry];
+    const { getByTestId } = renderScreen();
+
+    fireEvent.press(getByTestId("reportPendingCapture-entry-1"));
+
+    expect(mockOpenURL).toHaveBeenCalledTimes(1);
+    const url = new URL(mockOpenURL.mock.calls[0][0]);
+    expect(url.pathname).toBe("/colonelpanic8/mova/issues/new");
+    expect(url.searchParams.get("title")).toContain("Stuck capture");
   });
 
   it("does not discard when the dialog is cancelled", () => {
