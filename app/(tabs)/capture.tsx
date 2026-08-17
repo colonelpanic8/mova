@@ -64,7 +64,8 @@ export default function CaptureScreen() {
   const [form, setForm] = useState<TodoFormState>(emptyTodoFormState);
   const theme = useTheme();
   const invalidateServerData = useServerDataInvalidation();
-  const { captureOrEnqueue, pendingEntries, flushNow } = useOutbox();
+  const { captureOrEnqueue, pendingEntries, flushNow, discardEntry } =
+    useOutbox();
   const menu = useMenuPickerWorkaround();
   const promptRefs = useRef<Record<string, PromptFieldHandle | null>>({});
   const formFieldsRef = useRef<TodoFormFieldsHandle>(null);
@@ -360,6 +361,9 @@ export default function CaptureScreen() {
             entries={pendingEntries}
             onRetry={() => {
               void flushNow();
+            }}
+            onDiscard={(entryId) => {
+              void discardEntry(entryId);
             }}
           />
 

@@ -138,6 +138,21 @@ async function writeOutbox(
   );
 }
 
+/**
+ * Drop a queued capture. Retryable failures keep an entry queued forever (a
+ * server that always errors is indistinguishable from one that is briefly
+ * down), so the user needs a way to abandon one.
+ */
+export async function discardOutboxEntry(
+  scopeKey: string,
+  entryId: string,
+): Promise<OutboxEntry[]> {
+  const entries = await listOutbox(scopeKey);
+  const remaining = entries.filter((entry) => entry.id !== entryId);
+  await writeOutbox(scopeKey, remaining);
+  return remaining;
+}
+
 export interface EnqueueResult {
   entry: OutboxEntry;
   /** Number of oldest entries dropped because the queue was over capacity. */

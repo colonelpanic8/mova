@@ -3,7 +3,14 @@ import {
   type OutboxEntry,
 } from "@/services/captureOutbox";
 import { StyleSheet, View } from "react-native";
-import { Button, Icon, Surface, Text, useTheme } from "react-native-paper";
+import {
+  Button,
+  Icon,
+  IconButton,
+  Surface,
+  Text,
+  useTheme,
+} from "react-native-paper";
 
 const MAX_VISIBLE_ENTRIES = 5;
 
@@ -27,11 +34,13 @@ function formatQueuedAt(createdAt: string): string {
 interface PendingCapturesCardProps {
   entries: OutboxEntry[];
   onRetry: () => void;
+  onDiscard: (entryId: string) => void;
 }
 
 export function PendingCapturesCard({
   entries,
   onRetry,
+  onDiscard,
 }: PendingCapturesCardProps) {
   const theme = useTheme();
 
@@ -114,6 +123,14 @@ export function PendingCapturesCard({
                   : ""}
               </Text>
             </View>
+            <IconButton
+              icon="close"
+              size={18}
+              onPress={() => onDiscard(entry.id)}
+              testID={`discardPendingCapture-${entry.id}`}
+              accessibilityLabel={`Discard capture "${getOutboxEntryTitle(entry)}"`}
+              iconColor={theme.colors.onSecondaryContainer}
+            />
           </View>
         ))}
         {hiddenCount > 0 && (

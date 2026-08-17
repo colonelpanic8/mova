@@ -4,6 +4,7 @@ import {
   CaptureClient,
   countOutbox,
   deliverOutboxRequest,
+  discardOutboxEntry,
   enqueueOutboxEntry,
   flushOutbox,
   getOutboxEntryTitle,
@@ -64,6 +65,26 @@ describe("captureOutbox", () => {
       });
       expect(typeof entries[0].createdAt).toBe("string");
       expect(await countOutbox(SCOPE)).toBe(2);
+    });
+
+    it("discards a single entry and leaves the rest queued", async () => {
+      const first = await enqueueOutboxEntry(SCOPE, captureRequest("one"));
+      const second = await enqueueOutboxEntry(SCOPE, captureRequest("two"));
+
+      const remaining = await discardOutboxEntry(SCOPE, first.entry.id);
+
+      expect(remaining.map((e) => e.id)).toEqual([second.entry.id]);
+      expect(await countOutbox(SCOPE)).toBe(1);
+    });
+
+    it("leaves other scopes untouched when discarding", async () => {
+      const mine = await enqueueOutboxEntry(SCOPE, captureRequest("one"));
+      await enqueueOutboxEntry(OTHER_SCOPE, captureRequest("other"));
+
+      await discardOutboxEntry(SCOPE, mine.entry.id);
+
+      expect(await countOutbox(SCOPE)).toBe(0);
+      expect(await countOutbox(OTHER_SCOPE)).toBe(1);
     });
 
     it("keeps queues isolated per scope key", async () => {

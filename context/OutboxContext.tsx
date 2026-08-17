@@ -4,6 +4,7 @@ import { invalidateServerData } from "@/hooks/queryKeys";
 import {
   CaptureDeliveryResponse,
   deliverOutboxRequest,
+  discardOutboxEntry,
   enqueueOutboxEntry,
   flushOutbox,
   getOutboxEntryTitle,
@@ -55,6 +56,8 @@ interface OutboxContextType {
   captureOrEnqueue: (request: OutboxRequest) => Promise<CaptureOrEnqueueResult>;
   /** Attempt to deliver all queued captures now. */
   flushNow: () => Promise<void>;
+  /** Abandon a queued capture that will never deliver. */
+  discardEntry: (entryId: string) => Promise<void>;
   /**
    * User-facing notice about queued captures that were permanently rejected
    * by the server (or dropped due to a full queue). Surfaced so nothing
@@ -198,6 +201,15 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
   const clearNotice = useCallback(() => setNotice(null), []);
   const pendingCount = pendingEntries.length;
 
+  const discardEntry = useCallback(
+    async (entryId: string) => {
+      if (!scopeKey) return;
+      const remaining = await discardOutboxEntry(scopeKey, entryId);
+      setPendingEntries(remaining);
+    },
+    [scopeKey],
+  );
+
   const value = useMemo<OutboxContextType>(
     () => ({
       pendingCount,
@@ -205,6 +217,7 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
       enqueueCapture,
       captureOrEnqueue,
       flushNow,
+      discardEntry,
       notice,
       clearNotice,
     }),
@@ -214,6 +227,7 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
       enqueueCapture,
       captureOrEnqueue,
       flushNow,
+      discardEntry,
       notice,
       clearNotice,
     ],
