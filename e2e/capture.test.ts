@@ -73,9 +73,13 @@ describe("Capture Screen", () => {
           .atIndex(0)
           .typeText(todoTitle);
 
-        // Dismiss keyboard before tapping capture button
+        // Dismiss keyboard before tapping capture button. Synchronization is
+        // off, so wait for the button to actually clear the keyboard rather
+        // than assuming the layout has settled.
         await device.pressBack();
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await waitFor(element(by.id("captureButton")))
+          .toBeVisible()
+          .withTimeout(10000);
 
         // Tap Capture button
         await element(by.id("captureButton")).tap();
@@ -141,9 +145,11 @@ describe("Capture Screen", () => {
           .atIndex(0)
           .typeText(todoTitle);
 
-        // Dismiss keyboard
+        // Dismiss keyboard, then wait for the button to clear it (see above).
         await device.pressBack();
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await waitFor(element(by.id("captureButton")))
+          .toBeVisible()
+          .withTimeout(10000);
 
         // Tap Capture button to save
         await element(by.id("captureButton")).tap();
