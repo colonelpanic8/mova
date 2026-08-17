@@ -20,6 +20,7 @@ export default function SettingsLayout() {
         options={{ title: "Scheduled Notifications" }}
       />
       <Stack.Screen name="servers" options={{ title: "Manage Servers" }} />
+      <Stack.Screen name="unsynced" options={{ title: "Unsynced Captures" }} />
     </Stack>
   );
 }

@@ -21,6 +21,7 @@ import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
 import { CategoryType, TemplatePrompt, Timestamp } from "@/services/api";
 import { OutboxRequest } from "@/services/captureOutbox";
 import { formStringToTimestamp } from "@/utils/timestampConversion";
+import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -64,8 +65,7 @@ export default function CaptureScreen() {
   const [form, setForm] = useState<TodoFormState>(emptyTodoFormState);
   const theme = useTheme();
   const invalidateServerData = useServerDataInvalidation();
-  const { captureOrEnqueue, pendingEntries, flushNow, discardEntry } =
-    useOutbox();
+  const { captureOrEnqueue, pendingEntries, flushNow } = useOutbox();
   const menu = useMenuPickerWorkaround();
   const promptRefs = useRef<Record<string, PromptFieldHandle | null>>({});
   const formFieldsRef = useRef<TodoFormFieldsHandle>(null);
@@ -362,9 +362,7 @@ export default function CaptureScreen() {
             onRetry={() => {
               void flushNow();
             }}
-            onDiscard={(entryId) => {
-              void discardEntry(entryId);
-            }}
+            onManage={() => router.navigate("/(tabs)/settings/unsynced")}
           />
 
           {/* Category field for category type captures */}

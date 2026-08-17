@@ -1,6 +1,7 @@
 import { PasswordInput } from "@/components/PasswordInput";
 import { useApi } from "@/context/ApiContext";
 import { useAuth } from "@/context/AuthContext";
+import { useOutbox } from "@/context/OutboxContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useTemplates } from "@/context/TemplatesContext";
 import { useServerDataInvalidation } from "@/hooks/queryKeys";
@@ -99,6 +100,7 @@ export default function SettingsScreen() {
   const { templates, todoStates, customViews, exposedFunctions } =
     useTemplates();
   const invalidateServerData = useServerDataInvalidation();
+  const { pendingCount } = useOutbox();
   const theme = useTheme();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
@@ -453,6 +455,19 @@ export default function SettingsScreen() {
           description="Switch, edit, or delete saved servers"
           left={(props) => <List.Icon {...props} icon="server-network" />}
           onPress={() => router.navigate("/(tabs)/settings/servers")}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+        />
+        <List.Item
+          title="Unsynced Captures"
+          description={
+            pendingCount > 0
+              ? `${pendingCount} capture${
+                  pendingCount === 1 ? "" : "s"
+                } waiting to sync`
+              : "Everything is synced"
+          }
+          left={(props) => <List.Icon {...props} icon="cloud-upload-outline" />}
+          onPress={() => router.navigate("/(tabs)/settings/unsynced")}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
         />
       </List.Section>

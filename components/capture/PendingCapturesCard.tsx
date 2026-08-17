@@ -3,18 +3,11 @@ import {
   type OutboxEntry,
 } from "@/services/captureOutbox";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  Icon,
-  IconButton,
-  Surface,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Button, Icon, Surface, Text, useTheme } from "react-native-paper";
 
 const MAX_VISIBLE_ENTRIES = 5;
 
-function formatQueuedAt(createdAt: string): string {
+export function formatQueuedAt(createdAt: string): string {
   const timestamp = new Date(createdAt).getTime();
   if (!Number.isFinite(timestamp)) return "Queued";
 
@@ -34,13 +27,14 @@ function formatQueuedAt(createdAt: string): string {
 interface PendingCapturesCardProps {
   entries: OutboxEntry[];
   onRetry: () => void;
-  onDiscard: (entryId: string) => void;
+  /** Open the unsynced-captures management view. */
+  onManage?: () => void;
 }
 
 export function PendingCapturesCard({
   entries,
   onRetry,
-  onDiscard,
+  onManage,
 }: PendingCapturesCardProps) {
   const theme = useTheme();
 
@@ -81,6 +75,17 @@ export function PendingCapturesCard({
             Saved on this device until they can be delivered
           </Text>
         </View>
+        {onManage && (
+          <Button
+            compact
+            mode="text"
+            onPress={onManage}
+            testID="managePendingCaptures"
+            accessibilityLabel="Manage pending captures"
+          >
+            Manage
+          </Button>
+        )}
         <Button
           compact
           mode="text"
@@ -123,14 +128,6 @@ export function PendingCapturesCard({
                   : ""}
               </Text>
             </View>
-            <IconButton
-              icon="close"
-              size={18}
-              onPress={() => onDiscard(entry.id)}
-              testID={`discardPendingCapture-${entry.id}`}
-              accessibilityLabel={`Discard capture "${getOutboxEntryTitle(entry)}"`}
-              iconColor={theme.colors.onSecondaryContainer}
-            />
           </View>
         ))}
         {hiddenCount > 0 && (

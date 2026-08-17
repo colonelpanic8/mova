@@ -17,6 +17,18 @@ jest.mock("../../context/OutboxContext");
 jest.mock("../../context/SettingsContext");
 jest.mock("../../context/TemplatesContext");
 
+jest.mock("expo-router", () => ({
+  router: { navigate: jest.fn() },
+  useRouter: () => ({
+    push: jest.fn(),
+    back: jest.fn(),
+    replace: jest.fn(),
+    navigate: jest.fn(),
+  }),
+  useLocalSearchParams: () => ({}),
+  useSegments: () => [],
+}));
+
 jest.mock("../../components/KeyboardAwareContainer", () => ({
   KeyboardAwareContainer: ({
     children,
