@@ -11,6 +11,11 @@ module.exports = {
   verbose: true,
   preset: "ts-jest",
   transform: {
-    "^.+\\.tsx?$": ["ts-jest", { isolatedModules: true }],
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      // The root tsconfig excludes e2e/, so ts-jest must be pointed at the
+      // e2e config explicitly or TypeScript rejects the inferred layout.
+      { isolatedModules: true, tsconfig: "<rootDir>/e2e/tsconfig.json" },
+    ],
   },
 };
