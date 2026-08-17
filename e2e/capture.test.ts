@@ -63,15 +63,11 @@ describe("Capture Screen", () => {
         await element(by.id("menuItem-todo")).tap();
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        // Tap on Title field to focus and type
-        await element(by.text("Title *")).atIndex(0).tap();
-        await new Promise((resolve) => setTimeout(resolve, 200));
-
-        // Type in the focused input
+        // Target the prompt input directly -- the capture bar also renders a
+        // text input on this screen, so matching EditText by index is ambiguous.
         const todoTitle = `Test Todo ${Date.now()}`;
-        await element(by.type("android.widget.EditText"))
-          .atIndex(0)
-          .typeText(todoTitle);
+        await element(by.id("promptField-Title")).tap();
+        await element(by.id("promptField-Title")).typeText(todoTitle);
 
         // Dismiss the keyboard, then use the capture button above the optional
         // org fields -- the one at the end of the form sits below the fold, so
@@ -139,12 +135,9 @@ describe("Capture Screen", () => {
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         // Fill in Title field (the only required field for Todo template)
-        await element(by.text("Title *")).atIndex(0).tap();
-        await new Promise((resolve) => setTimeout(resolve, 200));
         const todoTitle = `Template Todo ${Date.now()}`;
-        await element(by.type("android.widget.EditText"))
-          .atIndex(0)
-          .typeText(todoTitle);
+        await element(by.id("promptField-Title")).tap();
+        await element(by.id("promptField-Title")).typeText(todoTitle);
 
         // Dismiss the keyboard and submit from the top button (see above).
         await device.pressBack();

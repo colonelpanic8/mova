@@ -138,6 +138,7 @@ export const PromptField = forwardRef<PromptFieldHandle, PromptFieldProps>(
     return (
       <View style={styles.textFieldContainer}>
         <TextInput
+          testID={`promptField-${prompt.name}`}
           label={label}
           value={stringValue}
           onChangeText={(text) => onChange(text)}
