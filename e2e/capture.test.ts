@@ -48,7 +48,9 @@ describe("Capture Screen", () => {
     await navigateToCaptureScreen();
     // Allow app to stabilize before running tests
     await new Promise((resolve) => setTimeout(resolve, 1000));
-  });
+    // A cold launch plus the full login flow regularly runs past the default
+    // 120s hook budget on CI emulators, which fails the whole suite.
+  }, 300000);
 
   describe("Simple Capture", () => {
     it("should capture a simple todo using the Todo template", async () => {
