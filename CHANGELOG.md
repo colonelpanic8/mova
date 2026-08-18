@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.18.1]
+
+- fix(capture): retry every unsynced capture independently so one temporary failure cannot block the rest, and repair the unsynced-captures layout on phones
+
 ## [6.18.0]
 
 - feat(capture): send an unsynced capture to the share sheet (so it can reach a desktop, email, or any other app) or open it as a prefilled GitHub issue, so its text is never lost to a discard

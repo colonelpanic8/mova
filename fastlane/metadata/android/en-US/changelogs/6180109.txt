@@ -1,0 +1,1 @@
+* fix(capture): retry every unsynced capture independently so one temporary failure cannot block the rest, and repair the unsynced-captures layout on phones
