@@ -227,7 +227,7 @@ describe("captureOutbox", () => {
       expect(await countOutbox(SCOPE)).toBe(0);
     });
 
-    it("halts on a retryable error, incrementing retryCount", async () => {
+    it("keeps retryable failures without blocking later entries", async () => {
       await enqueueOutboxEntry(SCOPE, captureRequest("one"));
       const { entry: failing } = await enqueueOutboxEntry(
         SCOPE,
@@ -239,19 +239,20 @@ describe("captureOutbox", () => {
         capture: jest
           .fn()
           .mockResolvedValueOnce({ status: "created" })
-          .mockRejectedValueOnce(new TypeError("Network request failed")),
+          .mockRejectedValueOnce(new TypeError("Network request failed"))
+          .mockResolvedValueOnce({ status: "created" }),
       });
 
       const result = await flushOutbox(SCOPE, client);
 
-      expect(client.capture).toHaveBeenCalledTimes(2);
-      expect(result.succeededCount).toBe(1);
+      expect(client.capture).toHaveBeenCalledTimes(3);
+      expect(result.succeededCount).toBe(2);
       expect(result.rejections).toEqual([]);
       expect(result.haltedBy?.id).toBe(failing.id);
-      expect(result.remaining).toBe(2);
+      expect(result.remaining).toBe(1);
 
       const entries = await listOutbox(SCOPE);
-      expect(entries.map(getOutboxEntryTitle)).toEqual(["two", "three"]);
+      expect(entries.map(getOutboxEntryTitle)).toEqual(["two"]);
       expect(entries[0].retryCount).toBe(1);
       expect(entries[0].lastError).toBe("Network request failed");
     });

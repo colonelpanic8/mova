@@ -52,6 +52,7 @@ export default function UnsyncedScreen() {
   const { pendingEntries, flushNow, discardEntry } = useOutbox();
   const [confirming, setConfirming] = useState<OutboxEntry | null>(null);
   const [discarding, setDiscarding] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const appVersion = Constants.expoConfig?.version;
 
   const confirmDiscard = async () => {
@@ -62,6 +63,15 @@ export default function UnsyncedScreen() {
       setConfirming(null);
     } finally {
       setDiscarding(false);
+    }
+  };
+
+  const retryAll = async () => {
+    setRetrying(true);
+    try {
+      await flushNow();
+    } finally {
+      setRetrying(false);
     }
   };
 
@@ -98,15 +108,19 @@ export default function UnsyncedScreen() {
             ]}
           >
             These captures are saved on this device and retried automatically.
-            Discarding one deletes it permanently.
+            Retry all attempts every capture independently. Temporary network or
+            server failures stay here for another retry. Discarding one deletes
+            it permanently.
           </Text>
           <View style={styles.actions}>
             <Button
               mode="contained-tonal"
               icon="refresh"
               onPress={() => {
-                void flushNow();
+                void retryAll();
               }}
+              loading={retrying}
+              disabled={retrying}
               testID="unsyncedRetryAll"
             >
               Retry all
@@ -114,59 +128,63 @@ export default function UnsyncedScreen() {
           </View>
           <Divider />
           {pendingEntries.map((entry) => (
-            <List.Item
+            <View
               key={entry.id}
-              title={getOutboxEntryTitle(entry)}
-              description={[
-                formatQueuedAt(entry.createdAt),
-                entry.retryCount > 0
-                  ? `${entry.retryCount} ${
-                      entry.retryCount === 1 ? "attempt" : "attempts"
-                    }`
-                  : null,
-                entry.lastError ? `Last error: ${entry.lastError}` : null,
-              ]
-                .filter(Boolean)
-                .join("\n")}
-              descriptionNumberOfLines={3}
-              left={(props) => (
-                <List.Icon {...props} icon="cloud-upload-outline" />
-              )}
-              right={() => (
-                <View style={styles.entryActions}>
-                  <IconButton
-                    icon="share-variant"
-                    size={20}
-                    onPress={() => {
-                      void shareEntry(entry);
-                    }}
-                    testID={`sharePendingCapture-${entry.id}`}
-                    accessibilityLabel={`Share capture "${getOutboxEntryTitle(entry)}"`}
-                  />
-                  <IconButton
-                    icon="github"
-                    size={20}
-                    onPress={() => {
-                      void Linking.openURL(
-                        buildIssueUrl(entry, { appVersion }),
-                      );
-                    }}
-                    testID={`reportPendingCapture-${entry.id}`}
-                    accessibilityLabel={`Report capture "${getOutboxEntryTitle(entry)}" on GitHub`}
-                  />
-                  <Button
-                    compact
-                    mode="text"
-                    textColor={theme.colors.error}
-                    onPress={() => setConfirming(entry)}
-                    testID={`discardPendingCapture-${entry.id}`}
-                    accessibilityLabel={`Discard capture "${getOutboxEntryTitle(entry)}"`}
-                  >
-                    Discard
-                  </Button>
-                </View>
-              )}
-            />
+              style={[
+                styles.entry,
+                { borderBottomColor: theme.colors.outlineVariant },
+              ]}
+            >
+              <List.Item
+                title={getOutboxEntryTitle(entry)}
+                titleNumberOfLines={2}
+                description={[
+                  formatQueuedAt(entry.createdAt),
+                  entry.retryCount > 0
+                    ? `${entry.retryCount} ${
+                        entry.retryCount === 1 ? "attempt" : "attempts"
+                      }`
+                    : "Not attempted yet",
+                  entry.lastError ? `Last error: ${entry.lastError}` : null,
+                ]
+                  .filter(Boolean)
+                  .join("\n")}
+                descriptionNumberOfLines={4}
+                left={(props) => (
+                  <List.Icon {...props} icon="cloud-upload-outline" />
+                )}
+              />
+              <View style={styles.entryActions}>
+                <IconButton
+                  icon="share-variant"
+                  size={20}
+                  onPress={() => {
+                    void shareEntry(entry);
+                  }}
+                  testID={`sharePendingCapture-${entry.id}`}
+                  accessibilityLabel={`Share capture "${getOutboxEntryTitle(entry)}"`}
+                />
+                <IconButton
+                  icon="github"
+                  size={20}
+                  onPress={() => {
+                    void Linking.openURL(buildIssueUrl(entry, { appVersion }));
+                  }}
+                  testID={`reportPendingCapture-${entry.id}`}
+                  accessibilityLabel={`Report capture "${getOutboxEntryTitle(entry)}" on GitHub`}
+                />
+                <Button
+                  compact
+                  mode="text"
+                  textColor={theme.colors.error}
+                  onPress={() => setConfirming(entry)}
+                  testID={`discardPendingCapture-${entry.id}`}
+                  accessibilityLabel={`Discard capture "${getOutboxEntryTitle(entry)}"`}
+                >
+                  Discard
+                </Button>
+              </View>
+            </View>
           ))}
         </List.Section>
       )}
@@ -213,6 +231,12 @@ const styles = StyleSheet.create({
   entryActions: {
     alignItems: "center",
     flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingBottom: 6,
+    paddingHorizontal: 8,
+  },
+  entry: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   emptyState: {
     alignItems: "center",

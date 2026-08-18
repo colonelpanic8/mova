@@ -269,10 +269,7 @@ export interface FlushOutboxResult {
    * the user so nothing vanishes silently.
    */
   rejections: OutboxRejection[];
-  /**
-   * The entry that hit a retryable error, halting the flush (server likely
-   * unreachable). Null when the flush ran to completion.
-   */
+  /** The first entry that hit a retryable error, if any. */
   haltedBy: OutboxEntry | null;
   /** Entries still queued after the flush. */
   remaining: number;
@@ -283,9 +280,9 @@ function errorMessage(error: unknown): string {
 }
 
 /**
- * Attempt to deliver queued captures in order. Stops at the first retryable
- * failure (incrementing that entry's retryCount); permanently rejected
- * entries are removed and reported so the caller can notify the user.
+ * Attempt to deliver every queued capture concurrently. Retryable failures
+ * remain queued with an incremented retryCount; permanently rejected entries
+ * are removed and reported so the caller can notify the user.
  *
  * Storage is read once at the start and written once at the end (also on an
  * unexpected mid-flush throw, via finally), so a flush costs O(1) storage
@@ -310,42 +307,55 @@ export async function flushOutbox(
     };
   }
 
-  // Entries still queued; delivered/rejected entries are removed from the
-  // front as we go, and the halting entry is replaced with its updated copy.
-  const remainingEntries = [...entries];
+  let remainingEntries: OutboxEntry[] = [];
 
   try {
-    while (remainingEntries.length > 0) {
-      const entry = remainingEntries[0];
-      try {
-        const result = await deliverOutboxRequest(api, entry.request);
+    const outcomes = await Promise.all(
+      entries.map(async (entry) => {
+        try {
+          const result = await deliverOutboxRequest(api, entry.request);
 
-        if (result.status === "created") {
-          succeededCount += 1;
-        } else {
-          // The server processed the request but refused it — retrying the
-          // same payload will not help, so drop it and report it.
-          rejections.push({
+          if (result.status === "created") {
+            return { kind: "succeeded" as const, entry };
+          }
+          return {
+            kind: "rejected" as const,
             entry,
             message:
               result.message ||
               `Server rejected capture (status ${result.status})`,
-          });
-        }
-        remainingEntries.shift();
-      } catch (error) {
-        if (isRetryableCaptureError(error)) {
-          remainingEntries[0] = {
-            ...entry,
-            retryCount: entry.retryCount + 1,
-            lastError: errorMessage(error),
           };
-          haltedBy = entry;
-          break;
+        } catch (error) {
+          if (isRetryableCaptureError(error)) {
+            return {
+              kind: "retryable" as const,
+              entry: {
+                ...entry,
+                retryCount: entry.retryCount + 1,
+                lastError: errorMessage(error),
+              },
+            };
+          }
+          return {
+            kind: "rejected" as const,
+            entry,
+            message: errorMessage(error),
+          };
         }
+      }),
+    );
 
-        rejections.push({ entry, message: errorMessage(error) });
-        remainingEntries.shift();
+    for (const outcome of outcomes) {
+      if (outcome.kind === "succeeded") {
+        succeededCount += 1;
+      } else if (outcome.kind === "retryable") {
+        remainingEntries.push(outcome.entry);
+        haltedBy ??= outcome.entry;
+      } else {
+        rejections.push({
+          entry: outcome.entry,
+          message: outcome.message,
+        });
       }
     }
   } finally {
