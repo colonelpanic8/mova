@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.18.2]
+
+- fix(capture): make every unsynced-capture action visibly responsive with labeled controls, progress states, result feedback, and duplicate-action prevention
+
 ## [6.18.1]
 
 - fix(capture): retry every unsynced capture independently so one temporary failure cannot block the rest, and repair the unsynced-captures layout on phones
