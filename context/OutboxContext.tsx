@@ -7,6 +7,7 @@ import {
   discardOutboxEntry,
   enqueueOutboxEntry,
   flushOutbox,
+  FlushOutboxResult,
   getOutboxEntryTitle,
   isRetryableCaptureError,
   listOutbox,
@@ -55,7 +56,7 @@ interface OutboxContextType {
    */
   captureOrEnqueue: (request: OutboxRequest) => Promise<CaptureOrEnqueueResult>;
   /** Attempt to deliver all queued captures now. */
-  flushNow: () => Promise<void>;
+  flushNow: () => Promise<FlushOutboxResult | null>;
   /** Abandon a queued capture that will never deliver. */
   discardEntry: (entryId: string) => Promise<void>;
   /**
@@ -75,7 +76,9 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [pendingEntries, setPendingEntries] = useState<OutboxEntry[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
-  const flushingRef = useRef(false);
+  const flushingPromiseRef = useRef<Promise<FlushOutboxResult | null> | null>(
+    null,
+  );
   const rerunRef = useRef(false);
 
   // The outbox is scoped by server identity (url + username) rather than
@@ -88,40 +91,52 @@ export function OutboxProvider({ children }: { children: ReactNode }) {
   );
 
   const flushNow = useCallback(async () => {
-    if (!api || !scopeKey) return;
-    if (flushingRef.current) {
+    if (!api || !scopeKey) return null;
+    if (flushingPromiseRef.current) {
       // A flush is already running; ask it to do another pass when it
       // finishes so entries enqueued mid-flush are not stranded.
       rerunRef.current = true;
-      return;
+      return flushingPromiseRef.current;
     }
 
-    flushingRef.current = true;
+    const run = async (): Promise<FlushOutboxResult | null> => {
+      let lastResult: FlushOutboxResult | null = null;
+      try {
+        do {
+          rerunRef.current = false;
+          lastResult = await flushOutbox(scopeKey, api);
+          if (lastResult.succeededCount > 0) {
+            // Delivered captures created new todos on the server; refresh the
+            // affected listings. scopeKey IS the server identity key.
+            void invalidateServerData(queryClient, scopeKey);
+          }
+          if (lastResult.rejections.length > 0) {
+            const titles = lastResult.rejections
+              .map((rejection) => `"${getOutboxEntryTitle(rejection.entry)}"`)
+              .join(", ");
+            setNotice(
+              lastResult.rejections.length === 1
+                ? `Server rejected queued capture: ${titles}`
+                : `Server rejected queued captures: ${titles}`,
+            );
+          }
+          setPendingEntries(await listOutbox(scopeKey));
+        } while (rerunRef.current);
+        return lastResult;
+      } catch (error) {
+        console.warn("Capture outbox flush failed:", error);
+        return null;
+      }
+    };
+
+    const promise = run();
+    flushingPromiseRef.current = promise;
     try {
-      do {
-        rerunRef.current = false;
-        const result = await flushOutbox(scopeKey, api);
-        if (result.succeededCount > 0) {
-          // Delivered captures created new todos on the server; refresh the
-          // affected listings. scopeKey IS the server identity key.
-          void invalidateServerData(queryClient, scopeKey);
-        }
-        if (result.rejections.length > 0) {
-          const titles = result.rejections
-            .map((rejection) => `"${getOutboxEntryTitle(rejection.entry)}"`)
-            .join(", ");
-          setNotice(
-            result.rejections.length === 1
-              ? `Server rejected queued capture: ${titles}`
-              : `Server rejected queued captures: ${titles}`,
-          );
-        }
-        setPendingEntries(await listOutbox(scopeKey));
-      } while (rerunRef.current);
-    } catch (error) {
-      console.warn("Capture outbox flush failed:", error);
+      return await promise;
     } finally {
-      flushingRef.current = false;
+      if (flushingPromiseRef.current === promise) {
+        flushingPromiseRef.current = null;
+      }
     }
   }, [api, scopeKey, queryClient]);
 

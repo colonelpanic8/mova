@@ -14,9 +14,9 @@ import {
   Dialog,
   Divider,
   Icon,
-  IconButton,
   List,
   Portal,
+  Snackbar,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -53,6 +53,14 @@ export default function UnsyncedScreen() {
   const [confirming, setConfirming] = useState<OutboxEntry | null>(null);
   const [discarding, setDiscarding] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [entryAction, setEntryAction] = useState<{
+    entryId: string;
+    kind: "share" | "report";
+  } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    message: string;
+    isError: boolean;
+  } | null>(null);
   const appVersion = Constants.expoConfig?.version;
 
   const confirmDiscard = async () => {
@@ -61,6 +69,9 @@ export default function UnsyncedScreen() {
     try {
       await discardEntry(confirming.id);
       setConfirming(null);
+      setFeedback({ message: "Capture discarded", isError: false });
+    } catch {
+      setFeedback({ message: "Could not discard capture", isError: true });
     } finally {
       setDiscarding(false);
     }
@@ -68,10 +79,52 @@ export default function UnsyncedScreen() {
 
   const retryAll = async () => {
     setRetrying(true);
+    setFeedback({
+      message: `Retrying ${pendingEntries.length} capture${pendingEntries.length === 1 ? "" : "s"}…`,
+      isError: false,
+    });
     try {
-      await flushNow();
+      const result = await flushNow();
+      if (!result) {
+        setFeedback({ message: "Could not retry captures", isError: true });
+      } else if (result.remaining === 0) {
+        setFeedback({ message: "All captures synced", isError: false });
+      } else {
+        setFeedback({
+          message: `${result.succeededCount} synced · ${result.remaining} still queued`,
+          isError: result.succeededCount === 0,
+        });
+      }
+    } catch {
+      setFeedback({ message: "Could not retry captures", isError: true });
     } finally {
       setRetrying(false);
+    }
+  };
+
+  const share = async (entry: OutboxEntry) => {
+    setEntryAction({ entryId: entry.id, kind: "share" });
+    setFeedback({ message: "Opening share sheet…", isError: false });
+    try {
+      await shareEntry(entry);
+      setFeedback({ message: "Share action finished", isError: false });
+    } catch {
+      setFeedback({ message: "Could not open share sheet", isError: true });
+    } finally {
+      setEntryAction(null);
+    }
+  };
+
+  const report = async (entry: OutboxEntry) => {
+    setEntryAction({ entryId: entry.id, kind: "report" });
+    setFeedback({ message: "Opening GitHub issue…", isError: false });
+    try {
+      await Linking.openURL(buildIssueUrl(entry, { appVersion }));
+      setFeedback({ message: "GitHub issue opened", isError: false });
+    } catch {
+      setFeedback({ message: "Could not open GitHub", isError: true });
+    } finally {
+      setEntryAction(null);
     }
   };
 
@@ -120,7 +173,7 @@ export default function UnsyncedScreen() {
                 void retryAll();
               }}
               loading={retrying}
-              disabled={retrying}
+              disabled={retrying || entryAction !== null}
               testID="unsyncedRetryAll"
             >
               Retry all
@@ -155,29 +208,46 @@ export default function UnsyncedScreen() {
                 )}
               />
               <View style={styles.entryActions}>
-                <IconButton
+                <Button
+                  compact
+                  mode="text"
                   icon="share-variant"
-                  size={20}
                   onPress={() => {
-                    void shareEntry(entry);
+                    void share(entry);
                   }}
+                  loading={
+                    entryAction?.entryId === entry.id &&
+                    entryAction.kind === "share"
+                  }
+                  disabled={retrying || entryAction !== null}
                   testID={`sharePendingCapture-${entry.id}`}
                   accessibilityLabel={`Share capture "${getOutboxEntryTitle(entry)}"`}
-                />
-                <IconButton
+                >
+                  Share
+                </Button>
+                <Button
+                  compact
+                  mode="text"
                   icon="github"
-                  size={20}
                   onPress={() => {
-                    void Linking.openURL(buildIssueUrl(entry, { appVersion }));
+                    void report(entry);
                   }}
+                  loading={
+                    entryAction?.entryId === entry.id &&
+                    entryAction.kind === "report"
+                  }
+                  disabled={retrying || entryAction !== null}
                   testID={`reportPendingCapture-${entry.id}`}
                   accessibilityLabel={`Report capture "${getOutboxEntryTitle(entry)}" on GitHub`}
-                />
+                >
+                  Report
+                </Button>
                 <Button
                   compact
                   mode="text"
                   textColor={theme.colors.error}
                   onPress={() => setConfirming(entry)}
+                  disabled={retrying || entryAction !== null}
                   testID={`discardPendingCapture-${entry.id}`}
                   accessibilityLabel={`Discard capture "${getOutboxEntryTitle(entry)}"`}
                 >
@@ -190,7 +260,12 @@ export default function UnsyncedScreen() {
       )}
 
       <Portal>
-        <Dialog visible={!!confirming} onDismiss={() => setConfirming(null)}>
+        <Dialog
+          visible={!!confirming}
+          onDismiss={() => {
+            if (!discarding) setConfirming(null);
+          }}
+        >
           <Dialog.Title>Discard capture?</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
@@ -199,7 +274,9 @@ export default function UnsyncedScreen() {
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setConfirming(null)}>Cancel</Button>
+            <Button disabled={discarding} onPress={() => setConfirming(null)}>
+              Cancel
+            </Button>
             <Button
               textColor={theme.colors.error}
               loading={discarding}
@@ -213,6 +290,28 @@ export default function UnsyncedScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
+        <Snackbar
+          visible={feedback !== null}
+          onDismiss={() => setFeedback(null)}
+          duration={4000}
+          action={{ label: "Dismiss", onPress: () => setFeedback(null) }}
+          style={
+            feedback?.isError
+              ? { backgroundColor: theme.colors.errorContainer }
+              : undefined
+          }
+          testID="unsyncedFeedback"
+        >
+          <Text
+            style={
+              feedback?.isError
+                ? { color: theme.colors.onErrorContainer }
+                : undefined
+            }
+          >
+            {feedback?.message ?? ""}
+          </Text>
+        </Snackbar>
       </Portal>
     </ScrollView>
   );
