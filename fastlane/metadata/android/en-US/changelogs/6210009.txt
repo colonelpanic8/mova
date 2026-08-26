@@ -1,0 +1,1 @@
+* feat(wear): dedicated Pins tile — preset chips live directly on the tile so arming a reminder is a single tap from the carousel, with in-tile Pinned/unreachable feedback and an edge mic button for freeform voice pins

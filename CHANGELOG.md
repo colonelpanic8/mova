@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.21.0]
+
+- feat(wear): dedicated Pins tile — preset chips live directly on the tile so arming a reminder is a single tap from the carousel, with in-tile Pinned/unreachable feedback and an edge mic button for freeform voice pins
+
 ## [6.20.0]
 
 - feat(pins): pins armed without an explicit time now use a configurable default reminder (15 min) so every pin actively alerts; escalation alerts re-post as fresh heads-up notifications, and quick +5/+30 minute snoozes are available from the notification and the app
