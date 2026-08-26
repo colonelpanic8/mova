@@ -14,5 +14,6 @@
   <string name="pin_notification_alerts_at">alerts %1$s</string>
   <string name="pin_notification_escalated_title">⏰ %1$s</string>
   <string name="pin_action_done">Done</string>
-  <string name="pin_action_snooze">+10 min</string>
+  <string name="pin_action_snooze_short">+5 min</string>
+  <string name="pin_action_snooze_long">+30 min</string>
 </resources>

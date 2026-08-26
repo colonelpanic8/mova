@@ -40,7 +40,7 @@ export function usePins() {
   }, [available, refresh]);
 
   const arm = useCallback(
-    async (title: string, escalateMinutes: number) => {
+    async (title: string, escalateMinutes: number | null) => {
       await armPin(title, escalateMinutes);
       await refresh();
     },

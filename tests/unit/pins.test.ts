@@ -16,6 +16,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 import {
   armPin,
   DEFAULT_PIN_PRESETS,
+  getDefaultReminderMinutes,
   getPinPresets,
   isPinsAvailable,
   listPins,
@@ -37,6 +38,8 @@ function makeNative() {
       })),
     complete: jest.fn().mockResolvedValue(undefined),
     snooze: jest.fn().mockResolvedValue(undefined),
+    getDefaultReminderMinutes: jest.fn().mockResolvedValue(20),
+    setDefaultReminderMinutes: jest.fn().mockResolvedValue(undefined),
     syncPresets: jest.fn().mockResolvedValue(undefined),
   };
 }
@@ -82,6 +85,17 @@ describe("pins service", () => {
     expect(pin?.title).toBe("Stove is on");
   });
 
+  it("arms with the default-reminder sentinel when no minutes are given", async () => {
+    await armPin("Scooter", null);
+
+    const native = mockNativeModules.MovaPins as ReturnType<typeof makeNative>;
+    expect(native.arm).toHaveBeenCalledWith("Scooter", -1);
+  });
+
+  it("reads the default reminder from the native module", async () => {
+    expect(await getDefaultReminderMinutes()).toBe(20);
+  });
+
   it("swallows watch sync failures", async () => {
     const native = mockNativeModules.MovaPins as ReturnType<typeof makeNative>;
     native.syncPresets.mockRejectedValue(new Error("no watch"));
@@ -98,6 +112,7 @@ describe("pins service", () => {
       expect(isPinsAvailable()).toBe(false);
       expect(await listPins()).toEqual([]);
       expect(await armPin("Stove", 5)).toBeNull();
+      expect(await getDefaultReminderMinutes()).toBe(15);
       await expect(syncPresetsToWatch()).resolves.toBeUndefined();
     });
   });

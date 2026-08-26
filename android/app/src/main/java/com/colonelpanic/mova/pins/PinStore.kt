@@ -7,6 +7,8 @@ import org.json.JSONObject
 
 private const val PREFS_NAME = "mova_pins"
 private const val KEY_PINS = "pins"
+private const val KEY_DEFAULT_REMINDER_MINUTES = "default_reminder_minutes"
+private const val DEFAULT_REMINDER_MINUTES = 15
 
 /**
  * A "pin": an ephemeral don't-forget reminder held open as a persistent
@@ -70,6 +72,13 @@ object PinStore {
 
   fun remove(context: Context, id: String) {
     save(context, list(context).filter { it.id != id })
+  }
+
+  fun getDefaultReminderMinutes(context: Context): Int =
+    prefs(context).getInt(KEY_DEFAULT_REMINDER_MINUTES, DEFAULT_REMINDER_MINUTES)
+
+  fun setDefaultReminderMinutes(context: Context, minutes: Int) {
+    prefs(context).edit().putInt(KEY_DEFAULT_REMINDER_MINUTES, minutes).apply()
   }
 
   private fun save(context: Context, pins: List<Pin>) {

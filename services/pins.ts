@@ -20,6 +20,8 @@ interface MovaPinsNative {
   arm(title: string, escalateMinutes: number): Promise<Pin>;
   complete(id: string): Promise<void>;
   snooze(id: string, minutes: number): Promise<void>;
+  getDefaultReminderMinutes(): Promise<number>;
+  setDefaultReminderMinutes(minutes: number): Promise<void>;
   syncPresets(presetsJson: string): Promise<void>;
 }
 
@@ -46,13 +48,17 @@ export async function listPins(): Promise<Pin[]> {
   return module.list();
 }
 
+/**
+ * Arms a pin. Pass `null` for `escalateMinutes` to use the configured
+ * default reminder; 0 arms a purely passive pin.
+ */
 export async function armPin(
   title: string,
-  escalateMinutes: number,
+  escalateMinutes: number | null,
 ): Promise<Pin | null> {
   const module = native();
   if (!module) return null;
-  return module.arm(title, escalateMinutes);
+  return module.arm(title, escalateMinutes ?? -1);
 }
 
 export async function completePin(id: string): Promise<void> {
@@ -61,6 +67,18 @@ export async function completePin(id: string): Promise<void> {
 
 export async function snoozePin(id: string, minutes: number): Promise<void> {
   await native()?.snooze(id, minutes);
+}
+
+export async function getDefaultReminderMinutes(): Promise<number> {
+  const module = native();
+  if (!module) return 15;
+  return module.getDefaultReminderMinutes();
+}
+
+export async function setDefaultReminderMinutes(
+  minutes: number,
+): Promise<void> {
+  await native()?.setDefaultReminderMinutes(minutes);
 }
 
 /** Fires whenever native pin state changes (including from notification

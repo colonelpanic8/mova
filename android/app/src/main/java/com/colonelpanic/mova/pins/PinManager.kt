@@ -32,6 +32,8 @@ object PinManager {
   const val EXTRA_PIN_ID = "pinId"
   const val EXTRA_SNOOZE_MINUTES = "snoozeMinutes"
   const val DEFAULT_SNOOZE_MINUTES = 10
+  const val SNOOZE_SHORT_MINUTES = 5
+  const val SNOOZE_LONG_MINUTES = 30
 
   private val changeListeners = CopyOnWriteArrayList<() -> Unit>()
 
@@ -43,13 +45,19 @@ object PinManager {
     changeListeners.remove(listener)
   }
 
+  /**
+   * @param escalateMinutes minutes until the pin starts actively alerting;
+   *   0 arms a purely passive pin, negative means "use the stored default".
+   */
   fun arm(context: Context, title: String, escalateMinutes: Int): Pin {
+    val effectiveMinutes =
+      if (escalateMinutes < 0) PinStore.getDefaultReminderMinutes(context) else escalateMinutes
     val now = System.currentTimeMillis()
     val pin = Pin(
       id = UUID.randomUUID().toString(),
       title = title,
       createdAt = now,
-      escalateAt = if (escalateMinutes > 0) now + escalateMinutes * 60_000L else 0L,
+      escalateAt = if (effectiveMinutes > 0) now + effectiveMinutes * 60_000L else 0L,
       escalated = false,
     )
     PinStore.upsert(context, pin)
@@ -79,7 +87,9 @@ object PinManager {
     PinStore.upsert(context, updated)
     cancelAlarm(context, pin)
     scheduleAlarm(context, updated, updated.escalateAt)
-    postNotification(context, updated)
+    // The channel may change (alerting back to calm), which Android ignores
+    // on in-place updates, so re-post fresh.
+    postNotification(context, updated, fresh = true)
     notifyChanged()
   }
 
@@ -89,7 +99,10 @@ object PinManager {
     val pin = PinStore.get(context, id) ?: return
     val updated = pin.copy(escalated = true)
     PinStore.upsert(context, updated)
-    postNotification(context, updated)
+    // Android keeps a notification on its original channel across in-place
+    // updates, so the switch to the alert channel (and each subsequent nag)
+    // must cancel and re-post to actually play a heads-up alert.
+    postNotification(context, updated, fresh = true)
     scheduleAlarm(context, updated, System.currentTimeMillis() + NAG_INTERVAL_MS)
     notifyChanged()
   }
@@ -117,10 +130,11 @@ object PinManager {
     changeListeners.forEach { it() }
   }
 
-  private fun postNotification(context: Context, pin: Pin) {
+  private fun postNotification(context: Context, pin: Pin, fresh: Boolean = false) {
     ensureChannels(context)
     val manager = NotificationManagerCompat.from(context)
     if (!manager.areNotificationsEnabled()) return
+    if (fresh) manager.cancel(notificationId(pin))
 
     val timeFormat = DateFormat.getTimeFormat(context)
     val text = buildString {
@@ -154,8 +168,13 @@ object PinManager {
       )
       .addAction(
         0,
-        context.getString(R.string.pin_action_snooze),
-        actionIntent(context, pin, ACTION_SNOOZE, 2),
+        context.getString(R.string.pin_action_snooze_short),
+        actionIntent(context, pin, ACTION_SNOOZE, 2, snoozeMinutes = SNOOZE_SHORT_MINUTES),
+      )
+      .addAction(
+        0,
+        context.getString(R.string.pin_action_snooze_long),
+        actionIntent(context, pin, ACTION_SNOOZE, 3, snoozeMinutes = SNOOZE_LONG_MINUTES),
       )
     if (pin.escalated) {
       builder.setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -182,10 +201,12 @@ object PinManager {
     pin: Pin,
     action: String,
     requestOffset: Int,
+    snoozeMinutes: Int? = null,
   ): PendingIntent {
     val intent = Intent(context, PinActionReceiver::class.java).apply {
       this.action = action
       putExtra(EXTRA_PIN_ID, pin.id)
+      if (snoozeMinutes != null) putExtra(EXTRA_SNOOZE_MINUTES, snoozeMinutes)
     }
     return PendingIntent.getBroadcast(
       context,
@@ -202,14 +223,14 @@ object PinManager {
     }
     return PendingIntent.getBroadcast(
       context,
-      requestCode(pin, 3),
+      requestCode(pin, 4),
       intent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
   }
 
   private fun requestCode(pin: Pin, offset: Int): Int =
-    ((pin.id.hashCode() and 0xFFFF) shl 2) + offset
+    ((pin.id.hashCode() and 0xFFFF) shl 3) + offset
 
   private fun scheduleAlarm(context: Context, pin: Pin, atMillis: Long) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager

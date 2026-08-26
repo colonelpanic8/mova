@@ -24,6 +24,8 @@ const mockNative = {
   arm: jest.fn(),
   complete: jest.fn(),
   snooze: jest.fn(),
+  getDefaultReminderMinutes: jest.fn(),
+  setDefaultReminderMinutes: jest.fn(),
   syncPresets: jest.fn().mockResolvedValue(undefined),
 };
 
@@ -47,6 +49,9 @@ describe("PinsScreen", () => {
       escalated: false,
     });
     mockNative.complete.mockResolvedValue(undefined);
+    mockNative.snooze.mockResolvedValue(undefined);
+    mockNative.getDefaultReminderMinutes.mockResolvedValue(15);
+    mockNative.setDefaultReminderMinutes.mockResolvedValue(undefined);
     mockNative.syncPresets.mockResolvedValue(undefined);
   });
 
@@ -78,6 +83,38 @@ describe("PinsScreen", () => {
 
     await waitFor(() =>
       expect(mockNative.arm).toHaveBeenCalledWith("Package downstairs", 20),
+    );
+  });
+
+  it("uses the default reminder when no minutes are entered", async () => {
+    const { getByTestId } = renderScreen();
+
+    await waitFor(() => getByTestId("customPinInput"));
+    fireEvent.changeText(getByTestId("customPinInput"), "Laundry in washer");
+    fireEvent.press(getByTestId("customPinArm"));
+
+    await waitFor(() =>
+      expect(mockNative.arm).toHaveBeenCalledWith("Laundry in washer", -1),
+    );
+  });
+
+  it("quick-snoozes an active pin", async () => {
+    const pin: Pin = {
+      id: "pin-3",
+      title: "Stove is on",
+      createdAt: Date.now(),
+      escalateAt: Date.now() + 60_000,
+      escalated: false,
+    };
+    mockNative.list.mockResolvedValue([pin]);
+
+    const { getByTestId, getByText } = renderScreen();
+
+    await waitFor(() => getByTestId("pin-pin-3"));
+    fireEvent.press(getByText("+30m"));
+
+    await waitFor(() =>
+      expect(mockNative.snooze).toHaveBeenCalledWith("pin-3", 30),
     );
   });
 

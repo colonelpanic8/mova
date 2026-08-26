@@ -157,7 +157,8 @@ class PinArmActivity : Activity() {
       ?.firstOrNull()
       ?.trim()
     if (!spokenText.isNullOrBlank()) {
-      sendPin(spokenText, 0)
+      // -1 = use the phone's default reminder time.
+      sendPin(spokenText, -1)
     }
   }
 

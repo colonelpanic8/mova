@@ -14,7 +14,8 @@ class PinWearListenerService : WearableListenerService() {
       val json = JSONObject(String(messageEvent.data, Charsets.UTF_8))
       val title = json.optString("title").trim()
       if (title.isBlank()) return
-      PinManager.arm(this, title, json.optInt("escalateMinutes", 0))
+      // Missing/negative minutes mean "use the phone's default reminder".
+      PinManager.arm(this, title, json.optInt("escalateMinutes", -1))
     } catch (_: Exception) {
       // Malformed request from the watch; nothing sensible to do.
     }

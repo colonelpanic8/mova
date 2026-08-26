@@ -72,6 +72,17 @@ class PinsModule(
     promise.resolve(null)
   }
 
+  @ReactMethod
+  fun getDefaultReminderMinutes(promise: Promise) {
+    promise.resolve(PinStore.getDefaultReminderMinutes(reactContext))
+  }
+
+  @ReactMethod
+  fun setDefaultReminderMinutes(minutes: Double, promise: Promise) {
+    PinStore.setDefaultReminderMinutes(reactContext, minutes.toInt())
+    promise.resolve(null)
+  }
+
   /** Pushes the preset list (a JSON array string) to the watch. */
   @ReactMethod
   fun syncPresets(presetsJson: String, promise: Promise) {

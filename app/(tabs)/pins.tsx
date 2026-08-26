@@ -1,6 +1,13 @@
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { usePins } from "@/hooks/usePins";
-import { getPinPresets, Pin, PinPreset, setPinPresets } from "@/services/pins";
+import {
+  getDefaultReminderMinutes,
+  getPinPresets,
+  Pin,
+  PinPreset,
+  setDefaultReminderMinutes,
+  setPinPresets,
+} from "@/services/pins";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -37,7 +44,7 @@ function ActivePinCard({
 }: {
   pin: Pin;
   onDone: () => void;
-  onSnooze: () => void;
+  onSnooze: (minutes: number) => void;
 }) {
   const theme = useTheme();
   return (
@@ -56,8 +63,11 @@ function ActivePinCard({
             {pinStatus(pin)}
           </Text>
         </View>
-        <Button compact onPress={onSnooze}>
-          +10m
+        <Button compact onPress={() => onSnooze(5)}>
+          +5m
+        </Button>
+        <Button compact onPress={() => onSnooze(30)}>
+          +30m
         </Button>
         <Button compact mode="contained" onPress={onDone}>
           Done
@@ -142,21 +152,38 @@ export default function PinsScreen() {
   const [customTitle, setCustomTitle] = useState("");
   const [customMinutes, setCustomMinutes] = useState("");
   const [editingPresets, setEditingPresets] = useState(false);
+  const [defaultMinutes, setDefaultMinutes] = useState<number>(15);
+  const [defaultMinutesDraft, setDefaultMinutesDraft] = useState("");
 
   useEffect(() => {
     getPinPresets().then(setPresets);
+    getDefaultReminderMinutes().then((minutes) => {
+      setDefaultMinutes(minutes);
+      setDefaultMinutesDraft(String(minutes));
+    });
   }, []);
+
+  const saveDefaultMinutes = (text: string) => {
+    setDefaultMinutesDraft(text);
+    const minutes = parseInt(text, 10);
+    if (Number.isFinite(minutes) && minutes >= 0) {
+      setDefaultMinutes(minutes);
+      setDefaultReminderMinutes(minutes);
+    }
+  };
 
   const updatePresets = useCallback((next: PinPreset[]) => {
     setPresets(next);
     setPinPresets(next);
   }, []);
 
+  // Blank minutes mean "use the default reminder"; an explicit 0 arms a
+  // passive pin with no reminder.
   const armCustom = async () => {
     const title = customTitle.trim();
     if (!title) return;
     const minutes = parseInt(customMinutes, 10);
-    await arm(title, Number.isFinite(minutes) && minutes > 0 ? minutes : 0);
+    await arm(title, Number.isFinite(minutes) && minutes >= 0 ? minutes : null);
     setCustomTitle("");
     setCustomMinutes("");
   };
@@ -217,7 +244,7 @@ export default function PinsScreen() {
             mode="outlined"
             dense
             style={styles.minutesInput}
-            placeholder="min"
+            placeholder={`${defaultMinutes}m`}
             keyboardType="number-pad"
             value={customMinutes}
             onChangeText={setCustomMinutes}
@@ -250,7 +277,7 @@ export default function PinsScreen() {
               key={pin.id}
               pin={pin}
               onDone={() => complete(pin.id)}
-              onSnooze={() => snooze(pin.id, 10)}
+              onSnooze={(minutes) => snooze(pin.id, minutes)}
             />
           ))
         )}
@@ -264,7 +291,23 @@ export default function PinsScreen() {
           {editingPresets ? "Done editing presets" : "Edit presets"}
         </Button>
         {editingPresets && (
-          <PresetEditor presets={presets} onChange={updatePresets} />
+          <>
+            <View style={styles.presetRow}>
+              <Text style={styles.presetRowLabel}>
+                Default reminder (min, 0 = never alert)
+              </Text>
+              <TextInput
+                mode="outlined"
+                dense
+                style={styles.minutesInput}
+                keyboardType="number-pad"
+                value={defaultMinutesDraft}
+                onChangeText={saveDefaultMinutes}
+                testID="defaultReminderMinutes"
+              />
+            </View>
+            <PresetEditor presets={presets} onChange={updatePresets} />
+          </>
         )}
       </ScrollView>
     </ScreenContainer>
