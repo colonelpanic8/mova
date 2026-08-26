@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.19.0]
+
+- feat(pins): persistent "don't forget" reminders — pins hold an ongoing notification until marked done, with an optional escalation timer that starts alerting loudly at the deadline; arm them from preset chips or freeform text in the new Pins tab, or one-tap/by-voice from the Wear OS tile
+
 ## [6.18.2]
 
 - fix(capture): make every unsynced-capture action visibly responsive with labeled controls, progress states, result feedback, and duplicate-action prevention
