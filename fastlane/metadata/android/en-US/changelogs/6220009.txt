@@ -1,0 +1,2 @@
+* feat(completion): new "Day Ends At" setting extends the day past midnight (like org-mode's `org-extend-today-until`), so a task completed at 1am counts for the previous day unless you pick a date yourself
+* feat(capture): the quick capture bar now offers every template — picking one that needs more than a single field carries your typed text into the full capture screen instead of hiding the template

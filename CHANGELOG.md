@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.22.0]
+
+- feat(completion): new "Day Ends At" setting extends the day past midnight (like org-mode's `org-extend-today-until`), so a task completed at 1am counts for the previous day unless you pick a date yourself
+- feat(capture): the quick capture bar now offers every template — picking one that needs more than a single field carries your typed text into the full capture screen instead of hiding the template
+
 ## [6.21.0]
 
 - feat(wear): dedicated Pins tile — preset chips live directly on the tile so arming a reminder is a single tap from the carousel, with in-tile Pinned/unreachable feedback and an edge mic button for freeform voice pins
