@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.20.0]
+
+- feat(pins): pins armed without an explicit time now use a configurable default reminder (15 min) so every pin actively alerts; escalation alerts re-post as fresh heads-up notifications, and quick +5/+30 minute snoozes are available from the notification and the app
+
 ## [6.19.0]
 
 - feat(pins): persistent "don't forget" reminders — pins hold an ongoing notification until marked done, with an optional escalation timer that starts alerting loudly at the deadline; arm them from preset chips or freeform text in the new Pins tab, or one-tap/by-voice from the Wear OS tile

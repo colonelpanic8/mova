@@ -1,0 +1,1 @@
+* feat(pins): pins armed without an explicit time now use a configurable default reminder (15 min) so every pin actively alerts; escalation alerts re-post as fresh heads-up notifications, and quick +5/+30 minute snoozes are available from the notification and the app
