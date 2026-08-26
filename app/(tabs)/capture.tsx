@@ -21,7 +21,7 @@ import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
 import { CategoryType, TemplatePrompt, Timestamp } from "@/services/api";
 import { OutboxRequest } from "@/services/captureOutbox";
 import { formStringToTimestamp } from "@/utils/timestampConversion";
-import { router } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -70,9 +70,28 @@ export default function CaptureScreen() {
   const promptRefs = useRef<Record<string, PromptFieldHandle | null>>({});
   const formFieldsRef = useRef<TodoFormFieldsHandle>(null);
 
-  // Load default template when templates become available
+  // The quick-capture bar hands multi-field templates off to this screen,
+  // passing the template to select and the text already typed. `prefill` is
+  // seeded into the template's first required string prompt.
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    template?: string;
+    prefill?: string;
+  }>();
+  const requestedTemplate = params.template;
+  // Values waiting to be applied once the requested selection is in place.
+  // They cannot be set alongside the selection: the reset-on-selection effect
+  // below would immediately clear them.
+  const pendingPrefill = useRef<{
+    key: string;
+    values: Record<string, string>;
+  } | null>(null);
+
+  // Load default template when templates become available. Skipped when the
+  // caller asked for a specific template, so the default never clobbers it.
   useEffect(() => {
     if (!templates) return;
+    if (requestedTemplate) return;
 
     const templateKeys = Object.keys(templates);
     const defaultTemplate = activeServer?.defaultCaptureTemplate;
@@ -82,7 +101,30 @@ export default function CaptureScreen() {
     } else if (templateKeys.length > 0) {
       setSelection({ type: "template", key: templateKeys[0] });
     }
-  }, [templates, activeServer?.defaultCaptureTemplate]);
+  }, [templates, activeServer?.defaultCaptureTemplate, requestedTemplate]);
+
+  // Honour an incoming template/prefill request, then drop the params so
+  // returning to this tab later starts from a clean form.
+  useEffect(() => {
+    if (!templates || !requestedTemplate) return;
+    if (!templates[requestedTemplate]) return;
+
+    const prefill = params.prefill?.trim();
+    if (prefill) {
+      const target = (templates[requestedTemplate].prompts ?? []).find(
+        (p) => p.type === "string" && p.required,
+      );
+      if (target) {
+        pendingPrefill.current = {
+          key: requestedTemplate,
+          values: { [target.name]: prefill },
+        };
+      }
+    }
+
+    setSelection({ type: "template", key: requestedTemplate });
+    router.setParams({ template: undefined, prefill: undefined });
+  }, [templates, requestedTemplate, params.prefill, router]);
 
   // Fetch categories when category type is selected
   useEffect(() => {
@@ -109,9 +151,17 @@ export default function CaptureScreen() {
     fetchCategories();
   }, [selection, api]);
 
-  // Reset form values when selection changes
+  // Reset form values when selection changes, then apply any prefill that was
+  // queued for exactly this selection.
   useEffect(() => {
-    setValues({});
+    const pending =
+      selection?.type === "template" &&
+      pendingPrefill.current?.key === selection.key
+        ? pendingPrefill.current.values
+        : null;
+    pendingPrefill.current = null;
+
+    setValues(pending ?? {});
     setForm(emptyTodoFormState());
     setCategoryValue("");
   }, [selection]);

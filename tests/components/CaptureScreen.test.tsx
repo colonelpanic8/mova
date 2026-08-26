@@ -11,6 +11,13 @@ import { useOutbox } from "../../context/OutboxContext";
 import { useSettings } from "../../context/SettingsContext";
 import { useTemplates } from "../../context/TemplatesContext";
 
+const mockSetParams = jest.fn();
+let mockSearchParams: Record<string, string | undefined> = {};
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: jest.fn(), setParams: mockSetParams }),
+  useLocalSearchParams: () => mockSearchParams,
+}));
+
 jest.mock("../../context/ApiContext");
 jest.mock("../../context/AuthContext");
 jest.mock("../../context/OutboxContext");

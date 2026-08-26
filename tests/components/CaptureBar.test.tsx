@@ -11,6 +11,11 @@ import { useSettings } from "../../context/SettingsContext";
 import { useTemplates } from "../../context/TemplatesContext";
 import { ApiError } from "../../services/api";
 
+const mockRouterPush = jest.fn();
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockRouterPush }),
+}));
+
 jest.mock("../../context/ApiContext");
 jest.mock("../../context/AuthContext");
 jest.mock("../../context/OutboxContext");

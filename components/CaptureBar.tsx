@@ -6,6 +6,7 @@ import { useTemplates } from "@/context/TemplatesContext";
 import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { useMenuPickerWorkaround } from "@/hooks/useMenuPickerWorkaround";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, Pressable, StyleSheet, View } from "react-native";
 import {
@@ -53,6 +54,7 @@ export function CaptureBar() {
     useOutbox();
   const invalidateServerData = useServerDataInvalidation();
   const theme = useTheme();
+  const router = useRouter();
 
   // Surface outbox notices (e.g. queued captures rejected by the server)
   // via this bar's snackbar so nothing vanishes silently.
@@ -131,16 +133,7 @@ export function CaptureBar() {
       const templateKeys = Object.keys(templates);
 
       if (savedTemplate && templateKeys.includes(savedTemplate)) {
-        // Only use saved template if it's a single-field template
-        const template = templates[savedTemplate];
-        const requiredPrompts = (template.prompts ?? []).filter(
-          (p) => p.required,
-        );
-        if (requiredPrompts.length <= 1) {
-          setSelectedTemplateKey(savedTemplate);
-        } else {
-          setSelectedTemplateKey("default");
-        }
+        setSelectedTemplateKey(savedTemplate);
       } else {
         setSelectedTemplateKey("default");
       }
@@ -152,15 +145,14 @@ export function CaptureBar() {
   const selectedTemplate =
     selectedTemplateKey && templates ? templates[selectedTemplateKey] : null;
 
-  // Get single-field templates (templates with at most 1 required field)
-  const singleFieldTemplates = templates
-    ? Object.entries(templates).filter(([, template]) => {
-        const requiredPrompts = (template.prompts ?? []).filter(
-          (p) => p.required,
-        );
-        return requiredPrompts.length <= 1;
-      })
-    : [];
+  // Every template is offered here. Those with more than one required field
+  // cannot be filled from a single text box, so choosing one turns the send
+  // button into a hand-off to the full capture screen instead of hiding the
+  // template altogether.
+  const templateEntries = templates ? Object.entries(templates) : [];
+
+  const requiresFullForm =
+    (selectedTemplate?.prompts ?? []).filter((p) => p.required).length > 1;
 
   const { select: menuSelect } = menu;
   const handleTemplateSelect = useCallback(
@@ -177,6 +169,19 @@ export function CaptureBar() {
   const handleCapture = async () => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle || !selectedTemplate || !api) return;
+
+    // Multi-field templates (e.g. a vocabulary card's Word / Definition /
+    // Example) need the full form. Carry the typed text over as its first
+    // required field and clear the bar so the draft isn't left behind.
+    if (requiresFullForm) {
+      clearInputAndDraft();
+      Keyboard.dismiss();
+      router.push({
+        pathname: "/(tabs)/capture",
+        params: { template: selectedTemplateKey, prefill: trimmedTitle },
+      });
+      return;
+    }
 
     setSubmitting(true);
     Keyboard.dismiss();
@@ -262,7 +267,7 @@ export function CaptureBar() {
           }
           anchorPosition="top"
         >
-          {singleFieldTemplates.map(([key, template]) => (
+          {templateEntries.map(([key, template]) => (
             <Menu.Item
               key={key}
               onPress={() => handleTemplateSelect(key)}
@@ -304,13 +309,18 @@ export function CaptureBar() {
         />
 
         <IconButton
-          icon="send"
+          icon={requiresFullForm ? "arrow-expand" : "send"}
           size={20}
           onPress={handleCapture}
           disabled={!title.trim() || submitting}
           loading={submitting}
           style={styles.sendButton}
           testID="captureBarSend"
+          accessibilityLabel={
+            requiresFullForm
+              ? `Continue in full capture form for ${selectedTemplate?.name}`
+              : "Capture"
+          }
         />
 
         <IconButton
