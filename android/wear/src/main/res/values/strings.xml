@@ -30,4 +30,6 @@
   <string name="pin_success">Pinned</string>
   <string name="pin_failure">Phone unreachable</string>
   <string name="pin_minutes_suffix">%1$d min</string>
+  <string name="pin_tile_label">Mova Pins</string>
+  <string name="pin_tile_description">Arm a persistent don\'t-forget reminder with one tap from the Wear OS tile carousel</string>
 </resources>

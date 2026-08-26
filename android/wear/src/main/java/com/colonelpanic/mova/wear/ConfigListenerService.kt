@@ -1,5 +1,6 @@
 package com.colonelpanic.mova.wear
 
+import androidx.wear.tiles.TileService
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
@@ -50,6 +51,7 @@ class ConfigListenerService : WearableListenerService() {
     val presets = dataMap.getString("presets")
     if (presets != null) {
       MovaWearStorage.savePinPresets(this, presets)
+      TileService.getUpdater(this).requestUpdate(PinTileService::class.java)
     }
   }
 

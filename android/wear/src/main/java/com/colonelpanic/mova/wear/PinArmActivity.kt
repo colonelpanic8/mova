@@ -11,10 +11,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import com.google.android.gms.tasks.Tasks
-import com.google.android.gms.wearable.Wearable
-import org.json.JSONObject
-
 /**
  * One-tap "don't forget" surface: preset chips arm a pin on the phone over
  * the Data Layer; the mic chip captures a freeform pin title by voice. The
@@ -164,27 +160,8 @@ class PinArmActivity : Activity() {
 
   private fun sendPin(title: String, escalateMinutes: Int) {
     showSending()
-    val payload = JSONObject()
-      .put("title", title)
-      .put("escalateMinutes", escalateMinutes)
-      .toString()
-      .toByteArray(Charsets.UTF_8)
-
     Thread {
-      val delivered = try {
-        val nodes = Tasks.await(Wearable.getNodeClient(this).connectedNodes)
-        val target = nodes.firstOrNull { it.isNearby } ?: nodes.firstOrNull()
-        if (target == null) {
-          false
-        } else {
-          Tasks.await(
-            Wearable.getMessageClient(this).sendMessage(target.id, PIN_ARM_PATH, payload),
-          )
-          true
-        }
-      } catch (_: Exception) {
-        false
-      }
+      val delivered = PinSender.send(this, title, escalateMinutes)
 
       runOnUiThread {
         if (delivered) {
