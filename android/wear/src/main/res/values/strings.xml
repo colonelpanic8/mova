@@ -20,4 +20,14 @@
   <string name="capturing">Capturing…</string>
   <string name="captured">Captured</string>
   <string name="queued_offline">Queued — will sync</string>
+
+  <string name="pin_activity_name">Mova Pin</string>
+  <string name="pin_title">Pin a reminder</string>
+  <string name="pin_custom_voice">Custom…</string>
+  <string name="pin_voice_prompt">What should Mova pin?</string>
+  <string name="pin_button_description">Pin a reminder</string>
+  <string name="pin_sending">Pinning…</string>
+  <string name="pin_success">Pinned</string>
+  <string name="pin_failure">Phone unreachable</string>
+  <string name="pin_minutes_suffix">%1$d min</string>
 </resources>

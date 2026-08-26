@@ -3,6 +3,7 @@
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.WAKE_LOCK"/>
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -92,6 +93,18 @@
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity-alias>
+    <receiver android:name=".pins.PinActionReceiver" android:exported="false"/>
+    <receiver android:name=".pins.PinBootReceiver" android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+      </intent-filter>
+    </receiver>
+    <service android:name=".pins.PinWearListenerService" android:exported="true">
+      <intent-filter>
+        <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED"/>
+        <data android:scheme="wear" android:host="*" android:pathPrefix="/mova/pin"/>
+      </intent-filter>
+    </service>
     <receiver android:name=".widget.QuickCaptureWidget" android:exported="true" android:label="Mova Quick Capture">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>

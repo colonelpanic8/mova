@@ -69,6 +69,15 @@ class QuickCaptureTileService : TileService() {
         ),
         id = "assistant-voice",
       )
+      val pinAction = clickable(
+        action = ActionBuilders.launchAction(
+          ComponentName(
+            this@QuickCaptureTileService,
+            PinArmActivity::class.java,
+          ),
+        ),
+        id = "pin-arm",
+      )
 
       primaryLayout(
         titleSlot = {
@@ -100,6 +109,13 @@ class QuickCaptureTileService : TileService() {
                 onClick = assistantAction,
                 modifier = LayoutModifier.contentDescription("Ask Mova by voice"),
                 iconContent = { icon(protoLayoutResourceId = ASSISTANT_ICON_ID) },
+              )
+            }
+            buttonGroupItem {
+              iconButton(
+                onClick = pinAction,
+                modifier = LayoutModifier.contentDescription("Pin a reminder"),
+                iconContent = { icon(protoLayoutResourceId = PIN_ICON_ID) },
               )
             }
           }
@@ -141,13 +157,24 @@ class QuickCaptureTileService : TileService() {
             )
             .build(),
         )
+        .addIdToImageMapping(
+          PIN_ICON_ID,
+          ImageResource.Builder()
+            .setAndroidResourceByResId(
+              AndroidImageResourceByResId.Builder()
+                .setResourceId(R.drawable.ic_pin)
+                .build(),
+            )
+            .build(),
+        )
         .build(),
     )
 
   private companion object {
-    const val RESOURCES_VERSION = "3"
+    const val RESOURCES_VERSION = "4"
     const val MIC_ICON_ID = "mic"
     const val ASSISTANT_ICON_ID = "assistant"
+    const val PIN_ICON_ID = "pin"
 
     // Teal-on-dark brand palette matching the watch app (see res/values/colors.xml).
     private val MOVA_COLOR_SCHEME = ColorScheme(

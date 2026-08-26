@@ -22,6 +22,7 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           add(SharedStoragePackage())
           add(WearSyncPackage())
+          add(PinsPackage())
         }
     )
   }

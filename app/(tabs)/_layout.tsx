@@ -1,7 +1,7 @@
 import { CaptureBar } from "@/components/CaptureBar";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { BottomTabBarProps, Tabs } from "expo-router/js-tabs";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 import {
   KeyboardStickyView,
   useReanimatedKeyboardAnimation,
@@ -198,6 +198,22 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="plus-circle-outline"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="pins"
+        options={{
+          title: "Pins",
+          tabBarButtonTestID: "tabPins",
+          // The backing native module is Android-only.
+          ...(Platform.OS !== "android" ? { href: null } : {}),
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="pin-outline"
               size={size}
               color={color}
             />

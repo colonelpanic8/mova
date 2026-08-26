@@ -17,6 +17,7 @@ class ConfigListenerService : WearableListenerService() {
           when (event.dataItem.uri.path) {
             CONFIG_PATH -> applyServerConfig(dataMap)
             ASSISTANT_CONFIG_PATH -> applyAssistantConfig(dataMap)
+            PIN_PRESETS_PATH -> applyPinPresets(dataMap)
           }
         }
     } finally {
@@ -42,6 +43,13 @@ class ConfigListenerService : WearableListenerService() {
         dataMap.getString("customViewKey"),
         dataMap.getString("customViewName"),
       )
+    }
+  }
+
+  private fun applyPinPresets(dataMap: com.google.android.gms.wearable.DataMap) {
+    val presets = dataMap.getString("presets")
+    if (presets != null) {
+      MovaWearStorage.savePinPresets(this, presets)
     }
   }
 

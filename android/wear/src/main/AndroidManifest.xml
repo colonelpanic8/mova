@@ -43,6 +43,17 @@
         android:label="@string/agenda_activity_name"/>
 
     <activity
+        android:name=".PinArmActivity"
+        android:exported="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/pin_activity_name">
+      <intent-filter>
+        <action android:name="com.colonelpanic.mova.action.PIN"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
+    </activity>
+
+    <activity
         android:name=".AssistantVoiceActivity"
         android:exported="true"
         android:icon="@drawable/ic_launcher"

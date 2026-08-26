@@ -19,6 +19,7 @@ private const val KEY_CUSTOM_VIEW_NAME = "mova_custom_view_name"
 private const val KEY_PENDING_TODOS = "mova_pending_todos"
 private const val KEY_OPENAI_API_KEY = "mova_openai_api_key"
 private const val KEY_OPENAI_MODEL = "mova_openai_model"
+private const val KEY_PIN_PRESETS = "mova_pin_presets"
 
 data class WearCredentials(
   val apiUrl: String,
@@ -39,6 +40,11 @@ data class WearCustomView(
 data class WearOpenAiSettings(
   val apiKey: String,
   val model: String,
+)
+
+data class WearPinPreset(
+  val title: String,
+  val minutes: Int,
 )
 
 object MovaWearStorage {
@@ -129,6 +135,30 @@ object MovaWearStorage {
       WearOpenAiSettings(apiKey, model)
     } else {
       null
+    }
+  }
+
+  fun savePinPresets(context: Context, presetsJson: String) {
+    prefs(context).edit()
+      .putString(KEY_PIN_PRESETS, presetsJson)
+      .apply()
+  }
+
+  fun getPinPresets(context: Context): List<WearPinPreset> {
+    val raw = prefs(context).getString(KEY_PIN_PRESETS, null) ?: return emptyList()
+    return try {
+      val array = JSONArray(raw)
+      (0 until array.length()).mapNotNull { index ->
+        val item = array.optJSONObject(index) ?: return@mapNotNull null
+        val title = item.optString("title", "")
+        if (title.isBlank()) {
+          null
+        } else {
+          WearPinPreset(title, item.optInt("minutes", 0))
+        }
+      }
+    } catch (_: Exception) {
+      emptyList()
     }
   }
 
