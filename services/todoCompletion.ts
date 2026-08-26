@@ -4,7 +4,10 @@ import {
   cancelScheduledNotificationsForTodoOnDate,
   scheduleNotificationsFromServer,
 } from "@/services/notifications";
-import { formatLocalDateTime } from "@/utils/dateFormatting";
+import {
+  completionTimeForDayBoundary,
+  formatLocalDateTime,
+} from "@/utils/dateFormatting";
 
 /**
  * Build a minimal Todo for API calls that only need to identify a todo
@@ -35,6 +38,13 @@ export interface CompleteTodoOptions {
   overrideDate?: Date | null;
   /** When no overrideDate is given, send the client's current time. */
   useClientCompletionTime?: boolean;
+  /**
+   * org-extend-today-until: until this hour, a completion with no explicit
+   * date is recorded at the end of the previous day. Applies even when
+   * useClientCompletionTime is off, since the server's clock has already
+   * rolled over.
+   */
+  extendTodayUntilHour?: number;
 }
 
 /**
@@ -49,23 +59,37 @@ export async function completeTodoWithNotificationSync(
   state: string,
   options: CompleteTodoOptions = {},
 ): Promise<CompleteTodoResponse> {
-  const { overrideDate, useClientCompletionTime } = options;
+  const {
+    overrideDate,
+    useClientCompletionTime,
+    extendTodayUntilHour = 0,
+  } = options;
 
   // Use override date if provided, otherwise use current datetime if enabled
   let overrideDateStr: string | undefined;
+  const now = new Date();
   if (overrideDate) {
     // Set time to noon to clearly place the completion on the specified date
     const noonDate = new Date(overrideDate);
     noonDate.setHours(12, 0, 0, 0);
     overrideDateStr = formatLocalDateTime(noonDate);
-  } else if (useClientCompletionTime) {
-    overrideDateStr = formatLocalDateTime(new Date());
+  } else {
+    const effectiveNow = completionTimeForDayBoundary(
+      now,
+      extendTodayUntilHour,
+    );
+    const inExtendedDay = effectiveNow !== now;
+    if (useClientCompletionTime || inExtendedDay) {
+      overrideDateStr = formatLocalDateTime(effectiveNow);
+    }
   }
 
   const result = await api.setTodoState(todo, state, overrideDateStr);
 
   if (result.status === "completed") {
-    const completionDay = overrideDate ?? new Date();
+    // Cancel against the real current day: the extended-day shift only
+    // changes what the server records, not which notifications are pending.
+    const completionDay = overrideDate ?? now;
     try {
       await cancelScheduledNotificationsForTodoOnDate(todo, completionDay);
     } catch (e) {

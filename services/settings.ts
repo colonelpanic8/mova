@@ -4,6 +4,7 @@ const QUICK_SCHEDULE_INCLUDE_TIME_KEY = "quick_schedule_include_time";
 const SHOW_HABITS_IN_AGENDA_KEY = "show_habits_in_agenda";
 const DEFAULT_DONE_STATE_KEY = "default_done_state";
 const USE_CLIENT_COMPLETION_TIME_KEY = "use_client_completion_time";
+const EXTEND_TODAY_UNTIL_HOUR_KEY = "mova_extend_today_until_hour";
 const GROUP_BY_CATEGORY_KEY = "mova_group_by_category";
 const MULTIDAY_RANGE_LENGTH_KEY = "mova_multiday_range_length";
 const MULTIDAY_PAST_DAYS_KEY = "mova_multiday_past_days";
@@ -60,6 +61,21 @@ export async function setUseClientCompletionTime(
     USE_CLIENT_COMPLETION_TIME_KEY,
     enabled ? "true" : "false",
   );
+}
+
+/**
+ * Hour (0-23, local) before which completions still count as the previous day,
+ * matching org-mode's `org-extend-today-until`. 0 disables the shift.
+ */
+export async function getExtendTodayUntilHour(): Promise<number> {
+  const value = await AsyncStorage.getItem(EXTEND_TODAY_UNTIL_HOUR_KEY);
+  const parsed = value ? parseInt(value, 10) : 0;
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 23) return 0;
+  return parsed;
+}
+
+export async function setExtendTodayUntilHour(hour: number): Promise<void> {
+  await AsyncStorage.setItem(EXTEND_TODAY_UNTIL_HOUR_KEY, hour.toString());
 }
 
 export async function getGroupByCategory(): Promise<boolean> {

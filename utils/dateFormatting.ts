@@ -155,3 +155,24 @@ export function isToday(date: Date): boolean {
     date.getDate() === today.getDate()
   );
 }
+
+/**
+ * Mirror of org-mode's `org-extend-today-until`: until this hour (local), the
+ * day still counts as the previous one, so a task finished at 1am lands on the
+ * day the user thinks of as "today". 0 disables the shift.
+ *
+ * Returns the time a completion with no explicit date should be recorded at:
+ * `now` outside the extended window, otherwise the end of the previous day.
+ */
+export function completionTimeForDayBoundary(
+  now: Date,
+  extendTodayUntilHour: number,
+): Date {
+  if (extendTodayUntilHour <= 0 || now.getHours() >= extendTodayUntilHour) {
+    return now;
+  }
+  const shifted = new Date(now);
+  shifted.setDate(shifted.getDate() - 1);
+  shifted.setHours(23, 59, 0, 0);
+  return shifted;
+}

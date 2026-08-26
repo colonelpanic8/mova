@@ -6,9 +6,14 @@ import {
 } from "@/services/api";
 import {
   getDefaultDoneState,
+  getExtendTodayUntilHour,
   getUseClientCompletionTime,
 } from "@/services/settings";
-import { formatLocalDate, formatLocalDateTime } from "@/utils/dateFormatting";
+import {
+  completionTimeForDayBoundary,
+  formatLocalDate,
+  formatLocalDateTime,
+} from "@/utils/dateFormatting";
 import { getTodoKey } from "@/utils/todoKey";
 import { NativeModules } from "react-native";
 import { getWidgetCredentials } from "./storage";
@@ -398,14 +403,24 @@ export async function completeAgendaWidgetItem(
 
   try {
     const api = createApiClient(apiUrl, username, password);
-    const [doneState, useClientCompletionTime] = await Promise.all([
-      resolveDoneState(api),
-      getUseClientCompletionTime(),
-    ]);
+    const [doneState, useClientCompletionTime, extendTodayUntilHour] =
+      await Promise.all([
+        resolveDoneState(api),
+        getUseClientCompletionTime(),
+        getExtendTodayUntilHour(),
+      ]);
+    // Late-night completions land on the previous day even when the client
+    // clock is otherwise unused, matching org-extend-today-until.
+    const now = new Date();
+    const completionTime = completionTimeForDayBoundary(
+      now,
+      extendTodayUntilHour,
+    );
+    const sendTime = useClientCompletionTime || completionTime !== now;
     const result = await api.setTodoState(
       refToTodo(ref),
       doneState,
-      useClientCompletionTime ? formatLocalDateTime(new Date()) : undefined,
+      sendTime ? formatLocalDateTime(completionTime) : undefined,
     );
 
     if (result.status === "completed") {

@@ -68,7 +68,7 @@ export function useTodoMutations(
   const { onTodoUpdated } = options;
   const api = useApi();
   const invalidateServerData = useServerDataInvalidation();
-  const { useClientCompletionTime } = useSettings();
+  const { useClientCompletionTime, extendTodayUntilHour } = useSettings();
   const { showSnackbar } = useSnackbar();
 
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
@@ -186,7 +186,7 @@ export function useTodoMutations(
             client,
             todo,
             state,
-            { overrideDate, useClientCompletionTime },
+            { overrideDate, useClientCompletionTime, extendTodayUntilHour },
           );
           if (result.status === "completed") {
             showSnackbar(
@@ -206,6 +206,7 @@ export function useTodoMutations(
       onTodoUpdated,
       invalidateServerData,
       useClientCompletionTime,
+      extendTodayUntilHour,
     ],
   );
 

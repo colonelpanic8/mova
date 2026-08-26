@@ -68,6 +68,9 @@ import {
   useTheme,
 } from "react-native-paper";
 
+// org-extend-today-until, in whole hours past midnight.
+const EXTEND_TODAY_HOUR_OPTIONS = [0, 1, 2, 3, 4, 5, 6];
+
 export default function SettingsScreen() {
   const api = useApi();
   const {
@@ -88,6 +91,8 @@ export default function SettingsScreen() {
     setDefaultDoneState,
     useClientCompletionTime,
     setUseClientCompletionTime,
+    extendTodayUntilHour,
+    setExtendTodayUntilHour,
     groupByCategory,
     setGroupByCategory,
     multiDayRangeLength,
@@ -138,6 +143,7 @@ export default function SettingsScreen() {
   const templateMenu = useMenuPickerWorkaround();
   const watchViewMenu = useMenuPickerWorkaround();
   const doneStateMenu = useMenuPickerWorkaround();
+  const extendTodayMenu = useMenuPickerWorkaround();
   const [callingFunction, setCallingFunction] = useState<string | null>(null);
   const [openAiApiKey, setOpenAiApiKey] = useState("");
   const [openAiModel, setOpenAiModel] = useState(DEFAULT_OPENAI_MODEL);
@@ -174,6 +180,15 @@ export default function SettingsScreen() {
       });
     },
     [doneStateMenu, setDefaultDoneState],
+  );
+
+  const handleExtendTodaySelect = useCallback(
+    (hour: number) => {
+      extendTodayMenu.select(() => {
+        void setExtendTodayUntilHour(hour);
+      });
+    },
+    [extendTodayMenu, setExtendTodayUntilHour],
   );
 
   const handleTemplateSelect = useCallback(
@@ -733,6 +748,32 @@ export default function SettingsScreen() {
             />
           )}
         />
+        <Menu
+          visible={extendTodayMenu.visible}
+          onDismiss={extendTodayMenu.close}
+          anchor={
+            <List.Item
+              title="Day Ends At"
+              description={
+                extendTodayUntilHour > 0
+                  ? `${extendTodayUntilHour}:00 — completions before then count for the previous day`
+                  : "Midnight"
+              }
+              left={(props) => <List.Icon {...props} icon="weather-night" />}
+              onPress={extendTodayMenu.open}
+              right={(props) => <List.Icon {...props} icon="chevron-down" />}
+            />
+          }
+        >
+          {EXTEND_TODAY_HOUR_OPTIONS.map((hour) => (
+            <Menu.Item
+              key={hour}
+              onPress={() => handleExtendTodaySelect(hour)}
+              title={hour === 0 ? "Midnight" : `${hour}:00`}
+              leadingIcon={extendTodayUntilHour === hour ? "check" : undefined}
+            />
+          ))}
+        </Menu>
         <Menu
           visible={doneStateMenu.visible}
           onDismiss={doneStateMenu.close}

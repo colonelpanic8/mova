@@ -1,5 +1,6 @@
 import {
   getDefaultDoneState,
+  getExtendTodayUntilHour,
   getGroupByCategory,
   getMultiDayPastDays,
   getMultiDayRangeLength,
@@ -7,6 +8,7 @@ import {
   getShowHabitsInAgenda,
   getUseClientCompletionTime,
   setDefaultDoneState as saveDefaultDoneState,
+  setExtendTodayUntilHour as saveExtendTodayUntilHour,
   setGroupByCategory as saveGroupByCategory,
   setMultiDayPastDays as saveMultiDayPastDays,
   setMultiDayRangeLength as saveMultiDayRangeLength,
@@ -33,6 +35,9 @@ interface SettingsContextType {
   setDefaultDoneState: (value: string | null) => Promise<void>;
   useClientCompletionTime: boolean;
   setUseClientCompletionTime: (value: boolean) => Promise<void>;
+  /** org-extend-today-until: hour before which "today" is still yesterday. */
+  extendTodayUntilHour: number;
+  setExtendTodayUntilHour: (value: number) => Promise<void>;
   groupByCategory: boolean;
   setGroupByCategory: (value: boolean) => Promise<void>;
   multiDayRangeLength: number;
@@ -55,6 +60,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
   const [useClientCompletionTime, setUseClientCompletionTimeState] =
     useState(true);
+  const [extendTodayUntilHour, setExtendTodayUntilHourState] = useState(0);
   const [groupByCategory, setGroupByCategoryState] = useState(false);
   const [multiDayRangeLength, setMultiDayRangeLengthState] = useState(7);
   const [multiDayPastDays, setMultiDayPastDaysState] = useState(1);
@@ -66,6 +72,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       getShowHabitsInAgenda(),
       getDefaultDoneState(),
       getUseClientCompletionTime(),
+      getExtendTodayUntilHour(),
       getGroupByCategory(),
       getMultiDayRangeLength(),
       getMultiDayPastDays(),
@@ -75,6 +82,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         showHabitsValue,
         defaultDoneValue,
         useClientCompletionTimeValue,
+        extendTodayUntilHourValue,
         groupByCategoryValue,
         multiDayRangeLengthValue,
         multiDayPastDaysValue,
@@ -83,6 +91,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setShowHabitsInAgendaState(showHabitsValue);
         setDefaultDoneStateState(defaultDoneValue);
         setUseClientCompletionTimeState(useClientCompletionTimeValue);
+        setExtendTodayUntilHourState(extendTodayUntilHourValue);
         setGroupByCategoryState(groupByCategoryValue);
         setMultiDayRangeLengthState(multiDayRangeLengthValue);
         setMultiDayPastDaysState(multiDayPastDaysValue);
@@ -109,6 +118,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setUseClientCompletionTime = useCallback(async (value: boolean) => {
     setUseClientCompletionTimeState(value);
     await saveUseClientCompletionTime(value);
+  }, []);
+
+  const setExtendTodayUntilHour = useCallback(async (value: number) => {
+    setExtendTodayUntilHourState(value);
+    await saveExtendTodayUntilHour(value);
   }, []);
 
   const setGroupByCategory = useCallback(async (value: boolean) => {
@@ -150,6 +164,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setDefaultDoneState,
       useClientCompletionTime,
       setUseClientCompletionTime,
+      extendTodayUntilHour,
+      setExtendTodayUntilHour,
       groupByCategory,
       setGroupByCategory,
       multiDayRangeLength,
@@ -167,6 +183,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setDefaultDoneState,
       useClientCompletionTime,
       setUseClientCompletionTime,
+      extendTodayUntilHour,
+      setExtendTodayUntilHour,
       groupByCategory,
       setGroupByCategory,
       multiDayRangeLength,
