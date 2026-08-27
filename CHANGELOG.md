@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.22.1]
+
+- fix(wear): the Pins tile no longer stays stuck on "Open Mova on phone to sync" — the phone pushes presets on every launch (not just when the Pins tab is opened) and the tile reads the persisted preset data item directly when its local copy is empty
+
 ## [6.22.0]
 
 - feat(completion): new "Day Ends At" setting extends the day past midnight (like org-mode's `org-extend-today-until`), so a task completed at 1am counts for the previous day unless you pick a date yourself
