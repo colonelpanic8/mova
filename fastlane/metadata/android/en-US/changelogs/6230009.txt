@@ -1,0 +1,1 @@
+* feat(completion): "Day Ends At" now follows the server's `org-extend-today-until` (org-agenda-api 4.6.0+), so the org config is the single source of truth for when the day ends; the on-device picker remains only for servers that report no value

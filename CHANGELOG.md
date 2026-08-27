@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.23.0]
+
+- feat(completion): "Day Ends At" now follows the server's `org-extend-today-until` (org-agenda-api 4.6.0+), so the org config is the single source of truth for when the day ends; the on-device picker remains only for servers that report no value
+
 ## [6.22.1]
 
 - fix(wear): the Pins tile no longer stays stuck on "Open Mova on phone to sync" — the phone pushes presets on every launch (not just when the Pins tab is opened) and the tile reads the persisted preset data item directly when its local copy is empty

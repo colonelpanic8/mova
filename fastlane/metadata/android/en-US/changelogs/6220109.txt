@@ -1,1 +1,1 @@
-* fix(wear): the Pins tile no longer stays stuck on "Open Mova on phone to sync" — presets now sync on every app launch and the tile reads the persisted preset data directly when empty
+* fix(wear): the Pins tile no longer stays stuck on "Open Mova on phone to sync" — the phone pushes presets on every launch (not just when the Pins tab is opened) and the tile reads the persisted preset data item directly when its local copy is empty
