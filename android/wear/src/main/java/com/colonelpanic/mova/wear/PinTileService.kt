@@ -60,7 +60,10 @@ class PinTileService : TileService() {
     clickedId: String,
     deviceConfiguration: androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters,
   ): Tile {
-    val presets = MovaWearStorage.getPinPresets(this)
+    var presets = MovaWearStorage.getPinPresets(this)
+    if (presets.isEmpty() && PinPresetFetcher.fetchIntoStorage(this)) {
+      presets = MovaWearStorage.getPinPresets(this)
+    }
 
     val status: PinStatus? = if (clickedId.startsWith(ARM_PREFIX)) {
       val index = clickedId.removePrefix(ARM_PREFIX).toIntOrNull()

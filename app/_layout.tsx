@@ -9,6 +9,7 @@ import { SnackbarProvider } from "@/context/SnackbarContext";
 import { TemplatesProvider } from "@/context/TemplatesContext";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
 import { useNotificationSync } from "@/hooks/useNotificationSync";
+import { syncPresetsToWatch } from "@/services/pins";
 import {
   createAppPersister,
   createAppQueryClient,
@@ -61,6 +62,12 @@ function RootLayoutNav() {
   // Keep notifications synced for authenticated users even when navigating
   // outside the tabs stack (e.g. /edit).
   useNotificationSync();
+
+  // Seed the watch's pin tile on every launch, not just when the Pins tab
+  // mounts; the tile otherwise stays empty until that screen is visited.
+  useEffect(() => {
+    syncPresetsToWatch();
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;
