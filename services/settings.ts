@@ -5,6 +5,8 @@ const SHOW_HABITS_IN_AGENDA_KEY = "show_habits_in_agenda";
 const DEFAULT_DONE_STATE_KEY = "default_done_state";
 const USE_CLIENT_COMPLETION_TIME_KEY = "use_client_completion_time";
 const EXTEND_TODAY_UNTIL_HOUR_KEY = "mova_extend_today_until_hour";
+const SERVER_EXTEND_TODAY_UNTIL_HOUR_KEY =
+  "mova_server_extend_today_until_hour";
 const GROUP_BY_CATEGORY_KEY = "mova_group_by_category";
 const MULTIDAY_RANGE_LENGTH_KEY = "mova_multiday_range_length";
 const MULTIDAY_PAST_DAYS_KEY = "mova_multiday_past_days";
@@ -63,19 +65,67 @@ export async function setUseClientCompletionTime(
   );
 }
 
+function parseHour(value: string | null): number | null {
+  if (value === null) return null;
+  const parsed = parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 23) return null;
+  return parsed;
+}
+
 /**
- * Hour (0-23, local) before which completions still count as the previous day,
- * matching org-mode's `org-extend-today-until`. 0 disables the shift.
+ * The server's `org-extend-today-until`, mirrored from /metadata so code
+ * running outside React (widget, background tasks) can read it. Null when the
+ * server has not reported one — org-agenda-api only sends it from 4.6.0 on.
+ */
+export async function getServerExtendTodayUntilHour(): Promise<number | null> {
+  return parseHour(
+    await AsyncStorage.getItem(SERVER_EXTEND_TODAY_UNTIL_HOUR_KEY),
+  );
+}
+
+const serverExtendTodayListeners = new Set<(hour: number | null) => void>();
+
+export function subscribeToServerExtendTodayUntilHour(
+  listener: (hour: number | null) => void,
+): () => void {
+  serverExtendTodayListeners.add(listener);
+  return () => {
+    serverExtendTodayListeners.delete(listener);
+  };
+}
+
+export async function cacheServerExtendTodayUntilHour(
+  hour: number | null,
+): Promise<void> {
+  if (hour === null) {
+    await AsyncStorage.removeItem(SERVER_EXTEND_TODAY_UNTIL_HOUR_KEY);
+  } else {
+    await AsyncStorage.setItem(SERVER_EXTEND_TODAY_UNTIL_HOUR_KEY, `${hour}`);
+  }
+  serverExtendTodayListeners.forEach((listener) => listener(hour));
+}
+
+/**
+ * Device-local fallback, used only while the server reports nothing. The org
+ * config is the source of truth whenever it is available.
  */
 export async function getExtendTodayUntilHour(): Promise<number> {
-  const value = await AsyncStorage.getItem(EXTEND_TODAY_UNTIL_HOUR_KEY);
-  const parsed = value ? parseInt(value, 10) : 0;
-  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 23) return 0;
-  return parsed;
+  return (
+    parseHour(await AsyncStorage.getItem(EXTEND_TODAY_UNTIL_HOUR_KEY)) ?? 0
+  );
 }
 
 export async function setExtendTodayUntilHour(hour: number): Promise<void> {
   await AsyncStorage.setItem(EXTEND_TODAY_UNTIL_HOUR_KEY, hour.toString());
+}
+
+/** Hour before which completions still count as the previous day. */
+export async function getEffectiveExtendTodayUntilHour(): Promise<number> {
+  const [server, local] = await Promise.all([
+    getServerExtendTodayUntilHour(),
+    getExtendTodayUntilHour(),
+  ]);
+  return server ?? local;
 }
 
 export async function getGroupByCategory(): Promise<boolean> {

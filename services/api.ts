@@ -350,6 +350,12 @@ export interface FilterOptionsResponse {
   categories: string[];
 }
 
+/** org-mode settings the client mirrors locally. */
+export interface OrgConfig {
+  /** `org-extend-today-until`: hour before which "today" is still yesterday. */
+  extendTodayUntil: number;
+}
+
 export interface MetadataResponse {
   templates: TemplatesResponse | null;
   filterOptions: FilterOptionsResponse | null;
@@ -357,6 +363,8 @@ export interface MetadataResponse {
   customViews: CustomViewsResponse | null;
   categoryTypes: CategoryTypesResponse | null;
   habitConfig: HabitConfig | null;
+  /** Absent on servers older than org-agenda-api 4.6.0. */
+  orgConfig?: OrgConfig | null;
   exposedFunctions: ExposedFunction[] | null;
   /** Server-stored app config blobs, keyed by namespace. */
   appConfig?: Record<string, unknown> | null;

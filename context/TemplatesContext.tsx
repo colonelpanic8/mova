@@ -9,6 +9,7 @@ import {
   HabitConfig,
   MetadataResponse,
   OrgAgendaApi,
+  OrgConfig,
   TemplatesResponse,
   TodoStatesResponse,
 } from "@/services/api";
@@ -18,6 +19,7 @@ import {
   getObservedConfigHash,
   subscribeToConfigHash,
 } from "@/services/configMetadata";
+import { cacheServerExtendTodayUntilHour } from "@/services/settings";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
@@ -36,6 +38,7 @@ interface TemplatesContextType {
   todoStates: TodoStatesResponse | null;
   customViews: CustomViewsResponse | null;
   habitConfig: HabitConfig | null;
+  orgConfig: OrgConfig | null;
   exposedFunctions: ExposedFunction[] | null;
   isLoading: boolean;
   error: string | null;
@@ -60,6 +63,7 @@ const EMPTY_METADATA: MetadataResponse = {
   customViews: null,
   categoryTypes: null,
   habitConfig: null,
+  orgConfig: null,
   exposedFunctions: null,
   errors: [],
 };
@@ -83,6 +87,7 @@ function mergeMetadata(
     customViews: next.customViews ?? previous.customViews,
     categoryTypes: next.categoryTypes ?? previous.categoryTypes,
     habitConfig: next.habitConfig ?? previous.habitConfig,
+    orgConfig: next.orgConfig ?? previous.orgConfig,
     exposedFunctions: next.exposedFunctions ?? previous.exposedFunctions,
     errors: next.errors ?? [],
   };
@@ -275,6 +280,14 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
   const metadata = query.data?.metadata ?? EMPTY_METADATA;
   const hasData = query.data !== undefined;
 
+  // Mirror the server's org config into AsyncStorage: widget and background
+  // completions run outside React and cannot read this context.
+  const serverExtendTodayUntil = metadata.orgConfig?.extendTodayUntil;
+  useEffect(() => {
+    if (serverExtendTodayUntil === undefined) return;
+    void cacheServerExtendTodayUntilHour(serverExtendTodayUntil);
+  }, [serverExtendTodayUntil]);
+
   const value = useMemo<TemplatesContextType>(
     () => ({
       templates: metadata.templates,
@@ -283,6 +296,7 @@ export function TemplatesProvider({ children }: { children: ReactNode }) {
       todoStates: metadata.todoStates,
       customViews: metadata.customViews,
       habitConfig: metadata.habitConfig,
+      orgConfig: metadata.orgConfig ?? null,
       exposedFunctions: metadata.exposedFunctions,
       isLoading: isAuthenticated && query.isPending,
       error:

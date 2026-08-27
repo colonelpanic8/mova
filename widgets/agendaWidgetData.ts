@@ -6,7 +6,7 @@ import {
 } from "@/services/api";
 import {
   getDefaultDoneState,
-  getExtendTodayUntilHour,
+  getEffectiveExtendTodayUntilHour,
   getUseClientCompletionTime,
 } from "@/services/settings";
 import {
@@ -407,7 +407,7 @@ export async function completeAgendaWidgetItem(
       await Promise.all([
         resolveDoneState(api),
         getUseClientCompletionTime(),
-        getExtendTodayUntilHour(),
+        getEffectiveExtendTodayUntilHour(),
       ]);
     // Late-night completions land on the previous day even when the client
     // clock is otherwise unused, matching org-extend-today-until.

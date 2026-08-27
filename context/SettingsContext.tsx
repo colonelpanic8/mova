@@ -5,6 +5,7 @@ import {
   getMultiDayPastDays,
   getMultiDayRangeLength,
   getQuickScheduleIncludeTime,
+  getServerExtendTodayUntilHour,
   getShowHabitsInAgenda,
   getUseClientCompletionTime,
   setDefaultDoneState as saveDefaultDoneState,
@@ -15,6 +16,7 @@ import {
   setQuickScheduleIncludeTime as saveQuickScheduleIncludeTime,
   setShowHabitsInAgenda as saveShowHabitsInAgenda,
   setUseClientCompletionTime as saveUseClientCompletionTime,
+  subscribeToServerExtendTodayUntilHour,
 } from "@/services/settings";
 import {
   createContext,
@@ -35,8 +37,16 @@ interface SettingsContextType {
   setDefaultDoneState: (value: string | null) => Promise<void>;
   useClientCompletionTime: boolean;
   setUseClientCompletionTime: (value: boolean) => Promise<void>;
-  /** org-extend-today-until: hour before which "today" is still yesterday. */
+  /**
+   * Effective org-extend-today-until: hour before which "today" is still
+   * yesterday. The server's org config wins; the device value is only a
+   * fallback for servers that do not report one.
+   */
   extendTodayUntilHour: number;
+  /** The server's value, or null when it reports none. */
+  serverExtendTodayUntilHour: number | null;
+  /** The device fallback, editable in Settings. */
+  deviceExtendTodayUntilHour: number;
   setExtendTodayUntilHour: (value: number) => Promise<void>;
   groupByCategory: boolean;
   setGroupByCategory: (value: boolean) => Promise<void>;
@@ -60,7 +70,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
   const [useClientCompletionTime, setUseClientCompletionTimeState] =
     useState(true);
-  const [extendTodayUntilHour, setExtendTodayUntilHourState] = useState(0);
+  const [deviceExtendTodayUntilHour, setExtendTodayUntilHourState] =
+    useState(0);
+  const [serverExtendTodayUntilHour, setServerExtendTodayUntilHourState] =
+    useState<number | null>(null);
   const [groupByCategory, setGroupByCategoryState] = useState(false);
   const [multiDayRangeLength, setMultiDayRangeLengthState] = useState(7);
   const [multiDayPastDays, setMultiDayPastDaysState] = useState(1);
@@ -73,6 +86,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       getDefaultDoneState(),
       getUseClientCompletionTime(),
       getExtendTodayUntilHour(),
+      getServerExtendTodayUntilHour(),
       getGroupByCategory(),
       getMultiDayRangeLength(),
       getMultiDayPastDays(),
@@ -83,6 +97,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         defaultDoneValue,
         useClientCompletionTimeValue,
         extendTodayUntilHourValue,
+        serverExtendTodayUntilHourValue,
         groupByCategoryValue,
         multiDayRangeLengthValue,
         multiDayPastDaysValue,
@@ -92,6 +107,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setDefaultDoneStateState(defaultDoneValue);
         setUseClientCompletionTimeState(useClientCompletionTimeValue);
         setExtendTodayUntilHourState(extendTodayUntilHourValue);
+        setServerExtendTodayUntilHourState(serverExtendTodayUntilHourValue);
         setGroupByCategoryState(groupByCategoryValue);
         setMultiDayRangeLengthState(multiDayRangeLengthValue);
         setMultiDayPastDaysState(multiDayPastDaysValue);
@@ -119,6 +135,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setUseClientCompletionTimeState(value);
     await saveUseClientCompletionTime(value);
   }, []);
+
+  // The metadata fetch mirrors the server's org config into storage; follow it
+  // so the effective value updates without a restart.
+  useEffect(
+    () =>
+      subscribeToServerExtendTodayUntilHour(setServerExtendTodayUntilHourState),
+    [],
+  );
 
   const setExtendTodayUntilHour = useCallback(async (value: number) => {
     setExtendTodayUntilHourState(value);
@@ -164,7 +188,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setDefaultDoneState,
       useClientCompletionTime,
       setUseClientCompletionTime,
-      extendTodayUntilHour,
+      extendTodayUntilHour:
+        serverExtendTodayUntilHour ?? deviceExtendTodayUntilHour,
+      serverExtendTodayUntilHour,
+      deviceExtendTodayUntilHour,
       setExtendTodayUntilHour,
       groupByCategory,
       setGroupByCategory,
@@ -183,7 +210,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setDefaultDoneState,
       useClientCompletionTime,
       setUseClientCompletionTime,
-      extendTodayUntilHour,
+      serverExtendTodayUntilHour,
+      deviceExtendTodayUntilHour,
       setExtendTodayUntilHour,
       groupByCategory,
       setGroupByCategory,

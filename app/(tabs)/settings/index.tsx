@@ -91,7 +91,8 @@ export default function SettingsScreen() {
     setDefaultDoneState,
     useClientCompletionTime,
     setUseClientCompletionTime,
-    extendTodayUntilHour,
+    serverExtendTodayUntilHour,
+    deviceExtendTodayUntilHour,
     setExtendTodayUntilHour,
     groupByCategory,
     setGroupByCategory,
@@ -748,32 +749,46 @@ export default function SettingsScreen() {
             />
           )}
         />
-        <Menu
-          visible={extendTodayMenu.visible}
-          onDismiss={extendTodayMenu.close}
-          anchor={
-            <List.Item
-              title="Day Ends At"
-              description={
-                extendTodayUntilHour > 0
-                  ? `${extendTodayUntilHour}:00 — completions before then count for the previous day`
-                  : "Midnight"
-              }
-              left={(props) => <List.Icon {...props} icon="weather-night" />}
-              onPress={extendTodayMenu.open}
-              right={(props) => <List.Icon {...props} icon="chevron-down" />}
-            />
-          }
-        >
-          {EXTEND_TODAY_HOUR_OPTIONS.map((hour) => (
-            <Menu.Item
-              key={hour}
-              onPress={() => handleExtendTodaySelect(hour)}
-              title={hour === 0 ? "Midnight" : `${hour}:00`}
-              leadingIcon={extendTodayUntilHour === hour ? "check" : undefined}
-            />
-          ))}
-        </Menu>
+        {serverExtendTodayUntilHour !== null ? (
+          <List.Item
+            title="Day Ends At"
+            description={
+              serverExtendTodayUntilHour > 0
+                ? `${serverExtendTodayUntilHour}:00 — from the server's org-extend-today-until`
+                : "Midnight — from the server's org-extend-today-until"
+            }
+            left={(props) => <List.Icon {...props} icon="weather-night" />}
+          />
+        ) : (
+          <Menu
+            visible={extendTodayMenu.visible}
+            onDismiss={extendTodayMenu.close}
+            anchor={
+              <List.Item
+                title="Day Ends At"
+                description={
+                  deviceExtendTodayUntilHour > 0
+                    ? `${deviceExtendTodayUntilHour}:00 — this device (server reports none)`
+                    : "Midnight — this device (server reports none)"
+                }
+                left={(props) => <List.Icon {...props} icon="weather-night" />}
+                onPress={extendTodayMenu.open}
+                right={(props) => <List.Icon {...props} icon="chevron-down" />}
+              />
+            }
+          >
+            {EXTEND_TODAY_HOUR_OPTIONS.map((hour) => (
+              <Menu.Item
+                key={hour}
+                onPress={() => handleExtendTodaySelect(hour)}
+                title={hour === 0 ? "Midnight" : `${hour}:00`}
+                leadingIcon={
+                  deviceExtendTodayUntilHour === hour ? "check" : undefined
+                }
+              />
+            ))}
+          </Menu>
+        )}
         <Menu
           visible={doneStateMenu.visible}
           onDismiss={doneStateMenu.close}
