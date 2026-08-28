@@ -2,6 +2,11 @@ package com.colonelpanic.mova.wear
 
 import android.content.ComponentName
 import androidx.wear.protolayout.ActionBuilders
+import androidx.wear.protolayout.DimensionBuilders.dp
+import androidx.wear.protolayout.DimensionBuilders.expand
+import androidx.wear.protolayout.LayoutElementBuilders.Column
+import androidx.wear.protolayout.LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER
+import androidx.wear.protolayout.LayoutElementBuilders.Spacer
 import androidx.wear.protolayout.ResourceBuilders.AndroidImageResourceByResId
 import androidx.wear.protolayout.ResourceBuilders.ImageResource
 import androidx.wear.protolayout.ResourceBuilders.Resources
@@ -11,6 +16,7 @@ import androidx.wear.protolayout.material3.Typography.BODY_MEDIUM
 import androidx.wear.protolayout.material3.buttonGroup
 import androidx.wear.protolayout.material3.icon
 import androidx.wear.protolayout.material3.iconButton
+import androidx.wear.protolayout.material3.iconEdgeButton
 import androidx.wear.protolayout.material3.materialScope
 import androidx.wear.protolayout.material3.primaryLayout
 import androidx.wear.protolayout.material3.text
@@ -32,6 +38,12 @@ import com.google.common.util.concurrent.ListenableFuture
  * Tiles cannot host text or speech input themselves, so the mic edge button
  * opens [VoiceCaptureActivity], which immediately launches the watch's speech
  * recognizer and then submits (or queues) the captured todo.
+ *
+ * Capture owns the edge button because it is the point of the tile; the
+ * assistant and pin shortcuts sit in the main slot. The bottom slot only
+ * gives non-edge-button content 48% of the screen width
+ * (`BOTTOM_SLOT_OTHER_MARGIN_SIDE_PERCENTAGE`), which is too narrow for a row
+ * of minimum-tap-target buttons — they overflow and get clipped off-screen.
  */
 class QuickCaptureTileService : TileService() {
   override fun onTileRequest(
@@ -89,35 +101,48 @@ class QuickCaptureTileService : TileService() {
           )
         },
         mainSlot = {
-          text(
-            message.layoutString,
-            typography = BODY_MEDIUM,
-            color = 0xFFB9C2CA.toInt().argb,
-          )
+          Column.Builder()
+            .setWidth(expand())
+            .setHorizontalAlignment(HORIZONTAL_ALIGN_CENTER)
+            .addContent(
+              text(
+                message.layoutString,
+                typography = BODY_MEDIUM,
+                color = 0xFFB9C2CA.toInt().argb,
+                maxLines = 2,
+              ),
+            )
+            .addContent(Spacer.Builder().setHeight(dp(8f)).build())
+            .addContent(
+              buttonGroup(height = dp(SECONDARY_BUTTON_HEIGHT_DP)) {
+                buttonGroupItem {
+                  iconButton(
+                    onClick = assistantAction,
+                    modifier = LayoutModifier.contentDescription("Ask Mova by voice"),
+                    width = expand(),
+                    height = expand(),
+                    iconContent = { icon(protoLayoutResourceId = ASSISTANT_ICON_ID) },
+                  )
+                }
+                buttonGroupItem {
+                  iconButton(
+                    onClick = pinAction,
+                    modifier = LayoutModifier.contentDescription("Pin a reminder"),
+                    width = expand(),
+                    height = expand(),
+                    iconContent = { icon(protoLayoutResourceId = PIN_ICON_ID) },
+                  )
+                }
+              },
+            )
+            .build()
         },
         bottomSlot = {
-          buttonGroup {
-            buttonGroupItem {
-              iconButton(
-                onClick = voiceCaptureAction,
-                modifier = LayoutModifier.contentDescription("Capture a todo by voice"),
-                iconContent = { icon(protoLayoutResourceId = MIC_ICON_ID) },
-              )
-            }
-            buttonGroupItem {
-              iconButton(
-                onClick = assistantAction,
-                modifier = LayoutModifier.contentDescription("Ask Mova by voice"),
-                iconContent = { icon(protoLayoutResourceId = ASSISTANT_ICON_ID) },
-              )
-            }
-            buttonGroupItem {
-              iconButton(
-                onClick = pinAction,
-                modifier = LayoutModifier.contentDescription("Pin a reminder"),
-                iconContent = { icon(protoLayoutResourceId = PIN_ICON_ID) },
-              )
-            }
+          iconEdgeButton(
+            onClick = voiceCaptureAction,
+            modifier = LayoutModifier.contentDescription("Capture a todo by voice"),
+          ) {
+            icon(protoLayoutResourceId = MIC_ICON_ID)
           }
         },
       )
@@ -175,6 +200,7 @@ class QuickCaptureTileService : TileService() {
     const val MIC_ICON_ID = "mic"
     const val ASSISTANT_ICON_ID = "assistant"
     const val PIN_ICON_ID = "pin"
+    const val SECONDARY_BUTTON_HEIGHT_DP = 52f
 
     // Teal-on-dark brand palette matching the watch app (see res/values/colors.xml).
     private val MOVA_COLOR_SCHEME = ColorScheme(
