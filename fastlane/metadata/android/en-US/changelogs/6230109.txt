@@ -1,0 +1,1 @@
+* fix(wear): the Quick Capture tile's mic button is back — three minimum-size buttons could not fit the tile's bottom slot, so the mic and pin were clipped off-screen; capture now owns the edge button and the assistant and pin shortcuts sit above it

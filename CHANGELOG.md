@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.23.1]
+
+- fix(wear): the Quick Capture tile's mic button is back — three minimum-size buttons could not fit the tile's bottom slot, so the mic and pin were clipped off-screen; capture now owns the edge button and the assistant and pin shortcuts sit above it
+
 ## [6.23.0]
 
 - feat(completion): "Day Ends At" now follows the server's `org-extend-today-until` (org-agenda-api 4.6.0+), so the org config is the single source of truth for when the day ends; the on-device picker remains only for servers that report no value
