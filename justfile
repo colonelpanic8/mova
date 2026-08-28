@@ -62,3 +62,8 @@ e2e-scheduling:
 # List connected devices
 devices:
     adb devices
+
+# Wireless-ADB tooling for a physical Wear OS watch: pair, push, shot, logcat.
+# Run inside `nix develop --impure .#android`; `just watch` lists the commands.
+watch *args:
+    ./scripts/wear/watch.sh {{args}}

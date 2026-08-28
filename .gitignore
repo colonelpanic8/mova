@@ -79,3 +79,6 @@ fastlane/test_output
 
 # Editor backup files
 *~
+
+# remembered watch device serial (scripts/wear/watch.sh)
+.mova-watch
