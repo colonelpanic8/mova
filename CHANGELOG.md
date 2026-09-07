@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.23.3]
+
+- fix(widget): attach agenda collection updates to the widget root so launchers can apply them asynchronously; completing items updates the visible list while retaining its scroll position
+
 ## [6.23.2]
 
 - fix(widget): keep the agenda list and adapter in place on Android 12+ when completing items, avoiding list reload flashes; remove the extra completion-header redraw while preserving error feedback
