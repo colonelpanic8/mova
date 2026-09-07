@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.23.2]
+
+- fix(widget): keep the agenda list and adapter in place on Android 12+ when completing items, avoiding list reload flashes; remove the extra completion-header redraw while preserving error feedback
+
 ## [6.23.1]
 
 - fix(wear): the Quick Capture tile's mic button is back — three minimum-size buttons could not fit the tile's bottom slot, so the mic and pin were clipped off-screen; capture now owns the edge button and the assistant and pin shortcuts sit above it

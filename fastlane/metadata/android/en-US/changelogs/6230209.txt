@@ -1,0 +1,1 @@
+* fix(widget): keep the agenda list and adapter in place on Android 12+ when completing items, avoiding list reload flashes; remove the extra completion-header redraw while preserving error feedback
