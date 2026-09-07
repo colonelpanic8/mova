@@ -41,9 +41,6 @@ const QUICK_CAPTURE_KEY = "__quick_capture__";
  */
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-/** How long the "Done" confirmation stays in the agenda widget's header. */
-const NOTICE_LINGER_MS = 2000;
-
 const nameToWidget = {
   QuickCaptureWidget: QuickCaptureWidget,
 };
@@ -139,7 +136,7 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
 
   // A click proves the widget is live on screen, so its draws can patch the
   // existing view in place instead of re-inflating it — that's what keeps the
-  // complete-item sequence (pending → done → settle) from blinking. Lifecycle
+  // complete-item sequence (pending → refreshed) from blinking. Lifecycle
   // events keep full updates, which double as the persisted anchor state.
   const partially = widgetAction === "WIDGET_CLICK";
 
@@ -179,14 +176,7 @@ async function handleAgendaWidget(props: WidgetTaskHandlerProps) {
 
     const result = await completeAgendaWidgetItem(ref);
     const refreshed = await loadAgendaWidgetData();
-    await draw(refreshed, { notice: result.message });
-
-    // Confirmation is a flash, not a state: settle back to the item count.
-    // A failure message stays up, since it's the only place the user sees it.
-    if (result.ok) {
-      await new Promise((resolve) => setTimeout(resolve, NOTICE_LINGER_MS));
-      await draw(refreshed);
-    }
+    await draw(refreshed, result.ok ? {} : { notice: result.message });
     return;
   }
 

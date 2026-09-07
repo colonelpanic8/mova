@@ -55,7 +55,7 @@ export interface AgendaWidgetProps {
   habits?: AgendaWidgetItem[];
   view?: AgendaWidgetView;
   status?: "ok" | "unauthenticated" | "error";
-  /** Transient line shown in place of the item count (e.g. "Done"). */
+  /** Failure message shown in place of the item count. */
   notice?: string;
   /** Key of the item currently being completed; its row renders as pending. */
   pendingKey?: string;
@@ -191,6 +191,11 @@ function AgendaItemsRow({
         flexDirection: "row",
         flexGap: 4,
         paddingBottom: 4,
+      }}
+      clickAction="OPEN_URI"
+      clickActionData={{
+        uri: "mova://agenda",
+        key: JSON.stringify(items.map((item) => item.key)),
       }}
     >
       {items.map((item) => (

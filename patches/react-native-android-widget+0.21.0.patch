@@ -1,5 +1,5 @@
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
-index a7079f9..5efb00c 100644
+index a7079f9..aed625d 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
 +++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
 @@ -62,6 +62,7 @@ public class RNWidget {
@@ -51,6 +51,71 @@ index a7079f9..5efb00c 100644
          ViewGroup rootView = (ViewGroup) widgetWithViews.getRootView();
          List<CollectionView> collectionViews = widgetWithViews.getCollectionViews();
  
+@@ -253,8 +277,15 @@ public class RNWidget {
+ 
+         collectionRemoteView.setPendingIntentTemplate(lists[collectionId], collectionPendingIntentTemplate);
+ 
+-        remoteWidgetView.addView(R.id.rn_widget_collection_container, collectionRemoteView);
+-        remoteWidgetView.setRemoteAdapter(lists[collectionId], remoteAdapterIntent);
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
++            // Recycle the list itself as well as its rows; replacing either flashes.
++            collectionRemoteView.setRemoteAdapter(lists[collectionId],
++                RNWidgetStableCollection.build(appContext, remoteAdapterIntent));
++            remoteWidgetView.addStableView(R.id.rn_widget_collection_container, collectionRemoteView, collectionId);
++        } else {
++            remoteWidgetView.addView(R.id.rn_widget_collection_container, collectionRemoteView);
++            remoteWidgetView.setRemoteAdapter(lists[collectionId], remoteAdapterIntent);
++        }
+     }
+ 
+     private Intent createCollectionRemoteAdapterIntent(int widgetId, int collectionId, CollectionView collectionView) {
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetStableCollection.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetStableCollection.java
+new file mode 100644
+index 0000000..1da74e2
+--- /dev/null
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetStableCollection.java
+@@ -0,0 +1,41 @@
++package com.reactnativeandroidwidget;
++
++import android.content.Context;
++import android.content.Intent;
++import android.os.Build;
++import android.os.Bundle;
++import android.widget.RemoteViews;
++import androidx.annotation.RequiresApi;
++import java.util.ArrayList;
++import java.util.HashSet;
++
++@RequiresApi(Build.VERSION_CODES.S)
++public final class RNWidgetStableCollection {
++    private RNWidgetStableCollection() {}
++
++    public static RemoteViews.RemoteCollectionItems build(Context context, Intent intent) {
++        ArrayList<Bundle> items = intent.getParcelableArrayListExtra("collectionItems");
++        ListRemoteViewsFactory factory = new ListRemoteViewsFactory(context, intent);
++        RemoteViews.RemoteCollectionItems.Builder builder =
++            new RemoteViews.RemoteCollectionItems.Builder().setViewTypeCount(1);
++        HashSet<Long> ids = new HashSet<>();
++        boolean stable = true;
++        for (int i = 0; i < factory.getCount(); i++) {
++            Bundle data = items.get(i).getBundle("clickActionData");
++            String key = data == null ? null : data.getString("key");
++            long id = key == null ? i : stableId(key);
++            stable &= key != null && ids.add(id);
++            builder.addItem(id, factory.getViewAt(i));
++        }
++        return builder.setHasStableIds(stable).build();
++    }
++
++    private static long stableId(String key) {
++        long hash = 0xcbf29ce484222325L;
++        for (int i = 0; i < key.length(); i++) {
++            hash ^= key.charAt(i);
++            hash *= 0x100000001b3L;
++        }
++        return hash;
++    }
++}
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
 index a057c09..569339a 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java

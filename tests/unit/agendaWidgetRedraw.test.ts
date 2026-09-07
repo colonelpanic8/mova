@@ -163,6 +163,50 @@ describe("agenda widget task handler redraws", () => {
     expect(render).toHaveBeenCalledTimes(2);
   });
 
+  it.each([true, false])(
+    "settles completion without a third redraw (success=%s)",
+    async (ok) => {
+      mockAgendaFetch(dayResponse([entry({ id: "a" })]));
+      await widgetTaskHandlerEntry(handlerProps(jest.fn()));
+      const render = jest.fn();
+      const agendaFetch = global.fetch;
+      let completed = false;
+      global.fetch = jest.fn(async (url, options) => {
+        if (options?.method === "POST") {
+          if (!ok) throw new Error("offline");
+          completed = true;
+          return {
+            ok: true,
+            headers: { get: () => null },
+            text: async () => JSON.stringify({ status: "completed" }),
+          } as unknown as Response;
+        }
+        if (completed) {
+          return {
+            ok: true,
+            json: async () => dayResponse([]),
+            text: async () => JSON.stringify(dayResponse([])),
+          } as unknown as Response;
+        }
+        return agendaFetch(url, options);
+      });
+      await widgetTaskHandlerEntry({
+        ...handlerProps(render, {
+          widgetAction: "WIDGET_CLICK",
+          clickAction: "COMPLETE_AGENDA_ITEM",
+        }),
+        clickActionData: { key: "a", id: "a" },
+      });
+      expect(render).toHaveBeenCalledTimes(2);
+      expect(render.mock.calls[0][0].props.pendingKey).toBe("a");
+      const settled = render.mock.calls[1][0].props;
+      expect(settled.pendingKey).toBeUndefined();
+      expect(settled.items).toHaveLength(ok ? 0 : 1);
+      if (ok) expect(settled.notice).toBeUndefined();
+      else expect(settled.notice).toMatch(/connection/i);
+    },
+  );
+
   it("patches the live view on clicks but does full draws on lifecycle events", async () => {
     mockAgendaFetch(dayResponse([entry({ title: "Water plants" })]));
 

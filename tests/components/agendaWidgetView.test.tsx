@@ -157,6 +157,21 @@ describe("AgendaWidget", () => {
     );
   });
 
+  it("passes stable row identities to the native collection", () => {
+    const second = { ...item, key: "item-2" };
+    const rowKeys = (items: AgendaWidgetItem[]) => {
+      const tree = buildWidgetTree(
+        AgendaWidget({ items, width: 320, height: 200 }),
+      ) as any;
+      const list = tree.children.find(
+        (child: any) => child.type === "ListWidget",
+      );
+      return list.children.map((row: any) => row.props.clickActionData.key);
+    };
+    expect(rowKeys([item, second])[1]).toBe(rowKeys([second])[0]);
+    expect(rowKeys([item, second])[0]).not.toBe(rowKeys([second])[0]);
+  });
+
   it("builds a valid native widget tree for a wide habit view", () => {
     const habit = { ...item, key: "habit", title: "Stretch", isHabit: true };
 
