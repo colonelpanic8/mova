@@ -1,1 +1,2 @@
-Pins request notification permission and report blocked channels. Unfinished pin notifications return after dismissal, app resume, and updates; snoozing keeps them visible until Done. Timed pins work without exact alarm access.
+* fix(pins): request notification permission before pinning and report blocked pin channels; restore unfinished pin notifications after dismissal, app resume, and app updates, while keeping snoozed pins visible until Done
+* fix(pins): fall back to inexact reminders when Android has not granted exact alarm access, preventing timed pin setup from failing
