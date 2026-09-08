@@ -1,4 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  getPermissionsAsync,
+  requestPermissionsAsync,
+} from "expo-notifications";
+
+jest.mock("expo-notifications", () => ({
+  getPermissionsAsync: jest.fn(),
+  requestPermissionsAsync: jest.fn(),
+}));
 
 const mockNativeModules: { MovaPins?: unknown } = {};
 
@@ -46,6 +55,11 @@ function makeNative() {
 
 describe("pins service", () => {
   beforeEach(async () => {
+    jest.clearAllMocks();
+    (getPermissionsAsync as jest.Mock).mockResolvedValue({ status: "granted" });
+    (requestPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "granted",
+    });
     await AsyncStorage.clear();
     mockNativeModules.MovaPins = makeNative();
   });
@@ -90,6 +104,35 @@ describe("pins service", () => {
 
     const native = mockNativeModules.MovaPins as ReturnType<typeof makeNative>;
     expect(native.arm).toHaveBeenCalledWith("Scooter", -1);
+  });
+
+  it("requests notification permission before arming a passive pin", async () => {
+    (getPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "undetermined",
+    });
+    const native = mockNativeModules.MovaPins as ReturnType<typeof makeNative>;
+    (requestPermissionsAsync as jest.Mock).mockImplementation(async () => {
+      expect(native.arm).not.toHaveBeenCalled();
+      return { status: "granted" };
+    });
+
+    await armPin("Laundry", 0);
+
+    expect(requestPermissionsAsync).toHaveBeenCalledTimes(1);
+    expect(native.arm).toHaveBeenCalledWith("Laundry", 0);
+  });
+
+  it("does not create an invisible pin when notification permission is denied", async () => {
+    (getPermissionsAsync as jest.Mock).mockResolvedValue({ status: "denied" });
+    (requestPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
+    });
+
+    await expect(armPin("Stove", 10)).rejects.toThrow(
+      "Enable Mova notifications",
+    );
+    const native = mockNativeModules.MovaPins as ReturnType<typeof makeNative>;
+    expect(native.arm).not.toHaveBeenCalled();
   });
 
   it("reads the default reminder from the native module", async () => {

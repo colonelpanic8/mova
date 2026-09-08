@@ -19,6 +19,7 @@ class PinActionReceiver : BroadcastReceiver() {
           ),
         )
       PinManager.ACTION_ESCALATE -> PinManager.escalate(context, pinId)
+      PinManager.ACTION_RESTORE -> PinManager.restore(context, pinId)
     }
   }
 }

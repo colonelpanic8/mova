@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.23.4]
+
+- fix(pins): request notification permission before pinning and report blocked pin channels; restore unfinished pin notifications after dismissal, app resume, and app updates, while keeping snoozed pins visible until Done
+- fix(pins): fall back to inexact reminders when Android has not granted exact alarm access, preventing timed pin setup from failing
+
 ## [6.23.3]
 
 - fix(widget): attach agenda collection updates to the widget root so launchers can apply them asynchronously; completing items updates the visible list while retaining its scroll position

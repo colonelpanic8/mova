@@ -1,0 +1,1 @@
+Pins request notification permission and report blocked channels. Unfinished pin notifications return after dismissal, app resume, and updates; snoozing keeps them visible until Done. Timed pins work without exact alarm access.

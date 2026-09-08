@@ -147,7 +147,7 @@ function PresetEditor({
 
 export default function PinsScreen() {
   const theme = useTheme();
-  const { available, pins, arm, complete, snooze } = usePins();
+  const { available, pins, error, arm, complete, snooze } = usePins();
   const [presets, setPresets] = useState<PinPreset[]>([]);
   const [customTitle, setCustomTitle] = useState("");
   const [customMinutes, setCustomMinutes] = useState("");
@@ -183,7 +183,11 @@ export default function PinsScreen() {
     const title = customTitle.trim();
     if (!title) return;
     const minutes = parseInt(customMinutes, 10);
-    await arm(title, Number.isFinite(minutes) && minutes >= 0 ? minutes : null);
+    const armed = await arm(
+      title,
+      Number.isFinite(minutes) && minutes >= 0 ? minutes : null,
+    );
+    if (!armed) return;
     setCustomTitle("");
     setCustomMinutes("");
   };
@@ -213,6 +217,11 @@ export default function PinsScreen() {
         >
           Holds a persistent notification until you mark it done.
         </Text>
+        {error && (
+          <Text accessibilityRole="alert" style={{ color: theme.colors.error }}>
+            {error}
+          </Text>
+        )}
 
         <View style={styles.chipRow}>
           {presets.map((preset, index) => (

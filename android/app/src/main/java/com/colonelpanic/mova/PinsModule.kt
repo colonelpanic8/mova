@@ -4,6 +4,7 @@ import com.colonelpanic.mova.pins.Pin
 import com.colonelpanic.mova.pins.PinManager
 import com.colonelpanic.mova.pins.PinStore
 import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -18,7 +19,7 @@ private const val PINS_CHANGED_EVENT = "movaPinsChanged"
 
 class PinsModule(
   private val reactContext: ReactApplicationContext,
-) : ReactContextBaseJavaModule(reactContext) {
+) : ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
 
   private val changeListener: () -> Unit = {
     if (reactContext.hasActiveReactInstance()) {
@@ -33,12 +34,23 @@ class PinsModule(
   override fun initialize() {
     super.initialize()
     PinManager.addChangeListener(changeListener)
+    reactContext.addLifecycleEventListener(this)
+    PinManager.rearmAll(reactContext, onlyMissing = true)
   }
 
   override fun invalidate() {
     PinManager.removeChangeListener(changeListener)
+    reactContext.removeLifecycleEventListener(this)
     super.invalidate()
   }
+
+  override fun onHostResume() {
+    PinManager.rearmAll(reactContext, onlyMissing = true)
+  }
+
+  override fun onHostPause() = Unit
+
+  override fun onHostDestroy() = Unit
 
   @ReactMethod
   fun list(promise: Promise) {
@@ -54,6 +66,13 @@ class PinsModule(
     val trimmed = title.trim()
     if (trimmed.isEmpty()) {
       promise.reject("PIN_EMPTY_TITLE", "Pin title must not be empty")
+      return
+    }
+    if (!PinManager.canPostNotifications(reactContext)) {
+      promise.reject(
+        "PIN_NOTIFICATIONS_DISABLED",
+        "Enable Mova notifications and both pin notification channels in Android Settings to pin a reminder.",
+      )
       return
     }
     val pin = PinManager.arm(reactContext, trimmed, escalateMinutes.toInt())

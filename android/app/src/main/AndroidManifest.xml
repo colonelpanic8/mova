@@ -97,6 +97,7 @@
     <receiver android:name=".pins.PinBootReceiver" android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED"/>
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
       </intent-filter>
     </receiver>
     <service android:name=".pins.PinWearListenerService" android:exported="true">

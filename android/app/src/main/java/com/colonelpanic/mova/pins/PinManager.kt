@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.text.format.DateFormat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -29,6 +30,7 @@ object PinManager {
   const val ACTION_DONE = "com.colonelpanic.mova.pins.DONE"
   const val ACTION_SNOOZE = "com.colonelpanic.mova.pins.SNOOZE"
   const val ACTION_ESCALATE = "com.colonelpanic.mova.pins.ESCALATE"
+  const val ACTION_RESTORE = "com.colonelpanic.mova.pins.RESTORE"
   const val EXTRA_PIN_ID = "pinId"
   const val EXTRA_SNOOZE_MINUTES = "snoozeMinutes"
   const val DEFAULT_SNOOZE_MINUTES = 10
@@ -49,6 +51,7 @@ object PinManager {
    * @param escalateMinutes minutes until the pin starts actively alerting;
    *   0 arms a purely passive pin, negative means "use the stored default".
    */
+  @Synchronized
   fun arm(context: Context, title: String, escalateMinutes: Int): Pin {
     val effectiveMinutes =
       if (escalateMinutes < 0) PinStore.getDefaultReminderMinutes(context) else escalateMinutes
@@ -69,14 +72,31 @@ object PinManager {
     return pin
   }
 
+  @Synchronized
   fun complete(context: Context, id: String) {
     val pin = PinStore.get(context, id) ?: return
+    PinStore.remove(context, id)
     cancelAlarm(context, pin)
     NotificationManagerCompat.from(context).cancel(notificationId(pin))
-    PinStore.remove(context, id)
     notifyChanged()
   }
 
+  @Synchronized
+  fun restore(context: Context, id: String) {
+    val pin = PinStore.get(context, id) ?: return
+    postNotification(context, pin, silent = true)
+  }
+
+  fun canPostNotifications(context: Context): Boolean {
+    ensureChannels(context)
+    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    return NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+      listOf(ONGOING_CHANNEL_ID, ALERT_CHANNEL_ID).all {
+        manager.getNotificationChannel(it).importance != NotificationManager.IMPORTANCE_NONE
+      }
+  }
+
+  @Synchronized
   fun snooze(context: Context, id: String, minutes: Int) {
     val pin = PinStore.get(context, id) ?: return
     val effectiveMinutes = if (minutes > 0) minutes else DEFAULT_SNOOZE_MINUTES
@@ -95,6 +115,7 @@ object PinManager {
 
   /** Fired by the escalation alarm: switch to the alert channel and keep
    *  nagging every [NAG_INTERVAL_MS] until completed or snoozed. */
+  @Synchronized
   fun escalate(context: Context, id: String) {
     val pin = PinStore.get(context, id) ?: return
     val updated = pin.copy(escalated = true)
@@ -109,9 +130,16 @@ object PinManager {
 
   /** Restores notifications and alarms after a reboot. Past-due pins
    *  escalate immediately. */
-  fun rearmAll(context: Context) {
+  @Synchronized
+  fun rearmAll(context: Context, onlyMissing: Boolean = false) {
     val now = System.currentTimeMillis()
+    val visibleIds = if (onlyMissing) {
+      NotificationManagerCompat.from(context).activeNotifications.map { it.id }.toSet()
+    } else {
+      emptySet()
+    }
     PinStore.list(context).forEach { pin ->
+      if (notificationId(pin) in visibleIds) return@forEach
       val duePin =
         if (!pin.escalated && pin.escalateAt in 1..now) pin.copy(escalated = true) else pin
       if (duePin != pin) PinStore.upsert(context, duePin)
@@ -130,7 +158,12 @@ object PinManager {
     changeListeners.forEach { it() }
   }
 
-  private fun postNotification(context: Context, pin: Pin, fresh: Boolean = false) {
+  private fun postNotification(
+    context: Context,
+    pin: Pin,
+    fresh: Boolean = false,
+    silent: Boolean = false,
+  ) {
     ensureChannels(context)
     val manager = NotificationManagerCompat.from(context)
     if (!manager.areNotificationsEnabled()) return
@@ -159,7 +192,10 @@ object PinManager {
       )
       .setContentText(text)
       .setOngoing(true)
+      .setAutoCancel(false)
       .setOnlyAlertOnce(!pin.escalated)
+      // Android 14+ permits swiping ongoing notifications away.
+      .setDeleteIntent(actionIntent(context, pin, ACTION_RESTORE, 5))
       .setContentIntent(contentIntent(context, pin))
       .addAction(
         0,
@@ -179,6 +215,7 @@ object PinManager {
     if (pin.escalated) {
       builder.setCategory(NotificationCompat.CATEGORY_ALARM)
     }
+    if (silent) builder.setSilent(true)
     manager.notify(notificationId(pin), builder.build())
   }
 
@@ -234,13 +271,15 @@ object PinManager {
 
   private fun scheduleAlarm(context: Context, pin: Pin, atMillis: Long) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    // setAlarmClock fires exactly even in doze without needing the
-    // SCHEDULE_EXACT_ALARM permission; a stove pin cannot tolerate the
-    // multi-minute drift of inexact alarms.
-    alarmManager.setAlarmClock(
-      AlarmManager.AlarmClockInfo(atMillis, contentIntent(context, pin)),
-      alarmIntent(context, pin),
-    )
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
+      alarmManager.setAlarmClock(
+        AlarmManager.AlarmClockInfo(atMillis, contentIntent(context, pin)),
+        alarmIntent(context, pin),
+      )
+    } else {
+      // Keep the pin usable when Android has not granted exact alarm access.
+      alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, alarmIntent(context, pin))
+    }
   }
 
   private fun cancelAlarm(context: Context, pin: Pin) {

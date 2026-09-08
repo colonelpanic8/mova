@@ -14,6 +14,7 @@ import { AppState } from "react-native";
 export function usePins() {
   const available = isPinsAvailable();
   const [pins, setPins] = useState<Pin[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!available) return;
@@ -41,8 +42,17 @@ export function usePins() {
 
   const arm = useCallback(
     async (title: string, escalateMinutes: number | null) => {
-      await armPin(title, escalateMinutes);
-      await refresh();
+      setError(null);
+      try {
+        await armPin(title, escalateMinutes);
+        await refresh();
+        return true;
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : "Could not pin reminder.",
+        );
+        return false;
+      }
     },
     [refresh],
   );
@@ -63,5 +73,5 @@ export function usePins() {
     [refresh],
   );
 
-  return { available, pins, refresh, arm, complete, snooze };
+  return { available, pins, error, refresh, arm, complete, snooze };
 }

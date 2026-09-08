@@ -6,6 +6,11 @@ import { MD3LightTheme, PaperProvider } from "react-native-paper";
 import PinsScreen from "../../app/(tabs)/pins";
 import { DEFAULT_PIN_PRESETS, Pin } from "../../services/pins";
 
+jest.mock("expo-notifications", () => ({
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: "granted" }),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: "granted" }),
+}));
+
 jest.mock("../../components/ScreenContainer", () => ({
   ScreenContainer: ({
     children,
@@ -96,6 +101,23 @@ describe("PinsScreen", () => {
     await waitFor(() =>
       expect(mockNative.arm).toHaveBeenCalledWith("Laundry in washer", -1),
     );
+  });
+
+  it("shows notification failures and keeps the custom pin draft", async () => {
+    mockNative.arm.mockRejectedValueOnce(
+      new Error("Enable pin notifications in Android Settings."),
+    );
+    const { getByTestId, getByText } = renderScreen();
+    await waitFor(() => getByTestId("customPinInput"));
+    fireEvent.changeText(getByTestId("customPinInput"), "Stove");
+    fireEvent.changeText(getByTestId("customPinMinutes"), "10");
+    fireEvent.press(getByTestId("customPinArm"));
+
+    await waitFor(() =>
+      getByText("Enable pin notifications in Android Settings."),
+    );
+    expect(getByTestId("customPinInput").props.value).toBe("Stove");
+    expect(getByTestId("customPinMinutes").props.value).toBe("10");
   });
 
   it("quick-snoozes an active pin", async () => {

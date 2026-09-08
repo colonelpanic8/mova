@@ -1,4 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  getPermissionsAsync,
+  requestPermissionsAsync,
+} from "expo-notifications";
 import { DeviceEventEmitter, NativeModules } from "react-native";
 
 export interface Pin {
@@ -58,6 +62,15 @@ export async function armPin(
 ): Promise<Pin | null> {
   const module = native();
   if (!module) return null;
+  const permission = await getPermissionsAsync();
+  if (permission.status !== "granted") {
+    const requested = await requestPermissionsAsync();
+    if (requested.status !== "granted") {
+      throw new Error(
+        "Enable Mova notifications in Android Settings to pin a reminder.",
+      );
+    }
+  }
   return module.arm(title, escalateMinutes ?? -1);
 }
 
