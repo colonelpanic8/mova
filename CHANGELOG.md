@@ -1,5 +1,11 @@
 # Changelog
 
+## [7.0.0]
+
+- feat(intents): add a documented `mova://` API for creating, completing, updating, rescheduling, deleting, opening, searching, and refreshing todos and agendas
+- feat(android): require confirmation before external apps mutate todos by default, with an explicit setting for trusted headless integrations
+- feat(android): expose permission-protected agenda and todo queries through a read-only content provider, including local search fallback for older servers
+
 ## [6.23.4]
 
 - fix(pins): request notification permission before pinning and report blocked pin channels; restore unfinished pin notifications after dismissal, app resume, and app updates, while keeping snoozed pins visible until Done

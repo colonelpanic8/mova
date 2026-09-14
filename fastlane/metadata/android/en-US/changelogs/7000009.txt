@@ -1,0 +1,3 @@
+* feat(intents): add a documented `mova://` API for creating, completing, updating, rescheduling, deleting, opening, searching, and refreshing todos and agendas
+* feat(android): require confirmation before external apps mutate todos by default, with an explicit setting for trusted headless integrations
+* feat(android): expose permission-protected agenda and todo queries through a read-only content provider, including local search fallback for older servers
