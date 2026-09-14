@@ -205,7 +205,7 @@ that treat the launch as a handoff can ignore all of this.
   queues.
 - Bad parameters: toast naming the parameter, nothing sent.
 
-## Reading todos: the content provider
+## Reading todos and templates: the content provider
 
 Authority: `com.colonelpanic.mova.provider`. Read-only; inserts, updates and
 deletes throw.
@@ -215,6 +215,7 @@ deletes throw.
 | `content://com.colonelpanic.mova.provider/todos?q=bank&limit=20`                                                        | `GET /get-all-todos`        |
 | `content://com.colonelpanic.mova.provider/todos/<id>`                                                                   | `GET /get-all-todos`, by id |
 | `content://com.colonelpanic.mova.provider/agenda?date=2026-09-20&span=day&include_overdue=true&include_completed=false` | `GET /agenda`               |
+| `content://com.colonelpanic.mova.provider/templates`                                                                    | `GET /capture-templates`    |
 
 Columns: `id`, `file`, `pos`, `title`, `state`, `priority`, `scheduled`,
 `scheduled_repeater`, `deadline`, `deadline_repeater`, `tags` (comma
@@ -223,6 +224,13 @@ separated), `category`, `olpath` (`/` separated), `agenda_line`,
 `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM`; repeaters are strings like `+1w`. A
 projection selects and orders columns. The cursor's extras carry `total`, the
 match count before `limit`.
+
+Template queries return `key`, `name`, `is_default` (`1` or `0`),
+`title_prompt`, `prompts_json`, and `capture_uri`. `prompts_json` is an array
+of `{name,type,required}` objects. `capture_uri` opens the interactive capture
+dialog with that template selected. For headless filing, pass the returned
+`key` to `mova://create?template=<key>&title=...`; query parameters matching
+the prompt names fill custom template fields as described under `create`.
 
 `q` is a case-insensitive substring match over title, tags, state and
 category, with exact title matches first and title-prefix matches next. When
@@ -253,12 +261,12 @@ unlike `signature`, it works across signing keys, including the F-Droid build.
 requestPermissions(arrayOf("com.colonelpanic.mova.permission.READ_TODOS"), 1)
 
 contentResolver.query(
-  Uri.parse("content://com.colonelpanic.mova.provider/todos?q=bank"),
+  Uri.parse("content://com.colonelpanic.mova.provider/templates"),
   null, null, null, null,
 )?.use { cursor ->
   while (cursor.moveToNext()) {
-    val title = cursor.getString(cursor.getColumnIndexOrThrow("title"))
-    val openUri = cursor.getString(cursor.getColumnIndexOrThrow("open_uri"))
+    val key = cursor.getString(cursor.getColumnIndexOrThrow("key"))
+    val prompts = cursor.getString(cursor.getColumnIndexOrThrow("prompts_json"))
   }
 }
 ```
