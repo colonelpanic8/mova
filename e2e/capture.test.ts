@@ -11,10 +11,7 @@
  */
 
 import { by, device, element, expect, waitFor } from "detox";
-import {
-  navigateToTab,
-  setupTestWithLoginOnce,
-} from "./helpers/test-helpers";
+import { navigateToTab, setupTestWithLoginOnce } from "./helpers/test-helpers";
 
 // Helper function to navigate to capture screen
 async function navigateToCaptureScreen(): Promise<void> {

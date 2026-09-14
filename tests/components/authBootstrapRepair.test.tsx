@@ -45,6 +45,7 @@ jest.mock("../../utils/secretStore", () => ({
 
 jest.mock("../../widgets/storage", () => ({
   saveCredentialsToWidget: jest.fn().mockResolvedValue(undefined),
+  saveDefaultTemplateToWidget: jest.fn().mockResolvedValue(undefined),
   clearWidgetCredentials: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -140,6 +141,12 @@ describe("active-server repair on startup", () => {
     });
     const stored = JSON.parse(mockAsyncStore.get("mova_saved_servers")!);
     expect(stored[0].defaultCaptureTemplate).toBe("todo");
+    const { saveDefaultTemplateToWidget } = jest.requireMock(
+      "../../widgets/storage",
+    );
+    await waitFor(() => {
+      expect(saveDefaultTemplateToWidget).toHaveBeenCalledWith("todo");
+    });
   });
 
   it("stays authenticated when saved-server storage fails during repair", async () => {

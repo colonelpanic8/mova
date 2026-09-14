@@ -15,7 +15,8 @@ import { GetAllTodosResponse, Todo } from "@/services/api";
 import { filterTodos } from "@/utils/filterTodos";
 import { getTodoKey } from "@/utils/todoKey";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -34,6 +35,14 @@ import {
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
+  const params = useLocalSearchParams<{ q?: string }>();
+
+  useEffect(() => {
+    if (params.q === undefined) return;
+    setSearchQuery(params.q);
+    router.setParams({ q: undefined });
+  }, [params.q, router]);
 
   const api = useApi();
   const { apiUrl, username } = useAuth();

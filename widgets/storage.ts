@@ -15,6 +15,8 @@ export const STORAGE_KEYS = {
   API_URL: "mova_api_url",
   USERNAME: "mova_username",
   PASSWORD: "mova_password",
+  DEFAULT_TEMPLATE: "mova_default_template",
+  INTENTS_HEADLESS_WRITES: "mova_intents_headless_writes",
   // Legacy key for the removed JS pending-capture queue; still cleared on
   // logout so old installs don't retain stale captures.
   PENDING_TODOS: "mova_pending_todos",
@@ -67,6 +69,35 @@ export async function saveCredentialsToWidget(
   }
 }
 
+export async function saveDefaultTemplateToWidget(
+  key: string | null,
+): Promise<void> {
+  if (Platform.OS !== "android" || !SharedStorage) return;
+
+  try {
+    if (key) {
+      await SharedStorage.setItem(STORAGE_KEYS.DEFAULT_TEMPLATE, key);
+    } else {
+      await SharedStorage.removeItem(STORAGE_KEYS.DEFAULT_TEMPLATE);
+    }
+  } catch (error) {
+    console.error("[Widget] Failed to save default template:", error);
+  }
+}
+
+export async function saveIntentWritePolicy(allow: boolean): Promise<void> {
+  if (Platform.OS !== "android" || !SharedStorage) return;
+
+  try {
+    await SharedStorage.setItem(
+      STORAGE_KEYS.INTENTS_HEADLESS_WRITES,
+      allow ? "true" : "false",
+    );
+  } catch (error) {
+    console.error("[Widget] Failed to save intent write policy:", error);
+  }
+}
+
 /**
  * Clear credentials from SharedPreferences
  * Call this from the main app when user logs out
@@ -78,6 +109,7 @@ export async function clearWidgetCredentials(): Promise<void> {
     await SharedStorage.removeItem(STORAGE_KEYS.API_URL);
     await SharedStorage.removeItem(STORAGE_KEYS.USERNAME);
     await SharedStorage.removeItem(STORAGE_KEYS.PASSWORD);
+    await SharedStorage.removeItem(STORAGE_KEYS.DEFAULT_TEMPLATE);
     await SharedStorage.removeItem(STORAGE_KEYS.PENDING_TODOS);
   } catch (error) {
     console.error("[Widget] Failed to clear widget credentials:", error);

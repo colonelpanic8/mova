@@ -19,6 +19,15 @@ import { SnackbarProvider } from "../../context/SnackbarContext";
 import { buildServerIdentity, queryKeys } from "../../hooks/queryKeys";
 import { formatLocalDate } from "../../utils/dateFormatting";
 
+const mockSetParams = jest.fn();
+let mockSearchParams: { date?: string; span?: string } = {};
+const mockRouter = {
+  push: jest.fn(),
+  back: jest.fn(),
+  replace: jest.fn(),
+  setParams: mockSetParams,
+};
+
 // Import after mocks are set up
 import { useApi } from "../../context/ApiContext";
 import { useAuth } from "../../context/AuthContext";
@@ -79,12 +88,8 @@ jest.mock("../../context/SettingsContext", () => ({
   }),
 }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    back: jest.fn(),
-    replace: jest.fn(),
-  }),
-  useLocalSearchParams: () => ({}),
+  useRouter: () => mockRouter,
+  useLocalSearchParams: () => mockSearchParams,
   useSegments: () => [],
 }));
 
@@ -161,6 +166,7 @@ const mockAgendaResponse = {
 // Setup mocks
 beforeEach(async () => {
   jest.clearAllMocks();
+  mockSearchParams = {};
 
   // Mock useAuth
   (useAuth as jest.Mock).mockReturnValue({
@@ -547,6 +553,28 @@ describe("AgendaScreen", () => {
       expect.any(Boolean),
       expect.any(String), // endDate (same as startDate)
     );
+  });
+
+  it("honours date and span route parameters", async () => {
+    mockSearchParams = { date: "2024-06-19", span: "week" };
+
+    renderScreen(<AgendaScreen />);
+
+    await waitFor(() => {
+      expect(mockApi.getAgenda).toHaveBeenCalledWith(
+        "week",
+        "2024-06-19",
+        true,
+        expect.any(Boolean),
+        "2024-06-25",
+        expect.any(String),
+        "today",
+      );
+    });
+    expect(mockSetParams).toHaveBeenCalledWith({
+      date: undefined,
+      span: undefined,
+    });
   });
 
   it("should display the date header", async () => {

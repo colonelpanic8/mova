@@ -36,6 +36,9 @@ import {
   clearWidgetCredentials,
   getWidgetCredentials,
   saveCredentialsToWidget,
+  saveDefaultTemplateToWidget,
+  saveIntentWritePolicy,
+  STORAGE_KEYS,
   syncAssistantSettingsToWatch,
 } from "../../widgets/storage";
 
@@ -94,11 +97,29 @@ describe("widget credential storage", () => {
 
   it("clears stored credentials on logout", async () => {
     await saveCredentialsToWidget("https://org.example.com", "ivan", "hunter2");
+    await saveDefaultTemplateToWidget("inbox");
     await clearWidgetCredentials();
 
     const creds = await getWidgetCredentials();
     expect(creds).toEqual({ apiUrl: null, username: null, password: null });
+    expect(mockStore[STORAGE_KEYS.DEFAULT_TEMPLATE]).toBeUndefined();
     expect(mockClearCredentials).toHaveBeenCalled();
+  });
+
+  it("saves and removes the default capture template", async () => {
+    await saveDefaultTemplateToWidget("inbox");
+    expect(mockStore[STORAGE_KEYS.DEFAULT_TEMPLATE]).toBe("inbox");
+
+    await saveDefaultTemplateToWidget(null);
+    expect(mockStore[STORAGE_KEYS.DEFAULT_TEMPLATE]).toBeUndefined();
+  });
+
+  it("mirrors the headless intent write policy as a string", async () => {
+    await saveIntentWritePolicy(true);
+    expect(mockStore[STORAGE_KEYS.INTENTS_HEADLESS_WRITES]).toBe("true");
+
+    await saveIntentWritePolicy(false);
+    expect(mockStore[STORAGE_KEYS.INTENTS_HEADLESS_WRITES]).toBe("false");
   });
 
   it("syncs and clears OpenAI settings independently of org credentials", async () => {

@@ -10,6 +10,7 @@ const SERVER_EXTEND_TODAY_UNTIL_HOUR_KEY =
 const GROUP_BY_CATEGORY_KEY = "mova_group_by_category";
 const MULTIDAY_RANGE_LENGTH_KEY = "mova_multiday_range_length";
 const MULTIDAY_PAST_DAYS_KEY = "mova_multiday_past_days";
+const ALLOW_HEADLESS_INTENT_WRITES_KEY = "mova_allow_headless_intent_writes";
 
 export async function getQuickScheduleIncludeTime(): Promise<boolean> {
   const value = await AsyncStorage.getItem(QUICK_SCHEDULE_INCLUDE_TIME_KEY);
@@ -61,6 +62,20 @@ export async function setUseClientCompletionTime(
 ): Promise<void> {
   await AsyncStorage.setItem(
     USE_CLIENT_COMPLETION_TIME_KEY,
+    enabled ? "true" : "false",
+  );
+}
+
+export async function getAllowHeadlessIntentWrites(): Promise<boolean> {
+  const value = await AsyncStorage.getItem(ALLOW_HEADLESS_INTENT_WRITES_KEY);
+  return value === "true";
+}
+
+export async function setAllowHeadlessIntentWrites(
+  enabled: boolean,
+): Promise<void> {
+  await AsyncStorage.setItem(
+    ALLOW_HEADLESS_INTENT_WRITES_KEY,
     enabled ? "true" : "false",
   );
 }

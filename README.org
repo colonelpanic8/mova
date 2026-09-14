@@ -124,6 +124,17 @@ You need a running org-agenda-api instance for Mova to connect to. See the [[htt
   scheduled/deadline timestamps appear on cards, with two cards per row at
   wider sizes
 
+*** Intents API (Android)
+:PROPERTIES:
+:CUSTOM_ID: intents-api
+:END:
+- =mova://= links let any app or assistant create, complete, update, delete
+  and open todos, run a search, jump to a date, or open the capture dialogs
+- A read-only content provider exposes todo search and the agenda to apps
+  that hold the =READ_TODOS= runtime permission
+- Every action, parameter and value format is documented in
+  [[file:docs/intents.md][docs/intents.md]]
+
 *** Notifications
 :PROPERTIES:
 :CUSTOM_ID: notifications

@@ -23,6 +23,15 @@ import { MD3LightTheme, PaperProvider } from "react-native-paper";
 import { FilterProvider } from "../../context/FilterContext";
 import { SnackbarProvider } from "../../context/SnackbarContext";
 
+const mockSetParams = jest.fn();
+let mockSearchParams: { q?: string } = {};
+const mockRouter = {
+  push: jest.fn(),
+  back: jest.fn(),
+  replace: jest.fn(),
+  setParams: mockSetParams,
+};
+
 // Import after mocks are set up
 import { useApi } from "../../context/ApiContext";
 import { useAuth } from "../../context/AuthContext";
@@ -81,12 +90,8 @@ jest.mock("../../context/SettingsContext", () => ({
   }),
 }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    back: jest.fn(),
-    replace: jest.fn(),
-  }),
-  useLocalSearchParams: () => ({}),
+  useRouter: () => mockRouter,
+  useLocalSearchParams: () => mockSearchParams,
   useSegments: () => [],
 }));
 
@@ -153,6 +158,7 @@ const mockTodos = [
 // Setup mocks
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSearchParams = {};
 
   // Mock useAuth
   (useAuth as jest.Mock).mockReturnValue({
@@ -548,6 +554,22 @@ describe("SearchScreen Component", () => {
       expect(getByText("Buy groceries")).toBeTruthy();
       expect(queryByText("Review PR")).toBeNull();
     });
+  });
+
+  it("seeds the search box from the q route parameter", async () => {
+    mockSearchParams = { q: "Review" };
+
+    const { getByPlaceholderText, queryByText } = renderScreen(
+      <SearchScreen />,
+    );
+
+    await waitFor(() => {
+      expect(getByPlaceholderText("Search todos...").props.value).toBe(
+        "Review",
+      );
+      expect(queryByText("Buy groceries")).toBeNull();
+    });
+    expect(mockSetParams).toHaveBeenCalledWith({ q: undefined });
   });
 
   it("should show empty state when no matches", async () => {

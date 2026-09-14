@@ -83,6 +83,8 @@ export default function SettingsScreen() {
     updateServer,
   } = useAuth();
   const {
+    allowHeadlessIntentWrites,
+    setAllowHeadlessIntentWrites,
     quickScheduleIncludeTime,
     setQuickScheduleIncludeTime,
     showHabitsInAgenda,
@@ -684,6 +686,24 @@ export default function SettingsScreen() {
             />
           </>
         )}
+      </List.Section>
+
+      <Divider />
+
+      <List.Section>
+        <List.Subheader>Other apps</List.Subheader>
+        <List.Item
+          title="Let other apps change todos without confirming"
+          description="When off, todos created, completed or updated through mova:// intents show a confirmation first. Deleting always confirms."
+          left={(props) => <List.Icon {...props} icon="application-braces" />}
+          right={() => (
+            <Switch
+              testID="headlessIntentWritesSwitch"
+              value={allowHeadlessIntentWrites}
+              onValueChange={setAllowHeadlessIntentWrites}
+            />
+          )}
+        />
       </List.Section>
 
       <Divider />

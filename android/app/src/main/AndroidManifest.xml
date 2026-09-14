@@ -4,6 +4,11 @@
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.WAKE_LOCK"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  <permission
+      android:name="com.colonelpanic.mova.permission.READ_TODOS"
+      android:protectionLevel="dangerous"
+      android:label="@string/permission_read_todos_label"
+      android:description="@string/permission_read_todos_description"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -82,6 +87,31 @@
         <data android:scheme="mova" android:host="capture-voice"/>
       </intent-filter>
     </activity>
+    <activity
+        android:name=".intents.IntentActivity"
+        android:exported="true"
+        android:theme="@style/Theme.Intent"
+        android:excludeFromRecents="true"
+        android:noHistory="true"
+        android:taskAffinity="">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="mova"/>
+        <data android:host="create"/>
+        <data android:host="complete"/>
+        <data android:host="update"/>
+        <data android:host="reschedule"/>
+        <data android:host="delete"/>
+        <data android:host="refresh"/>
+      </intent-filter>
+    </activity>
+    <provider
+        android:name=".intents.TodoProvider"
+        android:authorities="com.colonelpanic.mova.provider"
+        android:exported="true"
+        android:permission="com.colonelpanic.mova.permission.READ_TODOS"/>
     <activity-alias
         android:name=".QuickCaptureLauncherActivity"
         android:targetActivity=".QuickCaptureActivity"

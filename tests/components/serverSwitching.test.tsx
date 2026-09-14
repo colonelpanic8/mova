@@ -17,6 +17,7 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
 
 jest.mock("../../widgets/storage", () => ({
   saveCredentialsToWidget: jest.fn().mockResolvedValue(undefined),
+  saveDefaultTemplateToWidget: jest.fn().mockResolvedValue(undefined),
   clearWidgetCredentials: jest.fn().mockResolvedValue(undefined),
 }));
 

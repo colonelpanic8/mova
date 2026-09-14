@@ -73,6 +73,13 @@ class QuickCaptureActivity : AppCompatActivity() {
             templateName = prefs.getString("widget_${widgetId}_template_name", "Quick Capture") ?: "Quick Capture"
         }
 
+        // An explicit template on the link (mova://capture?template=) wins over the widget's
+        val requestedTemplate = intent?.data?.getQueryParameter("template")?.trim()
+        if (!requestedTemplate.isNullOrEmpty()) {
+            templateKey = requestedTemplate
+            templateName = requestedTemplate
+        }
+
         // Update title
         titleText.text = templateName
 
@@ -83,11 +90,12 @@ class QuickCaptureActivity : AppCompatActivity() {
             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
         )
 
-        // Handle text from App Actions (Google Assistant)
-        val assistantText = intent?.getStringExtra("text")
-        if (!assistantText.isNullOrBlank()) {
-            editText.setText(assistantText)
-            editText.setSelection(assistantText.length)
+        // Prefill from App Actions (Google Assistant) or mova://capture?title=
+        val prefill = intent?.getStringExtra("text")?.takeIf { it.isNotBlank() }
+            ?: intent?.data?.getQueryParameter("title")?.takeIf { it.isNotBlank() }
+        if (prefill != null) {
+            editText.setText(prefill)
+            editText.setSelection(prefill.length)
         }
 
         submitButton.setOnClickListener {
