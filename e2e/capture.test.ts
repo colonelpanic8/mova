@@ -11,7 +11,7 @@
  */
 
 import { by, device, element, expect, waitFor } from "detox";
-import { setupTestWithLoginOnce } from "./helpers/test-helpers";
+import { navigateToTab, setupTestWithLoginOnce } from "./helpers/test-helpers";
 
 // Helper function to navigate to capture screen
 async function navigateToCaptureScreen(): Promise<void> {
@@ -29,10 +29,7 @@ async function navigateToCaptureScreen(): Promise<void> {
       // Need to navigate
     }
 
-    // Tap on Capture tab using label
-    await element(by.label(/Capture/))
-      .atIndex(0)
-      .tap();
+    await navigateToTab("Capture");
     await waitFor(element(by.id("captureScreen")))
       .toBeVisible()
       .withTimeout(10000);

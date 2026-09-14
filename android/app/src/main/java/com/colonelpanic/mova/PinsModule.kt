@@ -105,6 +105,11 @@ class PinsModule(
   /** Pushes the preset list (a JSON array string) to the watch. */
   @ReactMethod
   fun syncPresets(presetsJson: String, promise: Promise) {
+    if (!WearableAvailability.isAvailable(reactContext)) {
+      promise.resolve(null)
+      return
+    }
+
     val request = PutDataMapRequest.create(PIN_PRESETS_PATH).apply {
       dataMap.putString("presets", presetsJson)
       dataMap.putLong("updatedAt", System.currentTimeMillis())

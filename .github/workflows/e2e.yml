@@ -45,6 +45,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Google no longer serves the legacy 'tools' package the action requests by default.
+          packages: platform-tools
 
       - name: Install Nix
         uses: cachix/install-nix-action@v27

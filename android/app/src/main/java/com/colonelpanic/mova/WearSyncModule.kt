@@ -25,6 +25,8 @@ class WearSyncModule(
     customViewName: String,
     promise: Promise,
   ) {
+    if (!continueIfAvailable(promise)) return
+
     val request = PutDataMapRequest.create(CONFIG_PATH).apply {
       dataMap.putBoolean("configured", true)
       dataMap.putString("apiUrl", apiUrl)
@@ -45,6 +47,8 @@ class WearSyncModule(
 
   @ReactMethod
   fun clearCredentials(promise: Promise) {
+    if (!continueIfAvailable(promise)) return
+
     val request = PutDataMapRequest.create(CONFIG_PATH).apply {
       dataMap.putBoolean("configured", false)
       dataMap.putLong("updatedAt", System.currentTimeMillis())
@@ -64,6 +68,8 @@ class WearSyncModule(
     model: String,
     promise: Promise,
   ) {
+    if (!continueIfAvailable(promise)) return
+
     val request = PutDataMapRequest.create(ASSISTANT_CONFIG_PATH).apply {
       dataMap.putBoolean("configured", true)
       dataMap.putString("apiKey", apiKey)
@@ -81,6 +87,8 @@ class WearSyncModule(
 
   @ReactMethod
   fun clearAssistantSettings(promise: Promise) {
+    if (!continueIfAvailable(promise)) return
+
     val request = PutDataMapRequest.create(ASSISTANT_CONFIG_PATH).apply {
       dataMap.putBoolean("configured", false)
       dataMap.putLong("updatedAt", System.currentTimeMillis())
@@ -92,5 +100,11 @@ class WearSyncModule(
       .addOnFailureListener { error ->
         promise.reject("WEAR_ASSISTANT_SYNC_FAILED", error)
       }
+  }
+
+  private fun continueIfAvailable(promise: Promise): Boolean {
+    if (WearableAvailability.isAvailable(reactContext)) return true
+    promise.resolve(null)
+    return false
   }
 }
