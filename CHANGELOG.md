@@ -1,5 +1,9 @@
 # Changelog
 
+## [7.0.1]
+
+- feat(intents): let authorized apps discover capture template keys and prompt schemas through the read-only content provider, then file with a selected template through `mova://create`
+
 ## [7.0.0]
 
 - feat(intents): add a documented `mova://` API for creating, completing, updating, rescheduling, deleting, opening, searching, and refreshing todos and agendas

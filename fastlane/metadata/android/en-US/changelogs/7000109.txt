@@ -1,0 +1,1 @@
+* feat(intents): let authorized apps discover capture template keys and prompt schemas through the read-only content provider, then file with a selected template through `mova://create`
