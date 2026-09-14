@@ -18,6 +18,7 @@ import { normalizeUrl } from "@/utils/url";
 import {
   clearWidgetCredentials,
   saveCredentialsToWidget,
+  saveDefaultTemplateToWidget,
 } from "@/widgets/storage";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -102,6 +103,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [activeServerId, setActiveServerIdState] = useState<string | null>(
     null,
   );
+  const activeServer = useMemo(
+    () => savedServers.find((server) => server.id === activeServerId),
+    [activeServerId, savedServers],
+  );
+
+  useEffect(() => {
+    if (state.isLoading) return;
+    void saveDefaultTemplateToWidget(
+      state.isAuthenticated
+        ? (activeServer?.defaultCaptureTemplate ?? null)
+        : null,
+    );
+  }, [
+    activeServer?.defaultCaptureTemplate,
+    activeServer?.id,
+    state.apiUrl,
+    state.isAuthenticated,
+    state.isLoading,
+    state.password,
+    state.username,
+  ]);
 
   const refreshSavedServers = useCallback(async () => {
     const servers = await getSavedServers();

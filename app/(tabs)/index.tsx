@@ -38,6 +38,7 @@ import {
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Platform,
@@ -65,6 +66,8 @@ export default function AgendaScreen() {
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
     new Set(),
   );
+  const router = useRouter();
+  const params = useLocalSearchParams<{ date?: string; span?: string }>();
   const theme = useTheme();
   const { filters } = useFilters();
   const { groupByCategory, multiDayRangeLength, multiDayPastDays } =
@@ -72,6 +75,27 @@ export default function AgendaScreen() {
   const { getCategoryColor } = useColorPalette();
   const { width } = useWindowDimensions();
   const useCompactDate = width < 400;
+
+  useEffect(() => {
+    if (params.date === undefined && params.span === undefined) return;
+
+    if (params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date)) {
+      const date = new Date(`${params.date}T00:00:00`);
+      if (
+        !Number.isNaN(date.getTime()) &&
+        formatDateForApi(date) === params.date
+      ) {
+        setSelectedDate(date);
+      }
+    }
+    if (params.span === "week") {
+      setViewMode("multiday");
+    } else if (params.span === "day") {
+      setViewMode("list");
+    }
+
+    router.setParams({ date: undefined, span: undefined });
+  }, [params.date, params.span, router]);
 
   // Server state: the agenda view plus its supporting lookups. All of it is
   // cached per server identity and persisted for offline launches.

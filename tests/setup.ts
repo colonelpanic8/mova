@@ -3,6 +3,8 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
 );
 
+global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+
 // Mock expo-notifications
 jest.mock("expo-notifications", () => ({
   setNotificationHandler: jest.fn(),
@@ -28,6 +30,8 @@ jest.mock("expo-linking", () => ({
 // Mock widgets storage
 jest.mock("../widgets/storage", () => ({
   saveCredentialsToWidget: jest.fn(),
+  saveDefaultTemplateToWidget: jest.fn(),
+  saveIntentWritePolicy: jest.fn(),
   clearWidgetCredentials: jest.fn(),
   getWidgetCredentials: jest.fn().mockResolvedValue({
     apiUrl: null,

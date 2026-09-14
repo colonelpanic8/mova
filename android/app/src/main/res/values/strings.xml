@@ -16,4 +16,6 @@
   <string name="pin_action_done">Done</string>
   <string name="pin_action_snooze_short">+5 min</string>
   <string name="pin_action_snooze_long">+30 min</string>
+  <string name="permission_read_todos_label">Read your Mova todos and agenda</string>
+  <string name="permission_read_todos_description">Allows the app to read the todos and agenda of the org server you are logged into in Mova. It cannot change them.</string>
 </resources>

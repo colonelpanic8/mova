@@ -37,6 +37,9 @@ class VoiceQuickCaptureActivity : AppCompatActivity() {
             templateKey = prefs.getString("widget_${widgetId}_template_key", "__quick_capture__")
                 ?: "__quick_capture__"
         }
+        intent?.data?.getQueryParameter("template")?.trim()?.takeIf { it.isNotEmpty() }?.let {
+            templateKey = it
+        }
 
         // Only launch the recognizer on the initial creation, not after a
         // configuration change that re-delivers the result.
