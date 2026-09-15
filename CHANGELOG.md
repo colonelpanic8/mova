@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.1.0]
+
+- feat(intents): expose window-habit identity, query-date completion, current-day requirement, and the full structured habit summary through the read-only content provider
+- feat(intents): execute native create, complete, update, reschedule, delete, and refresh actions immediately so trusted automation can run unattended
+
 ## [7.0.1]
 
 - feat(intents): let authorized apps discover capture template keys and prompt schemas through the read-only content provider, then file with a selected template through `mova://create`
