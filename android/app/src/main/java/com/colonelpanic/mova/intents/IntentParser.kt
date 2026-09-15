@@ -31,7 +31,6 @@ object IntentParser {
                 state = p.first("state")?.trim()?.takeIf { it.isNotEmpty() } ?: "DONE",
                 overrideDate = p.first("date")?.trim()?.takeIf { it.isNotEmpty() }?.also { validateDate(it) },
                 strict = p.flag("strict"),
-                confirm = p.flag("confirm"),
             )
             HOST_UPDATE, HOST_RESCHEDULE -> {
                 val fields = parseFields(p, allowClear = true)
@@ -46,7 +45,6 @@ object IntentParser {
                     newTitle = newTitle,
                     fields = fields,
                     strict = p.flag("strict"),
-                    confirm = p.flag("confirm"),
                 )
             }
             HOST_DELETE -> {
@@ -69,7 +67,6 @@ object IntentParser {
             template = p.first("template")?.trim()?.takeIf { it.isNotEmpty() },
             fields = parseFields(p, allowClear = false),
             extras = extras,
-            confirm = p.flag("confirm"),
         )
     }
 

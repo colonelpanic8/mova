@@ -110,11 +110,8 @@ sealed class Patch<out T> {
 }
 
 sealed class IntentRequest {
-    /** Human-readable summary shown by the confirmation dialog. */
+    /** Human-readable summary of the request. */
     abstract fun describe(): String
-
-    /** Whether the caller asked for a confirmation regardless of the app setting. */
-    open val confirm: Boolean get() = false
 
     data class Create(
         val title: String,
@@ -122,7 +119,6 @@ sealed class IntentRequest {
         val fields: TodoFields,
         /** Query params not recognised as intent fields, matched to template prompts by name. */
         val extras: Map<String, String>,
-        override val confirm: Boolean,
     ) : IntentRequest() {
         override fun describe(): String = buildString {
             append("Create \"$title\"")
@@ -136,7 +132,6 @@ sealed class IntentRequest {
         val state: String,
         val overrideDate: String?,
         val strict: Boolean,
-        override val confirm: Boolean,
     ) : IntentRequest() {
         override fun describe(): String = buildString {
             append("Mark \"${ref.describe()}\" as $state")
@@ -149,7 +144,6 @@ sealed class IntentRequest {
         val newTitle: String?,
         val fields: TodoFields,
         val strict: Boolean,
-        override val confirm: Boolean,
     ) : IntentRequest() {
         override fun describe(): String = buildString {
             append("Update \"${ref.describe()}\"")
@@ -169,7 +163,6 @@ sealed class IntentRequest {
     }
 
     data class Delete(val ref: TodoRef) : IntentRequest() {
-        override val confirm: Boolean get() = true
         override fun describe(): String =
             "Delete \"${ref.describe()}\" permanently, including any sub-headings"
     }

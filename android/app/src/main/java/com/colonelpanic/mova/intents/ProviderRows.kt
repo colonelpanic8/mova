@@ -23,12 +23,18 @@ object ProviderRows {
     const val COL_DATE_RELEVANCE = "date_relevance"
     const val COL_COMPLETED_AT = "completed_at"
     const val COL_OPEN_URI = "open_uri"
+    const val COL_IS_WINDOW_HABIT = "is_window_habit"
+    const val COL_HABIT_COMPLETED_ON_QUERY_DATE = "habit_completed_on_query_date"
+    const val COL_HABIT_COMPLETION_NEEDED_TODAY = "habit_completion_needed_today"
+    const val COL_HABIT_SUMMARY_JSON = "habit_summary_json"
 
     val ALL_COLUMNS = arrayOf(
         COL_ID, COL_FILE, COL_POS, COL_TITLE, COL_STATE, COL_PRIORITY,
         COL_SCHEDULED, COL_SCHEDULED_REPEATER, COL_DEADLINE, COL_DEADLINE_REPEATER,
         COL_TAGS, COL_CATEGORY, COL_OLPATH, COL_AGENDA_LINE, COL_DATE_RELEVANCE,
         COL_COMPLETED_AT, COL_OPEN_URI,
+        COL_IS_WINDOW_HABIT, COL_HABIT_COMPLETED_ON_QUERY_DATE,
+        COL_HABIT_COMPLETION_NEEDED_TODAY, COL_HABIT_SUMMARY_JSON,
     )
 
     fun row(todo: JSONObject, columns: Array<String>): Array<Any?> = columns.map { column ->
@@ -50,6 +56,11 @@ object ProviderRows {
             COL_DATE_RELEVANCE -> string(todo, "dateRelevance")
             COL_COMPLETED_AT -> string(todo, "completedAt")
             COL_OPEN_URI -> openUri(todo)
+            COL_IS_WINDOW_HABIT -> boolean(todo, "isWindowHabit") ?: 0
+            COL_HABIT_COMPLETED_ON_QUERY_DATE -> boolean(todo, "habitCompletedOnQueryDate")
+            COL_HABIT_COMPLETION_NEEDED_TODAY ->
+                todo.optJSONObject("habitSummary")?.let { boolean(it, "completionNeededToday") }
+            COL_HABIT_SUMMARY_JSON -> todo.optJSONObject("habitSummary")?.toString()
             else -> null
         }
     }.toTypedArray()
@@ -70,6 +81,12 @@ object ProviderRows {
 
     private fun string(json: JSONObject, key: String): String? =
         if (json.isNull(key)) null else json.optString(key).takeIf { it.isNotEmpty() }
+
+    private fun boolean(json: JSONObject, key: String): Int? = when (json.opt(key)) {
+        true -> 1
+        false -> 0
+        else -> null
+    }
 
     private fun strings(array: JSONArray?): List<String>? =
         array?.let { arr -> (0 until arr.length()).mapNotNull { arr.optString(it).takeIf { s -> s.isNotEmpty() } } }

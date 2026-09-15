@@ -1,5 +1,4 @@
 import {
-  getAllowHeadlessIntentWrites,
   getDefaultDoneState,
   getExtendTodayUntilHour,
   getGroupByCategory,
@@ -9,7 +8,6 @@ import {
   getServerExtendTodayUntilHour,
   getShowHabitsInAgenda,
   getUseClientCompletionTime,
-  setAllowHeadlessIntentWrites as saveAllowHeadlessIntentWrites,
   setDefaultDoneState as saveDefaultDoneState,
   setExtendTodayUntilHour as saveExtendTodayUntilHour,
   setGroupByCategory as saveGroupByCategory,
@@ -20,7 +18,6 @@ import {
   setUseClientCompletionTime as saveUseClientCompletionTime,
   subscribeToServerExtendTodayUntilHour,
 } from "@/services/settings";
-import { saveIntentWritePolicy } from "@/widgets/storage";
 import {
   createContext,
   ReactNode,
@@ -32,8 +29,6 @@ import {
 } from "react";
 
 interface SettingsContextType {
-  allowHeadlessIntentWrites: boolean;
-  setAllowHeadlessIntentWrites: (value: boolean) => Promise<void>;
   quickScheduleIncludeTime: boolean;
   setQuickScheduleIncludeTime: (value: boolean) => Promise<void>;
   showHabitsInAgenda: boolean;
@@ -67,8 +62,6 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 );
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [allowHeadlessIntentWrites, setAllowHeadlessIntentWritesState] =
-    useState(false);
   const [quickScheduleIncludeTime, setQuickScheduleIncludeTimeState] =
     useState(false);
   const [showHabitsInAgenda, setShowHabitsInAgendaState] = useState(false);
@@ -88,7 +81,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     Promise.all([
-      getAllowHeadlessIntentWrites(),
       getQuickScheduleIncludeTime(),
       getShowHabitsInAgenda(),
       getDefaultDoneState(),
@@ -99,8 +91,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       getMultiDayRangeLength(),
       getMultiDayPastDays(),
     ]).then(
-      async ([
-        allowHeadlessIntentWritesValue,
+      ([
         quickScheduleValue,
         showHabitsValue,
         defaultDoneValue,
@@ -111,7 +102,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         multiDayRangeLengthValue,
         multiDayPastDaysValue,
       ]) => {
-        setAllowHeadlessIntentWritesState(allowHeadlessIntentWritesValue);
         setQuickScheduleIncludeTimeState(quickScheduleValue);
         setShowHabitsInAgendaState(showHabitsValue);
         setDefaultDoneStateState(defaultDoneValue);
@@ -121,18 +111,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setGroupByCategoryState(groupByCategoryValue);
         setMultiDayRangeLengthState(multiDayRangeLengthValue);
         setMultiDayPastDaysState(multiDayPastDaysValue);
-        await saveIntentWritePolicy(allowHeadlessIntentWritesValue);
         setIsLoading(false);
       },
     );
-  }, []);
-
-  const setAllowHeadlessIntentWrites = useCallback(async (value: boolean) => {
-    setAllowHeadlessIntentWritesState(value);
-    await Promise.all([
-      saveAllowHeadlessIntentWrites(value),
-      saveIntentWritePolicy(value),
-    ]);
   }, []);
 
   const setQuickScheduleIncludeTime = useCallback(async (value: boolean) => {
@@ -199,8 +180,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<SettingsContextType>(
     () => ({
-      allowHeadlessIntentWrites,
-      setAllowHeadlessIntentWrites,
       quickScheduleIncludeTime,
       setQuickScheduleIncludeTime,
       showHabitsInAgenda,
@@ -223,8 +202,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       isLoading,
     }),
     [
-      allowHeadlessIntentWrites,
-      setAllowHeadlessIntentWrites,
       quickScheduleIncludeTime,
       setQuickScheduleIncludeTime,
       showHabitsInAgenda,

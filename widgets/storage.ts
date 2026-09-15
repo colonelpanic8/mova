@@ -16,7 +16,6 @@ export const STORAGE_KEYS = {
   USERNAME: "mova_username",
   PASSWORD: "mova_password",
   DEFAULT_TEMPLATE: "mova_default_template",
-  INTENTS_HEADLESS_WRITES: "mova_intents_headless_writes",
   // Legacy key for the removed JS pending-capture queue; still cleared on
   // logout so old installs don't retain stale captures.
   PENDING_TODOS: "mova_pending_todos",
@@ -82,19 +81,6 @@ export async function saveDefaultTemplateToWidget(
     }
   } catch (error) {
     console.error("[Widget] Failed to save default template:", error);
-  }
-}
-
-export async function saveIntentWritePolicy(allow: boolean): Promise<void> {
-  if (Platform.OS !== "android" || !SharedStorage) return;
-
-  try {
-    await SharedStorage.setItem(
-      STORAGE_KEYS.INTENTS_HEADLESS_WRITES,
-      allow ? "true" : "false",
-    );
-  } catch (error) {
-    console.error("[Widget] Failed to save intent write policy:", error);
   }
 }
 

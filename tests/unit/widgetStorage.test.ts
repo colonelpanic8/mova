@@ -37,7 +37,6 @@ import {
   getWidgetCredentials,
   saveCredentialsToWidget,
   saveDefaultTemplateToWidget,
-  saveIntentWritePolicy,
   STORAGE_KEYS,
   syncAssistantSettingsToWatch,
 } from "../../widgets/storage";
@@ -112,14 +111,6 @@ describe("widget credential storage", () => {
 
     await saveDefaultTemplateToWidget(null);
     expect(mockStore[STORAGE_KEYS.DEFAULT_TEMPLATE]).toBeUndefined();
-  });
-
-  it("mirrors the headless intent write policy as a string", async () => {
-    await saveIntentWritePolicy(true);
-    expect(mockStore[STORAGE_KEYS.INTENTS_HEADLESS_WRITES]).toBe("true");
-
-    await saveIntentWritePolicy(false);
-    expect(mockStore[STORAGE_KEYS.INTENTS_HEADLESS_WRITES]).toBe("false");
   });
 
   it("syncs and clears OpenAI settings independently of org credentials", async () => {

@@ -23,41 +23,30 @@ URL encoder does this for you.
 
 ## Actions
 
-| Host            | What it does                                     | Runs      | Confirmation                  |
-| --------------- | ------------------------------------------------ | --------- | ----------------------------- |
-| `create`        | Create a todo through a capture template         | native    | unless headless writes are on |
-| `complete`      | Set a todo's state, `DONE` by default            | native    | unless headless writes are on |
-| `update`        | Change title, dates, priority, tags, state, body | native    | unless headless writes are on |
-| `reschedule`    | Alias of `update`                                | native    | unless headless writes are on |
-| `delete`        | Delete a todo and its sub-headings               | native    | always                        |
-| `refresh`       | Drop caches, optionally git-pull on the server   | native    | never                         |
-| `open`          | Open a todo's edit screen                        | app       |                               |
-| `search`        | Open the search tab with a query                 | app       |                               |
-| `agenda`        | Open the agenda on a date                        | app       |                               |
-| `capture`       | Typing dialog, optionally prefilled              | native UI |                               |
-| `capture-voice` | Speech recognizer, then capture                  | native UI |                               |
+| Host            | What it does                                     | Runs      |
+| --------------- | ------------------------------------------------ | --------- |
+| `create`        | Create a todo through a capture template         | native    |
+| `complete`      | Set a todo's state, `DONE` by default            | native    |
+| `update`        | Change title, dates, priority, tags, state, body | native    |
+| `reschedule`    | Alias of `update`                                | native    |
+| `delete`        | Delete a todo and its sub-headings               | native    |
+| `refresh`       | Drop caches, optionally git-pull on the server   | native    |
+| `open`          | Open a todo's edit screen                        | app       |
+| `search`        | Open the search tab with a query                 | app       |
+| `agenda`        | Open the agenda on a date                        | app       |
+| `capture`       | Typing dialog, optionally prefilled              | native UI |
+| `capture-voice` | Speech recognizer, then capture                  | native UI |
 
 "Native" actions run in a small invisible activity written in Kotlin with the
 credentials the app stored for the active server. They never start the React
 Native app, work from the lock screen, and finish with a toast. "App" actions
 open mova and navigate.
 
-### Consent for writes
+### Autonomous writes
 
-By default every write from an intent shows a native confirmation sheet that
-describes the pending change, with Confirm and Cancel. The setting **Settings
-→ Other apps → Let other apps change todos without confirming** turns that
-off for `create`, `complete`, `update` and `reschedule`. `delete` always
-confirms. A caller can force the sheet for any write with `confirm=true`.
-
-The setting exists because Android does not tell an activity who launched it
-in a trustworthy way. `getCallingPackage()` is only set for
-`startActivityForResult`, and `EXTRA_REFERRER` is caller-supplied, so mova
-cannot distinguish your assistant from any other installed app. The intended
-upgrade is a per-caller `dangerous` permission for headless writes, mirroring
-`READ_TODOS` below: a consumer would request it once, the user would grant it
-in a system dialog, and only granted apps would bypass the sheet. Until then
-the setting is global.
+All native actions execute immediately without a confirmation sheet so an
+automation or assistant can complete the workflow unattended. The legacy
+`confirm` query parameter is accepted but ignored.
 
 ### Shared parameters and formats
 
@@ -75,7 +64,6 @@ Parameter names match the server's field names.
 | `tags`      | Comma separated, or the parameter repeated                                                                                                                                  |
 | `state`     | A TODO keyword, sent verbatim                                                                                                                                               |
 | `strict`    | `true` to forbid the server's fallback lookups (`complete`, `update`)                                                                                                       |
-| `confirm`   | `true` to show the confirmation sheet regardless of the setting                                                                                                             |
 
 A todo reference is `id`, else `file` and `pos`, with `title` as an optional
 disambiguator. `complete` and `update` also accept `title` alone, because the
@@ -115,6 +103,7 @@ mova://complete?id=1f2e3d&state=DONE&date=2026-09-13
 ```
 
 - `state` defaults to `DONE`. `date` (`YYYY-MM-DD`) backdates the completion.
+- Completion executes immediately without a confirmation sheet.
 - Success toast: `Completed: <title>`. Result extras: `status`, `title`.
 
 ### `update` and `reschedule`
@@ -138,8 +127,7 @@ mova://update?id=1f2e3d&new_title=Call%20the%20bank&priority=B&tags=phone&state=
 mova://delete?id=1f2e3d
 ```
 
-Always shows the confirmation sheet naming the todo. Deletes with
-`include_children=true`. Success toast: `Deleted: <title>`.
+Deletes with `include_children=true`. Success toast: `Deleted: <title>`.
 
 ### `refresh`
 
@@ -220,10 +208,23 @@ deletes throw.
 Columns: `id`, `file`, `pos`, `title`, `state`, `priority`, `scheduled`,
 `scheduled_repeater`, `deadline`, `deadline_repeater`, `tags` (comma
 separated), `category`, `olpath` (`/` separated), `agenda_line`,
-`date_relevance`, `completed_at`, `open_uri`. Timestamps are
-`YYYY-MM-DD` or `YYYY-MM-DDTHH:MM`; repeaters are strings like `+1w`. A
-projection selects and orders columns. The cursor's extras carry `total`, the
-match count before `limit`.
+`date_relevance`, `completed_at`, `open_uri`, `is_window_habit`,
+`habit_completed_on_query_date`, `habit_completion_needed_today`, and
+`habit_summary_json`. Timestamps are `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM`;
+repeaters are strings like `+1w`. A projection selects and orders columns. The
+cursor's extras carry `total`, the match count before `limit`.
+
+Habit booleans are integers (`1` or `0`). `is_window_habit` is always present
+and defaults to `0`; the other two boolean columns are null when the backing
+endpoint did not supply that status. On `/agenda`,
+`habit_completed_on_query_date` refers to the requested `date`, while a
+required, outstanding habit has `date_relevance` set to `habit_required`.
+`habit_completion_needed_today` retains the server field's current-day
+meaning and must not be treated as historical-date status.
+`habit_summary_json` is null for non-habits or unavailable summaries; otherwise
+it contains the complete `habitSummary` object, including ratios,
+`completionNeededToday`, `nextRequiredInterval`, window status, and
+`miniGraph`. Consumers should tolerate additional object fields.
 
 Template queries return `key`, `name`, `is_default` (`1` or `0`),
 `title_prompt`, `prompts_json`, and `capture_uri`. `prompts_json` is an array

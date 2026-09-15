@@ -21,7 +21,7 @@ class CaptureMapperTest {
         title: String,
         fields: TodoFields = TodoFields(),
         extras: Map<String, String> = emptyMap(),
-    ) = IntentRequest.Create(title, "capture-c", fields, extras, confirm = false)
+    ) = IntentRequest.Create(title, "capture-c", fields, extras)
 
     @Test
     fun titleGoesToFirstRequiredStringPrompt() {

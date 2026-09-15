@@ -35,7 +35,6 @@ class MovaClient(private val apiUrl: String, private val username: String, priva
         const val PREF_USERNAME = "mova_username"
         const val PREF_PASSWORD = "mova_password"
         const val PREF_DEFAULT_TEMPLATE = "mova_default_template"
-        const val PREF_HEADLESS_WRITES = "mova_intents_headless_writes"
         const val NOT_LOGGED_IN = "Log in to Mova first"
 
         fun fromPrefs(context: Context): MovaClient? {
@@ -49,9 +48,6 @@ class MovaClient(private val apiUrl: String, private val username: String, priva
         fun defaultTemplate(context: Context): String =
             MovaSharedPrefs.get(context).getString(PREF_DEFAULT_TEMPLATE, null)
                 ?.takeIf { it.isNotEmpty() } ?: "default"
-
-        fun headlessWritesAllowed(context: Context): Boolean =
-            MovaSharedPrefs.get(context).getString(PREF_HEADLESS_WRITES, null) == "true"
     }
 
     fun getTemplates(): ApiResult<Map<String, TemplateInfo>> =

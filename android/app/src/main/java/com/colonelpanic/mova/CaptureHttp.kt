@@ -44,7 +44,6 @@ object CaptureHttp {
             template = templateKey,
             fields = TodoFields(),
             extras = emptyMap(),
-            confirm = false,
         )
         val values: JSONObject = CaptureMapper.buildValues(template, request)
         return when (val result = client.capture(templateKey, values)) {

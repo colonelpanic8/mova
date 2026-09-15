@@ -54,7 +54,6 @@ class IntentParserTest {
         assertEquals("NEXT", (request.fields.state as Patch.Set).value)
         assertEquals("Whole milk", (request.fields.body as Patch.Set).value)
         assertEquals(mapOf("Project" to "groceries"), request.extras)
-        assertTrue(request.confirm)
     }
 
     @Test
@@ -66,7 +65,6 @@ class IntentParserTest {
         assertNull(request.fields.scheduled)
         assertNull(request.fields.tags)
         assertNull(request.template)
-        assertFalse(request.confirm)
     }
 
     @Test
@@ -76,7 +74,10 @@ class IntentParserTest {
 
     @Test
     fun completeDefaultsToDoneAndAcceptsTitleOnlyReference() {
-        val request = IntentParser.parse("complete", params("title" to "Buy milk")) as IntentRequest.Complete
+        val request = IntentParser.parse(
+            "complete",
+            params("title" to "Buy milk", "confirm" to "true"),
+        ) as IntentRequest.Complete
         assertEquals("DONE", request.state)
         assertEquals(TodoRef(title = "Buy milk"), request.ref)
         assertFalse(request.strict)
@@ -142,10 +143,9 @@ class IntentParserTest {
     }
 
     @Test
-    fun deleteNeedsPreciseReferenceAndAlwaysConfirms() {
+    fun deleteNeedsPreciseReference() {
         assertTrue(parseError("delete", "title" to "Buy milk").contains("id, or file and pos"))
         val request = IntentParser.parse("delete", params("id" to "abc")) as IntentRequest.Delete
-        assertTrue(request.confirm)
         assertEquals(TodoRef(id = "abc"), request.ref)
     }
 

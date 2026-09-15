@@ -31,7 +31,6 @@ jest.mock("expo-linking", () => ({
 jest.mock("../widgets/storage", () => ({
   saveCredentialsToWidget: jest.fn(),
   saveDefaultTemplateToWidget: jest.fn(),
-  saveIntentWritePolicy: jest.fn(),
   clearWidgetCredentials: jest.fn(),
   getWidgetCredentials: jest.fn().mockResolvedValue({
     apiUrl: null,

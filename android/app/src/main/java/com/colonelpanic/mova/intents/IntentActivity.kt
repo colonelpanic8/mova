@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.colonelpanic.mova.ApiResult
 import com.colonelpanic.mova.MovaClient
@@ -19,9 +18,8 @@ import org.json.JSONObject
 /**
  * Invisible dispatcher for the mutating `mova://` hosts (create, complete,
  * update, reschedule, delete, refresh). Runs the request against the server
- * natively, shows a confirmation first unless the app setting allows headless
- * writes, toasts the outcome, and reports it to `startActivityForResult`
- * callers through [setResult].
+ * natively without interactive confirmation, toasts the outcome, and reports
+ * it to `startActivityForResult` callers through [setResult].
  */
 class IntentActivity : AppCompatActivity() {
 
@@ -39,8 +37,6 @@ class IntentActivity : AppCompatActivity() {
     }
 
     private class Outcome(val message: String, val extras: Map<String, Any?>)
-
-    private var dialog: AlertDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,9 +61,7 @@ class IntentActivity : AppCompatActivity() {
             return
         }
 
-        val needsConfirmation = request.confirm ||
-            (request !is IntentRequest.Refresh && !MovaClient.headlessWritesAllowed(this))
-        if (needsConfirmation) confirmThenExecute(request) else execute(request)
+        execute(request)
     }
 
     /** `create` without a title is a request for the typing dialog. */
@@ -77,49 +71,6 @@ class IntentActivity : AppCompatActivity() {
         startActivity(Intent(this, QuickCaptureActivity::class.java).setData(capture.build()))
         setResult(RESULT_CANCELED, Intent().putExtra(EXTRA_ERROR, "Opened capture dialog"))
         finish()
-    }
-
-    override fun onDestroy() {
-        dialog?.dismiss()
-        dialog = null
-        super.onDestroy()
-    }
-
-    private fun confirmThenExecute(request: IntentRequest) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val described = describeWithTitle(request)
-            withContext(Dispatchers.Main) {
-                if (isFinishing || isDestroyed) return@withContext
-                dialog = AlertDialog.Builder(this@IntentActivity)
-                    .setTitle("Mova")
-                    .setMessage(described)
-                    .setPositiveButton("Confirm") { _, _ -> execute(request) }
-                    .setNegativeButton("Cancel") { _, _ -> cancel() }
-                    .setOnCancelListener { cancel() }
-                    .show()
-            }
-        }
-    }
-
-    /** Looks up the todo so the dialog can name it when the caller only passed an id or file+pos. */
-    private fun describeWithTitle(request: IntentRequest): String {
-        val ref = when (request) {
-            is IntentRequest.Complete -> request.ref
-            is IntentRequest.Update -> request.ref
-            is IntentRequest.Delete -> request.ref
-            else -> null
-        }
-        if (ref == null || ref.title != null) return request.describe()
-        val client = MovaClient.fromPrefs(this) ?: return request.describe()
-        val found = (client.findTodo(ref) as? ApiResult.Ok)?.value ?: return request.describe()
-        val title = found.optString("title", "").takeIf { it.isNotEmpty() } ?: return request.describe()
-        val named = ref.copy(title = title)
-        return when (request) {
-            is IntentRequest.Complete -> request.copy(ref = named)
-            is IntentRequest.Update -> request.copy(ref = named)
-            is IntentRequest.Delete -> request.copy(ref = named)
-            else -> request
-        }.describe()
     }
 
     private fun execute(request: IntentRequest) {
@@ -213,8 +164,4 @@ class IntentActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun cancel() {
-        setResult(RESULT_CANCELED, Intent().putExtra(EXTRA_ERROR, "Cancelled"))
-        finish()
-    }
 }
