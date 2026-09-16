@@ -1,5 +1,9 @@
 # Changelog
 
+## [7.1.1]
+
+- fix(search): render search results as a bounded page that grows on scroll instead of mounting every match, so clearing or broadening a filter no longer flashes through the whole list; the results also wait for saved settings so habits stop popping in after the first paint
+
 ## [7.1.0]
 
 - feat(intents): expose window-habit identity, query-date completion, current-day requirement, and the full structured habit summary through the read-only content provider

@@ -1,0 +1,1 @@
+* fix(search): render search results as a bounded page that grows on scroll instead of mounting every match, so clearing or broadening a filter no longer flashes through the whole list; the results also wait for saved settings so habits stop popping in after the first paint
