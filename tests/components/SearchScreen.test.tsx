@@ -535,6 +535,40 @@ describe("SearchScreen Component", () => {
     });
   });
 
+  it("caps how many rows a result set mounts at once", async () => {
+    const manyTodos = Array.from({ length: 120 }, (_, index) => ({
+      ...mockTodos[0],
+      id: `bulk-${index}`,
+      title: `Bulk todo ${index}`,
+      pos: index,
+    }));
+    mockApi.getAllTodos.mockResolvedValue({
+      todos: manyTodos,
+      defaults: { notifyBefore: [30] },
+    });
+
+    const { getByPlaceholderText, getByText, queryByText } = renderScreen(
+      <SearchScreen />,
+    );
+
+    await waitFor(() => {
+      expect(getByText("Showing 40 of 120")).toBeTruthy();
+    });
+
+    // Broadening the result set again starts a fresh page rather than
+    // mounting every match.
+    const searchInput = getByPlaceholderText("Search todos...");
+    fireEvent.changeText(searchInput, "Bulk todo 42");
+    await waitFor(() => {
+      expect(queryByText("Showing 40 of 120")).toBeNull();
+    });
+
+    fireEvent.changeText(searchInput, "");
+    await waitFor(() => {
+      expect(getByText("Showing 40 of 120")).toBeTruthy();
+    });
+  });
+
   it("should filter todos when searching", async () => {
     const { getByText, getByPlaceholderText, queryByText } = renderScreen(
       <SearchScreen />,

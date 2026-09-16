@@ -39,6 +39,12 @@ export interface ActiveFilter {
 
 interface FilterContextType {
   filters: FilterState;
+  /**
+   * False until persisted settings have loaded. Until then `showHabits` still
+   * holds its default, so consumers that render filtered lists should wait
+   * rather than show a list that re-filters itself a moment later.
+   */
+  filtersReady: boolean;
   activeFilters: ActiveFilter[];
   hasActiveFilters: boolean;
   addTagFilter: (tag: string, exclude?: boolean) => void;
@@ -256,11 +262,14 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     [filters],
   );
 
-  const hasActiveFilters = activeFilters.length > 0 || !filters.showHabits;
+  const filtersReady = !settingsLoading;
+  const hasActiveFilters =
+    activeFilters.length > 0 || (filtersReady && !filters.showHabits);
 
   const value = useMemo<FilterContextType>(
     () => ({
       filters,
+      filtersReady,
       activeFilters,
       hasActiveFilters,
       addTagFilter,
@@ -281,6 +290,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     }),
     [
       filters,
+      filtersReady,
       activeFilters,
       hasActiveFilters,
       addTagFilter,

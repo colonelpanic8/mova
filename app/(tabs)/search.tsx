@@ -16,7 +16,7 @@ import { filterTodos } from "@/utils/filterTodos";
 import { getTodoKey } from "@/utils/todoKey";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -31,6 +31,15 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
+
+/**
+ * Rows mounted per page. The full result set can be thousands of todos;
+ * rendering a bounded window keeps a filter change from mounting all of them
+ * at once.
+ */
+const PAGE_SIZE = 40;
+
+const keyExtractor = (item: Todo) => getTodoKey(item);
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,7 +56,7 @@ export default function SearchScreen() {
   const api = useApi();
   const { apiUrl, username } = useAuth();
   const theme = useTheme();
-  const { filters } = useFilters();
+  const { filters, filtersReady } = useFilters();
   const queryClient = useQueryClient();
 
   const identity = buildServerIdentity(apiUrl, username);
@@ -69,7 +78,10 @@ export default function SearchScreen() {
   const todoStates = todoStatesQuery.data ?? null;
   const { refetch: refetchTodoStates } = todoStatesQuery;
 
-  const loading = todosQuery.isPending;
+  // Wait for persisted settings before rendering rows: the habit filter
+  // defaults to "off" until they load, so rendering earlier shows a list that
+  // rearranges itself a beat later.
+  const loading = todosQuery.isPending || !filtersReady;
   const error = todosQuery.isError ? "Failed to load todos" : null;
 
   const handleTodoUpdated = useCallback(
@@ -109,21 +121,48 @@ export default function SearchScreen() {
     return result;
   }, [searchQuery, todos, filters]);
 
+  const listRef = useRef<FlatList<Todo>>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // A changed query or filter is a new result set: restart at the top with a
+  // fresh window instead of growing the mounted list.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [searchQuery, filters]);
+
+  const visibleTodos = useMemo(
+    () => filteredTodos.slice(0, visibleCount),
+    [filteredTodos, visibleCount],
+  );
+
+  const handleEndReached = useCallback(() => {
+    setVisibleCount((count) =>
+      count < filteredTodos.length ? count + PAGE_SIZE : count,
+    );
+  }, [filteredTodos.length]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: Todo }) => <TodoItem todo={item} />,
+    [],
+  );
+
+  const listFooter = useMemo(() => {
+    if (visibleTodos.length >= filteredTodos.length) return null;
+    return (
+      <View testID="searchListFooter" style={styles.footer}>
+        <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+          {`Showing ${visibleTodos.length} of ${filteredTodos.length}`}
+        </Text>
+      </View>
+    );
+  }, [visibleTodos.length, filteredTodos.length]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([refetchTodos(), refetchTodoStates()]);
     setRefreshing(false);
   }, [refetchTodos, refetchTodoStates]);
-
-  if (loading) {
-    return (
-      <ScreenContainer>
-        <View testID="searchLoadingView" style={styles.centered}>
-          <ActivityIndicator testID="searchLoadingIndicator" size="large" />
-        </View>
-      </ScreenContainer>
-    );
-  }
 
   return (
     <TodoEditingProvider
@@ -149,7 +188,11 @@ export default function SearchScreen() {
 
         <FilterBar testID="searchFilterBar" />
 
-        {error ? (
+        {loading ? (
+          <View testID="searchLoadingView" style={styles.centered}>
+            <ActivityIndicator testID="searchLoadingIndicator" size="large" />
+          </View>
+        ) : error ? (
           <ScrollView
             testID="searchErrorView"
             contentContainerStyle={[styles.centered, { flexGrow: 1 }]}
@@ -173,10 +216,17 @@ export default function SearchScreen() {
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             testID="searchTodoList"
-            data={filteredTodos}
-            keyExtractor={(item) => getTodoKey(item)}
-            renderItem={({ item }) => <TodoItem todo={item} />}
+            data={visibleTodos}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            initialNumToRender={12}
+            maxToRenderPerBatch={12}
+            windowSize={7}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.6}
+            ListFooterComponent={listFooter}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
@@ -205,5 +255,9 @@ const styles = StyleSheet.create({
   searchbar: {
     flex: 1,
     elevation: 0,
+  },
+  footer: {
+    paddingVertical: 12,
+    alignItems: "center",
   },
 });
