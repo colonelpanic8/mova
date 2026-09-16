@@ -54,6 +54,13 @@
         just
       ];
     in {
+      packages = rec {
+        web = pkgs.callPackage ./nix/web.nix {
+          gitCommit = self.rev or self.dirtyRev or "unknown";
+        };
+        default = web;
+      };
+
       devShells = {
         android = pkgs.mkShell {
           buildInputs =

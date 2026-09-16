@@ -114,6 +114,12 @@ export default {
     ],
     experiments: {
       typedRoutes: true,
+      // Static web exports bake their asset and route URLs at build time, so
+      // serving the bundle under a path prefix (nginx hosts it beside the API)
+      // requires that prefix here.
+      ...(process.env.MOVA_WEB_BASE_URL
+        ? { baseUrl: process.env.MOVA_WEB_BASE_URL }
+        : {}),
     },
     extra: {
       gitCommit: process.env.MOVA_GIT_COMMIT || getGitInfo(),
