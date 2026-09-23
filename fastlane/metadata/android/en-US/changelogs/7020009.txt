@@ -1,0 +1,4 @@
+* EVA can read and change todos while the phone is locked, through an authenticated native service that reports completed only when the server confirms
+* Apps granted the new WRITE_TODOS permission can create, complete, reschedule and delete todos through the content provider, also while locked
+* Uncertain writes are never reported as done or repeated
+* mova:// actions run over the lock screen

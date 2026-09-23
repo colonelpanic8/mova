@@ -1,5 +1,13 @@
 # Changelog
 
+## [7.2.0]
+
+- feat(android): serve EVA's installed-extension protocol natively, so EVA can read, create, complete, reschedule and delete todos while the phone is locked, with authenticated callers, per-action grants, idempotent invocation ids, and results that say completed only when the server confirms
+- feat(intents): run reads and writes synchronously through the content provider's call() for apps granted the new WRITE_TODOS permission, working while locked and returning completed, uncertain or not-sent outcomes instead of a toast
+- fix(android): never report or repeat a write whose outcome is uncertain, and keep the stored login when the keystore hiccups while the phone is locked
+- feat(intents): let the invisible mova:// dispatcher run over the lock screen
+- feat(web): package the web export for static hosting
+
 ## [7.1.1]
 
 - fix(search): render search results as a bounded page that grows on scroll instead of mounting every match, so clearing or broadening a filter no longer flashes through the whole list; the results also wait for saved settings so habits stop popping in after the first paint
