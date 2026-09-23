@@ -19,6 +19,8 @@ export const STORAGE_KEYS = {
   // Legacy key for the removed JS pending-capture queue; still cleared on
   // logout so old installs don't retain stale captures.
   PENDING_TODOS: "mova_pending_todos",
+  // "false" opts EVA out of the access Mova grants it by default.
+  EVA_ACCESS: "mova_eva_access",
 };
 
 /**
@@ -82,6 +84,28 @@ export async function saveDefaultTemplateToWidget(
   } catch (error) {
     console.error("[Widget] Failed to save default template:", error);
   }
+}
+
+/**
+ * Whether the verified EVA assistant may use Mova without Android permission
+ * prompts. On unless the user turned it off; the native side reads the same key.
+ */
+export async function getEvaAccessEnabled(): Promise<boolean> {
+  if (Platform.OS !== "android" || !SharedStorage) return true;
+  try {
+    return (await SharedStorage.getItem(STORAGE_KEYS.EVA_ACCESS)) !== "false";
+  } catch (error) {
+    console.error("[Widget] Failed to read EVA access:", error);
+    return true;
+  }
+}
+
+export async function setEvaAccessEnabled(enabled: boolean): Promise<void> {
+  if (Platform.OS !== "android" || !SharedStorage) return;
+  await SharedStorage.setItem(
+    STORAGE_KEYS.EVA_ACCESS,
+    enabled ? "true" : "false",
+  );
 }
 
 /**

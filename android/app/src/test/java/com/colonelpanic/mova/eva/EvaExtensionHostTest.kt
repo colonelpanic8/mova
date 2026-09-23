@@ -20,8 +20,8 @@ class EvaExtensionHostTest {
         { 0L },
     )
 
-    private fun host(allowed: Boolean = true, executor: Executor = Executor { it.run() }) =
-        EvaExtensionHost(capabilities, { allowed }, { 0L }, {}, executor)
+    private fun host(allowed: Boolean = true, executor: Executor = Executor { it.run() }, access: Boolean = true) =
+        EvaExtensionHost(capabilities, { allowed }, { 0L }, {}, executor, { access })
 
     private fun replies(block: ((String) -> Unit) -> Unit): List<JSONObject> {
         val replies = mutableListOf<JSONObject>()
@@ -55,6 +55,17 @@ class EvaExtensionHostTest {
         val replies = replies { reply -> host().execute(1, "eva-1", "r", "complete_todo", "{}", 0, reply) }
         assertEquals("not_executed", replies.single().getString("status"))
         assertEquals("deadline_exceeded", replies.single().getString("reasonCode"))
+    }
+
+    @Test
+    fun optedOutUserRefusesVerifiedEvaWithoutRunning() {
+        val write = replies { reply -> host(access = false).execute(1, "eva-1", "r", "complete_todo", """{"id":"a"}""", 10_000, reply) }
+        assertEquals("not_executed", write.single().getString("status"))
+        assertEquals("not_configured", write.single().getString("reasonCode"))
+        assertEquals("needs_authorization", write.single().getJSONObject("structuredContent").getString("state"))
+
+        val described = replies { reply -> host(access = false).describe(1, 5_000, reply) }
+        assertEquals("not_configured", described.single().getString("reasonCode"))
     }
 
     @Test

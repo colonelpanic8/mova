@@ -43,6 +43,8 @@ import {
 import { formatRelativeTime } from "@/utils/timeFormatting";
 import {
   clearAssistantSettingsFromWatch,
+  getEvaAccessEnabled,
+  setEvaAccessEnabled,
   syncAssistantSettingsToWatch,
 } from "@/widgets/storage";
 import Constants from "expo-constants";
@@ -126,6 +128,7 @@ export default function SettingsScreen() {
   );
   const horizonMenu = useMenuPickerWorkaround();
   const [showPassword, setShowPassword] = useState(false);
+  const [evaAccess, setEvaAccess] = useState(true);
   const [backendVersion, setBackendVersion] = useState<VersionResponse | null>(
     null,
   );
@@ -238,6 +241,20 @@ export default function SettingsScreen() {
   // Mova version info from Expo Constants
   const movaVersion = Constants.expoConfig?.version || "unknown";
   const movaGitCommit = Constants.expoConfig?.extra?.gitCommit || "dev";
+
+  useEffect(() => {
+    getEvaAccessEnabled().then(setEvaAccess);
+  }, []);
+
+  const toggleEvaAccess = useCallback(async (enabled: boolean) => {
+    setEvaAccess(enabled);
+    try {
+      await setEvaAccessEnabled(enabled);
+    } catch (error) {
+      console.error("Failed to save EVA access:", error);
+      setEvaAccess(!enabled);
+    }
+  }, []);
 
   useEffect(() => {
     getNotificationsEnabled().then((enabled) => {
@@ -687,6 +704,28 @@ export default function SettingsScreen() {
       </List.Section>
 
       <Divider />
+
+      {Platform.OS === "android" && (
+        <>
+          <List.Section>
+            <List.Subheader>Other apps</List.Subheader>
+            <List.Item
+              title="Let EVA use Mova"
+              description="The EVA assistant, verified by its signing key, can read and change todos in the background and while the phone is locked, without permission prompts. When off, EVA is refused and other apps are unaffected."
+              left={(props) => <List.Icon {...props} icon="robot-outline" />}
+              right={() => (
+                <Switch
+                  testID="evaAccessSwitch"
+                  value={evaAccess}
+                  onValueChange={toggleEvaAccess}
+                />
+              )}
+            />
+          </List.Section>
+
+          <Divider />
+        </>
+      )}
 
       <List.Section>
         <List.Subheader>Appearance</List.Subheader>

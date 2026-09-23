@@ -13,7 +13,6 @@ import android.os.UserManager
 import android.util.AtomicFile
 import com.colonelpanic.eva.extension.IEvaExtension
 import com.colonelpanic.eva.extension.IEvaExtensionCallback
-import com.colonelpanic.mova.BuildConfig
 import com.colonelpanic.mova.MovaClient
 import com.colonelpanic.mova.MovaEvents
 import java.io.File
@@ -32,12 +31,12 @@ class EvaExtensionService : Service() {
     override fun onCreate() {
         super.onCreate()
         val context = applicationContext
-        val verifier = EvaCallerVerifier(packageManager, packageName, BuildConfig.DEBUG)
         host = EvaExtensionHost(
             capabilities(context),
-            verifier::isTrusted,
+            EvaAccess.verifier(context)::isTrusted,
             SystemClock::elapsedRealtime,
             { MovaEvents.dataChanged(context) },
+            accessEnabled = { EvaAccess.enabled(context) },
         )
     }
 

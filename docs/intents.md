@@ -254,7 +254,13 @@ the provider returns `null` and logs under the `TodoProvider` tag.
 ### Permission
 
 The provider requires `com.colonelpanic.mova.permission.READ_TODOS`, a
-custom permission with `protectionLevel="dangerous"`. A consumer declares it
+custom permission with `protectionLevel="dangerous"`. The one exception is the
+EVA assistant verified by its signing key, which Mova trusts by default
+unless the user turns off "Let EVA use Mova" (see
+[eva-extension.md](eva-extension.md#default-access-and-the-opt-out)). The
+permissions are enforced by the provider's code rather than its manifest
+entry, so an app lacking them gets a `SecurityException` from the query or
+call itself. A consumer declares it
 and requests it at runtime like any dangerous permission; the user sees a
 system dialog naming both apps and can revoke it in Settings. Unlike a
 `normal` permission, an app cannot grant itself access just by declaring it;
@@ -357,7 +363,8 @@ A write can block on the network for up to 20 seconds and a read for up to
 `WRITE_TODOS` is a separate `dangerous` permission, declared and requested
 like `READ_TODOS`. The system dialog asks the user to let the app create,
 change and delete todos, including while the phone is locked. The user can
-revoke it in Settings.
+revoke it in Settings. Verified EVA is exempt from both permissions unless the user
+opts out.
 
 ## Platform notes
 

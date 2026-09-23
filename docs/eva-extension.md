@@ -46,6 +46,31 @@ default. Grants are keyed on the contract digest and on
 username, never the password, so signing into another account asks for
 approval again.
 
+### Default access and the opt-out
+
+Mova needs nothing turned on for EVA. The verified EVA app, and only that
+app, is trusted by default:
+
+- It can use this service. There is no Mova-side toggle to enable and no
+  Android permission to grant.
+- It can use the content provider's queries and `call()` methods without
+  `READ_TODOS` or `WRITE_TODOS`. Other apps still need those permissions.
+
+The **Settings → Other apps → Let EVA use Mova** switch opts out. It is
+stored as `mova_eva_access` in Mova's native prefs, and only `"false"`
+disables access; it survives logout.
+
+When the switch is off:
+
+- `describe` fails and every execute is refused with `not_executed` /
+  `not_configured` and state `needs_authorization`. Nothing is sent.
+- The provider stops exempting EVA. An explicitly granted `READ_TODOS` or
+  `WRITE_TODOS` still works.
+
+No Android runtime permission is needed on either side for this path.
+`INTERNET` is a normal permission granted at install. EVA's own microphone
+and notification permissions are EVA's first-run concern.
+
 ## Capabilities
 
 The live catalog is [`eva-extension-describe.json`](eva-extension-describe.json).

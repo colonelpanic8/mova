@@ -34,9 +34,11 @@ jest.mock("react-native", () => ({
 import {
   clearAssistantSettingsFromWatch,
   clearWidgetCredentials,
+  getEvaAccessEnabled,
   getWidgetCredentials,
   saveCredentialsToWidget,
   saveDefaultTemplateToWidget,
+  setEvaAccessEnabled,
   STORAGE_KEYS,
   syncAssistantSettingsToWatch,
 } from "../../widgets/storage";
@@ -87,6 +89,18 @@ describe("widget credential storage", () => {
       "",
       "",
     );
+  });
+
+  it("trusts EVA by default and keeps an explicit opt-out through logout", async () => {
+    expect(await getEvaAccessEnabled()).toBe(true);
+
+    await setEvaAccessEnabled(false);
+    expect(mockStore[STORAGE_KEYS.EVA_ACCESS]).toBe("false");
+    await clearWidgetCredentials();
+    expect(await getEvaAccessEnabled()).toBe(false);
+
+    await setEvaAccessEnabled(true);
+    expect(await getEvaAccessEnabled()).toBe(true);
   });
 
   it("returns nulls when nothing is stored", async () => {

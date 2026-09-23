@@ -14,6 +14,7 @@ import android.util.Log
 import com.colonelpanic.mova.ApiResult
 import com.colonelpanic.mova.MovaClient
 import com.colonelpanic.mova.MovaEvents
+import com.colonelpanic.mova.eva.EvaAccess
 import com.colonelpanic.mova.eva.EvaExtensionService
 import java.util.UUID
 import org.json.JSONArray
@@ -22,7 +23,8 @@ import org.json.JSONObject
 /**
  * The active server's todos for other apps. Queries need the
  * `com.colonelpanic.mova.permission.READ_TODOS` runtime permission; [call]
- * also runs writes for holders of `WRITE_TODOS`.
+ * also runs writes for holders of `WRITE_TODOS`. The verified EVA app needs
+ * neither unless the user opted out (see [EvaAccess]).
  *
  * - `content://com.colonelpanic.mova.provider/todos?q=&limit=`
  * - `content://com.colonelpanic.mova.provider/todos/<id>`
@@ -79,6 +81,7 @@ class TodoProvider : ContentProvider() {
         sortOrder: String?,
     ): Cursor? {
         val context = context ?: return null
+        if (!canRead()) throw SecurityException("Requires $READ_PERMISSION")
         val client = MovaClient.fromPrefs(context) ?: run {
             Log.w(TAG, "Query refused: no credentials stored (log in to Mova first)")
             return null
@@ -187,9 +190,16 @@ class TodoProvider : ContentProvider() {
         return resultBundle(JSONObject(execution.envelope), requestId)
     }
 
-    private fun canRead() = context?.checkCallingPermission(READ_PERMISSION) == PackageManager.PERMISSION_GRANTED
+    // The manifest cannot express "permission holders or verified EVA", so the
+    // provider is exported without permissions and every entry point checks here.
+    private fun canRead() = hasCallingPermission(READ_PERMISSION) || trustsEva()
 
-    private fun canWrite() = context?.checkCallingPermission(WRITE_PERMISSION) == PackageManager.PERMISSION_GRANTED
+    private fun canWrite() = hasCallingPermission(WRITE_PERMISSION) || trustsEva()
+
+    private fun hasCallingPermission(permission: String) =
+        context?.checkCallingPermission(permission) == PackageManager.PERMISSION_GRANTED
+
+    private fun trustsEva(): Boolean = context?.let { EvaAccess.trusts(it, Binder.getCallingUid()) } ?: false
 
     private fun argumentValues(extras: Bundle?): Map<String, Any?> {
         if (extras == null) return emptyMap()

@@ -99,6 +99,7 @@ class EvaCapabilities(
         const val STATE_BUSY = "busy"
         const val STATE_NEEDS_UNLOCK = "needs_unlock"
         const val STATE_NEEDS_CONFIGURATION = "needs_configuration"
+        const val STATE_NEEDS_AUTHORIZATION = "needs_authorization"
 
         private const val NEEDS_UNLOCK_TEXT =
             "Mova cannot read its stored login until the phone has been unlocked once since it restarted. Nothing was sent."

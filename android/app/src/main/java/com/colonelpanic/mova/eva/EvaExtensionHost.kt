@@ -18,6 +18,8 @@ class EvaExtensionHost(
     private val now: () -> Long,
     private val onDataChanged: () -> Unit,
     private val executor: Executor = boundedExecutor(),
+    /** The user's opt-out from Mova's default trust in EVA. */
+    private val accessEnabled: () -> Boolean = { true },
 ) {
     fun describe(callingUid: Int, deadline: Long, reply: (String) -> Unit) {
         val once = once(reply)
@@ -32,6 +34,8 @@ class EvaExtensionHost(
                     EvaProtocol.describeFailure(
                         EvaProtocol.notExecuted(EvaProtocol.REASON_DEADLINE_EXCEEDED, "The describe deadline passed before Mova started."),
                     )
+                } else if (!accessEnabled()) {
+                    EvaProtocol.describeFailure(EvaProtocol.notExecuted(EvaProtocol.REASON_NOT_CONFIGURED, EvaAccess.OFF_TEXT))
                 } else {
                     guarded({ EvaProtocol.describeFailure(EvaProtocol.failed("Mova hit an unexpected error.")) }) {
                         capabilities.describe()
@@ -66,6 +70,16 @@ class EvaExtensionHost(
             return
         }
         val work = Runnable {
+            // Read off the Binder thread: the setting lives in encrypted prefs.
+            if (!accessEnabled()) {
+                once(
+                    capabilities.rejection(
+                        capability, invocationId, EvaProtocol.REASON_NOT_CONFIGURED, EvaAccess.OFF_TEXT,
+                        EvaCapabilities.STATE_NEEDS_AUTHORIZATION,
+                    ),
+                )
+                return@Runnable
+            }
             val execution = guarded({
                 // Reached only through a bug; a write may have started, so this is not a not_executed.
                 EvaCapabilities.Execution(EvaProtocol.executeEnvelope(EvaProtocol.unknown("Mova hit an unexpected error.")))

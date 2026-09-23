@@ -32,6 +32,8 @@ jest.mock("../widgets/storage", () => ({
   saveCredentialsToWidget: jest.fn(),
   saveDefaultTemplateToWidget: jest.fn(),
   clearWidgetCredentials: jest.fn(),
+  getEvaAccessEnabled: jest.fn().mockResolvedValue(true),
+  setEvaAccessEnabled: jest.fn(),
   getWidgetCredentials: jest.fn().mockResolvedValue({
     apiUrl: null,
     username: null,

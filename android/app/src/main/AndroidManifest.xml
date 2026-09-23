@@ -124,9 +124,7 @@
     <provider
         android:name=".intents.TodoProvider"
         android:authorities="com.colonelpanic.mova.provider"
-        android:exported="true"
-        android:readPermission="com.colonelpanic.mova.permission.READ_TODOS"
-        android:writePermission="com.colonelpanic.mova.permission.WRITE_TODOS"/>
+        android:exported="true"/>
     <activity-alias
         android:name=".QuickCaptureLauncherActivity"
         android:targetActivity=".QuickCaptureActivity"
