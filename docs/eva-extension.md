@@ -94,6 +94,13 @@ send `strict`, so the server refuses a position whose heading has a different
 title instead of falling back to a title search. Title-only lookups are not
 offered.
 
+Servers older than org-agenda-api's strict lookup (`3475f5a`) reject the
+unknown `strict` field. That includes production as of September 2026, which
+runs `3220869`. The rejection happens during validation, before any file is
+touched, so Mova resends that one request without `strict`. Such servers then
+match `file` + `pos` by falling back to the file and title. Any other
+rejection is never resent.
+
 ## Outcomes
 
 Every write reply carries `structuredContent.state`, `invocationId` and
@@ -171,5 +178,17 @@ Official references:
 - Mova debug and release builds share the `com.colonelpanic.mova`
   application ID. Installing a debug build replaces the user's app, so
   device testing needs a spare device or an emulator.
-- Not yet verified on hardware: cold binding while locked, and network access
-  under Doze while EVA holds the binding.
+- Verified on 2026-09-23 on an API 35 emulator, with a PIN-locked keyguard
+  showing and Mova force-stopped before each call. EVA's debug build (signed
+  with Mova's debug key) ran `InstalledExtensionDeviceTest` against an
+  org-agenda-api at production's revision. Results:
+  - Describe cold-started Mova in about 560 ms.
+  - `find_todos`, `create_todo`, `update_todo` (via the resend without
+    `strict`), `complete_todo` and `delete_todo` all completed, and the org
+    file showed each change.
+  - With networking off, `create_todo` returned `not_sent` and nothing reached
+    the server.
+  - A shell caller without Mova's permissions was refused by both `query` and
+    `call`.
+- Not yet verified: physical hardware, and network access under Doze while EVA
+  holds the binding.

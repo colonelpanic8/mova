@@ -126,16 +126,27 @@ class MovaClient(
         ref.writeTo(body)
         body.put("state", state)
         overrideDate?.let { body.put("override_date", it) }
-        if (strict) body.put("strict", true)
-        return post("/complete", body)
+        return postStrict("/complete", body, strict)
     }
 
     fun update(ref: TodoRef, updates: JSONObject, strict: Boolean): ApiResult<JSONObject> {
         val body = JSONObject()
         ref.writeTo(body)
         for (key in updates.keys()) body.put(key, updates.get(key))
-        if (strict) body.put("strict", true)
-        return post("/update", body)
+        return postStrict("/update", body, strict)
+    }
+
+    /**
+     * Servers older than org-agenda-api's strict lookup reject the unknown
+     * `strict` field while validating, before touching any file, so resending
+     * without it cannot repeat a write. They then match by file and title.
+     */
+    private fun postStrict(path: String, body: JSONObject, strict: Boolean): ApiResult<JSONObject> {
+        if (!strict) return post(path, body)
+        val result = post(path, JSONObject(body.toString()).put("strict", true))
+        val unsupported = result is ApiResult.Err && result.delivery == Delivery.REJECTED &&
+            result.message.contains("Unrecognized fields") && result.message.contains("strict")
+        return if (unsupported) post(path, body) else result
     }
 
     fun delete(ref: TodoRef): ApiResult<JSONObject> {

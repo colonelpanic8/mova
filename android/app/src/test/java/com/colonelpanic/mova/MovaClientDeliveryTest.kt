@@ -2,6 +2,7 @@ package com.colonelpanic.mova
 
 import com.colonelpanic.mova.intents.TodoRef
 import java.net.ServerSocket
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -62,6 +63,31 @@ class MovaClientDeliveryTest {
 
         server.on("/complete", 200, "<html>proxy</html>")
         assertEquals(Delivery.UNCERTAIN, err(complete()).delivery)
+    }
+
+    @Test
+    fun serverWithoutStrictSupportGetsOneResendWithoutIt() {
+        server.on("/update") { body ->
+            if (JSONObject(body).has("strict")) {
+                FakeOrgServer.Response(200, """{"status":"error","message":"Unrecognized fields: (strict)"}""")
+            } else {
+                FakeOrgServer.Response(200, """{"status":"updated","title":"Taxes"}""")
+            }
+        }
+        val result = server.client().update(TodoRef(id = "abc"), JSONObject().put("priority", "A"), strict = true)
+        assertTrue(result is ApiResult.Ok)
+        assertEquals(2, server.count("/update"))
+        assertFalse(server.lastBody("/update").has("strict"))
+    }
+
+    @Test
+    fun otherRejectionsAreNotResent() {
+        server.on("/update", 409, """{"status":"error","code":"strict_lookup_conflict","message":"Expected todo title"}""")
+        server.client().update(TodoRef(id = "abc"), JSONObject().put("priority", "A"), strict = true)
+        server.on("/complete", 500, """{"status":"error","message":"Unrecognized fields: (strict)"}""")
+        complete()
+        assertEquals(1, server.count("/update"))
+        assertEquals(1, server.count("/complete"))
     }
 
     @Test

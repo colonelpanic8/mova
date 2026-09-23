@@ -20,7 +20,7 @@ class FakeOrgServer : AutoCloseable {
     data class Request(val method: String, val path: String, val body: String)
 
     val requests = CopyOnWriteArrayList<Request>()
-    private val routes = mutableMapOf<String, Response>()
+    private val routes = mutableMapOf<String, (String) -> Response>()
     private val socket = ServerSocket(0, 50, InetAddress.getByName("127.0.0.1"))
 
     init {
@@ -50,7 +50,8 @@ class FakeOrgServer : AutoCloseable {
             val (method, target) = requestLine.split(" ")
             val path = target.substringBefore('?')
             requests.add(Request(method, path, body.toString(Charsets.UTF_8)))
-            val response = synchronized(routes) { routes[path] } ?: Response(404, """{"status":"error","message":"no route"}""")
+            val handler = synchronized(routes) { routes[path] }
+            val response = handler?.invoke(body.toString(Charsets.UTF_8)) ?: Response(404, """{"status":"error","message":"no route"}""")
             if (response.delayMillis > 0) Thread.sleep(response.delayMillis)
             val bytes = response.body.toByteArray()
             client.getOutputStream().apply {
@@ -75,7 +76,9 @@ class FakeOrgServer : AutoCloseable {
 
     val url: String get() = "http://127.0.0.1:${socket.localPort}"
 
-    fun on(path: String, response: Response) = synchronized(routes) { routes[path] = response }
+    fun on(path: String, response: Response) = on(path) { _ -> response }
+
+    fun on(path: String, handler: (body: String) -> Response) = synchronized(routes) { routes[path] = handler }
 
     fun on(path: String, status: Int, body: String) = on(path, Response(status, body))
 
