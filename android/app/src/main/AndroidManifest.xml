@@ -9,6 +9,11 @@
       android:protectionLevel="dangerous"
       android:label="@string/permission_read_todos_label"
       android:description="@string/permission_read_todos_description"/>
+  <permission
+      android:name="com.colonelpanic.mova.permission.WRITE_TODOS"
+      android:protectionLevel="dangerous"
+      android:label="@string/permission_write_todos_label"
+      android:description="@string/permission_write_todos_description"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -90,6 +95,7 @@
     <activity
         android:name=".intents.IntentActivity"
         android:exported="true"
+        android:showWhenLocked="true"
         android:theme="@style/Theme.Intent"
         android:excludeFromRecents="true"
         android:noHistory="true"
@@ -119,7 +125,8 @@
         android:name=".intents.TodoProvider"
         android:authorities="com.colonelpanic.mova.provider"
         android:exported="true"
-        android:permission="com.colonelpanic.mova.permission.READ_TODOS"/>
+        android:readPermission="com.colonelpanic.mova.permission.READ_TODOS"
+        android:writePermission="com.colonelpanic.mova.permission.WRITE_TODOS"/>
     <activity-alias
         android:name=".QuickCaptureLauncherActivity"
         android:targetActivity=".QuickCaptureActivity"

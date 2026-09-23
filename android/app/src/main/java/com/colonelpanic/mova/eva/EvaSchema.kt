@@ -126,6 +126,39 @@ class EvaSchema private constructor(private val properties: List<Property>) {
         return null
     }
 
+    /**
+     * Converts loosely typed values (strings from automation apps, Java
+     * arrays, lists and maps) into the JSON types this schema declares.
+     * Values that cannot be converted are passed through for [check] to reject.
+     */
+    fun coerce(values: Map<String, Any?>): JSONObject {
+        val known = properties.associateBy { it.name }
+        val json = JSONObject()
+        for ((name, value) in values) {
+            json.put(name, coerceValue(known[name], value) ?: JSONObject.NULL)
+        }
+        return json
+    }
+
+    private fun coerceValue(property: Property?, value: Any?): Any? = when {
+        value == null -> null
+        property is Int64 && value is String -> value.trim().toLongOrNull() ?: value
+        property is Int64 && value is Int -> value.toLong()
+        property is Bool && value is String -> when (value.trim().lowercase()) {
+            "true", "1" -> true
+            "false", "0" -> false
+            else -> value
+        }
+        property is StrArray -> when (value) {
+            is Array<*> -> JSONArray(value.toList())
+            is Iterable<*> -> JSONArray(value.toList())
+            is String -> JSONArray(value.split(",").map { it.trim() }.filter { it.isNotEmpty() })
+            else -> value
+        }
+        property is StrMap && value is Map<*, *> -> JSONObject(value.entries.associate { (k, v) -> k.toString() to v })
+        else -> value
+    }
+
     companion object {
         fun of(vararg properties: Property) = EvaSchema(properties.toList())
     }

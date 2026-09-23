@@ -3,19 +3,26 @@ package com.colonelpanic.mova.intents
 import android.content.ContentProvider
 import android.content.ContentValues
 import android.content.UriMatcher
+import android.content.pm.PackageManager
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import android.os.Binder
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import com.colonelpanic.mova.ApiResult
 import com.colonelpanic.mova.MovaClient
+import com.colonelpanic.mova.MovaEvents
+import com.colonelpanic.mova.eva.EvaExtensionService
+import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Read-only view of the active server's todos for other apps, guarded by the
- * `com.colonelpanic.mova.permission.READ_TODOS` runtime permission.
+ * The active server's todos for other apps. Queries need the
+ * `com.colonelpanic.mova.permission.READ_TODOS` runtime permission; [call]
+ * also runs writes for holders of `WRITE_TODOS`.
  *
  * - `content://com.colonelpanic.mova.provider/todos?q=&limit=`
  * - `content://com.colonelpanic.mova.provider/todos/<id>`
@@ -29,6 +36,18 @@ class TodoProvider : ContentProvider() {
     companion object {
         const val AUTHORITY = "com.colonelpanic.mova.provider"
         const val EXTRA_TOTAL = "total"
+        const val READ_PERMISSION = "com.colonelpanic.mova.permission.READ_TODOS"
+        const val WRITE_PERMISSION = "com.colonelpanic.mova.permission.WRITE_TODOS"
+        const val METHOD_DESCRIBE = "describe"
+        const val EXTRA_REQUEST_ID = "request_id"
+        const val EXTRA_ARGUMENTS_JSON = "arguments_json"
+        const val RESULT_STATUS = "status"
+        const val RESULT_REASON_CODE = "reason_code"
+        const val RESULT_STATE = "state"
+        const val RESULT_MESSAGE = "message"
+        const val RESULT_REQUEST_ID = "request_id"
+        const val RESULT_JSON = "result_json"
+        const val RESULT_CATALOG_JSON = "catalog_json"
         private const val TAG = "TodoProvider"
         private const val TODOS = 1
         private const val TODO_ID = 2
@@ -130,6 +149,71 @@ class TodoProvider : ContentProvider() {
 
     private fun flag(uri: Uri, name: String): Boolean? =
         uri.getQueryParameter(name)?.let { it == "true" || it == "1" }
+
+    /**
+     * Synchronous operations for other apps, with the same catalog, argument
+     * rules and outcomes as the EVA extension (docs/intents.md). `method` is a
+     * capability name, or `describe`. Reads need READ_TODOS, writes WRITE_TODOS.
+     * Runs on the caller's binder thread and may block on the network for up
+     * to 20 seconds, so call it off the main thread.
+     */
+    override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
+        val context = context ?: return null
+        val capabilities = EvaExtensionService.capabilities(context)
+        if (method == METHOD_DESCRIBE) {
+            if (!canRead() && !canWrite()) throw SecurityException("Requires $READ_PERMISSION or $WRITE_PERMISSION")
+            return Bundle().apply { putString(RESULT_CATALOG_JSON, capabilities.catalog().toString()) }
+        }
+        if (!capabilities.has(method)) throw IllegalArgumentException("Unknown method '$method'")
+        val write = capabilities.isWrite(method)
+        if (write && !canWrite()) throw SecurityException("Requires $WRITE_PERMISSION")
+        if (!write && !canRead()) throw SecurityException("Requires $READ_PERMISSION")
+
+        val callerUid = Binder.getCallingUid()
+        val requestId = extras?.getString(EXTRA_REQUEST_ID)
+            ?.takeIf { it.length in 1..256 && it.all { c -> c in ' '..'~' } }
+            ?: "anonymous-${UUID.randomUUID()}"
+        val argumentsJson = extras?.getString(EXTRA_ARGUMENTS_JSON)
+            ?: capabilities.schema(method)!!.coerce(argumentValues(extras)).toString()
+        val execution = capabilities.execute(
+            callerUid,
+            requestId,
+            null,
+            method,
+            argumentsJson,
+            SystemClock.elapsedRealtime() + capabilities.maxWaitMillis(method),
+        )
+        if (execution.dataChanged) MovaEvents.dataChanged(context)
+        return resultBundle(JSONObject(execution.envelope), requestId)
+    }
+
+    private fun canRead() = context?.checkCallingPermission(READ_PERMISSION) == PackageManager.PERMISSION_GRANTED
+
+    private fun canWrite() = context?.checkCallingPermission(WRITE_PERMISSION) == PackageManager.PERMISSION_GRANTED
+
+    private fun argumentValues(extras: Bundle?): Map<String, Any?> {
+        if (extras == null) return emptyMap()
+        return extras.keySet()
+            .filter { it != EXTRA_REQUEST_ID }
+            .associateWith { key ->
+                @Suppress("DEPRECATION")
+                when (val value = extras.get(key)) {
+                    is Bundle -> value.keySet().associateWith { value.getString(it) }
+                    else -> value
+                }
+            }
+    }
+
+    private fun resultBundle(envelope: JSONObject, requestId: String): Bundle = Bundle().apply {
+        putString(RESULT_STATUS, envelope.getString("status"))
+        if (!envelope.isNull("reasonCode")) putString(RESULT_REASON_CODE, envelope.getString("reasonCode"))
+        putString(RESULT_MESSAGE, envelope.optJSONArray("content")?.optJSONObject(0)?.optString("text").orEmpty())
+        putString(RESULT_REQUEST_ID, requestId)
+        envelope.optJSONObject("structuredContent")?.let { structured ->
+            structured.optString("state").takeIf { it.isNotEmpty() }?.let { putString(RESULT_STATE, it) }
+            putString(RESULT_JSON, structured.toString())
+        }
+    }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? =
         throw UnsupportedOperationException("Use mova:// intents to change todos")

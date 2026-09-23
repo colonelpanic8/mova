@@ -1,9 +1,11 @@
 # Mova intents API
 
 Mova exposes its todo operations to other Android apps through `mova://` links
-and a read-only content provider. The intents let an assistant or automation
-app drive mova without mova knowing anything about the caller; the provider
-lets it read the agenda back, since an intent cannot return data.
+and a content provider. The intents let an assistant or automation app drive
+mova without mova knowing anything about the caller. The provider reads the
+agenda back, since an intent cannot return data, and its `call()` methods run
+writes synchronously, with a result, for apps the user has granted write
+access. `call()` is the path to use when the phone may be locked.
 
 Fire a link with a plain `ACTION_VIEW` intent:
 
@@ -39,12 +41,14 @@ URL encoder does this for you.
 
 "Native" actions run in a small invisible activity written in Kotlin with the
 credentials the app stored for the active server. They never start the React
-Native app and finish with a toast. Because they are activity launches,
-Android's background-activity-start limits and the keyguard apply to the
-caller; an assistant acting while the phone is locked should use the
-authenticated bound service in [eva-extension.md](eva-extension.md), which
-also reports whether the server applied the change. "App" actions open mova
-and navigate.
+Native app and finish with a toast. The activity may show over the lock
+screen, so a caller that is allowed to start activities can run one while the
+phone is locked. Because it is an activity launch, Android's
+background-activity-start limits still apply, and the result only arrives
+through `startActivityForResult`. Background callers should use the
+provider's [`call()` methods](#writing-and-reading-synchronously-call), and EVA
+uses the bound service in [eva-extension.md](eva-extension.md). "App" actions
+open mova and navigate.
 
 ### Autonomous writes
 
@@ -199,8 +203,9 @@ that treat the launch as a handoff can ignore all of this.
 
 ## Reading todos and templates: the content provider
 
-Authority: `com.colonelpanic.mova.provider`. Read-only; inserts, updates and
-deletes throw.
+Authority: `com.colonelpanic.mova.provider`. Queries are read-only; inserts,
+updates and deletes throw. Changes go through
+[`call()`](#writing-and-reading-synchronously-call).
 
 | URI                                                                                                                     | Backed by                   |
 | ----------------------------------------------------------------------------------------------------------------------- | --------------------------- |
@@ -279,6 +284,81 @@ contentResolver.query(
 The `<queries>` entry keeps the provider visible under Android 11's package
 visibility rules.
 
+## Writing and reading synchronously: `call()`
+
+`ContentResolver.call` runs any of the operations the
+[EVA extension](eva-extension.md) offers. It uses the same argument rules and
+reports the same outcome states. Nothing opens on screen and no activity is
+launched. The call binds Mova's process even if the app is not running, and
+it works while the phone is locked, as long as the phone has been unlocked
+once since it last restarted. It is the path to use from background services,
+automation apps and assistants.
+
+| Method              | Needs         | Does                                        |
+| ------------------- | ------------- | ------------------------------------------- |
+| `describe`          | either        | `catalog_json`: the capability list         |
+| `list_templates`    | `READ_TODOS`  | Capture templates                           |
+| `find_todos`        | `READ_TODOS`  | `q`, `limit`                                |
+| `read_todo`         | `READ_TODOS`  | `id`                                        |
+| `read_agenda`       | `READ_TODOS`  | `date`, `span`, flags                       |
+| `invocation_status` | `READ_TODOS`  | Outcome of an earlier write by `request_id` |
+| `create_todo`       | `WRITE_TODOS` | Capture through a template                  |
+| `complete_todo`     | `WRITE_TODOS` | `state` defaults to `DONE`                  |
+| `update_todo`       | `WRITE_TODOS` | Change or clear fields                      |
+| `delete_todo`       | `WRITE_TODOS` | Delete by org `id`                          |
+
+Arguments go in the extras under the names listed in `describe`'s input
+schemas. Strings are converted to the declared types, so `pos=12`,
+`include_overdue=true` and `tags=home,errands` work from automation apps that
+only send strings. Prompt values for `create_todo` go in a nested `prompts`
+Bundle. Alternatively, put the whole argument object in `arguments_json`.
+
+Write refs are an org `id` alone, or `file`, `pos` and the exact current
+`title` together. The server refuses a position whose heading changed. The
+`title`-only lookup that `mova://` links allow is not offered here.
+
+```kotlin
+val result = contentResolver.call(
+  Uri.parse("content://com.colonelpanic.mova.provider"),
+  "complete_todo",
+  null,
+  bundleOf("id" to "1f2e3d", "request_id" to "my-app-42"),
+)
+val status = result?.getString("status")   // completed, not_executed, failed, unknown
+val state = result?.getString("state")     // completed, uncertain, not_sent, rejected, ...
+```
+
+The result Bundle holds:
+
+- `status`: `completed`, `not_executed`, `failed` or `unknown`.
+- `reason_code`, when there is one.
+- `message`: human-readable.
+- `request_id`.
+- `state`, on writes.
+- `result_json`: the operation's structured result.
+
+States mean the same as in [eva-extension.md](eva-extension.md#outcomes):
+
+- `completed` requires the server's own confirmation.
+- `uncertain` means the request may have been applied, so check before
+  repeating it.
+- `not_sent` is safe to retry.
+- `needs_unlock` and `needs_configuration` mean nothing was sent.
+
+Pass a stable `request_id` (1–256 printable ASCII characters) to make a write
+idempotent. Mova records it before sending. Repeating the same id and
+arguments returns the recorded result instead of running the write again, and
+a different payload under the same id is refused. `invocation_status` looks up
+an id whose result you lost. Without a `request_id`, every call runs anew.
+
+A write can block on the network for up to 20 seconds and a read for up to
+10, so call from a background thread.
+
+`WRITE_TODOS` is a separate `dangerous` permission, declared and requested
+like `READ_TODOS`. The system dialog asks the user to let the app create,
+change and delete todos, including while the phone is locked. The user can
+revoke it in Settings.
+
 ## Platform notes
 
 - Native actions and the provider are Android only. On iOS and web the
@@ -296,5 +376,7 @@ visibility rules.
 - Relative dates such as `today` or `+3d`.
 - `/capture` returning the new entry's reference, and `body` as a universal
   capture value (server changes).
-- Category capture, custom views navigation, a per-caller permission for
-  headless writes, iOS parity for `update` and `delete`.
+- Category capture, custom views navigation, iOS parity for `update` and
+  `delete`.
+- Requiring a permission for `mova://` write links. They stay open to any
+  caller, including browser links; `call()` is the permissioned path.

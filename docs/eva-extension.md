@@ -4,7 +4,9 @@ Mova implements EVA's installed-app AIDL protocol v1 (EVA
 `docs/extension-protocol.md`) so EVA can read and change todos while the phone
 is locked, without opening Mova. This is the locked-state path. `mova://`
 links and the content provider ([intents.md](intents.md)) remain for other
-callers and for foreground use.
+callers. The provider's `call()` methods give apps that hold Mova's
+`READ_TODOS`/`WRITE_TODOS` permissions the same capabilities, outcomes and
+journal, keyed by the caller's UID.
 
 ## Why a bound service
 

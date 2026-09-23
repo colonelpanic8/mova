@@ -257,16 +257,24 @@ class EvaCapabilities(
 
     fun isWrite(capability: String): Boolean = byName[capability]?.effects == Effects.WRITE
 
+    fun has(capability: String): Boolean = capability in byName
+
+    fun schema(capability: String): EvaSchema? = byName[capability]?.schema
+
+    /** The capability list alone, for callers that discover it without the AIDL envelope. */
+    fun catalog(): JSONArray = capabilitiesJson
+
     /** A reply for a request refused before it reached [execute], shaped for the capability's effects. */
     fun rejection(capability: String, invocationId: String, reasonCode: String, text: String, state: String): String {
         val structured = if (isWrite(capability)) writeState(state, invocationId, capability) else null
         return EvaProtocol.executeEnvelope(EvaProtocol.notExecuted(reasonCode, text, structured))
     }
 
+    /** A null [expectedRevision] skips the descriptor check, for callers without a describe step. */
     fun execute(
         callerUid: Int,
         invocationId: String,
-        expectedRevision: String,
+        expectedRevision: String?,
         capabilityName: String,
         argumentsJson: String,
         deadline: Long,
@@ -314,7 +322,7 @@ class EvaCapabilities(
             }
         }
 
-        if (expectedRevision != descriptorRevision(config)) {
+        if (expectedRevision != null && expectedRevision != descriptorRevision(config)) {
             return reply(
                 EvaProtocol.notExecuted(
                     EvaProtocol.REASON_STALE_DESCRIPTOR,

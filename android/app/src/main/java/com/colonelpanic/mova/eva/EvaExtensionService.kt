@@ -34,7 +34,7 @@ class EvaExtensionService : Service() {
         val context = applicationContext
         val verifier = EvaCallerVerifier(packageManager, packageName, BuildConfig.DEBUG)
         host = EvaExtensionHost(
-            EvaCapabilities({ configuration(context) }, journal(context), SystemClock::elapsedRealtime),
+            capabilities(context),
             verifier::isTrusted,
             SystemClock::elapsedRealtime,
             { MovaEvents.dataChanged(context) },
@@ -85,6 +85,17 @@ class EvaExtensionService : Service() {
     companion object {
         @Volatile
         private var sharedJournal: InvocationJournal? = null
+
+        @Volatile
+        private var sharedCapabilities: EvaCapabilities? = null
+
+        /** Shared by this service and TodoProvider.call, so both use one journal and catalog. */
+        fun capabilities(context: Context): EvaCapabilities =
+            sharedCapabilities ?: synchronized(this) {
+                val app = context.applicationContext
+                sharedCapabilities ?: EvaCapabilities({ configuration(app) }, journal(app), SystemClock::elapsedRealtime)
+                    .also { sharedCapabilities = it }
+            }
 
         /** One journal per process, so in-flight state survives service rebinds. */
         fun journal(context: Context): InvocationJournal =
