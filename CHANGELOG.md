@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.2.1]
+
+- fix(android): update and complete todos from EVA and other apps on servers that predate strict lookups, which rejected every update_todo, including the production server
+- feat(eva): trust the verified EVA app by default so it needs no Mova permission prompts to read or change todos, with a Let EVA use Mova switch in Settings to opt out
+
 ## [7.2.0]
 
 - feat(android): serve EVA's installed-extension protocol natively, so EVA can read, create, complete, reschedule and delete todos while the phone is locked, with authenticated callers, per-action grants, idempotent invocation ids, and results that say completed only when the server confirms

@@ -1,0 +1,2 @@
+* fix(android): update and complete todos from EVA and other apps on servers that predate strict lookups, which rejected every update_todo, including the production server
+* feat(eva): trust the verified EVA app by default so it needs no Mova permission prompts to read or change todos, with a Let EVA use Mova switch in Settings to opt out
