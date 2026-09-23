@@ -11,9 +11,30 @@ import java.net.URLEncoder
 import org.json.JSONArray
 import org.json.JSONObject
 
+/**
+ * How far a failed request got. Callers that must not repeat a write use this
+ * to tell "nothing reached the server" from "the server may have applied it".
+ */
+enum class Delivery {
+    /** Nothing was sent: local validation, missing login, or the connection never opened. */
+    NOT_SENT,
+    /** The server answered with a definitive error. */
+    REJECTED,
+    /** The request may have been processed but no definitive answer arrived. */
+    UNCERTAIN,
+}
+
 sealed class ApiResult<out T> {
     data class Ok<T>(val value: T) : ApiResult<T>()
-    data class Err(val message: String, val httpStatus: Int? = null) : ApiResult<Nothing>()
+    data class Err(
+        val message: String,
+        val httpStatus: Int? = null,
+        val delivery: Delivery = Delivery.NOT_SENT,
+        /** The caller's time budget ran out, before sending or while waiting. */
+        val deadlineExceeded: Boolean = false,
+        /** The request itself is invalid (bad template, missing prompt); nothing was sent. */
+        val invalid: Boolean = false,
+    ) : ApiResult<Nothing>()
 
     inline fun <R> map(transform: (T) -> R): ApiResult<R> = when (this) {
         is Ok -> Ok(transform(value))
@@ -25,8 +46,17 @@ sealed class ApiResult<out T> {
  * Minimal org-agenda-api client for native surfaces (widgets, intents, the
  * content provider). Uses the credentials the React Native app stores for the
  * active server in [MovaSharedPrefs]; there is no offline queue here.
+ *
+ * [remainingMillis], when set, bounds every request by the caller's remaining
+ * budget. Writes are never retried: a POST uses a fresh connection and a fixed
+ * length body, so a failure is classified by whether any of it left the device.
  */
-class MovaClient(private val apiUrl: String, private val username: String, private val password: String) {
+class MovaClient(
+    private val apiUrl: String,
+    private val username: String,
+    private val password: String,
+    private val remainingMillis: (() -> Long)? = null,
+) {
 
     data class TodoList(val todos: List<JSONObject>, val total: Int)
 
@@ -36,6 +66,9 @@ class MovaClient(private val apiUrl: String, private val username: String, priva
         const val PREF_PASSWORD = "mova_password"
         const val PREF_DEFAULT_TEMPLATE = "mova_default_template"
         const val NOT_LOGGED_IN = "Log in to Mova first"
+        private const val CONNECT_TIMEOUT_MILLIS = 8000
+        private const val READ_TIMEOUT_MILLIS = 15000
+        private const val MIN_REQUEST_MILLIS = 500L
 
         fun fromPrefs(context: Context): MovaClient? {
             val prefs = MovaSharedPrefs.get(context)
@@ -45,10 +78,38 @@ class MovaClient(private val apiUrl: String, private val username: String, priva
             return MovaClient(apiUrl.trimEnd('/'), username, password)
         }
 
+        /**
+         * A 5xx may arrive after the server already changed an org file, so it
+         * is uncertain; any other answered error is a definitive rejection.
+         */
+        internal fun classify(status: Int, text: String): ApiResult<JSONObject> {
+            val json = try {
+                if (text.isBlank()) JSONObject() else JSONObject(text)
+            } catch (e: Exception) {
+                null
+            }
+            val message = json?.optString("message")?.takeIf { it.isNotEmpty() }
+            return when {
+                status == 401 -> ApiResult.Err("Authentication failed", status, Delivery.REJECTED)
+                status >= 500 -> ApiResult.Err(message ?: "Server error $status", status, Delivery.UNCERTAIN)
+                status !in 200..299 -> ApiResult.Err(message ?: "Server error $status", status, Delivery.REJECTED)
+                json == null -> ApiResult.Err("Unexpected response from server", status, Delivery.UNCERTAIN)
+                json.optString("status") == "error" ->
+                    ApiResult.Err(message ?: "Request failed", status, Delivery.REJECTED)
+                else -> ApiResult.Ok(json)
+            }
+        }
+
         fun defaultTemplate(context: Context): String =
             MovaSharedPrefs.get(context).getString(PREF_DEFAULT_TEMPLATE, null)
                 ?.takeIf { it.isNotEmpty() } ?: "default"
     }
+
+    fun withDeadline(remainingMillis: () -> Long): MovaClient =
+        MovaClient(apiUrl, username, password, remainingMillis)
+
+    /** Identifies the server account without revealing the password. */
+    val accountKey: String get() = "$apiUrl\n$username"
 
     fun getTemplates(): ApiResult<Map<String, TemplateInfo>> =
         get("/capture-templates").map { json ->
@@ -146,43 +207,55 @@ class MovaClient(private val apiUrl: String, private val username: String, priva
         request("$apiUrl$path", "POST", body.toString())
 
     private fun request(url: String, method: String, body: String?): ApiResult<JSONObject> {
+        val budget = remainingMillis?.invoke()
+        if (budget != null && budget < MIN_REQUEST_MILLIS) {
+            return ApiResult.Err("Ran out of time before contacting the server", deadlineExceeded = true)
+        }
+        val connectTimeout = budget?.let { minOf(CONNECT_TIMEOUT_MILLIS.toLong(), it / 2).toInt() } ?: CONNECT_TIMEOUT_MILLIS
+        val readTimeout = budget?.let { maxOf(1L, it - connectTimeout).toInt() } ?: READ_TIMEOUT_MILLIS
+        val payload = body?.toByteArray()
+        var sent = false
+        val connection = try {
+            URL(url).openConnection() as HttpURLConnection
+        } catch (e: Exception) {
+            return ApiResult.Err("Network error: ${e.message}")
+        }
         return try {
-            val connection = URL(url).openConnection() as HttpURLConnection
-            try {
-                connection.connectTimeout = 8000
-                connection.readTimeout = 15000
-                connection.requestMethod = method
-                connection.setRequestProperty("Authorization", basicAuth())
-                connection.setRequestProperty("Accept", "application/json")
-                if (body != null) {
-                    connection.setRequestProperty("Content-Type", "application/json")
-                    connection.doOutput = true
-                    connection.outputStream.use { it.write(body.toByteArray()) }
-                }
-                val status = connection.responseCode
-                val text = (if (status in 200..299) connection.inputStream else connection.errorStream)
-                    ?.bufferedReader()?.readText().orEmpty()
-                val json = try {
-                    if (text.isBlank()) JSONObject() else JSONObject(text)
-                } catch (e: Exception) {
-                    null
-                }
-                when {
-                    status == 401 -> ApiResult.Err("Authentication failed", status)
-                    status !in 200..299 -> ApiResult.Err(
-                        json?.optString("message")?.takeIf { it.isNotEmpty() } ?: "Server error $status",
-                        status,
-                    )
-                    json == null -> ApiResult.Err("Unexpected response from server", status)
-                    json.optString("status") == "error" ->
-                        ApiResult.Err(json.optString("message").ifEmpty { "Request failed" }, status)
-                    else -> ApiResult.Ok(json)
-                }
-            } finally {
-                connection.disconnect()
+            connection.connectTimeout = connectTimeout
+            connection.readTimeout = readTimeout
+            connection.requestMethod = method
+            connection.setRequestProperty("Authorization", basicAuth())
+            connection.setRequestProperty("Accept", "application/json")
+            if (payload != null) {
+                connection.setRequestProperty("Content-Type", "application/json")
+                // A pooled keep-alive socket can be silently dead; a fresh one
+                // keeps "could not connect" distinct from "sent, then lost".
+                connection.setRequestProperty("Connection", "close")
+                connection.doOutput = true
+                connection.setFixedLengthStreamingMode(payload.size)
+            }
+            connection.connect()
+            sent = true
+            payload?.let { bytes -> connection.outputStream.use { it.write(bytes) } }
+            val status = connection.responseCode
+            val text = (if (status in 200..299) connection.inputStream else connection.errorStream)
+                ?.bufferedReader()?.readText().orEmpty()
+            classify(status, text)
+        } catch (e: java.net.SocketTimeoutException) {
+            // A timeout counts as the caller's deadline when the budget, not the default, set it.
+            if (sent) {
+                ApiResult.Err(
+                    "No response from the server in time",
+                    delivery = Delivery.UNCERTAIN,
+                    deadlineExceeded = readTimeout < READ_TIMEOUT_MILLIS,
+                )
+            } else {
+                ApiResult.Err("Could not reach the server in time", deadlineExceeded = connectTimeout < CONNECT_TIMEOUT_MILLIS)
             }
         } catch (e: Exception) {
-            ApiResult.Err("Network error: ${e.message}")
+            ApiResult.Err("Network error: ${e.message}", delivery = if (sent) Delivery.UNCERTAIN else Delivery.NOT_SENT)
+        } finally {
+            connection.disconnect()
         }
     }
 

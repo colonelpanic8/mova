@@ -1,5 +1,6 @@
 package com.colonelpanic.mova
 
+import android.app.KeyguardManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
@@ -40,6 +41,9 @@ object MovaSharedPrefs {
         return try {
             buildEncrypted(context)
         } catch (e: Exception) {
+            // Background callers (EVA, the provider) can arrive while the phone
+            // is locked; a keystore hiccup then must not cost the stored login.
+            if (context.getSystemService(KeyguardManager::class.java)?.isDeviceLocked == true) throw e
             // The encrypted file can become unreadable if the keystore entry is
             // lost (e.g. restored from a backup onto another device). Reset the
             // store rather than permanently crashing widget capture.

@@ -151,6 +151,12 @@ android {
             useLegacyPackaging enableLegacyPackaging.toBoolean()
         }
     }
+    buildFeatures {
+        aidl true
+    }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }

@@ -13,7 +13,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 
 /**
  * Invisible dispatcher for the mutating `mova://` hosts (create, complete,
@@ -24,19 +23,11 @@ import org.json.JSONObject
 class IntentActivity : AppCompatActivity() {
 
     companion object {
-        const val EXTRA_STATUS = "status"
-        const val EXTRA_TITLE = "title"
-        const val EXTRA_ID = "id"
-        const val EXTRA_FILE = "file"
-        const val EXTRA_POS = "pos"
-        const val EXTRA_TEMPLATE = "template"
         const val EXTRA_ERROR = "error"
 
         fun queryParams(uri: Uri): Map<String, List<String>> =
             uri.queryParameterNames.associateWith { uri.getQueryParameters(it) }
     }
-
-    private class Outcome(val message: String, val extras: Map<String, Any?>)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,7 +66,9 @@ class IntentActivity : AppCompatActivity() {
 
     private fun execute(request: IntentRequest) {
         CoroutineScope(Dispatchers.IO).launch {
-            val result = run(request)
+            val result = MovaClient.fromPrefs(this@IntentActivity)
+                ?.let { client -> IntentExecutor(client) { MovaClient.defaultTemplate(this@IntentActivity) }.run(request) }
+                ?: ApiResult.Err(MovaClient.NOT_LOGGED_IN)
             if (result is ApiResult.Ok) MovaEvents.dataChanged(this@IntentActivity)
             withContext(Dispatchers.Main) {
                 when (result) {
@@ -86,66 +79,7 @@ class IntentActivity : AppCompatActivity() {
         }
     }
 
-    private fun run(request: IntentRequest): ApiResult<Outcome> {
-        val client = MovaClient.fromPrefs(this) ?: return ApiResult.Err(MovaClient.NOT_LOGGED_IN)
-        return when (request) {
-            is IntentRequest.Create -> runCreate(client, request)
-            is IntentRequest.Complete ->
-                client.complete(request.ref, request.state, request.overrideDate, request.strict).map { json ->
-                    Outcome("Completed: ${json.optString("title").ifEmpty { request.ref.describe() }}", responseExtras(json))
-                }
-            is IntentRequest.Update ->
-                client.update(request.ref, request.updatesJson(), request.strict).map { json ->
-                    Outcome("Updated: ${json.optString("title").ifEmpty { request.ref.describe() }}", responseExtras(json))
-                }
-            is IntentRequest.Delete ->
-                client.delete(request.ref).map { json ->
-                    Outcome("Deleted: ${json.optString("title").ifEmpty { request.ref.describe() }}", responseExtras(json))
-                }
-            is IntentRequest.Refresh -> {
-                val result = if (request.git) {
-                    client.getAgenda(null, "day", null, null, refresh = true).map { }
-                } else {
-                    ApiResult.Ok(Unit)
-                }
-                result.map { Outcome("Refreshed", mapOf(EXTRA_STATUS to "refreshed")) }
-            }
-        }
-    }
-
-    private fun runCreate(client: MovaClient, request: IntentRequest.Create): ApiResult<Outcome> {
-        val templateKey = request.template ?: MovaClient.defaultTemplate(this)
-        val template = when (val templates = client.getTemplates()) {
-            is ApiResult.Err -> return templates
-            is ApiResult.Ok -> templates.value[templateKey]
-                ?: return ApiResult.Err("Unknown template '$templateKey'")
-        }
-        val values = try {
-            CaptureMapper.buildValues(template, request)
-        } catch (e: IntentParseException) {
-            return ApiResult.Err(e.message ?: "Invalid value")
-        }
-        val missing = CaptureMapper.missingRequired(template, values)
-        if (missing.isNotEmpty()) {
-            return ApiResult.Err("Template '$templateKey' needs: ${missing.joinToString(", ")}")
-        }
-        return client.capture(templateKey, values).map { json ->
-            Outcome(
-                "Created: ${request.title}",
-                responseExtras(json) + mapOf(EXTRA_TITLE to request.title, EXTRA_TEMPLATE to templateKey),
-            )
-        }
-    }
-
-    private fun responseExtras(json: JSONObject): Map<String, Any?> = buildMap {
-        put(EXTRA_STATUS, json.optString("status").ifEmpty { if (json.optBoolean("deleted")) "deleted" else null })
-        listOf(EXTRA_TITLE, EXTRA_ID, EXTRA_FILE).forEach { key ->
-            json.optString(key).takeIf { it.isNotEmpty() }?.let { put(key, it) }
-        }
-        if (json.has("pos") && !json.isNull("pos")) put(EXTRA_POS, json.optInt("pos"))
-    }
-
-    private fun succeed(outcome: Outcome) {
+    private fun succeed(outcome: IntentExecutor.Outcome) {
         Toast.makeText(applicationContext, outcome.message, Toast.LENGTH_SHORT).show()
         val data = Intent()
         for ((key, value) in outcome.extras) {
