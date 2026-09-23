@@ -107,6 +107,14 @@
         <data android:host="refresh"/>
       </intent-filter>
     </activity>
+    <service
+        android:name=".eva.EvaExtensionService"
+        android:exported="true">
+      <intent-filter>
+        <action android:name="com.colonelpanic.eva.action.EXTENSION"/>
+      </intent-filter>
+      <meta-data android:name="com.colonelpanic.eva.extension.version" android:value="1"/>
+    </service>
     <provider
         android:name=".intents.TodoProvider"
         android:authorities="com.colonelpanic.mova.provider"

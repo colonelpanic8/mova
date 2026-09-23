@@ -39,8 +39,12 @@ URL encoder does this for you.
 
 "Native" actions run in a small invisible activity written in Kotlin with the
 credentials the app stored for the active server. They never start the React
-Native app, work from the lock screen, and finish with a toast. "App" actions
-open mova and navigate.
+Native app and finish with a toast. Because they are activity launches,
+Android's background-activity-start limits and the keyguard apply to the
+caller; an assistant acting while the phone is locked should use the
+authenticated bound service in [eva-extension.md](eva-extension.md), which
+also reports whether the server applied the change. "App" actions open mova
+and navigate.
 
 ### Autonomous writes
 

@@ -1,0 +1,468 @@
+{
+  "truncated": false,
+  "protocolVersion": 1,
+  "reasonCode": null,
+  "descriptor": {
+    "capabilities": [
+      {
+        "result": { "maxBytes": 16384 },
+        "execution": {
+          "mode": "synchronous",
+          "maxWaitMillis": 10000,
+          "requiresForeground": false
+        },
+        "effects": "read",
+        "tool": {
+          "inputSchema": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "name": "list_templates",
+          "description": "List the capture templates on Mova's active server. Pass a template's key as create_todo's template; prompts lists each prompt's name, type (string, date, tags or body) and whether it is required. Fill prompts other than the title and the universal fields through create_todo's prompts argument.",
+          "annotations": {
+            "openWorldHint": true,
+            "readOnlyHint": true
+          },
+          "title": "List capture templates"
+        }
+      },
+      {
+        "result": { "maxBytes": 16384 },
+        "execution": {
+          "mode": "synchronous",
+          "maxWaitMillis": 10000,
+          "requiresForeground": false
+        },
+        "effects": "read",
+        "tool": {
+          "inputSchema": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "q": {
+                "minLength": 1,
+                "description": "Search text. Omit to list todos.",
+                "type": "string",
+                "maxLength": 500
+              },
+              "limit": {
+                "description": "Maximum rows to return. Defaults to 25.",
+                "maximum": 50,
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": []
+          },
+          "name": "find_todos",
+          "description": "Search todos on Mova's active server by a case-insensitive substring of title, tags, state or category. Returns at most limit rows plus the total match count. Absence from a capped result does not prove no todo exists.",
+          "annotations": {
+            "openWorldHint": true,
+            "readOnlyHint": true
+          },
+          "title": "Find todos"
+        }
+      },
+      {
+        "result": { "maxBytes": 16384 },
+        "execution": {
+          "mode": "synchronous",
+          "maxWaitMillis": 10000,
+          "requiresForeground": false
+        },
+        "effects": "read",
+        "tool": {
+          "inputSchema": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "id": {
+                "minLength": 1,
+                "description": "Org id returned by find_todos or read_agenda.",
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "required": ["id"]
+          },
+          "name": "read_todo",
+          "description": "Read one todo by its org id from Mova's active server.",
+          "annotations": {
+            "openWorldHint": true,
+            "readOnlyHint": true
+          },
+          "title": "Read todo by id"
+        }
+      },
+      {
+        "result": { "maxBytes": 16384 },
+        "execution": {
+          "mode": "synchronous",
+          "maxWaitMillis": 10000,
+          "requiresForeground": false
+        },
+        "effects": "read",
+        "tool": {
+          "inputSchema": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "date": {
+                "minLength": 10,
+                "description": "YYYY-MM-DD. Defaults to today on the server.",
+                "type": "string",
+                "maxLength": 10
+              },
+              "include_completed": {
+                "description": "Include items completed on the date.",
+                "type": "boolean"
+              },
+              "include_overdue": {
+                "description": "Include overdue items.",
+                "type": "boolean"
+              },
+              "span": {
+                "minLength": 0,
+                "description": "day or week. Defaults to day.",
+                "type": "string",
+                "maxLength": 500,
+                "enum": ["day", "week"]
+              }
+            },
+            "required": []
+          },
+          "name": "read_agenda",
+          "description": "Read the agenda for a day or week from Mova's active server, including habit status.",
+          "annotations": {
+            "openWorldHint": true,
+            "readOnlyHint": true
+          },
+          "title": "Read agenda"
+        }
+      },
+      {
+        "result": { "maxBytes": 16384 },
+        "execution": {
+          "mode": "synchronous",
+          "maxWaitMillis": 20000,
+          "requiresForeground": false
+        },
+        "effects": "write",
+        "tool": {
+          "inputSchema": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "template": {
+                "minLength": 1,
+                "description": "Template key from list_templates. Defaults to Mova's default template.",
+                "type": "string",
+                "maxLength": 500
+              },
+              "scheduled": {
+                "minLength": 10,
+                "description": "YYYY-MM-DD or YYYY-MM-DDTHH:MM, optionally followed by a space and an org repeater such as +1w, ++1d or .+2m.",
+                "type": "string",
+                "maxLength": 40
+              },
+              "state": {
+                "minLength": 1,
+                "description": "TODO keyword to start in, such as NEXT.",
+                "type": "string",
+                "maxLength": 40
+              },
+              "title": {
+                "minLength": 1,
+                "description": "Heading text.",
+                "type": "string",
+                "maxLength": 1000
+              },
+              "deadline": {
+                "minLength": 10,
+                "description": "YYYY-MM-DD or YYYY-MM-DDTHH:MM, optionally followed by a space and an org repeater such as +1w, ++1d or .+2m.",
+                "type": "string",
+                "maxLength": 40
+              },
+              "priority": {
+                "minLength": 1,
+                "description": "Single letter such as A.",
+                "type": "string",
+                "maxLength": 1
+              },
+              "body": {
+                "minLength": 0,
+                "description": "Body text, applied only if the template declares a body prompt.",
+                "type": "string",
+                "maxLength": 8000
+              },
+              "prompts": {
+                "description": "Values for the template's other prompts, keyed by prompt name.",
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "maxProperties": 16,
+                "type": "object"
+              },
+              "tags": {
+                "minItems": 0,
+                "maxItems": 32,
+                "description": "Tags to set.",
+                "type": "array",
+                "items": {
+                  "minLength": 1,
+                  "type": "string",
+                  "maxLength": 100
+                }
+              }
+            },
+            "required": ["title"]
+          },
+          "name": "create_todo",
+          "description": "Create a todo on Mova's active server through a capture template. The title fills the template's title prompt. Completion means the server reported the entry created; it does not return the new entry's id, so use find_todos to locate it.",
+          "annotations": {
+            "openWorldHint": true,
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "title": "Create todo"
+        }
+      },
+      {
+        "result": { "maxBytes": 16384 },
+        "execution": {
+          "mode": "synchronous",
+          "maxWaitMillis": 20000,
+          "requiresForeground": false
+        },
+        "effects": "write",
+        "tool": {
+          "inputSchema": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "date": {
+                "minLength": 10,
+                "description": "YYYY-MM-DD to backdate the completion.",
+                "type": "string",
+                "maxLength": 10
+              },
+              "file": {
+                "minLength": 1,
+                "description": "Absolute org file path; requires pos and title.",
+                "type": "string",
+                "maxLength": 4096
+              },
+              "pos": {
+                "description": "Buffer position; requires file and title.",
+                "maximum": 2147483647,
+                "type": "integer",
+                "minimum": 1
+              },
+              "id": {
+                "minLength": 1,
+                "description": "Org id.",
+                "type": "string",
+                "maxLength": 500
+              },
+              "state": {
+                "minLength": 1,
+                "description": "Target TODO keyword. Defaults to DONE.",
+                "type": "string",
+                "maxLength": 40
+              },
+              "title": {
+                "minLength": 1,
+                "description": "Exact current heading title; required with file and pos.",
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": []
+          },
+          "name": "complete_todo",
+          "description": "Set a todo's state, DONE by default, on Mova's active server. Identify the todo with id alone, or with file, pos and title together, exactly as returned by find_todos or read_agenda. With file and pos the server refuses the change unless the heading there still has this exact title.",
+          "annotations": {
+            "openWorldHint": true,
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "title": "Complete todo"
+        }
+      },
+      {
+        "result": { "maxBytes": 16384 },
+        "execution": {
+          "mode": "synchronous",
+          "maxWaitMillis": 20000,
+          "requiresForeground": false
+        },
+        "effects": "write",
+        "tool": {
+          "inputSchema": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "file": {
+                "minLength": 1,
+                "description": "Absolute org file path; requires pos and title.",
+                "type": "string",
+                "maxLength": 4096
+              },
+              "pos": {
+                "description": "Buffer position; requires file and title.",
+                "maximum": 2147483647,
+                "type": "integer",
+                "minimum": 1
+              },
+              "scheduled": {
+                "minLength": 0,
+                "description": "YYYY-MM-DD or YYYY-MM-DDTHH:MM, optionally followed by a space and an org repeater such as +1w, ++1d or .+2m. Empty clears.",
+                "type": "string",
+                "maxLength": 40
+              },
+              "id": {
+                "minLength": 1,
+                "description": "Org id.",
+                "type": "string",
+                "maxLength": 500
+              },
+              "state": {
+                "minLength": 1,
+                "description": "TODO keyword.",
+                "type": "string",
+                "maxLength": 40
+              },
+              "title": {
+                "minLength": 1,
+                "description": "Exact current heading title; required with file and pos.",
+                "type": "string",
+                "maxLength": 1000
+              },
+              "deadline": {
+                "minLength": 0,
+                "description": "YYYY-MM-DD or YYYY-MM-DDTHH:MM, optionally followed by a space and an org repeater such as +1w, ++1d or .+2m. Empty clears.",
+                "type": "string",
+                "maxLength": 40
+              },
+              "priority": {
+                "minLength": 0,
+                "description": "Single letter such as A. Empty clears.",
+                "type": "string",
+                "maxLength": 1
+              },
+              "body": {
+                "minLength": 0,
+                "description": "Replacement body. Empty clears.",
+                "type": "string",
+                "maxLength": 8000
+              },
+              "new_title": {
+                "minLength": 1,
+                "description": "Replacement heading text.",
+                "type": "string",
+                "maxLength": 1000
+              },
+              "tags": {
+                "minItems": 0,
+                "maxItems": 32,
+                "description": "Replacement tags. Empty removes all tags.",
+                "type": "array",
+                "items": {
+                  "minLength": 1,
+                  "type": "string",
+                  "maxLength": 100
+                }
+              }
+            },
+            "required": []
+          },
+          "name": "update_todo",
+          "description": "Change a todo's title, dates, priority, tags, state or body on Mova's active server. An empty string clears scheduled, deadline, priority or body; an empty tags array removes all tags. Identify the todo with id alone, or with file, pos and title together, exactly as returned by find_todos or read_agenda. With file and pos the server refuses the change unless the heading there still has this exact title.",
+          "annotations": {
+            "openWorldHint": true,
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "title": "Update or reschedule todo"
+        }
+      },
+      {
+        "result": { "maxBytes": 16384 },
+        "execution": {
+          "mode": "synchronous",
+          "maxWaitMillis": 20000,
+          "requiresForeground": false
+        },
+        "effects": "write",
+        "tool": {
+          "inputSchema": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "id": {
+                "minLength": 1,
+                "description": "Org id returned by find_todos or read_agenda.",
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "required": ["id"]
+          },
+          "name": "delete_todo",
+          "description": "Permanently delete a todo and its sub-headings from Mova's active server. Requires the todo's org id; todos without one cannot be deleted here.",
+          "annotations": {
+            "openWorldHint": true,
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "title": "Delete todo"
+        }
+      },
+      {
+        "result": { "maxBytes": 16384 },
+        "execution": {
+          "mode": "synchronous",
+          "maxWaitMillis": 10000,
+          "requiresForeground": false
+        },
+        "effects": "read",
+        "tool": {
+          "inputSchema": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "invocationId": {
+                "minLength": 1,
+                "description": "Invocation id of the earlier request.",
+                "type": "string",
+                "maxLength": 256
+              }
+            },
+            "required": ["invocationId"]
+          },
+          "name": "invocation_status",
+          "description": "Report what Mova recorded for an earlier create, complete, update or delete by its invocation id, including one whose reply never arrived. state is completed, uncertain, failed, rejected, not_sent, in_progress, interrupted (Mova stopped mid-request; the outcome is unknown) or not_found. Mova keeps records for 14 days.",
+          "annotations": {
+            "openWorldHint": true,
+            "readOnlyHint": true
+          },
+          "title": "Check an earlier Mova change"
+        }
+      }
+    ],
+    "descriptorRevision": "mova-6e078ed29466bc07.account-dd96486fa975ddc2",
+    "authorizationScopeRevision": "account-dd96486fa975ddc2",
+    "protocolVersion": 1,
+    "title": "Mova"
+  },
+  "content": [
+    {
+      "text": "",
+      "type": "text"
+    }
+  ],
+  "status": "completed"
+}
