@@ -1,4 +1,5 @@
 import { KeyboardAwareContainer } from "@/components/KeyboardAwareContainer";
+import { openLink } from "@/components/LinkifiedText";
 import { LogbookViewer } from "@/components/LogbookViewer";
 import { PropertiesEditor } from "@/components/PropertiesEditor";
 import { TagsEditor } from "@/components/TagsEditor";
@@ -12,6 +13,7 @@ import { useApi } from "@/context/ApiContext";
 import { AppSnackbar, useSnackbar } from "@/context/SnackbarContext";
 import { useServerDataInvalidation } from "@/hooks/queryKeys";
 import { Todo, TodoUpdates } from "@/services/api";
+import { extractLinks } from "@/utils/links";
 import { getEditableProperties } from "@/utils/properties";
 import {
   formStringToTimestamp,
@@ -23,6 +25,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
+  Chip,
   IconButton,
   Text,
   TextInput,
@@ -80,6 +83,7 @@ export default function EditScreen() {
   );
   const [body, setBody] = useState(originalTodo.body || "");
   const [bodyExpanded, setBodyExpanded] = useState(!!originalTodo.body);
+  const bodyLinks = useMemo(() => extractLinks(body), [body]);
   const [properties, setProperties] = useState<Record<string, string>>(
     () => originalEditableProperties,
   );
@@ -282,6 +286,23 @@ export default function EditScreen() {
                 numberOfLines={6}
                 style={styles.bodyInput}
               />
+              {bodyLinks.length > 0 && (
+                <View style={styles.bodyLinks}>
+                  {bodyLinks.map((link, index) => (
+                    <Chip
+                      key={`${link.url}-${index}`}
+                      icon="open-in-new"
+                      compact
+                      onPress={() => openLink(link.url)}
+                      style={styles.bodyLinkChip}
+                      textStyle={{ color: theme.colors.primary }}
+                      ellipsizeMode="middle"
+                    >
+                      {link.text}
+                    </Chip>
+                  ))}
+                </View>
+              )}
             </View>
           ) : (
             <Button
@@ -377,6 +398,15 @@ const styles = StyleSheet.create({
   },
   bodyInput: {
     minHeight: 120,
+  },
+  bodyLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
+  bodyLinkChip: {
+    maxWidth: "100%",
   },
   addBodyButton: {
     marginBottom: 16,

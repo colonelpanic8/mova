@@ -1,4 +1,5 @@
 import { HabitGraph } from "@/components/HabitGraph";
+import { LinkifiedText } from "@/components/LinkifiedText";
 import { StatePill } from "@/components/StatePill";
 import { useColorPalette } from "@/context/ColorPaletteContext";
 import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
@@ -242,13 +243,13 @@ export const TodoItem = React.memo(function TodoItem({
                 {todo.priority.toUpperCase()}
               </Chip>
             )}
-            <Text
+            <LinkifiedText
               variant="bodyMedium"
               style={styles.todoTitle}
               numberOfLines={2}
             >
               {todo.title}
-            </Text>
+            </LinkifiedText>
             <Menu
               visible={menuVisible}
               onDismiss={() => setMenuVisible(false)}

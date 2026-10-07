@@ -1,4 +1,5 @@
 import { HabitGraph } from "@/components/HabitGraph";
+import { LinkifiedText } from "@/components/LinkifiedText";
 import { PlatformDatePicker } from "@/components/PlatformDatePicker";
 import { useApi } from "@/context/ApiContext";
 import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
@@ -346,13 +347,13 @@ export const HabitItem = React.memo(function HabitItem({
               style={styles.editButton}
             />
             <View style={styles.titleContainer}>
-              <Text
+              <LinkifiedText
                 variant="titleMedium"
                 style={styles.title}
                 numberOfLines={2}
               >
                 {todo.title}
-              </Text>
+              </LinkifiedText>
               {nextRequired && !needsCompletion && (
                 <View style={styles.nextRequiredRow}>
                   <Icon

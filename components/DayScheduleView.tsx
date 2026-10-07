@@ -1,3 +1,4 @@
+import { LinkifiedText } from "@/components/LinkifiedText";
 import { StatePill } from "@/components/StatePill";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
@@ -86,12 +87,12 @@ function CompactTodoItem({
             loading={isCompleting}
           />
         )}
-        <Text
+        <LinkifiedText
           style={[styles.compactTitle, { color: theme.colors.onSurface }]}
           numberOfLines={1}
         >
           {todo.title}
-        </Text>
+        </LinkifiedText>
         {time && (
           <Text style={[styles.compactTime, { color: theme.colors.primary }]}>
             {formatTime(time.hours, time.minutes)}
