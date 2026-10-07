@@ -1,0 +1,2 @@
+* feat(notes): add a Notes tab that lists and searches every org file and ID'd heading on the server, sorted by recency, title or how often each is linked
+* feat(notes): read a note with foldable headings, followable links, and Linked from / Links to sections that show the line each backlink comes from (needs org-agenda-api 4.8.0)

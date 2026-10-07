@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.3.0]
+
+- feat(notes): add a Notes tab that lists and searches every org file and ID'd heading on the server, sorted by recency, title or how often each is linked
+- feat(notes): read a note with foldable headings, followable links, and Linked from / Links to sections that show the line each backlink comes from (needs org-agenda-api 4.8.0)
+
 ## [7.2.1]
 
 - fix(android): update and complete todos from EVA and other apps on servers that predate strict lookups, which rejected every update_todo, including the production server
