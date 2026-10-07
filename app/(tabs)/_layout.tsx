@@ -191,6 +191,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="notes"
+        options={{
+          title: "Notes",
+          tabBarButtonTestID: "tabNotes",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="notebook-outline"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="capture"
         options={{
           title: "Capture",

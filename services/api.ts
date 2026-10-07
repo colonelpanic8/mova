@@ -402,6 +402,79 @@ export interface ApiClientOptions {
   retryBaseDelayMs?: number;
 }
 
+export interface NoteSummary {
+  /** "id:<uuid>" for headings and files with an ID, otherwise "file:<path>". */
+  ref: string;
+  id: string | null;
+  file: string;
+  fileRef: string;
+  title: string;
+  /** Titles of the headings above this one; empty for whole files. */
+  olp: string[];
+  /** 0 for a whole file, otherwise the heading level. */
+  level: number;
+  todo: string | null;
+  tags: string[];
+  /** File modification time, in seconds since the epoch. */
+  mtime: number;
+  backlinkCount: number;
+  /** Excerpt around a body match; only on search results. */
+  snippet?: string;
+  /** The line holding the link; only on backlinks. */
+  context?: string;
+}
+
+export interface NotesResponse {
+  total: number;
+  notes: NoteSummary[];
+}
+
+export type NoteInline =
+  | { t: "text" | "code" | "timestamp"; v: string }
+  | {
+      t: "bold" | "italic" | "underline" | "strike-through";
+      c: NoteInline[];
+    }
+  | { t: "link"; href: string; ref: string | null; c: NoteInline[] };
+
+export interface NoteListItem {
+  checkbox: "on" | "off" | "trans" | null;
+  tag: NoteInline[] | null;
+  blocks: NoteBlock[];
+}
+
+export type NoteBlock =
+  | { type: "paragraph" | "verse"; content: NoteInline[] }
+  | { type: "list"; ordered: boolean; items: NoteListItem[] }
+  | { type: "src"; language: string | null; value: string }
+  | { type: "example"; value: string }
+  | { type: "quote"; blocks: NoteBlock[] }
+  | { type: "table"; header: boolean; rows: NoteInline[][][] }
+  | { type: "rule" }
+  | { type: "planning"; text: string }
+  | { type: "footnote"; label: string; blocks: NoteBlock[] };
+
+export interface NoteHeading extends NoteContent {
+  level: number;
+  title: NoteInline[];
+  todo: string | null;
+  priority: string | null;
+  tags: string[];
+  ref: string | null;
+}
+
+export interface NoteContent {
+  blocks: NoteBlock[];
+  children: NoteHeading[];
+}
+
+export interface NoteResponse {
+  note: NoteSummary;
+  content: NoteContent;
+  links: NoteSummary[];
+  backlinks: NoteSummary[];
+}
+
 export class ApiError extends Error {
   public readonly status: number;
   public readonly serverMessage?: string;
@@ -891,6 +964,16 @@ export class OrgAgendaApi {
     return this.request<AllHabitStatusesResponse>(
       `/all-habit-statuses${query ? `?${query}` : ""}`,
     );
+  }
+
+  async getNotes(query?: string): Promise<NotesResponse> {
+    return this.request<NotesResponse>(
+      query ? `/notes?q=${encodeURIComponent(query)}` : "/notes",
+    );
+  }
+
+  async getNote(ref: string): Promise<NoteResponse> {
+    return this.request<NoteResponse>(`/note?ref=${encodeURIComponent(ref)}`);
   }
 
   async callFunction(functionId: string): Promise<CallFunctionResponse> {

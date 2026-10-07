@@ -55,6 +55,12 @@ export const queryKeys = {
   views: (identity: string) => [identity, "views"] as const,
   viewEntries: (identity: string, viewKey: string) =>
     [identity, "views", viewKey] as const,
+  /** Note listing; noteSearch and note extend it so one prefix covers all. */
+  notes: (identity: string) => [identity, "notes"] as const,
+  noteSearch: (identity: string, query: string) =>
+    [identity, "notes", "search", query] as const,
+  note: (identity: string, ref: string) =>
+    [identity, "notes", "note", ref] as const,
   /** Templates / filter options / todo states / habit config bundle. */
   metadata: (identity: string) => [identity, "metadata"] as const,
 };
