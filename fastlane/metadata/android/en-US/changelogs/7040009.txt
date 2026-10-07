@@ -1,0 +1,2 @@
+* feat: links in todo and habit titles are tappable, showing an org link's description instead of its raw [[url][description]] syntax
+* feat: links in a todo's body appear as tappable chips under the body editor

@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.4.0]
+
+- feat: links in todo and habit titles are tappable, showing an org link's description instead of its raw [[url][description]] syntax
+- feat: links in a todo's body appear as tappable chips under the body editor
+
 ## [7.3.0]
 
 - feat(notes): add a Notes tab that lists and searches every org file and ID'd heading on the server, sorted by recency, title or how often each is linked
