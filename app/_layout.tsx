@@ -74,7 +74,10 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === "(tabs)";
     const inAuthenticatedRoute =
-      inAuthGroup || segments[0] === "edit" || segments[0] === "note";
+      inAuthGroup ||
+      segments[0] === "edit" ||
+      segments[0] === "note" ||
+      segments[0] === "graph";
 
     if (isAuthenticated && !inAuthenticatedRoute && segments[0] !== undefined) {
       router.replace("/(tabs)");
@@ -105,6 +108,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="edit" options={{ headerShown: false }} />
       <Stack.Screen name="note" />
+      <Stack.Screen name="graph" />
     </Stack>
   );
 }

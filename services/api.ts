@@ -468,11 +468,47 @@ export interface NoteContent {
   children: NoteHeading[];
 }
 
+export interface NoteBacklinkOccurrence {
+  /** Headings above the link in the linking note's file. */
+  olp: string[];
+  /** The heading, list item, paragraph or table holding the link. */
+  preview: NoteBlock[];
+}
+
+export interface NoteBacklink extends NoteSummary {
+  /** One per link; absent on servers older than org-agenda-api 4.9. */
+  occurrences?: NoteBacklinkOccurrence[];
+}
+
 export interface NoteResponse {
   note: NoteSummary;
   content: NoteContent;
   links: NoteSummary[];
-  backlinks: NoteSummary[];
+  backlinks: NoteBacklink[];
+  /** Notes mentioning the title without linking; absent on older servers. */
+  unlinked?: NoteSummary[];
+}
+
+export interface NoteGraphNode {
+  /** The note's ref. */
+  id: string;
+  title: string;
+  file: string;
+  olp: string[];
+  level: number;
+  tags: string[];
+}
+
+export interface NoteGraphLink {
+  source: string;
+  target: string;
+  /** "parent" joins a heading note to the note enclosing it. */
+  type: "link" | "parent";
+}
+
+export interface NoteGraphResponse {
+  nodes: NoteGraphNode[];
+  links: NoteGraphLink[];
 }
 
 export class ApiError extends Error {
@@ -970,6 +1006,10 @@ export class OrgAgendaApi {
     return this.request<NotesResponse>(
       query ? `/notes?q=${encodeURIComponent(query)}` : "/notes",
     );
+  }
+
+  async getNoteGraph(): Promise<NoteGraphResponse> {
+    return this.request<NoteGraphResponse>("/notes/graph");
   }
 
   async getNote(ref: string): Promise<NoteResponse> {

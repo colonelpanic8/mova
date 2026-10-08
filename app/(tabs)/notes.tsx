@@ -10,6 +10,7 @@ import {
 } from "@/hooks/queryKeys";
 import type { NoteSummary } from "@/services/api";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import {
@@ -38,6 +39,7 @@ export default function NotesScreen() {
   const { apiUrl, username } = useAuth();
   const theme = useTheme();
   const openNote = useOpenNote();
+  const router = useRouter();
   const identity = buildServerIdentity(apiUrl, username) ?? SIGNED_OUT_IDENTITY;
 
   const [input, setInput] = useState("");
@@ -94,6 +96,11 @@ export default function NotesScreen() {
           onChangeText={setInput}
           value={input}
           style={styles.searchbar}
+        />
+        <IconButton
+          icon="graph-outline"
+          accessibilityLabel="Graph"
+          onPress={() => router.push("/graph")}
         />
         <IconButton icon="refresh" onPress={onRefresh} disabled={refreshing} />
       </View>

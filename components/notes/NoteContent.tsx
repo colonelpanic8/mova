@@ -13,6 +13,7 @@ import {
   useCallback,
   useContext,
   useState,
+  type ReactNode,
 } from "react";
 import {
   Linking,
@@ -26,16 +27,50 @@ import { IconButton, Text, useTheme } from "react-native-paper";
 
 const EXTERNAL_LINK = /^(https?|mailto):/i;
 
-type OpenLink = (link: { href: string; ref: string | null }) => void;
+type OpenNote = (ref: string) => void;
 
-const OpenLinkContext = createContext<OpenLink>(() => {});
+const OpenNoteContext = createContext<OpenNote | null>(null);
 const ExpandedContext = createContext(true);
 
-export function useOpenNote() {
+/**
+ * Overrides what opening a note does for the notes rendered inside, e.g. to
+ * preview it in place instead of pushing the note screen.
+ */
+export function NoteNavigationProvider({
+  onOpenNote,
+  children,
+}: {
+  onOpenNote: OpenNote;
+  children: ReactNode;
+}) {
+  return (
+    <OpenNoteContext.Provider value={onOpenNote}>
+      {children}
+    </OpenNoteContext.Provider>
+  );
+}
+
+export function useOpenNote(): OpenNote {
   const router = useRouter();
-  return useCallback(
+  const override = useContext(OpenNoteContext);
+  const push = useCallback(
     (ref: string) => router.push({ pathname: "/note", params: { ref } }),
     [router],
+  );
+  return override ?? push;
+}
+
+function useOpenLink() {
+  const openNote = useOpenNote();
+  return useCallback(
+    ({ href, ref }: { href: string; ref: string | null }) => {
+      if (ref) {
+        openNote(ref);
+      } else if (EXTERNAL_LINK.test(href)) {
+        void Linking.openURL(href);
+      }
+    },
+    [openNote],
   );
 }
 
@@ -54,7 +89,7 @@ export function inlineText(inlines: NoteInline[]): string {
 
 function Inlines({ inlines }: { inlines: NoteInline[] }) {
   const theme = useTheme();
-  const openLink = useContext(OpenLinkContext);
+  const openLink = useOpenLink();
 
   return inlines.map((inline, index) => {
     switch (inline.t) {
@@ -373,28 +408,18 @@ interface NoteContentProps {
 }
 
 export function NoteContent({ content, defaultExpanded }: NoteContentProps) {
-  const openNote = useOpenNote();
-  const openLink = useCallback<OpenLink>(
-    ({ href, ref }) => {
-      if (ref) {
-        openNote(ref);
-      } else if (EXTERNAL_LINK.test(href)) {
-        void Linking.openURL(href);
-      }
-    },
-    [openNote],
-  );
-
   return (
-    <OpenLinkContext.Provider value={openLink}>
-      <ExpandedContext.Provider value={defaultExpanded}>
-        <Blocks blocks={content.blocks} />
-        {content.children.map((child, index) => (
-          <Heading key={index} heading={child} depth={0} />
-        ))}
-      </ExpandedContext.Provider>
-    </OpenLinkContext.Provider>
+    <ExpandedContext.Provider value={defaultExpanded}>
+      <Blocks blocks={content.blocks} />
+      {content.children.map((child, index) => (
+        <Heading key={index} heading={child} depth={0} />
+      ))}
+    </ExpandedContext.Provider>
   );
+}
+
+export function NoteBlocks({ blocks }: { blocks: NoteBlock[] }) {
+  return <Blocks blocks={blocks} />;
 }
 
 const styles = StyleSheet.create({

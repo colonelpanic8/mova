@@ -61,6 +61,7 @@ export const queryKeys = {
     [identity, "notes", "search", query] as const,
   note: (identity: string, ref: string) =>
     [identity, "notes", "note", ref] as const,
+  noteGraph: (identity: string) => [identity, "notes", "graph"] as const,
   /** Templates / filter options / todo states / habit config bundle. */
   metadata: (identity: string) => [identity, "metadata"] as const,
 };
