@@ -25,7 +25,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   offlineCache = fetchYarnDeps {
     yarnLock = ../yarn.lock;
-    hash = "sha256-AvUs7OCCja+a70B7Hwhkbkj4WgzZXYdKdqwJ3JzBZpY=";
+    hash = "sha256-q8txR27k+3cK+439ML0856M9HQ0UhWGcwEy8FnGEgXg=";
   };
 
   nativeBuildInputs = [yarnConfigHook nodejs_22];
