@@ -1,0 +1,2 @@
+* feat(notes): show backlinks like org-roam's backlinks buffer, with the outline path and a rendered preview of every place a note is linked from, plus unlinked references (previews and unlinked references need org-agenda-api 4.9.0)
+* ...see CHANGELOG.md for the rest.

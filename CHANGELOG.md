@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.5.0]
+
+- feat(notes): show backlinks like org-roam's backlinks buffer, with the outline path and a rendered preview of every place a note is linked from, plus unlinked references (previews and unlinked references need org-agenda-api 4.9.0)
+- feat(notes): add a note graph modeled on org-roam-ui, with degree-colored nodes, zoom-dependent labels, neighbor highlighting, local graphs by neighbor depth, directory, orphan and parent-link filters, search, and a preview sidebar with history on wide screens (needs org-agenda-api 4.9.0)
+
 ## [7.4.0]
 
 - feat: links in todo and habit titles are tappable, showing an org link's description instead of its raw [[url][description]] syntax
