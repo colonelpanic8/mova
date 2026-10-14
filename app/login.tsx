@@ -32,9 +32,14 @@ const DEFAULT_URLS = ["https://org-agenda-api.duckdns.org"];
 const URL_HISTORY_KEY = "mova_url_history";
 const MAX_URL_HISTORY = 5;
 
-// Detect the current origin on web platform
+// Detect the current origin on web platform. The desktop shell serves the
+// bundle from a custom scheme, which is not where the API lives.
 function getWebOrigin(): string | null {
-  if (Platform.OS === "web" && typeof window !== "undefined") {
+  if (
+    Platform.OS === "web" &&
+    typeof window !== "undefined" &&
+    /^https?:$/.test(window.location.protocol)
+  ) {
     return window.location.origin;
   }
   return null;

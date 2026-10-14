@@ -58,6 +58,7 @@
         web = pkgs.callPackage ./nix/web.nix {
           gitCommit = self.rev or self.dirtyRev or "unknown";
         };
+        desktop = pkgs.callPackage ./nix/desktop.nix {mova-web = web;};
         default = web;
       };
 
