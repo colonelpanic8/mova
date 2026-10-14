@@ -30,7 +30,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-pass_entry="mova-android-release-keystore"
+pass_entry="signing/mova-android-release"
 watch_cache="$repo_root/.mova-watch"
 export ANDROID_ADB_SERVER_PORT="${MOVA_ADB_PORT:-5041}"
 

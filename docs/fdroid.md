@@ -52,7 +52,7 @@ signing secrets are missing instead of silently publishing another
 debug-signed APK.
 
 v6.7.0 establishes Mova's private production signing identity. Its keystore is
-backed up in the `mova-android-release-keystore` password-store entry and
+backed up in the `signing/mova-android-release` password-store entry and
 installed in the four GitHub Actions secrets listed above. The cutover
 deliberately does not preserve the public debug signer, so existing
 debug-signed installations must be uninstalled once before installing v6.7.0.
