@@ -679,6 +679,23 @@ describe("SearchScreen Component", () => {
     });
   });
 
+  it("hides completed todos until the toggle is on", async () => {
+    const { getByText, getByTestId, queryByText } = renderScreen(
+      <SearchScreen />,
+    );
+
+    await waitFor(() => {
+      expect(getByText("Buy groceries")).toBeTruthy();
+    });
+    expect(queryByText("Old task")).toBeNull();
+
+    fireEvent.press(getByTestId("searchShowCompletedToggle"));
+
+    await waitFor(() => {
+      expect(getByText("Old task")).toBeTruthy();
+    });
+  });
+
   it("should filter by tag", async () => {
     const { getByText, getByPlaceholderText, queryByText } = renderScreen(
       <SearchScreen />,

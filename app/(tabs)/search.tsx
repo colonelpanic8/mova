@@ -44,6 +44,7 @@ const keyExtractor = (item: Todo) => getTodoKey(item);
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
   const router = useRouter();
   const params = useLocalSearchParams<{ q?: string }>();
 
@@ -77,6 +78,10 @@ export default function SearchScreen() {
   const todoStatesQuery = useTodoStates();
   const todoStates = todoStatesQuery.data ?? null;
   const { refetch: refetchTodoStates } = todoStatesQuery;
+  const doneStates = useMemo(
+    () => todoStates?.done ?? ["DONE"],
+    [todoStates?.done],
+  );
 
   // Wait for persisted settings before rendering rows: the habit filter
   // defaults to "off" until they load, so rendering earlier shows a list that
@@ -105,6 +110,10 @@ export default function SearchScreen() {
     // First apply context filters
     let result = filterTodos(todos, filters);
 
+    if (!showCompleted) {
+      result = result.filter((todo) => !doneStates.includes(todo.todo));
+    }
+
     // Then apply text search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -119,7 +128,7 @@ export default function SearchScreen() {
     }
 
     return result;
-  }, [searchQuery, todos, filters]);
+  }, [searchQuery, todos, filters, showCompleted, doneStates]);
 
   const listRef = useRef<FlatList<Todo>>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -129,7 +138,7 @@ export default function SearchScreen() {
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, [searchQuery, filters]);
+  }, [searchQuery, filters, showCompleted]);
 
   const visibleTodos = useMemo(
     () => filteredTodos.slice(0, visibleCount),
@@ -177,6 +186,14 @@ export default function SearchScreen() {
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchbar}
+          />
+          <IconButton
+            icon={showCompleted ? "check-circle" : "check-circle-outline"}
+            onPress={() => setShowCompleted((value) => !value)}
+            accessibilityLabel={
+              showCompleted ? "Hide completed todos" : "Show completed todos"
+            }
+            testID="searchShowCompletedToggle"
           />
           <IconButton
             icon="refresh"
