@@ -1,5 +1,9 @@
 # Changelog
 
+## [7.5.1]
+
+- fix(agenda): carry overdue scheduled and deadline items onto today in the day view again; newer servers treat a one-day range without an explicit placement as original-date-only, which hid them
+
 ## [7.5.0]
 
 - feat(notes): show backlinks like org-roam's backlinks buffer, with the outline path and a rendered preview of every place a note is linked from, plus unlinked references (previews and unlinked references need org-agenda-api 4.9.0)

@@ -1,0 +1,1 @@
+* fix(agenda): carry overdue scheduled and deadline items onto today in the day view again; newer servers treat a one-day range without an explicit placement as original-date-only, which hid them
