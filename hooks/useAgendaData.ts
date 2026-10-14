@@ -114,6 +114,8 @@ export function useAgendaData(params: AgendaDataParams): UseAgendaDataResult {
           dateString <= todayString,
           includeCompleted,
           dateString,
+          todayString,
+          "both",
         );
       } catch (error) {
         if (!(error instanceof ApiError)) throw error;
