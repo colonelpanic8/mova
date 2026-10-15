@@ -3,6 +3,7 @@
   lib,
   stdenvNoCC,
   electron,
+  imagemagick,
   makeWrapper,
   makeDesktopItem,
   copyDesktopItems,
@@ -14,7 +15,7 @@ stdenvNoCC.mkDerivation {
 
   src = ./desktop;
 
-  nativeBuildInputs = [makeWrapper copyDesktopItems];
+  nativeBuildInputs = [makeWrapper copyDesktopItems imagemagick];
 
   desktopItems = [
     (makeDesktopItem {
@@ -32,14 +33,22 @@ stdenvNoCC.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/share/mova $out/share/icons/hicolor/1024x1024/apps
+    mkdir -p $out/share/mova
     cp main.js package.json $out/share/mova/
-    cp ${../assets/images/mova-icon-final.png} $out/share/icons/hicolor/1024x1024/apps/mova.png
+
+    # The app icon pads the logo for Android's adaptive masks; crop that away
+    # so it stays legible at panel sizes. hicolor only indexes up to 512x512.
+    for size in 16 22 24 32 48 64 96 128 256 512; do
+      dir=$out/share/icons/hicolor/''${size}x''${size}/apps
+      mkdir -p $dir
+      magick ${../assets/images/mova-icon-final.png} -gravity center \
+        -crop 640x640+0+0 +repage -resize ''${size}x''${size} $dir/mova.png
+    done
 
     makeWrapper ${lib.getExe electron} $out/bin/mova \
       --add-flags $out/share/mova \
       --set MOVA_WEB_ROOT ${mova-web} \
-      --set MOVA_ICON $out/share/icons/hicolor/1024x1024/apps/mova.png
+      --set MOVA_ICON $out/share/icons/hicolor/512x512/apps/mova.png
 
     runHook postInstall
   '';
