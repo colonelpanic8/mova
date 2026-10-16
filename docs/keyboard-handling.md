@@ -1,4 +1,4 @@
-# Android Keyboard Handling Issue - RESOLVED
+# Android Keyboard Handling
 
 ## Problem Description
 
@@ -61,10 +61,3 @@ If Expo/React Native fixes the underlying edge-to-edge keyboard issues in a futu
 - [react-native-keyboard-controller GitHub](https://github.com/kirillzyusko/react-native-keyboard-controller)
 - [GitHub Discussion: KeyboardAvoidingView not working after SDK 52 to 53 migration](https://github.com/orgs/community/discussions/167709)
 - [React Native Issue: KeyboardAvoidingView under Android 15](https://github.com/facebook/react-native/issues/49759)
-
-## Environment
-
-- Expo SDK 54
-- React Native (New Architecture enabled)
-- Android with edge-to-edge enabled
-- `windowSoftInputMode="adjustResize"` in AndroidManifest.xml
