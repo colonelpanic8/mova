@@ -55,7 +55,6 @@ tests/**/*.js
 types/**/*.js
 utils/**/*.js
 widgets/**/*.js
-widget-task-handler.js
 
 app-example
 

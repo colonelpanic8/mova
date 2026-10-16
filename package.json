@@ -1,6 +1,6 @@
 {
   "name": "mova",
-  "main": "./index.js",
+  "main": "./index.ts",
   "version": "7.6.0",
   "scripts": {
     "start": "expo start",

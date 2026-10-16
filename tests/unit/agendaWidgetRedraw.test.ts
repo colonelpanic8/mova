@@ -62,8 +62,8 @@ import {
   requestWidgetUpdateById,
 } from "react-native-android-widget";
 import { AgendaEntry, SingleDayAgendaResponse } from "../../services/api";
-import { widgetTaskHandlerEntry } from "../../widget-task-handler";
 import { refreshAgendaWidgets } from "../../widgets/agendaWidgetRefresh";
+import { widgetTaskHandlerEntry } from "../../widgets/widgetTaskHandler";
 
 function entry(overrides: Partial<AgendaEntry> = {}): AgendaEntry {
   return {

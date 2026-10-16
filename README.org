@@ -38,7 +38,7 @@ so installs from either source upgrade in place. See
 :END:
 Mova is the mobile frontend for [[https://github.com/colonelpanic8/org-agenda-api][org-agenda-api]], a JSON HTTP API that exposes org-mode data from GNU Emacs. The architecture:
 
-#+begin_src mermaid :file architecture.png
+#+begin_src mermaid :file docs/architecture.png
 flowchart TB
     subgraph Docker["Docker Container"]
         nginx["nginx<br/>(HTTP Basic Auth)"]
@@ -62,7 +62,7 @@ flowchart TB
 #+end_src
 
 #+RESULTS:
-[[file:architecture.png]]
+[[file:docs/architecture.png]]
 
 - *nginx* handles HTTP Basic Auth and proxies requests to Emacs
 - *simple-httpd* provides the HTTP server functionality within Emacs

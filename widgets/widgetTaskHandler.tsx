@@ -7,28 +7,28 @@ import {
   COMPLETE_ITEM_ACTION,
   SHOW_AGENDA_ACTION,
   SHOW_HABITS_ACTION,
-} from "./widgets/AgendaWidget";
+} from "./AgendaWidget";
 import {
   AgendaWidgetData,
   AgendaWidgetItemRef,
   completeAgendaWidgetItem,
   loadAgendaWidgetData,
   readAgendaWidgetCache,
-} from "./widgets/agendaWidgetData";
+} from "./agendaWidgetData";
 import {
   agendaWidgetSignature,
   buildAgendaWidgetProps,
   clearLastDrawnSignature,
   setLastDrawnSignature,
-} from "./widgets/agendaWidgetDraw";
+} from "./agendaWidgetDraw";
 import {
   clearAgendaWidgetView,
   getAgendaWidgetView,
   setAgendaWidgetView,
-} from "./widgets/agendaWidgetState";
-import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
-import { getWidgetCredentials } from "./widgets/storage";
-import { getWidgetTemplate } from "./widgets/WidgetConfigurationScreen";
+} from "./agendaWidgetState";
+import { QuickCaptureWidget } from "./QuickCaptureWidget";
+import { getWidgetCredentials } from "./storage";
+import { getWidgetTemplate } from "./WidgetConfigurationScreen";
 
 const { SharedStorage } = NativeModules;
 
