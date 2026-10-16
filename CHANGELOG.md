@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.6.0]
+
+- feat(search): hide completed todos from search results by default, with a toggle to show them
+- feat(desktop): package the web export as a Linux desktop app (Electron shell with a .desktop entry and icons)
+
 ## [7.5.1]
 
 - fix(agenda): carry overdue scheduled and deadline items onto today in the day view again; newer servers treat a one-day range without an explicit placement as original-date-only, which hid them

@@ -1,0 +1,2 @@
+* feat(search): hide completed todos from search results by default, with a toggle to show them
+* feat(desktop): package the web export as a Linux desktop app (Electron shell with a .desktop entry and icons)
