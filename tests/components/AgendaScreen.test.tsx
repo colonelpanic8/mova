@@ -552,6 +552,8 @@ describe("AgendaScreen", () => {
       expect.any(Boolean),
       expect.any(Boolean),
       expect.any(String), // endDate (same as startDate)
+      expect.any(String), // today
+      "both",
     );
   });
 
