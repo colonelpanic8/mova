@@ -1,0 +1,1 @@
+* feat(icon): round the corners of the desktop icon and web favicon

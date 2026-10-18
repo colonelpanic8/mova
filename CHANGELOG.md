@@ -1,5 +1,9 @@
 # Changelog
 
+## [7.6.1]
+
+- feat(icon): round the corners of the desktop icon and web favicon
+
 ## [7.6.0]
 
 - feat(search): hide completed todos from search results by default, with a toggle to show them
