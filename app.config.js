@@ -55,7 +55,7 @@ export default {
     web: {
       bundler: "metro",
       output: "static",
-      favicon: "./assets/images/mova-icon-final.png",
+      favicon: "./assets/images/mova-icon-rounded.png",
     },
     plugins: [
       "expo-router",

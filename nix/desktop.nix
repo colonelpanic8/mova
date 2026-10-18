@@ -36,13 +36,12 @@ stdenvNoCC.mkDerivation {
     mkdir -p $out/share/mova
     cp main.js package.json $out/share/mova/
 
-    # The app icon pads the logo for Android's adaptive masks; crop that away
-    # so it stays legible at panel sizes. hicolor only indexes up to 512x512.
+    # hicolor only indexes up to 512x512.
     for size in 16 22 24 32 48 64 96 128 256 512; do
       dir=$out/share/icons/hicolor/''${size}x''${size}/apps
       mkdir -p $dir
-      magick ${../assets/images/mova-icon-final.png} -gravity center \
-        -crop 640x640+0+0 +repage -resize ''${size}x''${size} $dir/mova.png
+      magick ${../assets/images/mova-icon-rounded.png} \
+        -resize ''${size}x''${size} $dir/mova.png
     done
 
     makeWrapper ${lib.getExe electron} $out/bin/mova \
