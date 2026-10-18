@@ -1,0 +1,1 @@
+* fix(web): stop todo-row menus from stealing focus and auto-scrolling the search list while typing

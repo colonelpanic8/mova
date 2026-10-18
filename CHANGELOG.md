@@ -1,5 +1,9 @@
 # Changelog
 
+## [7.6.2]
+
+- fix(web): stop todo-row menus from stealing focus and auto-scrolling the search list while typing
+
 ## [7.6.1]
 
 - feat(icon): round the corners of the desktop icon and web favicon
