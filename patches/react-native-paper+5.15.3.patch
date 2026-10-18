@@ -1,0 +1,39 @@
+diff --git a/node_modules/react-native-paper/lib/commonjs/components/Menu/Menu.js b/node_modules/react-native-paper/lib/commonjs/components/Menu/Menu.js
+index dea22ec..728f973 100644
+--- a/node_modules/react-native-paper/lib/commonjs/components/Menu/Menu.js
++++ b/node_modules/react-native-paper/lib/commonjs/components/Menu/Menu.js
+@@ -129,7 +129,7 @@ const Menu = ({
+     y: 0
+   }));
+   const keyboardHeightRef = React.useRef(0);
+-  const prevVisible = React.useRef(null);
++  const prevVisible = React.useRef(false);
+   const anchorRef = React.useRef(null);
+   const menuRef = React.useRef(null);
+   const prevRendered = React.useRef(false);
+diff --git a/node_modules/react-native-paper/lib/module/components/Menu/Menu.js b/node_modules/react-native-paper/lib/module/components/Menu/Menu.js
+index f0c9330..76ff25b 100644
+--- a/node_modules/react-native-paper/lib/module/components/Menu/Menu.js
++++ b/node_modules/react-native-paper/lib/module/components/Menu/Menu.js
+@@ -121,7 +121,7 @@ const Menu = ({
+     y: 0
+   }));
+   const keyboardHeightRef = React.useRef(0);
+-  const prevVisible = React.useRef(null);
++  const prevVisible = React.useRef(false);
+   const anchorRef = React.useRef(null);
+   const menuRef = React.useRef(null);
+   const prevRendered = React.useRef(false);
+diff --git a/node_modules/react-native-paper/src/components/Menu/Menu.tsx b/node_modules/react-native-paper/src/components/Menu/Menu.tsx
+index 669656c..c44af15 100644
+--- a/node_modules/react-native-paper/src/components/Menu/Menu.tsx
++++ b/node_modules/react-native-paper/src/components/Menu/Menu.tsx
+@@ -213,7 +213,7 @@ const Menu = ({
+   const opacityAnimationRef = React.useRef(new Animated.Value(0));
+   const scaleAnimationRef = React.useRef(new Animated.ValueXY({ x: 0, y: 0 }));
+   const keyboardHeightRef = React.useRef(0);
+-  const prevVisible = React.useRef<boolean | null>(null);
++  const prevVisible = React.useRef<boolean | null>(false);
+   const anchorRef = React.useRef<View | null>(null);
+   const menuRef = React.useRef<View | null>(null);
+   const prevRendered = React.useRef(false);
