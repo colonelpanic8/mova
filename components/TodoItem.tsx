@@ -2,6 +2,7 @@ import { HabitGraph } from "@/components/HabitGraph";
 import { LinkifiedText } from "@/components/LinkifiedText";
 import { StatePill } from "@/components/StatePill";
 import { useColorPalette } from "@/context/ColorPaletteContext";
+import { useTemplates } from "@/context/TemplatesContext";
 import { useEffectiveDoneState } from "@/hooks/useEffectiveDoneState";
 import { useTodoEditingContext } from "@/hooks/useTodoEditing";
 import { Todo } from "@/services/api";
@@ -62,6 +63,10 @@ export const TodoItem = React.memo(function TodoItem({
     quickComplete,
   } = useTodoEditingContext();
   const effectiveDoneState = useEffectiveDoneState();
+  const { todoStates } = useTemplates();
+  const isDone =
+    !!todo.completedAt ||
+    (todo.todo != null && (todoStates?.done ?? []).includes(todo.todo));
 
   const internalRef = useRef<Swipeable>(null);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -171,6 +176,15 @@ export const TodoItem = React.memo(function TodoItem({
     ],
   );
 
+  // Single-press actions shown on every row, ahead of the overflow menu.
+  const inlineActions = useMemo(
+    () =>
+      quickActions.filter((action) =>
+        action.key === "complete" ? !isDone : action.key === "schedule",
+      ),
+    [quickActions, isDone],
+  );
+
   const renderRightActions = useCallback(() => {
     return (
       <View style={styles.swipeActions}>
@@ -250,35 +264,50 @@ export const TodoItem = React.memo(function TodoItem({
             >
               {todo.title}
             </LinkifiedText>
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              anchor={
+            <View style={styles.actionCluster}>
+              {inlineActions.map((action) => (
                 <IconButton
-                  icon="dots-vertical"
-                  size={20}
-                  onPress={() => setMenuVisible(true)}
-                  style={styles.menuButton}
+                  key={action.key}
+                  testID={`${action.key}InlineButton_${testIdSuffix}`}
+                  icon={action.icon}
+                  size={18}
+                  iconColor={action.color ?? getActionColor(action.colorKey!)}
+                  accessibilityLabel={action.label}
+                  disabled={isUpdating || isCompleting}
+                  onPress={action.onPress}
+                  style={styles.actionButton}
                 />
-              }
-            >
-              {quickActions.map((action) => (
-                <React.Fragment key={action.key}>
-                  {action.isDividerBefore && <Divider />}
-                  <Menu.Item
-                    onPress={() => {
-                      setMenuVisible(false);
-                      action.onPress();
-                    }}
-                    title={action.label}
-                    leadingIcon={action.icon}
-                    titleStyle={
-                      action.color ? { color: action.color } : undefined
-                    }
-                  />
-                </React.Fragment>
               ))}
-            </Menu>
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <IconButton
+                    icon="dots-vertical"
+                    size={18}
+                    onPress={() => setMenuVisible(true)}
+                    style={styles.actionButton}
+                  />
+                }
+              >
+                {quickActions.map((action) => (
+                  <React.Fragment key={action.key}>
+                    {action.isDividerBefore && <Divider />}
+                    <Menu.Item
+                      onPress={() => {
+                        setMenuVisible(false);
+                        action.onPress();
+                      }}
+                      title={action.label}
+                      leadingIcon={action.icon}
+                      titleStyle={
+                        action.color ? { color: action.color } : undefined
+                      }
+                    />
+                  </React.Fragment>
+                ))}
+              </Menu>
+            </View>
           </View>
           {(todo.scheduled ||
             todo.deadline ||
@@ -397,9 +426,15 @@ const styles = StyleSheet.create({
   todoTitle: {
     flex: 1,
   },
-  menuButton: {
-    margin: 0,
+  actionCluster: {
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: -8,
+  },
+  actionButton: {
+    margin: 0,
+    width: 32,
+    height: 32,
   },
   metaRow: {
     flexDirection: "row",
