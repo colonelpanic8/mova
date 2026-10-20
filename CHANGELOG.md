@@ -1,5 +1,9 @@
 # Changelog
 
+## [7.7.0]
+
+- feat(todos): every todo row now shows Done and Reschedule as single-press icons next to the menu, so the most common quick actions no longer need a swipe or the overflow menu
+
 ## [7.6.2]
 
 - fix(web): stop todo-row menus from stealing focus and auto-scrolling the search list while typing

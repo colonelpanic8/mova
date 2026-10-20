@@ -1,0 +1,1 @@
+* feat(todos): every todo row now shows Done and Reschedule as single-press icons next to the menu, so the most common quick actions no longer need a swipe or the overflow menu
