@@ -1,8 +1,13 @@
 ;; Test configuration for E2E testing
 ;; Sets up org-agenda-files, capture templates, and custom views
 
-;; Set org-agenda-files to include test data
-(setq org-agenda-files '("/data/org"))
+;; Set org-agenda-files to include test data. List the files explicitly:
+;; org-agenda-api's todo listing does not expand directory entries.
+(setq org-agenda-files (directory-files "/data/org" t "\\.org\\'"))
+
+;; Enable window habits so the habits endpoints serve e2e/test-data/habits.org
+(require 'org-window-habit)
+(org-window-habit-mode 1)
 
 ;; Ensure we're using the test org directory
 (setq org-directory "/data/org")
