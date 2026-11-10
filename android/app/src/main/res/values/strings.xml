@@ -8,6 +8,8 @@
   <string name="shortcut_capture_short">Capture</string>
   <string name="shortcut_capture_long">Quick Capture</string>
   <string name="quick_capture_launcher_label">Mova Capture</string>
+  <string name="capture_template_description">Template: %1$s. Tap to change.</string>
+  <string name="capture_templates_loading">Loading templates…</string>
   <string name="pin_channel_ongoing">Active pins</string>
   <string name="pin_channel_alerts">Pin alerts</string>
   <string name="pin_notification_since">Pinned %1$s</string>
