@@ -1,5 +1,10 @@
 # Changelog
 
+## [7.8.0]
+
+- feat(android): choose the capture template from the quick capture dialog — tap the title to switch templates; the Quick Settings tile and launcher shortcut reopen on the last one picked
+- feat(android): the Quick Settings capture tile uses the Mova check-mark glyph instead of a generic plus
+
 ## [7.7.0]
 
 - feat(todos): every todo row now shows Done and Reschedule as single-press icons next to the menu, so the most common quick actions no longer need a swipe or the overflow menu
