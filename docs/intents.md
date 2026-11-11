@@ -366,6 +366,40 @@ change and delete todos, including while the phone is locked. The user can
 revoke it in Settings. Verified EVA is exempt from both permissions unless the user
 opts out.
 
+## Arming a pin: `arm_pin`
+
+`call()` also arms a pin, the persistent "don't forget" notification that
+alerts until it is marked Done. Pins live only on the phone, so `arm_pin` needs
+no permission and no server. It works while the phone is locked.
+
+| Extra              | Format                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| `title`            | Required text of the reminder                                                        |
+| `escalate_minutes` | Minutes until the pin starts alerting. `0` never alerts. Defaults to the app setting |
+| `nag_minutes`      | Minutes between alerts once they have started. Defaults to `5`                       |
+| `key`              | Arming again with the key of an unfinished pin restarts it instead of adding another |
+
+Integers may be sent as strings. Callers still need the `<queries>` entry shown
+under [Permission](#permission) to see the provider.
+
+```kotlin
+val result = contentResolver.call(
+  Uri.parse("content://com.colonelpanic.mova.provider"),
+  "arm_pin",
+  null,
+  bundleOf("title" to "Bring scooter in", "escalate_minutes" to 10, "nag_minutes" to 10, "key" to "scooter"),
+)
+```
+
+```sh
+adb shell "content call --uri content://com.colonelpanic.mova.provider --method arm_pin \
+  --extra 'title:s:Bring scooter in' --extra escalate_minutes:i:10 --extra nag_minutes:i:10 --extra key:s:scooter"
+```
+
+The result holds `status`, `message` and, on success, `result_json` with the
+pin. `status` is `completed`, or `not_executed` with a `reason_code` of
+`invalid_arguments` or `notifications_disabled`.
+
 ## Platform notes
 
 - Native actions and the provider are Android only. On iOS and web the

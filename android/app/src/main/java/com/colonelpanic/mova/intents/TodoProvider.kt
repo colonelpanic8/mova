@@ -2,6 +2,7 @@ package com.colonelpanic.mova.intents
 
 import android.content.ContentProvider
 import android.content.ContentValues
+import android.content.Context
 import android.content.UriMatcher
 import android.content.pm.PackageManager
 import android.database.Cursor
@@ -16,6 +17,8 @@ import com.colonelpanic.mova.MovaClient
 import com.colonelpanic.mova.MovaEvents
 import com.colonelpanic.mova.eva.EvaAccess
 import com.colonelpanic.mova.eva.EvaExtensionService
+import com.colonelpanic.mova.pins.PinArmRequest
+import com.colonelpanic.mova.pins.PinManager
 import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
@@ -41,6 +44,7 @@ class TodoProvider : ContentProvider() {
         const val READ_PERMISSION = "com.colonelpanic.mova.permission.READ_TODOS"
         const val WRITE_PERMISSION = "com.colonelpanic.mova.permission.WRITE_TODOS"
         const val METHOD_DESCRIBE = "describe"
+        const val METHOD_ARM_PIN = "arm_pin"
         const val EXTRA_REQUEST_ID = "request_id"
         const val EXTRA_ARGUMENTS_JSON = "arguments_json"
         const val RESULT_STATUS = "status"
@@ -156,12 +160,14 @@ class TodoProvider : ContentProvider() {
     /**
      * Synchronous operations for other apps, with the same catalog, argument
      * rules and outcomes as the EVA extension (docs/intents.md). `method` is a
-     * capability name, or `describe`. Reads need READ_TODOS, writes WRITE_TODOS.
+     * capability name, `describe`, or `arm_pin`. Reads need READ_TODOS, writes
+     * WRITE_TODOS.
      * Runs on the caller's binder thread and may block on the network for up
      * to 20 seconds, so call it off the main thread.
      */
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
         val context = context ?: return null
+        if (method == METHOD_ARM_PIN) return armPin(context, extras)
         val capabilities = EvaExtensionService.capabilities(context)
         if (method == METHOD_DESCRIBE) {
             if (!canRead() && !canWrite()) throw SecurityException("Requires $READ_PERMISSION or $WRITE_PERMISSION")
@@ -188,6 +194,35 @@ class TodoProvider : ContentProvider() {
         )
         if (execution.dataChanged) MovaEvents.dataChanged(context)
         return resultBundle(JSONObject(execution.envelope), requestId)
+    }
+
+    /**
+     * Pins live only on this phone and never reach the server, so unlike the
+     * todo operations this needs no permission.
+     */
+    private fun armPin(context: Context, extras: Bundle?): Bundle {
+        val request = try {
+            PinArmRequest.parse(argumentValues(extras))
+        } catch (error: IllegalArgumentException) {
+            return pinResult("not_executed", error.message.orEmpty(), reasonCode = "invalid_arguments")
+        }
+        if (!PinManager.canPostNotifications(context)) {
+            return pinResult(
+                "not_executed",
+                "Enable Mova notifications and both pin notification channels in Android Settings",
+                reasonCode = "notifications_disabled",
+            )
+        }
+        val pin = PinManager.arm(context, request.title, request.escalateMinutes, request.nagMinutes, request.key)
+        return pinResult("completed", "Pinned: ${pin.title}").apply {
+            putString(RESULT_JSON, pin.toJson().toString())
+        }
+    }
+
+    private fun pinResult(status: String, message: String, reasonCode: String? = null) = Bundle().apply {
+        putString(RESULT_STATUS, status)
+        putString(RESULT_MESSAGE, message)
+        if (reasonCode != null) putString(RESULT_REASON_CODE, reasonCode)
     }
 
     // The manifest cannot express "permission holders or verified EVA", so the

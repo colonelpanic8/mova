@@ -5,7 +5,9 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -91,6 +93,41 @@ class PinNotificationTest {
     PinManager.complete(context, pin.id)
     awaitCondition { notification(pin) == null }
     assertNotNull(notification(other))
+  }
+
+  private fun armThroughProvider(extras: Bundle): Bundle =
+    context.contentResolver.call(Uri.parse("content://com.colonelpanic.mova.provider"), "arm_pin", null, extras)!!
+
+  @Test
+  fun providerArmWithTheSameKeyRestartsThePinInsteadOfStackingAnother() {
+    val key = "regression-${System.nanoTime()}"
+    val extras = Bundle().apply {
+      putString("title", "Provider pin $key")
+      putString("escalate_minutes", "10")
+      putInt("nag_minutes", 10)
+      putString("key", key)
+    }
+
+    assertEquals("completed", armThroughProvider(extras).getString("status"))
+    val first = PinStore.list(context).single { it.title == "Provider pin $key" }.also { pins.add(it) }
+    assertEquals(10, first.nagMinutes)
+    PinManager.escalate(context, first.id)
+    awaitCondition { notification(first)?.notification?.channelId == "mova_pin_alerts" }
+
+    assertEquals("completed", armThroughProvider(extras).getString("status"))
+
+    val rearmed = PinStore.list(context).single { it.title == "Provider pin $key" }
+    assertEquals(first.id, rearmed.id)
+    assertFalse(rearmed.escalated)
+    awaitCondition { notification(rearmed)?.notification?.channelId == "mova_pins" }
+  }
+
+  @Test
+  fun providerArmWithoutATitleIsRefused() {
+    val result = armThroughProvider(Bundle())
+
+    assertEquals("not_executed", result.getString("status"))
+    assertEquals("invalid_arguments", result.getString("reason_code"))
   }
 
   @Test

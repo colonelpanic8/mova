@@ -25,7 +25,6 @@ import java.util.concurrent.CopyOnWriteArrayList
 object PinManager {
   private const val ONGOING_CHANNEL_ID = "mova_pins"
   private const val ALERT_CHANNEL_ID = "mova_pin_alerts"
-  private const val NAG_INTERVAL_MS = 5 * 60 * 1000L
 
   const val ACTION_DONE = "com.colonelpanic.mova.pins.DONE"
   const val ACTION_SNOOZE = "com.colonelpanic.mova.pins.SNOOZE"
@@ -50,21 +49,35 @@ object PinManager {
   /**
    * @param escalateMinutes minutes until the pin starts actively alerting;
    *   0 arms a purely passive pin, negative means "use the stored default".
+   * @param nagMinutes minutes between alerts once escalated; non-positive
+   *   means [DEFAULT_NAG_MINUTES].
+   * @param key arming again with the key of an unfinished pin restarts that
+   *   pin instead of adding another.
    */
   @Synchronized
-  fun arm(context: Context, title: String, escalateMinutes: Int): Pin {
+  fun arm(
+    context: Context,
+    title: String,
+    escalateMinutes: Int,
+    nagMinutes: Int = DEFAULT_NAG_MINUTES,
+    key: String? = null,
+  ): Pin {
     val effectiveMinutes =
       if (escalateMinutes < 0) PinStore.getDefaultReminderMinutes(context) else escalateMinutes
     val now = System.currentTimeMillis()
     val pin = Pin(
-      id = UUID.randomUUID().toString(),
+      id = key?.let { "key:$it" } ?: UUID.randomUUID().toString(),
       title = title,
       createdAt = now,
       escalateAt = if (effectiveMinutes > 0) now + effectiveMinutes * 60_000L else 0L,
       escalated = false,
+      nagMinutes = if (nagMinutes > 0) nagMinutes else DEFAULT_NAG_MINUTES,
     )
+    val replaced = PinStore.get(context, pin.id)
+    if (replaced != null) cancelAlarm(context, replaced)
     PinStore.upsert(context, pin)
-    postNotification(context, pin)
+    // A replaced pin may be on the alert channel, which only a fresh post leaves.
+    postNotification(context, pin, fresh = replaced != null)
     if (pin.escalateAt > 0) {
       scheduleAlarm(context, pin, pin.escalateAt)
     }
@@ -114,7 +127,7 @@ object PinManager {
   }
 
   /** Fired by the escalation alarm: switch to the alert channel and keep
-   *  nagging every [NAG_INTERVAL_MS] until completed or snoozed. */
+   *  nagging every [Pin.nagMinutes] until completed or snoozed. */
   @Synchronized
   fun escalate(context: Context, id: String) {
     val pin = PinStore.get(context, id) ?: return
@@ -124,7 +137,7 @@ object PinManager {
     // updates, so the switch to the alert channel (and each subsequent nag)
     // must cancel and re-post to actually play a heads-up alert.
     postNotification(context, updated, fresh = true)
-    scheduleAlarm(context, updated, System.currentTimeMillis() + NAG_INTERVAL_MS)
+    scheduleAlarm(context, updated, nextNagAt(updated, System.currentTimeMillis()))
     notifyChanged()
   }
 
@@ -145,7 +158,7 @@ object PinManager {
       if (duePin != pin) PinStore.upsert(context, duePin)
       postNotification(context, duePin)
       when {
-        duePin.escalated -> scheduleAlarm(context, duePin, now + NAG_INTERVAL_MS)
+        duePin.escalated -> scheduleAlarm(context, duePin, nextNagAt(duePin, now))
         duePin.escalateAt > 0 -> scheduleAlarm(context, duePin, duePin.escalateAt)
       }
     }
@@ -153,6 +166,8 @@ object PinManager {
       notifyChanged()
     }
   }
+
+  private fun nextNagAt(pin: Pin, now: Long): Long = now + pin.nagMinutes * 60_000L
 
   private fun notifyChanged() {
     changeListeners.forEach { it() }

@@ -9,6 +9,7 @@ private const val PREFS_NAME = "mova_pins"
 private const val KEY_PINS = "pins"
 private const val KEY_DEFAULT_REMINDER_MINUTES = "default_reminder_minutes"
 private const val DEFAULT_REMINDER_MINUTES = 15
+const val DEFAULT_NAG_MINUTES = 5
 
 /**
  * A "pin": an ephemeral don't-forget reminder held open as a persistent
@@ -18,6 +19,7 @@ private const val DEFAULT_REMINDER_MINUTES = 15
  *   or 0 for a purely passive pin.
  * @param escalated whether the escalation deadline has fired; escalated pins
  *   nag on the high-priority channel until completed or snoozed.
+ * @param nagMinutes minutes between alerts once escalated.
  */
 data class Pin(
   val id: String,
@@ -25,6 +27,7 @@ data class Pin(
   val createdAt: Long,
   val escalateAt: Long,
   val escalated: Boolean,
+  val nagMinutes: Int = DEFAULT_NAG_MINUTES,
 ) {
   fun toJson(): JSONObject =
     JSONObject()
@@ -33,6 +36,7 @@ data class Pin(
       .put("createdAt", createdAt)
       .put("escalateAt", escalateAt)
       .put("escalated", escalated)
+      .put("nagMinutes", nagMinutes)
 
   companion object {
     fun fromJson(json: JSONObject): Pin? {
@@ -45,6 +49,7 @@ data class Pin(
         createdAt = json.optLong("createdAt"),
         escalateAt = json.optLong("escalateAt"),
         escalated = json.optBoolean("escalated"),
+        nagMinutes = json.optInt("nagMinutes").takeIf { it > 0 } ?: DEFAULT_NAG_MINUTES,
       )
     }
   }
