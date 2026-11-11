@@ -1,5 +1,9 @@
 # Changelog
 
+## [7.9.0]
+
+- feat(pins): other apps can arm a pin through the content provider's `arm_pin` call, with their own repeat interval and a key that restarts an unfinished pin instead of stacking another (see docs/intents.md)
+
 ## [7.8.0]
 
 - feat(android): choose the capture template from the quick capture dialog — tap the title to switch templates; the Quick Settings tile and launcher shortcut reopen on the last one picked

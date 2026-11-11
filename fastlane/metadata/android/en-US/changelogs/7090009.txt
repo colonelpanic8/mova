@@ -1,0 +1,1 @@
+* feat(pins): other apps can arm a pin through the content provider's `arm_pin` call, with their own repeat interval and a key that restarts an unfinished pin instead of stacking another (see docs/intents.md)
